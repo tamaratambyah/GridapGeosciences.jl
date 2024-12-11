@@ -94,7 +94,7 @@ d = 3
 model = CubedSphereDiscreteModel(n)
 
 p_exact = p_exact_solution(p)
-u_exact = u_exact_solution(p,d,model)
+u_exact = x-> VectorValue(1.0 , 2.0, 3.0 ) #u_exact_solution(p,d,model)
 
 degree = 2*(p+1)
 
@@ -119,7 +119,8 @@ l0((v,q)) = ∫( u_exact⋅v + p_exact*q )dΩ
 op = AffineFEOperator(a0,l0,X,Y)
 uh, ph = solve(LUSolver(),op)
 
-cfs=["u"=>CellField(u_exact,Ω),"u_ex"=>interpolate(u_exact,U),"uh"=>uh,
+cfs=["u"=>CellField(u_exact,Ω),"_u"=>CellField(u_exact,Ω,PhysicalDomain()),
+    "u_ex"=>interpolate(u_exact,U),"uh"=>uh,
     "eu"=>CellField(u_exact,Ω)-interpolate(u_exact,U),
     "p"=>CellField(p_exact,Ω),"p_ex"=>interpolate(p_exact,P),"ph"=>ph,
     "ep"=>CellField(p_exact,Ω)-interpolate(p_exact,P)]

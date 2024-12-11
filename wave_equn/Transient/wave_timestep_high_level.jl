@@ -9,8 +9,13 @@ p0(t) = x -> 1.0 + 0.0001*exp(-5*((1-x[1])^2+(-x[2])^2+(-x[3])^2))
 u0(t) = x -> VectorValue(0.0 , 0.0, 0.0 )
 
 n = 4
-p = 1
-degree = 4# 2*(p+1)
+p = 0
+degree = 6# 2*(p+1)
+
+out_dir = datadir("wave_transient_n$(n)_p$(p)_highlevel")
+!isdir(out_dir) && mkdir(out_dir)
+pvd = createpvd(out_dir)
+
 
 model = CubedSphereDiscreteModel(n)
 Ω = Triangulation(model)
@@ -30,36 +35,30 @@ P = TransientTrialFESpace(Q)
 X = MultiFieldFESpace([U, P])
 Y = MultiFieldFESpace([V, Q])
 
+mass(t,(dtu,dtp),(v,q)) = ∫( dtu⋅v + dtp*q )dΩ
+res(t,(u,p),(v,q)) =  -1.0*∫( (DIV(v))*p)dω + ∫( (DIV(u))*q )dω #∫( ∂t(u)⋅v + ∂t(p)*q )dΩ
+jac(t,(u,p),(du,dp),(v,q)) = -1.0*∫( (DIV(v))*dp)dω + ∫( (DIV(du))*q )dω
+jac_t(t,(u,p),(dtu,dtp),(v,q)) = ∫( dtu⋅v + dtp*q  )dΩ
 
-m(t, (dtu,dtp), (v,q)) = ∫( dtu⋅v + dtp*q )dΩ
-a(t,(u, p), (v, q)) = ∫( - (DIV(v))*p)dω + ∫( (DIV(u))*q )dω
-l(t,(v, q)) = ∫( VectorValue(0,0,0)⋅v + 0.0*q)dΩ
-
-opt = TransientLinearFEOperator((m, a), l, X, Y, constant_forms=(true, true))
+opt = TransientSemilinearFEOperator(mass,res, (jac,jac_t), X, Y)
+ls = LUSolver()
+nls = NLSolver(ls, show_trace=true, method=:newton, iterations=10)
 
 
-# PD = PatchDecomposition(model)
-# P = GridapSolvers.VankaSolver(X,PD)
-
-# P = GridapSolvers.VankaSolver(Y)
-# ls = GMRESSolver(20;Pl=P,maxiter=1000,atol=1e-14,rtol=1.e-14,verbose=true)
-ls = BackslashSolver()
-
-dt = 0.05
-solver = BackwardEuler(ls, dt)
 t0 = 0.0
-tF = 0.5
+tF = π
+dt = tF/2000
+CFL = dt/(1/n)
 
-a0((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
-l0((v,q)) = ∫( u0(t0)⋅v + p0(t0)*q )dΩ
-op = AffineFEOperator(a0,l0,X,Y)
-xh0 = solve(LUSolver(),op)
+# solver = ThetaMethod(nls,dt,0.5)
+solver = RungeKutta(ls,dt,:EXRK_SSP_2_2)
+# solver = BackwardEuler(ls, dt)
 
-
-
+xh0 = interpolate_everywhere([u0(0.0),p0(0.0)], X)
 uh0,ph0 = xh0
-pvd = createpvd(datadir("wave_equation"))
-pvd[0] = createvtk(Ω,datadir("wave_equation")*"/wave_equation_0.vtu",
+
+
+pvd[0] = createvtk(Ω,out_dir*"/wave_equation_0.vtu",
                         cellfields=["u"=>uh0, "p"=>ph0],
                         append=false)
 
@@ -67,14 +66,15 @@ pvd[0] = createvtk(Ω,datadir("wave_equation")*"/wave_equation_0.vtu",
 sol = solve(solver, opt, t0, tF, xh0)
 it = iterate(sol)
 
-while !isnothing(it)
+@time while !isnothing(it)
   data, state = it
   t, xh = data
   uh, ph = xh
-  pvd[t] = createvtk(Ω,datadir("wave_equation")*"/wave_equation_$t.vtu",
+  println(t)
+  pvd[t] = createvtk(Ω,out_dir*"/wave_equation_$t.vtu",
                       cellfields=["u"=>uh, "p"=>ph],
                                   append=false)
   it = iterate(sol, state)
 end
 
-make_pvd(datadir("wave_equation"),"wave_equation",1)
+make_pvd(out_dir,"wave_equation_","output",1)

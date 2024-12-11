@@ -1,16 +1,16 @@
-function make_pvd(dirs::Vector{String},simName::String,convert2seconds)
+function make_pvd(dirs::Vector{String},simName::String,outname::String,convert2seconds)
   for dir in dirs
     println(dir)
-    _make_pvd(dir,simName,convert2seconds)
+    _make_pvd(dir,simName,outname,convert2seconds)
   end
 
 end
 
-function make_pvd(dir::String,simName::String,convert2seconds)
-  _make_pvd(dir,simName,convert2seconds)
+function make_pvd(dir::String,simName::String,outname::String,convert2seconds)
+  _make_pvd(dir,simName,outname,convert2seconds)
 end
 
-function _make_pvd(dir_loc,simName,convert2seconds)
+function _make_pvd(dir_loc,simName,outname,convert2seconds)
 
   files = filter(x->endswith(x, ".vtu"), readdir((dir_loc)))
 
@@ -27,7 +27,7 @@ function _make_pvd(dir_loc,simName,convert2seconds)
 
   for f in files
     str = f
-    time = str[length(simName)+2:length(str)-4]
+    time = str[length(simName)+1:length(str)-4]
     println(time)
     t = parse(Float64,time)/(convert2seconds)
     t2 = string(t)
@@ -46,7 +46,7 @@ function _make_pvd(dir_loc,simName,convert2seconds)
   append!(final,output_sorted)
   append!(final,tail)
 
-  open(dir_loc*"/my_teset_pvd.pvd", "w") do file
+  open(dir_loc*"/$outname.pvd", "w") do file
       for str in final
         write(file, str)
       end
