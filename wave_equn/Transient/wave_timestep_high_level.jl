@@ -4,12 +4,12 @@ using GridapGeosciences
 using LinearAlgebra
 using DrWatson
 
-include("createpvd.jl")
+include("../createpvd.jl")
 p0(t) = x -> 1.0 + 0.0001*exp(-5*((1-x[1])^2+(-x[2])^2+(-x[3])^2))
 u0(t) = x -> VectorValue(0.0 , 0.0, 0.0 )
 
 n = 4
-p = 0
+p = 1
 degree = 6# 2*(p+1)
 
 out_dir = datadir("wave_transient_n$(n)_p$(p)_highlevel")
@@ -50,8 +50,8 @@ tF = π
 dt = tF/2000
 CFL = dt/(1/n)
 
-# solver = ThetaMethod(nls,dt,0.5)
-solver = RungeKutta(ls,dt,:EXRK_SSP_2_2)
+solver = ThetaMethod(nls,100*dt,0.5)
+# solver = RungeKutta(ls,dt,:EXRK_SSP_2_2)
 # solver = BackwardEuler(ls, dt)
 
 xh0 = interpolate_everywhere([u0(0.0),p0(0.0)], X)

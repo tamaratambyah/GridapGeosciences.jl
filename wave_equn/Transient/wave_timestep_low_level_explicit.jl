@@ -1,24 +1,34 @@
+"""
+low level time stepping using SSPRK2 - explicit methods
+	U_{n+1} = (I + Δt B) Uₙ
+
+  ϕ₁ = ϕₙ + Δt B(ϕₙ)
+  ϕ₂ = ϕ₁ + Δt B(ϕ₁)
+  ϕ_{n+1} = 0.5 ( ϕₙ + ϕ₂ )
+
+"""
+
 using Gridap
 using GridapSolvers
 using GridapGeosciences
 using LinearAlgebra
 using DrWatson
 
-include("createpvd.jl")
+include("../createpvd.jl")
 
 
 
 p0(t) = x -> 1.0 + 0.0001*exp(-5*((1-x[1])^2+(-x[2])^2+(-x[3])^2))
 u0(t) = x -> VectorValue(0.0 , 0.0, 0.0 )
 
-n = 4
-p = 0
+n = 16
+p = 1
 degree = 6# 2*(p+1)
 
 Nstep = 2000
 dt = π/Nstep
 
-out_dir = datadir("wave_transient_n$(n)_p$(p)")
+out_dir = datadir("wave_transient_n$(n)_p$(p)_vanka")
 !isdir(out_dir) && mkdir(out_dir)
 pvd = createpvd(out_dir)
 
@@ -62,8 +72,17 @@ b = Gridap.FESpaces.allocate_vector(assem,vecdata)
 x1 = Gridap.FESpaces.allocate_in_domain(A); fill!(x1,0.0)
 x2 = Gridap.FESpaces.allocate_in_domain(A); fill!(x2,0.0)
 
+## solver
+# PD = PatchDecomposition(model)
+# P = GridapSolvers.VankaSolver(X,PD)
+
+P = JacobiLinearSolver() #GridapSolvers.VankaSolver(Y)
+ls = GMRESSolver(20;Pl=P,maxiter=1000,atol=1e-14,rtol=1.e-14,verbose=1)
+# ls = LUSolver()
+
+
 # facotrise matrix
-ss = symbolic_setup(LUSolver(),A)
+ss = symbolic_setup(ls,A)
 ns = numerical_setup(ss,A)
 
 @time for t = 1:Nstep

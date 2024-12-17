@@ -79,9 +79,9 @@ function generate_cell_coordinates_and_panels(parts,
      for itree=1:pXest_ghost.num_trees
        tree = p4est_tree_array_index(pXest.trees, itree-1)[]
        if tree.quadrants.elem_count > 0
-          set_coarse_cell_vertices_coordinates!( ptr_pXest_connectivity, 
-                                                 coarse_discrete_model, 
-                                                 itree, 
+          set_coarse_cell_vertices_coordinates!( ptr_pXest_connectivity,
+                                                 coarse_discrete_model,
+                                                 itree,
                                                  coarse_cell_wise_vertex_coordinates[itree])
        end
        for cell=1:tree.quadrants.elem_count
@@ -105,9 +105,9 @@ function generate_cell_coordinates_and_panels(parts,
      # Go over ghost cells
      for i=1:pXest_ghost.num_trees
       if tree_offsets[i+1]-tree_offsets[i] > 0
-        set_coarse_cell_vertices_coordinates!( ptr_pXest_connectivity, 
-                                               coarse_discrete_model, 
-                                               i, 
+        set_coarse_cell_vertices_coordinates!( ptr_pXest_connectivity,
+                                               coarse_discrete_model,
+                                               i,
                                                coarse_cell_wise_vertex_coordinates[i])
       end
       for j=tree_offsets[i]:tree_offsets[i+1]-1
@@ -293,7 +293,7 @@ function _setup_non_adaptive_cubed_sphere_discrete_model(ranks::MPIArray,
   GridapP4est.p4est_destroy(ptr_pXest)
   GridapP4est.p4est_connectivity_destroy(ptr_pXest_connectivity)
   return dmodel
-end                                                          
+end
 
 
 struct D2toD3AnalyticalMapCubedSphereTriangulation{M} <: Triangulation{2,3}
@@ -359,7 +359,7 @@ struct D2toD3AnalyticalMapCubedSphereDiscreteModel{T,B,C,D} <: Gridap.Geometry.D
                                            Gridap.Geometry.get_reffes(cube_grid_geo),
                                            Gridap.Geometry.get_cell_type(cube_grid_geo),
                                            Gridap.Geometry.NonOriented())
-    
+
     m1=Fill(mcts,num_cells(cube_grid_geo))
     m2=get_cell_map(cube_grid_geo)
     m=lazy_map(∘,m1,m2)
@@ -392,7 +392,7 @@ function Gridap.Geometry.Triangulation(
   labels::Gridap.Geometry.FaceLabeling;tags=nothing)
   Gridap.Helpers.@notimplementedif tags!=nothing
   D2toD3AnalyticalMapCubedSphereTriangulation(model)
-end 
+end
 
 struct D2toD3PolynomialMapCubedSphereTriangulation{M} <: Triangulation{2,3}
   model::M
@@ -473,17 +473,17 @@ function Gridap.Geometry.Triangulation(
 end
 
 
-struct ForestOfOctreesCubedSphereDiscreteModel{A<:OctreeDistributedDiscreteModel{2,3}, 
+struct ForestOfOctreesCubedSphereDiscreteModel{A<:OctreeDistributedDiscreteModel{2,3},
                                                B<:AbstractVector{<:AbstractVector{<:Point{2,Float64}}},
                                                C<:AbstractVector{<:Integer},
-                                               D<:Integer, 
+                                               D<:Integer,
                                                E<:Real} <: GridapDistributed.DistributedDiscreteModel{2,3}
     octree_model::A
     coarse_cell_wise_vertex_coordinates::B
     coarse_cell_panel::C
     order::D
     radius::E
-end 
+end
 
 GridapDistributed.get_parts(model::ForestOfOctreesCubedSphereDiscreteModel) = model.octree_model.parts
 GridapDistributed.local_views(model::ForestOfOctreesCubedSphereDiscreteModel) = GridapDistributed.local_views(model.octree_model.dmodel)
@@ -498,7 +498,7 @@ function ForestOfOctreesCubedSphereDiscreteModel(ranks::MPIArray{<:Integer},
                                                  order=1,
                                                  radius=1.0)
 
-  
+
    Dc=2
    Dp=3
 
@@ -514,7 +514,7 @@ function ForestOfOctreesCubedSphereDiscreteModel(ranks::MPIArray{<:Integer},
                                                                  coarse_model,
                                                                  num_uniform_refinements)
 
-    
+
     cube_surface_dmodel=setup_cube_surface_distributed_discrete_model(ranks,
                                                          coarse_model,
                                                          coarse_cell_wise_vertex_coordinates,
@@ -574,8 +574,8 @@ function _bump_polynomial_map_cubed_sphere_octree_model(
   vector_reffe=ReferenceFE(lagrangian,VectorValue{3,Float64},order)
   Vh = FESpace(octree_cube_surface,vector_reffe; conformity=:H1)
   vh = interpolate(GridapGeosciences.MapCubeToSphere(radius),Vh)
-  bumped_models=map(octree_cube_surface.dmodel.models, 
-                     Vh.spaces, 
+  bumped_models=map(octree_cube_surface.dmodel.models,
+                     Vh.spaces,
                      partition(get_free_dof_values(vh))) do cube_surface_model, Vh, free_dof_values
     scalar_reffe=ReferenceFE(QUAD,lagrangian,Float64,order)
     xref=Gridap.ReferenceFEs.get_node_coordinates(scalar_reffe)
@@ -597,7 +597,7 @@ function _bump_polynomial_map_cubed_sphere_octree_model(
 
     D2toD3PolynomialMapCubedSphereDiscreteModel(cubed_sphere_grid,cube_surface_model.cube_model_top)
   end
-end 
+end
 
 function _generate_zero_cell_corner_coordinates(pXest_type::GridapP4est.PXestType,
                                                 cell_corner_lids)
@@ -638,8 +638,9 @@ function _generate_topology_grid_and_topology(pXest_type::GridapP4est.PXestType,
   end |> tuple_of_arrays
 end
 
-function Gridap.Adaptivity.adapt(model::ForestOfOctreesCubedSphereDiscreteModel, 
+function Gridap.Adaptivity.adapt(model::ForestOfOctreesCubedSphereDiscreteModel,
                                  refinement_and_coarsening_flags::MPIArray{<:Vector})
+  println("here")
 
   Dc=2
   Dp=3
@@ -649,8 +650,8 @@ function Gridap.Adaptivity.adapt(model::ForestOfOctreesCubedSphereDiscreteModel,
 
   ranks=model.octree_model.parts
 
-  ptr_new_pXest = 
-     GridapP4est._refine_coarsen_balance!(model.octree_model, 
+  ptr_new_pXest =
+     GridapP4est._refine_coarsen_balance!(model.octree_model,
                                           refinement_and_coarsening_flags)
 
   # Extract ghost and lnodes
@@ -671,19 +672,19 @@ function Gridap.Adaptivity.adapt(model::ForestOfOctreesCubedSphereDiscreteModel,
     ncglue.num_regular_faces[1]+ncglue.num_hanging_faces[1]
   end
 
-  # TO-DO: This can be waived as the geometrical information 
-  # is not actually extracted from the underlying forest of 
-  # octrees. Only the topological information out of this 
-  # forest is used. However, we still need to generate some 
+  # TO-DO: This can be waived as the geometrical information
+  # is not actually extracted from the underlying forest of
+  # octrees. Only the topological information out of this
+  # forest is used. However, we still need to generate some
   # geometrical information to be able to generate the
   # UnstructuredDiscreteModel corresponding to the topological
-  # model below. We could have generated a dummy geometrical 
+  # model below. We could have generated a dummy geometrical
   # information, waiving the computations within this function
   # call.
   cell_corner_coordinates = _generate_zero_cell_corner_coordinates(pXest_type,gridap_cell_faces[1])
-  
+
   function JaggedToTable(x::MPIArray{<:JaggedArray})
-    map(x) do x 
+    map(x) do x
       Gridap.Arrays.Table(x.data,x.ptrs)
     end
   end
@@ -756,7 +757,7 @@ function Gridap.Adaptivity.adapt(model::ForestOfOctreesCubedSphereDiscreteModel,
 
   adaptive_models = map(local_views(model.octree_model),
                         bumped_models,
-                        adaptivity_glue) do model, fmodel, glue 
+                        adaptivity_glue) do model, fmodel, glue
       Gridap.Adaptivity.AdaptedDiscreteModel(fmodel,model,glue)
   end
   fmodel = GridapDistributed.GenericDistributedDiscreteModel(adaptive_models,get_cell_gids(cube_surface_octree_dmodel))
@@ -773,11 +774,11 @@ function Gridap.Adaptivity.adapt(model::ForestOfOctreesCubedSphereDiscreteModel,
                                             model.octree_model)
 
   ForestOfOctreesCubedSphereDiscreteModel(bumped_cubed_surface,
-                                          model.coarse_cell_wise_vertex_coordinates, 
+                                          model.coarse_cell_wise_vertex_coordinates,
                                           model.coarse_cell_panel,
                                           model.order,
-                                          model.radius), adaptivity_glue
-end 
+                                          model.radius), adaptivity_glue, fmodel
+end
 
 function setup_coarse_cell_vertices_coordinates()
   data = [ Point(-1.0,-1.0), Point(1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0),
@@ -788,7 +789,7 @@ function setup_coarse_cell_vertices_coordinates()
            Point(-1.0,-1.0), Point(1.0, -1.0), Point(-1.0, 1.0), Point(1.0, 1.0) ]
   ptr = [1, 5, 9, 13, 17, 21, 25]
   Gridap.Arrays.Table(data,ptr)
-end 
+end
 
 
 function CubedSphereDiscreteModel(
@@ -829,7 +830,7 @@ function CubedSphereDiscreteModel(
                                                     coarse_cell_panel,
                                                     num_uniform_refinements,
                                                     radius=radius)
-  else 
+  else
     ForestOfOctreesCubedSphereDiscreteModel(ranks,
                                             coarse_model,
                                             coarse_cell_wise_vertex_coordinates,
@@ -837,7 +838,5 @@ function CubedSphereDiscreteModel(
                                             num_uniform_refinements,
                                             radius=radius,
                                             order=order)
-  end  
+  end
 end
-
-

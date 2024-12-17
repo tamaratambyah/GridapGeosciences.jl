@@ -61,7 +61,7 @@ function setup_fe_space(model)
     Vh=FESpace(model,reffe)
 end
 
-models = []
+
 with_mpi() do distribute
     n_refs = 2 # number of refinements
     ranks = distribute(LinearIndices((MPI.Comm_size(MPI.COMM_WORLD),)))
@@ -71,7 +71,7 @@ with_mpi() do distribute
     fh = interpolate(f,Vh)
     writevtk(Triangulation(model),joinpath(datadir("models"),"cubed_sphere_amr_step_0"),
                 cellfields=["f"=>fh],append=false)
-    push!(models,model)
+
     for step=1:n_refs
        fh = interpolate(f,Vh)
        error_indicators=calculate_error_indicators(model,fh)
@@ -80,36 +80,5 @@ with_mpi() do distribute
         fh = interpolate(f,Vh)
         writevtk(Triangulation(model),joinpath(datadir("models"),"cubed_sphere_amr_step_$(step)"),
                 cellfields=["f"=>fh],append=false)
-        push!(models,model)
     end
 end
-
-using GridapSolvers
-using Gridap.Helpers: @check
-import GridapSolvers.MultilevelTools: ModelHierarchyLevel, HierarchicalArray
-reverse!(models)
-
-
-function CubedSphereModelHierarchy(models)
-  nlevs = length(models)
-  # @check all(map(i -> isa(models[i],GridapDistributed.DistributedAdaptedDiscreteModel),1:nlevs-1)) "Hierarchy models are not adapted models."
-  # for lev in 1:nlevs-1
-  #   @check Adaptivity.is_child(models[lev],models[lev+1]) "Incorrect hierarchy of models."
-  # end
-  ranks = get_parts(models[1])
-  @check all(m -> length(get_parts(m)) === length(ranks), models) "Models have different communicators."
-
-  level_parts = fill(ranks,nlevs)
-  meshes = Vector{ModelHierarchyLevel}(undef,nlevs)
-  for lev in 1:nlevs-1
-    model = models[lev]
-    glue  = model.octree_model.non_conforming_glue #Gridap.Adaptivity.get_adaptivity_glue(models[lev])
-
-    meshes[lev] = ModelHierarchyLevel(lev,model,glue,nothing,nothing)
-  end
-  meshes[nlevs] = ModelHierarchyLevel(nlevs,models[nlevs],nothing,nothing,nothing)
-  return HierarchicalArray(meshes,level_parts)
-end
-
-
-mh = CubedSphereModelHierarchy(models)
