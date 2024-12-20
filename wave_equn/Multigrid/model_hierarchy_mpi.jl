@@ -17,40 +17,22 @@ ranks = with_mpi() do distribute
 end
 
 
-function adapt_model(ranks,model; refine=true)
+function adapt_model(ranks,model)
     cell_partition=get_cell_gids(model.octree_model.dmodel)
     ref_coarse_flags=map(ranks,partition(cell_partition)) do rank,indices
         flags=zeros(Cint,length(indices))
-        if refine
           flags.=refine_flag
-        else
-          flags.=nothing_flag
-        end
     end
-    # Gridap.Adaptivity.adapt(model,ref_coarse_flags)
-    GridapP4est.adapt(model,ref_coarse_flags)
+    Gridap.Adaptivity.adapt(model,ref_coarse_flags)
+    # GridapP4est.adapt(model,ref_coarse_flags)
 end
 
-n_refs = 2 # number of refinements
-
-# coarsest model
-model0 = CubedSphereDiscreteModel(ranks,n_refs;adaptive=true)
-
-model1,glue1 = adapt_model(ranks, model0; refine=false)
-
-writevtk(Triangulation(model1),joinpath(datadir("models"),"cubed_sphere_amr_step_0"),append=false)
-
-model2,glue2 = adapt_model(ranks, model1)
-writevtk(Triangulation(model2),joinpath(datadir("models"),"cubed_sphere_amr_step_1"),append=false)
-
-models = [model2,model1]
-glues = [glue2,glue1]
-
-######
+n_refs = 1 # number of refinements
 
 T = Int64
 coarsest_model = CubedSphereDiscreteModel(ranks,n_refs;adaptive=true)
 num_procs_x_level = [(1,1),(1,1)]
+
 _num_levels  = length(num_procs_x_level)
 level_parts = Vector{Union{typeof(ranks),GridapDistributed.MPIVoidVector{T}}}(undef,_num_levels)
 meshes      = Vector{ModelHierarchyLevel}(undef,_num_levels)
@@ -58,61 +40,83 @@ meshes      = Vector{ModelHierarchyLevel}(undef,_num_levels)
 level_parts[_num_levels] = get_parts(coarsest_model)
 meshes[_num_levels] = ModelHierarchyLevel(_num_levels,coarsest_model,nothing,nothing,nothing)
 
-i = 1
+i = _num_levels-1
 
 level_parts[i]     = level_parts[i+1]
-model_ref,ref_glue = adapt_model(ranks,coarsest_model) #Gridap.Adaptivity.refine(modelH)
+model_ref,ref_glue = adapt_model(ranks,coarsest_model)   #Gridap.Adaptivity.refine(modelH)
 model_red,red_glue = nothing,nothing
 meshes[i] = ModelHierarchyLevel(i,model_ref,ref_glue,model_red,red_glue)
 
 mh = HierarchicalArray(meshes,level_parts)
 
-model     = get_model_before_redist(model,lev)
 
-
-_mh1 = map(linear_indices(mh),mh) do lev, mhl
-  if lev == num_levels(mh)
-    return mhl
+import GridapGeosciences: ForestOfOctreesCubedSphereDiscreteModel
+import Gridap.Adaptivity: AdaptivityGlue, AdaptedDiscreteModel
+import GridapDistributed: DistributedDiscreteModel
+struct ForestAdaptedDiscreteModel{Dc,Dp,A, B,C<:AdaptivityGlue} <: DiscreteModel{Dc,Dp}
+  model::A
+  parent::B
+  glue::C
+  function ForestAdaptedDiscreteModel(model,parent,glue)
+    # @check !isa(model,AdaptedDiscreteModel)
+    A = typeof(model)
+    B = typeof(parent)
+    C = typeof(glue)
+    Dc = 2
+    Dp = 3
+    return new{Dc,Dp,A,B,C}(model,parent,glue)
   end
-
-  if GridapDistributed.i_am_in(get_level_parts(mh,lev+1))
-    model     = get_model_before_redist(mh,lev)
-    println(model)
-    parent    = get_model(mh,lev+1)
-    ref_glue  = mhl.ref_glue
-    model_ref = GridapDistributed.DistributedAdaptedDiscreteModel(model,parent,ref_glue)
-    # model_ref,ref_glue = adapt_model(ranks,parent)
-  else
-    model_ref = nothing
-  end
-  return ModelHierarchyLevel(lev,model_ref,mhl.ref_glue,mhl.model_red,mhl.red_glue)
 end
 
 
+# DiscreteModel API
+Gridap.Geometry.get_grid(model::ForestAdaptedDiscreteModel)          = get_grid(model.model)
+Gridap.Geometry.get_grid_topology(model::ForestAdaptedDiscreteModel) = Gridap.Geometry.get_grid_topology(model.model)
+Gridap.Geometry.get_face_labeling(model::ForestAdaptedDiscreteModel) = get_face_labeling(model.model)
 
-# function CubedSphereModelHierarchy(models,glues)
-#   nlevs = length(models)
-#   @check length(models) == length(glues) "Incorrect dimensions"
-#   # for lev in 1:nlevs-1
-#   #   @check num_cells(models[lev]) > num_cells(models[lev+1]) "Incorrect hierarchy of models."
-#   # end
-#   ranks = get_parts(models[1])
-#   @check all(m -> length(get_parts(m)) === length(ranks), models) "Models have different communicators."
+# Other getters
+Gridap.Adaptivity.get_model(model::ForestAdaptedDiscreteModel)  = model.model
+Gridap.Adaptivity.get_parent(model::ForestAdaptedDiscreteModel{Dc,Dp,A,<:ForestAdaptedDiscreteModel}) where {Dc,Dp,A} = get_model(model.parent)
+Gridap.Adaptivity.get_parent(model::ForestAdaptedDiscreteModel{Dc,Dp,A,B}) where {Dc,Dp,A,B} = model.parent
+Gridap.Adaptivity.get_adaptivity_glue(model::ForestAdaptedDiscreteModel) = model.glue
 
-#   level_parts = fill(ranks,nlevs)
-#   meshes = Vector{ModelHierarchyLevel}(undef,nlevs)
-#   for lev in 1:nlevs-1
-#     model = models[lev]
-#     glue  = glues[lev] #Gridap.Adaptivity.get_adaptivity_glue(models[lev])
+function is_child(m1::ForestAdaptedDiscreteModel,m2)
+  return get_parent(m1) === m2 # m1 = refine(m2)
+end
 
-#     meshes[lev] = ModelHierarchyLevel(lev,model,glue,nothing,nothing)
-#   end
-#   meshes[nlevs] = ModelHierarchyLevel(nlevs,models[nlevs],nothing,nothing,nothing)
-#   return HierarchicalArray(meshes,level_parts)
-# end
+function is_child(m1::ForestAdaptedDiscreteModel,m2::ForestAdaptedDiscreteModel)
+  return get_parent(m1) === get_model(m2) # m1 = refine(m2)
+end
+
+is_child(m1,m2::ForestAdaptedDiscreteModel) = false
+
+is_related(m1,m2) = is_child(m1,m2) || is_child(m2,m1)
 
 
-# mh = CubedSphereModelHierarchy(models,glues)
+function GridapDistributed.DistributedAdaptedDiscreteModel(
+  model  :: DistributedDiscreteModel,
+  parent :: DistributedDiscreteModel,
+  glue   :: AbstractArray{<:AdaptivityGlue};
+)
+  models = map(local_views(model),local_views(parent),glue) do model, parent, glue
+    ForestAdaptedDiscreteModel(model,parent,glue)
+  end
+  gids = get_cell_gids(model)
+  metadata = hasproperty(model,:metadata) ? model.metadata : nothing
+  return GridapDistributed.GenericDistributedDiscreteModel(models,gids;metadata)
+
+end
+
+
+mh = GridapSolvers.MultilevelTools.convert_to_adapted_models(mh)
+lev = 1
+mhl = ModelHierarchyLevel(i,model_ref,ref_glue,model_red,red_glue)
+model     = get_model_before_redist(mh,lev)
+parent    = get_model(mh,lev+1)
+ref_glue  = mhl.ref_glue
+
+
+
 
 function get_jacobi_smoothers(mh)
   nlevs = num_levels(mh)
@@ -152,39 +156,44 @@ f_p(x) = p_exact(x) + (∇⋅u_exact)(x)
 p = 1
 degree = 6
 
+import Gridap.Geometry: Grid, GridTopology
+Gridap.Geometry.num_point_dims(stuff::Grid) = 3
+Gridap.Geometry.num_point_dims(model::DiscreteModel) = 3
+Gridap.Geometry.num_point_dims(::GridTopology) =3
 
-
-model = get_model(_mh1,1)
+model = get_model(mh,1)
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
 l2(e,dΩ) = sum(∫(e⊙e)dΩ)
 
 reffe_u = ReferenceFE(raviart_thomas,Float64,p)
-Vs = TestFESpace(_mh1,reffe_u,conformity=:Hdiv)
+Vs = TestFESpace(mh,reffe_u,conformity=:Hdiv)
 Us = TrialFESpace(Vs)
 
 reffe_p = ReferenceFE(lagrangian,Float64,p)
-Qs = TestFESpace(_mh1,reffe_p;conformity=:L2)
+Qs = TestFESpace(mh,reffe_p;conformity=:L2)
 Ps = TrialFESpace(Qs)
 
-tests = MultiFieldFESpace([Us,Ps])
-trials = MultiFieldFESpace([Vs,Qs])
+# tests = MultiFieldFESpace([Us,Ps])
+# trials = MultiFieldFESpace([Vs,Qs])
+_biform(p,q,dΩ) =  ∫( p*q  )dΩ
+_liform(q,dΩ) = ∫( 0.0*q )dΩ
 
 
-biform((u,p),(v,q),dΩ) = ( ∫( u⋅v - (∇⋅v)*p )dΩ
-                         + ∫( p*q + (∇⋅u)*q )dΩ )
-liform((v,q),dΩ) = ∫( f_u⋅v  + f_p⋅q )dΩ
+# biform((u,p),(v,q),dΩ) = ( ∫( u⋅v - (∇⋅v)*p )dΩ
+#                          + ∫( p*q + (∇⋅u)*q )dΩ )
+# liform((v,q),dΩ) = ∫( f_u⋅v  + f_p⋅q )dΩ
 
-a(u,v) = biform(u,v,dΩ)
-l(v) = liform(v,dΩ)
-op = AffineFEOperator(a,l,get_fe_space(trials,1),get_fe_space(tests,1))
+a(u,v) = _biform(u,v,dΩ)
+l(v) = _liform(v,dΩ)
+op = AffineFEOperator(a,l,get_fe_space(Ps,1),get_fe_space(Qs,1))
 A = get_matrix(op)
 b = get_vector(op)
 
-biforms = map(mhl -> get_bilinear_form(mhl,biform,degree),_mh1)
+biforms = map(mhl -> get_bilinear_form(mhl,biform,degree),mh)
 
 # smoothers = get_patch_smoothers(mh,tests,biform,degree)
-smoothers = get_jacobi_smoothers(_mh1)
+smoothers = get_jacobi_smoothers(mh)
 
 restrictions, prolongations = setup_transfer_operators(
   trials, degree; mode=:residual, solver=GridapSolvers.LinearSolvers.IS_ConjugateGradientSolver(;reltol=1.e-6)
@@ -192,7 +201,7 @@ restrictions, prolongations = setup_transfer_operators(
 
 
 gmg = GMGLinearSolver(
-  _mh1,trials,tests,biforms,
+  mh,trials,tests,biforms,
   prolongations,restrictions,
   pre_smoothers=smoothers,
   post_smoothers=smoothers,

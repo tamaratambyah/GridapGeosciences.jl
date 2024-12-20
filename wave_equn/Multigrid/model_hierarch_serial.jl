@@ -9,18 +9,9 @@ import Gridap.Adaptivity: EdgeBasedRefinement, RedGreenRefinement
 import Gridap.Geometry: UnstructuredDiscreteModel
 
 
-# coarsest model
-_model = CubedSphereDiscreteModel(2)
-model = _model.cubed_sphere_linear_model
-# model2 = Gridap.Adaptivity.refine(model, refinement_method = "red_green")
 
-# writevtk(model,joinpath(datadir("models"),"cubed_sphere_serial_linear"), append=false)
-writevtk(model2,joinpath(datadir("models"),"cubed_sphere_serial_refine"), append=false)
 
-method = RedGreenRefinement()
-cells_to_refine = nothing
-Dc = 2
-# function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::UnstructuredDiscreteModel{Dc,Dp};cells_to_refine=nothing) where {Dc,Dp}
+function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::UnstructuredDiscreteModel{Dc,Dp};cells_to_refine=nothing) where {Dc,Dp}
   println("refined method")
   function _cell_vector_to_dof_vector!(dof_vector,cell_node_ids, cell_vector)
     cache_cell_node_ids = array_cache(cell_node_ids)
@@ -34,12 +25,7 @@ Dc = 2
     end
   end
 
-  # cells_to_refine can be
-  #    a) nothing -> All cells get refined
-  #    b) AbstractArray{<:Bool} of size num_cells(model)
-  #            -> Only cells such that cells_to_refine[iC] == true get refined
-  #    c) AbstractArray{<:Integer}
-  #            -> Cells for which gid ∈ cells_to_refine get refined
+
   ctopo = Gridap.Geometry.get_grid_topology(model)
   coarse_labels = get_face_labeling(model)
   # Create new model
@@ -68,10 +54,14 @@ Dc = 2
   vector_reffe=ReferenceFE(lagrangian,VectorValue{3,Float64},order)
   V = FESpace(cube_surface_trian,vector_reffe; conformity=:H1)
   vh = interpolate(GridapGeosciences.MapCubeToSphere(radius),V)
+
   scalar_reffe=ReferenceFE(QUAD,lagrangian,Float64,order)
   xref=Gridap.ReferenceFEs.get_node_coordinates(scalar_reffe)
-  xrefₖ=Fill(xref,num_cells(cube_surface_trian))
+
+  xrefₖ=Fill(xref,num_cells(ref_model))
+
   vhx=lazy_map(evaluate,Gridap.CellData.get_data(vh),xrefₖ)
+
   V = FESpace(cube_surface_trian,scalar_reffe; conformity=:H1)
   node_coordinates = Vector{Point{3,Float64}}(undef,num_free_dofs(V))
   cell_node_ids    = get_cell_dof_ids(V)
@@ -80,54 +70,67 @@ Dc = 2
   cell_reffes = [scalar_reffe]
 
   cube_surface_grid = Gridap.Geometry.UnstructuredGrid(node_coordinates,
-    Gridap.Arrays.Table(cell_node_ids),
-    cell_reffes,
-    cell_types,
-    Gridap.Geometry.Oriented())
+                                                Gridap.Arrays.Table(cell_node_ids),
+                                                  cell_reffes,
+                                                  cell_types) ### NOT ORIENTED!
+  cube_model = Gridap.Geometry.UnstructuredDiscreteModel(cube_surface_grid,topo,labels)
 
-  cube_surface_model = Gridap.Geometry.compute_active_model(cube_surface_trian)
-  topology = Gridap.Geometry.get_grid_topology(cube_surface_model)
-  labeling = Gridap.Geometry.get_face_labeling(cube_surface_model)
-  Gridap.Geometry.UnstructuredDiscreteModel(cube_surface_grid,topology,labeling)
+  # adapted_model = Gridap.Adaptivity.AdaptedDiscreteModel(cube_model,model,glue)
+  # writevtk(adapted_model,joinpath(datadir("models"),"cube_model"), append=false)
 
-  return Gridap.Adaptivity.AdaptedDiscreteModel(cube_ref_model,model,glue)
-
+  return Gridap.Adaptivity.AdaptedDiscreteModel(cube_model,model,glue)
 
 end
 
+# coarsest model
+_model = CubedSphereDiscreteModel(2)
+model = _model.cubed_sphere_linear_model
+model2 = Gridap.Adaptivity.refine(RedGreenRefinement(),model;cells_to_refine=nothing)#Gridap.Adaptivity.refine(model, refinement_method = "red_green")
+model3 = Gridap.Adaptivity.refine(model2, refinement_method = "red_green")
 
+models = [model3,model2]
 
+# writevtk(model,joinpath(datadir("models"),"cubed_sphere_serial_linear"), append=false)
+# writevtk(model2,joinpath(datadir("models"),"cubed_sphere_serial_refine"), append=false)
 
+mh = ModelHierarchy(models)
 
-cell_partition = Tuple(fill(2,2))
-Dc = 2
+#### test grid transfer
+qorder = 6
+order = 0
+sol(x) = sum(x)
+# Triangulations
+trian = Triangulation(model2)
+ctrian = Triangulation(model)
 
-desc = Gridap.Geometry.get_cartesian_descriptor(_model)
-nC   = (4,4) #desc.partition
+glue = Gridap.Adaptivity.get_adaptivity_glue(model2)
+rrules = Gridap.Adaptivity.get_old_cell_refinement_rules(glue)
 
-  # Refinement Glue
-  f2c_cell_map, fcell_to_child_id = Gridap.Adaptivity._create_cartesian_f2c_maps(nC,cell_partition)
-  faces_map = [(d==Dc) ? f2c_cell_map : Int[] for d in 0:Dc]
-  reffe     = Gridap.FESpaces.LagrangianRefFE(Float64,first(Gridap.Geometry.get_polytopes(model)),1)
-  rrules    = Gridap.Adaptivity.RefinementRule(reffe,cell_partition)
-  glue = Gridap.Adaptivity.AdaptivityGlue(faces_map,fcell_to_child_id,rrules)
+# Measures
+dΩ_f  = Measure(trian,qorder)
+dΩ_c  = Measure(ctrian,qorder)
+dΩ_cf = Measure(ctrian,trian,qorder)
 
-  # Refined model
+cell_quad = Gridap.CellData.get_cell_quadrature(dΩ_cf)
+dΩ_cf_bis = Measure(ctrian,trian,cell_quad)
 
-  _model_ref = CubedSphereDiscreteModel(8) #CartesianDiscreteModel(domain,cell_partition.*nC)
+# FESpaces
+reffe = ReferenceFE(lagrangian,Float64,order)
+V_f = TestFESpace(model2,reffe;dirichlet_tags="boundary")
+U_f = TrialFESpace(V_f,sol)
+V_c = TestFESpace(model,reffe;dirichlet_tags="boundary")
+U_c = TrialFESpace(V_c,sol)
+# V_c_fast = TestFESpace(model,rrules,reffe;dirichlet_tags="boundary")
+# U_c_fast = TrialFESpace(V_c_fast,sol)
 
-  # Propagate face labels
-  coarse_labels = get_face_labeling(model)
-  ctopo   = Gridap.Geometry.get_grid_topology(model)
-  ftopo     = Gridap.Geometry.get_grid_topology(_model_ref)
-  # fine_labels   = Gridap.Adaptivity.refine_face_labeling(coarse_labels,glue,coarse_topo,fine_topo)
+# CellField: Coarse -> Fine
+cf_c_phy = CellField(sol,ctrian)
+cf_c_ref = Gridap.CellData.change_domain(cf_c_phy,PhysicalDomain(),ReferenceDomain())
+cf_f_ref_ref = Gridap.CellData.change_domain(cf_c_ref, trian, ReferenceDomain())
+cf_f_ref_phy = Gridap.CellData.change_domain(cf_c_ref, trian, PhysicalDomain())
+cf_f_phy_ref = Gridap.CellData.change_domain(cf_c_phy, trian, ReferenceDomain())
+cf_f_phy_phy = Gridap.CellData.change_domain(cf_c_phy, trian, PhysicalDomain())
 
-  model_ref = CartesianDiscreteModel(get_grid(_model_ref),fine_topo,fine_labels)
-  return AdaptedDiscreteModel(model_ref,model,glue)
-
-
-
-mh = HierarchicalArray(meshes,level_parts)
 
 
 
@@ -200,8 +203,8 @@ b = get_vector(op)
 
 biforms = map(mhl -> get_bilinear_form(mhl,biform,degree),mh)
 
-# smoothers = get_patch_smoothers(mh,tests,biform,degree)
-smoothers = get_jacobi_smoothers(mh)
+smoothers = get_patch_smoothers(mh,tests,biform,degree)
+# smoothers = get_jacobi_smoothers(mh)
 
 restrictions, prolongations = setup_transfer_operators(
   trials, degree; mode=:residual, solver=GridapSolvers.LinearSolvers.IS_ConjugateGradientSolver(;reltol=1.e-6)
@@ -226,7 +229,7 @@ solver = GMRESSolver(20;Pl=gmg,maxiter=5,atol=1e-14,rtol=1.e-14,verbose=true)
 ns = numerical_setup(symbolic_setup(solver,A),A)
 
 # Solve
-x = pfill(0.0,partition(axes(A,2)))
+x = Gridap.Algebra.allocate_in_domain(A); fill!(x,0.0)
 solve!(x,ns,b)
 
 
