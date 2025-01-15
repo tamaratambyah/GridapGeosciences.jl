@@ -25,6 +25,11 @@ degree = 10#2*(p+1)
 
 # model = CartesianDiscreteModel((0,1,0,1,0,1), (n,n,n))
 model = CubedSphereDiscreteModel(n)
+
+nodes = Gridap.Geometry.get_node_coordinates(get_grid(model.cubed_sphere_linear_model))
+
+
+
 Ω = Triangulation(model)
 dΩ = Measure(Ω, degree)
 dω = Measure(Ω,degree,ReferenceDomain())

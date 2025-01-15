@@ -24,7 +24,8 @@ function map_xy_2_XYZ(xy,panel)
   elseif panel == 6
     XYZ = Point(y,x,-1.0)
   end
-  map_cube_to_sphere(XYZ)
+  XYZ
+  # map_cube_to_sphere(XYZ)
 end
 
 function map_cube_to_sphere(XYZ)
@@ -39,19 +40,21 @@ end
 
 function get_panel(panel,node_coordinates,cell_node_ids)
 
-  mapped_node_coordinates = map( (x)-> map_xy_2_XYZ(x,panel), node_coordinates  )
+  mapped_node_coordinates = map( (xy)-> map_xy_2_XYZ(xy,panel), node_coordinates  )
+  _mapped_node_coordinates = reshape(mapped_node_coordinates,length(node_coordinates))
+
   tab_cell_node_ids = Table(cell_node_ids)
 
   reffes = LagrangianRefFE(Float64,QUAD,1)
   cell_types = fill(1,length(tab_cell_node_ids))
   cell_reffes=[reffes]
 
-  Gridap.Geometry.UnstructuredGrid(vec(mapped_node_coordinates),
+  Gridap.Geometry.UnstructuredGrid(_mapped_node_coordinates,
                                   tab_cell_node_ids,
                                   cell_reffes,
                                   cell_types,
                                   Gridap.Geometry.NonOriented())
-
+### put non linear cell maps here
 end
 
 

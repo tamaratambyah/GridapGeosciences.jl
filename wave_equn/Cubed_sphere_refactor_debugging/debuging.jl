@@ -126,3 +126,22 @@ writevtk(cube,datadir("CubedSphere")*"/cube",append=false)
 
 # mapped_node_coordinates = Vector{T}(undef,length(node_coordinates))
 # Gridap.Geometry._cell_vector_to_dof_vector!(mapped_node_coordinates,cell_node_ids,mapped_cell_coordinates)
+
+
+
+# function generate_ptr(n)
+#   nvertices = 4
+#   ptr  = Vector{Int}(undef,n+1)
+#   ptr[1]=1
+#   for i=1:n
+#     ptr[i+1]=ptr[i]+nvertices
+#   end
+#   ptr
+# end
+
+# ptr = generate_ptr(npanels)
+# data = [ 2,4,6,8, 4,3,8,7, 3,1,7,5, 1,2,5,6, 6,8,5,7, 1,3,2,4  ]
+# cube_vertex_ids = Gridap.Arrays.Table(data,ptr)
+
+
+# topo = UnstructuredGridTopology(panel1)
