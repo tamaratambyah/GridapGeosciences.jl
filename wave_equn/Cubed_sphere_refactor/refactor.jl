@@ -11,6 +11,7 @@ using LinearAlgebra
 using FillArrays
 include("structs.jl")
 include("refinement.jl")
+include("transfer_FEmap.jl")
 
 nodes = [
 Point(1.0, -1.0, -1.0)
@@ -48,15 +49,15 @@ face_labels = FaceLabeling(topo)
 
 cube_grid = Gridap.Geometry.UnstructuredGrid(nodes,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 cube_model = UnstructuredDiscreteModel(cube_grid,topo,face_labels)
-
+ref_cube_model = Gridap.Adaptivity.refine(cube_model)
 function map_cube_to_sphere(XYZ)
   R = 1
   x,y,z = XYZ
   x_sphere = x*sqrt(1.0-y^2/2-z^2/2+y^2*z^2/(3.0))
   y_sphere = y*sqrt(1.0-z^2/2-x^2/2+x^2*z^2/(3.0))
   z_sphere = z*sqrt(1.0-x^2/2-y^2/2+x^2*y^2/(3.0))
-  R*Point(x_sphere,y_sphere,z_sphere)
-  # Point(2*x,4*y,z)
+  # R*Point(x_sphere,y_sphere,z_sphere)
+  Point(2*x,4*y,z)
 end
 
 ### Refine using polynomial grid
@@ -79,24 +80,12 @@ evaluate(cmaps[1],Point(0,1))
 
 
 # interpolate map into vector FE spaces
-
-cube_model = UnstructuredDiscreteModel(cube_grid)
-V = FESpace(cube_model,
-            ReferenceFE(lagrangian,VectorValue{3,Float64},1),
-            conformity=:H1)
-FE_map = interpolate(mapp,V)
-# CSgrid = CubedSphereGrid(cube_grid,FE_map)
-# CSmodel = CubedSphereDiscreteModel(CSgrid,topo,face_labels)
+CSgrid = CubedSphereGrid(cube_grid,map_cube_to_sphere,1)
+cmaps = collect( get_cell_map(CSgrid))
+evaluate(cmaps[1],Point(0,1))
+CSmodel = CubedSphereDiscreteModel(CSgrid,topo,face_labels)
 
 # writevtk(CSmodel,datadir("CubedSphere")*"/CSmodel",append=false)
 
-# CSmodel_refined = Gridap.Adaptivity.refine(CSmodel)
+CSmodel_refined = Gridap.Adaptivity.refine(CSmodel)
 # writevtk(CSmodel_refined,datadir("CubedSphere")*"/CSmodel_refined",append=false)
-
-refined_cube_model =  Gridap.Adaptivity.refine(cube_model)
-
-ref_Vh = FESpace(refined_cube_model,
- ReferenceFE(lagrangian,VectorValue{3,Float64},1),
- conformity=:H1)
-
-interpolate(FE_map,ref_Vh)
