@@ -9,83 +9,64 @@ using Gridap.Adaptivity
 using Test
 using LinearAlgebra
 using FillArrays
+include("cube_sphere_1_cell_per_panel.jl")
 include("structs.jl")
 include("refinement.jl")
-include("transfer_FEmap.jl")
+include("maps.jl")
 
-nodes = [
-Point(1.0, -1.0, -1.0)
-Point(1.0, 1.0, -1.0)
-Point(1.0, -1.0, 1.0)
-Point(1.0, 1.0, 1.0)
-Point(-1.0, -1.0, 1.0)
-Point(-1.0, 1.0, 1.0)
-Point(-1.0, 1.0, -1.0)
-Point(-1.0, -1.0, -1.0)
-]
-
-function generate_ptr(n)
-  nvertices = 4
-  ptr  = Vector{Int}(undef,n+1)
-  ptr[1]=1
-  for i=1:n
-    ptr[i+1]=ptr[i]+nvertices
-  end
-  ptr
-end
-
-data = [ 1,2,3,4, 3,4,5,6, 4,2,6,7, 6,7,5,8, 7,2,8,1, 8,1,5,3  ]
-ptr = generate_ptr(6)
-cell_node_ids = Table(data,ptr)
+dir = datadir("CubedSphereRefactor")
+!isdir(dir) && mkdir(dir)
 
 
-polytopes = fill(QUAD,6)
-cell_type = fill(1,6)
-reffes = LagrangianRefFE(Float64,QUAD,1)
-cell_reffes=[reffes]
-
-topo = UnstructuredGridTopology(nodes,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
-face_labels = FaceLabeling(topo)
-
-cube_grid = Gridap.Geometry.UnstructuredGrid(nodes,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
+cube_grid,topo,face_labels = cube_sphere_1_cell_per_panel()
 cube_model = UnstructuredDiscreteModel(cube_grid,topo,face_labels)
 ref_cube_model = Gridap.Adaptivity.refine(cube_model)
-function map_cube_to_sphere(XYZ)
-  R = 1
-  x,y,z = XYZ
-  x_sphere = x*sqrt(1.0-y^2/2-z^2/2+y^2*z^2/(3.0))
-  y_sphere = y*sqrt(1.0-z^2/2-x^2/2+x^2*z^2/(3.0))
-  z_sphere = z*sqrt(1.0-x^2/2-y^2/2+x^2*y^2/(3.0))
-  # R*Point(x_sphere,y_sphere,z_sphere)
-  Point(2*x,4*y,z)
-end
+cube_nodes = get_node_coordinates(cube_grid)
 
-### Refine using polynomial grid
+### Analytical map
 CSgrid = CubedSphereGrid(cube_grid,map_cube_to_sphere)
-cmaps = collect( get_cell_map(CSgrid) )
-evaluate(cmaps[1],Point(0,1))
-
 CSmodel = CubedSphereDiscreteModel(CSgrid,topo,face_labels)
-writevtk(CSmodel,datadir("CubedSphere")*"/CSmodel",append=false)
+writevtk(CSmodel,dir*"/CSmodel",append=false)
 
-CSmodel_refined = Gridap.Adaptivity.refine(CSmodel)
-writevtk(CSmodel_refined,datadir("CubedSphere")*"/CSmodel_refined",append=false)
-cmaps = collect( get_cell_map(get_grid(CSmodel_refined)) )
-evaluate(cmaps[1],Point(0,1))
+# test node 4 = (1,1,1) is mapped properly in cells 1,2,3
+node4 = cube_nodes[4] # node 4 = (1,1,1)
+mapped_node4 = map_cube_to_sphere(node4)
+cmaps = collect( get_cell_map(CSmodel) )
+@test evaluate(cmaps[1],Point(1,1)) == mapped_node4
+@test evaluate(cmaps[2],Point(1,0)) == mapped_node4
+evaluate(cmaps[3],Point(0,0)) == mapped_node4
 
-CSmodel_refined2 = Gridap.Adaptivity.refine(CSmodel_refined)
-writevtk(CSmodel_refined2,datadir("CubedSphere")*"/CSmodel_refined2",append=false)
-cmaps = collect( get_cell_map(get_grid(CSmodel_refined2)) )
-evaluate(cmaps[1],Point(0,1))
+# apply refinement
+CSmodel_refined1 = Gridap.Adaptivity.refine(CSmodel)
+writevtk(CSmodel_refined1,dir*"/CSmodel_refined1",append=false)
+
+CSmodel_refined2 = Gridap.Adaptivity.refine(CSmodel_refined1)
+writevtk(CSmodel_refined2,dir*"/CSmodel_refined2",append=false)
 
 
-# interpolate map into vector FE spaces
-CSgrid = CubedSphereGrid(cube_grid,map_cube_to_sphere,1)
-cmaps = collect( get_cell_map(CSgrid))
-evaluate(cmaps[1],Point(0,1))
-CSmodel = CubedSphereDiscreteModel(CSgrid,topo,face_labels)
+### Polynomial map
+CSgrid_poly = CubedSphereGrid(cube_grid,map_cube_to_sphere,1)
+CSmodel_poly = CubedSphereDiscreteModel(CSgrid_poly,topo,face_labels)
+writevtk(CSmodel_poly,dir*"/CSmodel_poly",append=false)
 
-# writevtk(CSmodel,datadir("CubedSphere")*"/CSmodel",append=false)
+# test node 4 = (1,1,1) is mapped properly in cells 1,2,3 for mapping of order 1
+cmaps_poly = collect( get_cell_map(CSmodel_poly) )
+@test evaluate(cmaps_poly[1],Point(1,1)) == mapped_node4
+@test evaluate(cmaps_poly[2],Point(1,0)) == mapped_node4
+@test evaluate(cmaps_poly[3],Point(0,0)) == mapped_node4
 
-CSmodel_refined = Gridap.Adaptivity.refine(CSmodel)
-# writevtk(CSmodel_refined,datadir("CubedSphere")*"/CSmodel_refined",append=false)
+# apply order 2 mapping
+CSgrid_poly2 = CubedSphereGrid(cube_grid,map_cube_to_sphere,2)
+CSmodel_poly2 = CubedSphereDiscreteModel(CSgrid_poly2,topo,face_labels)
+
+# apply refinement
+CSmodel_poly2_refined1 = Gridap.Adaptivity.refine(CSmodel_poly2)
+writevtk(CSmodel_poly2_refined1,dir*"/CSmodel_poly_refined1",append=false)
+
+CSmodel_poly_refined2 = Gridap.Adaptivity.refine(CSmodel_poly2_refined1)
+writevtk(CSmodel_poly2_refined2,dir*"/CSmodel_poly_refined2",append=false)
+
+
+using GridapGeosciences
+alberto = GridapGeosciences.CubedSphereDiscreteModel(4,2; radius=1)
+writevtk(alberto,dir*"/alberto",append=false)

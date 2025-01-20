@@ -1,9 +1,9 @@
 """
-CubedSphereGrid
-cube_grid == underlying cube
-sphere_grid == cube_grid mapped to sphere surface
-sphere_cell_map == cells maps from 2D ref FE space → surface of sphere
-cube_to_sphere_map == map from cube → surface of sphere (anlaytical/polynomial)
+CubedSphereGrid --- grid type that contains:
+      cube_grid == underlying cube
+      sphere_grid == cube_grid mapped to sphere surface
+      sphere_cell_map == cells maps from 2D ref FE space → surface of sphere
+      cube_to_sphere_map == map from cube → surface of sphere (anlaytical/polynomial)
 
 Dc = 2 = num_cell_dims(topo) = dimension of model
 Dp = 3 = num_point_dims(grid)  = dimension of points
@@ -64,7 +64,6 @@ function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
   FE_map = interpolate(analytical_cube_to_sphere_map,V_vec)
 
   sphere_grid = get_sphere_grid_polynomial_mapping(cube_model,cube_grid,FE_map,order)
-
   sphere_cell_map = get_cell_map(sphere_grid)
 
   A = typeof(sphere_cell_map)
@@ -78,15 +77,15 @@ end
 CubedSphereGrid -- polynomial map on refined model
 """
 function CubedSphereGrid(cube_modelh::AdaptedDiscreteModel,maph::FEFunction,order::Integer )
-
-  cube_gridh = UnstructuredGrid( get_grid(cube_modelh) )
+  println("here")
+  cube_gridh =  get_grid(cube_modelh)
   Dc = num_cell_dims(cube_grid)
   Dp = num_point_dims(cube_grid)
   Tp = eltype(eltype(get_node_coordinates(cube_grid)))
   O = typeof(OrientationStyle(cube_grid))
   Tn = typeof(nothing)
-  sphere_grid = get_sphere_grid_polynomial_mapping(cube_modelh,cube_gridh,maph,order)
 
+  sphere_grid = get_sphere_grid_polynomial_mapping(cube_modelh,cube_gridh,maph,order)
   sphere_cell_map = get_cell_map(sphere_grid)
 
   A = typeof(sphere_cell_map)

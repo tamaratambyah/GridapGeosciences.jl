@@ -29,11 +29,30 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere
   println( typeof(cube_to_sphere_map) <: FEFunction )
   if typeof(cube_to_sphere_map) <: FEFunction
     maph,order,Vh = transfer_FE_map(cube_modelh,cube_to_sphere_map)
-    return CSgrid = CubedSphereGrid(cube_modelh,maph,order)
+    CSgrid = CubedSphereGrid(cube_modelh,maph,order)
   elseif typeof(cube_to_sphere_map) <: Function
-    return CSgrid = CubedSphereGrid(cube_grid,cube_to_sphere_map)
+    CSgrid = CubedSphereGrid(cube_grid,cube_to_sphere_map)
   end
 
   ref_model = CubedSphereDiscreteModel(CSgrid,topo,labels)
   return AdaptedDiscreteModel(ref_model,model,glue)
+end
+
+
+function transfer_FE_map(cube_modelh::AdaptedDiscreteModel,mapH::FEFunction)
+
+  map_basis = get_fe_basis(get_fe_space(mapH))
+  map_trian = get_triangulation(map_basis)
+  map_reffes = get_reffes(map_trian)
+  order = get_order(map_reffes[1])
+
+  T_vec = eltype(get_node_coordinates(cube_modelh))
+  Vh = FESpace(cube_modelh,
+              ReferenceFE(lagrangian,T_vec,order),
+              conformity=:H1)
+
+  maph = interpolate(mapH,Vh)
+
+  return maph, order, Vh
+
 end
