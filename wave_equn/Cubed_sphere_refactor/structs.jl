@@ -48,7 +48,7 @@ end
 CubedSphereGrid -- with polynomial cube_to_sphere_map (FE_map)
 """
 function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O},
-  FE_map::FEFunction ) where {Dc,Dp,Tp,O}
+  analytical_cube_to_sphere_map::Function, order::Integer ) where {Dc,Dp,Tp,O}
 
   map_basis = get_fe_basis(get_fe_space(FE_map))
   map_trian = get_triangulation(map_basis)
