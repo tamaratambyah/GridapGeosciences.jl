@@ -9,7 +9,7 @@ using Gridap.Adaptivity
 using Test
 using LinearAlgebra
 using FillArrays
-include("cube_sphere_1_cell_per_panel.jl")
+include("cube_surface_1_cell_per_panel.jl")
 include("structs.jl")
 include("refinement.jl")
 include("maps.jl")
@@ -18,7 +18,7 @@ dir = datadir("CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
 
-cube_grid,topo,face_labels = cube_sphere_1_cell_per_panel()
+cube_grid,topo,face_labels = cube_surface_1_cell_per_panel()
 cube_model = UnstructuredDiscreteModel(cube_grid,topo,face_labels)
 ref_cube_model = Gridap.Adaptivity.refine(cube_model)
 cube_nodes = get_node_coordinates(cube_grid)
@@ -56,14 +56,14 @@ cmaps_poly = collect( get_cell_map(CSmodel_poly) )
 @test evaluate(cmaps_poly[3],Point(0,0)) == mapped_node4
 
 # apply order 2 mapping
-CSgrid_poly2 = CubedSphereGrid(cube_grid,map_cube_to_sphere,2)
+CSgrid_poly2 = CubedSphereGrid(cube_grid,map_cube_to_sphere,2,transfer=true)
 CSmodel_poly2 = CubedSphereDiscreteModel(CSgrid_poly2,topo,face_labels)
 
 # apply refinement
 CSmodel_poly2_refined1 = Gridap.Adaptivity.refine(CSmodel_poly2)
 writevtk(CSmodel_poly2_refined1,dir*"/CSmodel_poly_refined1",append=false)
 
-CSmodel_poly_refined2 = Gridap.Adaptivity.refine(CSmodel_poly2_refined1)
+CSmodel_poly2_refined2 = Gridap.Adaptivity.refine(CSmodel_poly2_refined1)
 writevtk(CSmodel_poly2_refined2,dir*"/CSmodel_poly_refined2",append=false)
 
 

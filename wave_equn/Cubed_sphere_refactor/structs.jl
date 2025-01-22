@@ -4,6 +4,9 @@ CubedSphereGrid --- grid type that contains:
       sphere_grid == cube_grid mapped to sphere surface
       sphere_cell_map == cells maps from 2D ref FE space → surface of sphere
       cube_to_sphere_map == map from cube → surface of sphere (anlaytical/polynomial)
+      transfer_info  == (original analytical map, transfer bool, order)
+                        transfer_bool = true, transfer map
+                        transfer_bool = false, reinterpolat map
 
 Dc = 2 = num_cell_dims(topo) = dimension of model
 Dp = 3 = num_point_dims(grid)  = dimension of points
@@ -18,6 +21,7 @@ struct CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B} <: Grid{Dc,Dp} where Tn
   sphere_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn}
   sphere_cell_map::A
   cube_to_sphere_map::B
+  transfer_info::Tuple{Function,Bool,Integer}
 end
 
 
@@ -26,6 +30,8 @@ CubedSphereGrid -- with analaytical cube_to_sphere_map
 """
 function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
     analytical_cube_to_sphere_map::Function) where {Dc,Dp,Tp,O,Tn}
+
+    println("analytical constructor")
 
   # map the nodes from the cube to the sphere
   cube_nodes = get_node_coordinates(cube_grid)
@@ -43,9 +49,11 @@ function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
   cube_cell_map = get_cell_map(cube_grid)
   sphere_cell_map = lazy_map(∘,geo_cell_map,cube_cell_map)
 
+  transfer_info = (analytical_cube_to_sphere_map,false,1)
+
   A = typeof(sphere_cell_map)
   B = typeof(analytical_cube_to_sphere_map)
-  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,analytical_cube_to_sphere_map)
+  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,analytical_cube_to_sphere_map,transfer_info)
 
 end
 
@@ -54,7 +62,7 @@ end
 CubedSphereGrid -- convert analytical map to polynomial map
 """
 function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
-  analytical_cube_to_sphere_map::Function,order::Integer ) where {Dc,Dp,Tp,O,Tn}
+  analytical_cube_to_sphere_map::Function,order::Integer; transfer::Bool=false ) where {Dc,Dp,Tp,O,Tn}
 
   cube_model = UnstructuredDiscreteModel(cube_grid)
   T_vec = eltype(get_node_coordinates(cube_model))
@@ -65,10 +73,11 @@ function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
 
   sphere_grid = get_sphere_grid_polynomial_mapping(cube_model,cube_grid,FE_map,order)
   sphere_cell_map = get_cell_map(sphere_grid)
+  transfer_info = (analytical_cube_to_sphere_map,transfer,order)
 
   A = typeof(sphere_cell_map)
   B = typeof(FE_map)
-  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,FE_map)
+  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,FE_map,transfer_info)
 
 end
 
@@ -76,8 +85,9 @@ end
 """
 CubedSphereGrid -- polynomial map on refined model
 """
-function CubedSphereGrid(cube_modelh::AdaptedDiscreteModel,maph::FEFunction,order::Integer )
-  println("here")
+function CubedSphereGrid(cube_modelh::AdaptedDiscreteModel,maph::FEFunction,order::Integer,transfer_info::Tuple{Function,Bool,Integer})
+  println("refined CS with polynomial map")
+
   cube_gridh =  get_grid(cube_modelh)
   Dc = num_cell_dims(cube_grid)
   Dp = num_point_dims(cube_grid)
@@ -90,7 +100,7 @@ function CubedSphereGrid(cube_modelh::AdaptedDiscreteModel,maph::FEFunction,orde
 
   A = typeof(sphere_cell_map)
   B = typeof(maph)
-  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,maph)
+  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,maph,transfer_info)
 
 end
 
@@ -100,10 +110,10 @@ get_sphere_grid_polynomial_mapping -- applyies polynomial mapping to cube nodes
 """
 function get_sphere_grid_polynomial_mapping(cube_model,cube_grid,FE_map::FEFunction,order::Integer)
 
-  T_vec = eltype(get_node_coordinates(cube_model))
+  T_vec = eltype(get_node_coordinates(cube_model)) # VectorValue{3,Float64}
 
   # make a scalar FE
-  T_scal = eltype(T_vec)
+  T_scal = eltype(T_vec) # Float64
   V_scal = FESpace(cube_model,
                   ReferenceFE(lagrangian,T_scal,order);conformity=:H1)
 
@@ -155,6 +165,9 @@ function get_cube_to_sphere_map(grid::CubedSphereGrid)
   grid.cube_to_sphere_map
 end
 
+function get_transfer_info(grid::CubedSphereGrid)
+  grid.transfer_info
+end
 
 
 """

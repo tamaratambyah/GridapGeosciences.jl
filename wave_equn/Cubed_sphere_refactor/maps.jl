@@ -10,5 +10,5 @@ end
 
 function map_cube_to_cube(XYZ)
   x,y,z = XYZ
-  Point(2*x,4*y,z)
+  Point(2*x,4*y,-3*z)
 end

@@ -22,7 +22,7 @@ panel/cell no | cell_node_ids
       8       |   (-1,-1,-1)
 
 """
-function cube_sphere_1_cell_per_panel()
+function cube_surface_1_cell_per_panel()
   npanels = 6
 
   nodes = [

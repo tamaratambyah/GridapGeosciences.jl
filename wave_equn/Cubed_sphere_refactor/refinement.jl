@@ -24,13 +24,23 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere
   _ref_model = UnstructuredDiscreteModel(cube_grid,topo,labels)
   cube_modelh = AdaptedDiscreteModel(_ref_model,model,glue)
 
-
+  # bump refined cube to sphere
   cube_to_sphere_map = get_cube_to_sphere_map(get_grid(model))
-  println( typeof(cube_to_sphere_map) <: FEFunction )
+  transfer_info = get_transfer_info(get_grid(model))
+
   if typeof(cube_to_sphere_map) <: FEFunction
-    maph,order,Vh = transfer_FE_map(cube_modelh,cube_to_sphere_map)
-    CSgrid = CubedSphereGrid(cube_modelh,maph,order)
+    analytical_cube_to_sphere_map,transfer,order = transfer_info
+    maph,Vh = transfer_FE_map(cube_modelh,cube_to_sphere_map,order)
+    if transfer # transfer the map
+      println("transferring map")
+      CSgrid = CubedSphereGrid(cube_modelh,maph,order,transfer_info)
+    else # re-inteprolate the map
+      println("re-interpolating map")
+      CSgrid = CubedSphereGrid(cube_grid,analytical_cube_to_sphere_map,order;transfer=transfer)
+    end
+
   elseif typeof(cube_to_sphere_map) <: Function
+    println("analytical map")
     CSgrid = CubedSphereGrid(cube_grid,cube_to_sphere_map)
   end
 
@@ -39,12 +49,9 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere
 end
 
 
-function transfer_FE_map(cube_modelh::AdaptedDiscreteModel,mapH::FEFunction)
+function transfer_FE_map(cube_modelh::AdaptedDiscreteModel,mapH::FEFunction,order::Integer)
 
-  map_basis = get_fe_basis(get_fe_space(mapH))
-  map_trian = get_triangulation(map_basis)
-  map_reffes = get_reffes(map_trian)
-  order = get_order(map_reffes[1])
+  println(order)
 
   T_vec = eltype(get_node_coordinates(cube_modelh))
   Vh = FESpace(cube_modelh,
@@ -53,6 +60,6 @@ function transfer_FE_map(cube_modelh::AdaptedDiscreteModel,mapH::FEFunction)
 
   maph = interpolate(mapH,Vh)
 
-  return maph, order, Vh
+  return maph, Vh
 
 end
