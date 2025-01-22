@@ -1,4 +1,13 @@
-function get_outward_normal_vector(model::CubedSphereDiscreteModel)
+"""
+get_outward_normal_vector -- returns the outward normal vector
+I can't type of CubedSphereDiscreteModel since we would need a separate type for
+AdaptedCubedSphereDiscreteModel.
+So I have added a check on the grid to make sure this functionality is only
+called on a CubedSphereGrid
+"""
+function get_outward_normal_vector(model::DiscreteModel)
+  @Gridap.Helpers.check typeof(get_grid(model)) <: CubedSphereGrid # only doing this on CS
+
   cell_Jt, cell_x = get_tangent_space_basis(model)
   cell_normal = lazy_map( Operation(_unit_outward_normal), cell_Jt)
   Gridap.CellData.GenericCellField(cell_normal,Triangulation(model),ReferenceDomain())
@@ -6,10 +15,11 @@ end
 
 
 """
+get_tangent_space_basis -- returns the basis of the 2D tangent space
 The columns of the Jacobian form a basis of the tangent space.
 The tangent space is a vector space of dimension 2
 """
-function get_tangent_space_basis(model::CubedSphereDiscreteModel)
+function get_tangent_space_basis(model::DiscreteModel)
   cell_reffe = get_reffes(get_grid(model))
   cell_dofs = lazy_map(get_dof_basis,cell_reffe)
   cell_x = lazy_map(get_nodes,cell_dofs)

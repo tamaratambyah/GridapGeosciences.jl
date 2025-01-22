@@ -28,6 +28,11 @@ CSmodel = CubedSphereDiscreteModel(CSgrid_analytical_H,topo,face_labels)
 normals = get_outward_normal_vector(CSmodel)
 writevtk(Triangulation(CSmodel),dir*"/normals",cellfields=["n"=>normals],append=false)
 
+# refine and replot
+CSmodelh = Gridap.Adaptivity.refine(CSmodel)
+normalsh = get_outward_normal_vector(CSmodelh)
+writevtk(Triangulation(CSmodelh),dir*"/normals_h",cellfields=["n"=>normalsh],append=false)
+
 
 ### Low level construction of normals
 cell_Jt,cell_x = get_tangent_space_basis(CSmodel)
