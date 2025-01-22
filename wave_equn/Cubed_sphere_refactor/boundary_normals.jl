@@ -90,7 +90,7 @@ trian = BodyFittedTriangulation(model,face_grid,face_to_bgface)
     cell_to_ctype,
     cell_to_lface_to_pindex,
     ctype_to_lface_to_ftype)
-end
+
 
 #### facet normal
 trian = Γ
