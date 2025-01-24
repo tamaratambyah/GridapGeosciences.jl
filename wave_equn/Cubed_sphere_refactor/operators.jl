@@ -12,3 +12,11 @@ g = GridapGeosciences.G_unit_sphere(θϕ)
 @test g[1,1] == (cos(ϕ))^2
 @test g[2,1] == g[1,2] == 0.0
 @test g[2,2] == 1
+
+
+test = GridapGeosciences.J_unit_sphere(x)
+
+
+
+# gradient
+u(x) = x[1] + x[2] + x[3]

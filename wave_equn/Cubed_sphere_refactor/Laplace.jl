@@ -23,11 +23,11 @@ dir = datadir("CubedSphereRefactor/Laplace")
 # CSmodel = CubedSphereDiscreteModel(CSgrid_analytical_H,topo,face_labels)
 
 
-u(x) = x[1]*(1-x[1]) + x[2]*(1-x[2])
+u(x) = x[1]*(-x[1]) + x[2]*(-x[2])
 f(x) = -laplacian(u)(x) #+ 2
 l2(w,dΩ) = sum( ∫( w⊙w )dΩ  )
 
-model = CartesianDiscreteModel((0,1,0,1),(10,10))
+model = CartesianDiscreteModel((-1,1,-1,1,-1,1),(2,2,2))
 order = 2
 reffe = ReferenceFE(lagrangian,Float64,order)
 V = TestFESpace(model,reffe;conformity=:H1,dirichlet_tags="boundary")
@@ -42,3 +42,5 @@ op = AffineFEOperator(a,b,U,V)
 uh = solve(LUSolver(),op)
 e = u-uh
 l2(e,dΩ)
+
+writevtk(Ω,dir*"/manufactured_sol",cellfields=["u"=>u,"uh"=>uh,"e"=>e],append=false)
