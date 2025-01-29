@@ -22,7 +22,7 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere
   glue = Gridap.Adaptivity.blocked_refinement_glue(rrules)
   labels = Gridap.Adaptivity.refine_face_labeling(coarse_labels,glue,model.grid_topology,topo)
   _ref_model = UnstructuredDiscreteModel(cube_grid,topo,labels)
-  cube_modelh = AdaptedDiscreteModel(_ref_model,model,glue)
+  cube_modelh = CubedSphereAdaptedDiscreteModel(_ref_model,model,glue)
 
   # bump refined cube to sphere
   cube_to_sphere_map = get_cube_to_sphere_map(get_grid(model))
@@ -45,11 +45,11 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere
   end
 
   ref_model = CubedSphereDiscreteModel(CSgrid,topo,labels)
-  return AdaptedDiscreteModel(ref_model,model,glue)
+  return CubedSphereAdaptedDiscreteModel(ref_model,model,glue)
 end
 
 
-function transfer_FE_map(cube_modelh::AdaptedDiscreteModel,mapH::FEFunction,order::Integer)
+function transfer_FE_map(cube_modelh::CubedSphereAdaptedDiscreteModel,mapH::FEFunction,order::Integer)
 
   println(order)
 

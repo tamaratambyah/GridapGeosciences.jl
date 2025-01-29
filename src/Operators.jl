@@ -37,8 +37,11 @@ end
 """
 Spherical divergence on unit sphere
 IMPORTANT NOTE:
-* The input function "v" and output function
-  take values on the parametric space
+* The input function "v" takes values in the ambient space
+* The output function takes values in the parametric space
+******
+* I think this is wrong, I think we do not need to apply inv(G) to lower the index
+* I think the output should be on the ambient space
 """
 function divergence_unit_sphere(v)
   function tmp(θϕ)
@@ -54,8 +57,8 @@ end
 """
 Spherical Laplacian on unit sphere
 IMPORTANT NOTE:
-  * The input function "v" and output function
-    take values on the parametric space
+  * The input function "v" takes values on the parametric space
+  * The output function takes values on the ambient space
 """
 function laplacian_unit_sphere(v)
   # function tmp(θϕ)
@@ -74,8 +77,8 @@ end
 """
 Spherical gradient on unit sphere
 IMPORTANT NOTE:
-* The input function "v" and output function
-  take values on the parametric space
+* The input function "v" takes values in the parametric space
+* The output function takes values in the ambient space
 """
 function gradient_unit_sphere(v)
   function tmp(θϕ)

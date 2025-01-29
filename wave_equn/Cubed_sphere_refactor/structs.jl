@@ -9,15 +9,16 @@ CubedSphereGrid --- grid type that contains:
                         transfer_bool = false, reinterpolat map
 
 Dc = 2 = num_cell_dims(topo) = dimension of model
-Dp = 3 = num_point_dims(grid)  = dimension of points
+Dp = 2 or 3 == num_point_dims(sphere_grid) --> depends on mapping
+_Dp = 3 = num_point_dims(cube_grid)  = dimension of points
 Tp = Float64 = eltype(VectorValue{3,Float64})
 O = typeof( Gridap.Geometry.NonOriented() )
 Tn = typeof( nothing )
 A = typeof( sphere_cell_map )
 B = typeof( cube_to_sphere_map )
 """
-struct CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B} <: Grid{Dc,Dp} where Tn
-  cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn}
+struct CubedSphereGrid{Dc,Dp,_Dp,Tp,O,Tn,A,B} <: Grid{Dc,Dp} where Tn
+  cube_grid::UnstructuredGrid{Dc,_Dp,Tp,O,Tn}
   sphere_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn}
   sphere_cell_map::A
   cube_to_sphere_map::B
@@ -28,8 +29,8 @@ end
 """
 CubedSphereGrid -- with analaytical cube_to_sphere_map
 """
-function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
-    analytical_cube_to_sphere_map::Function) where {Dc,Dp,Tp,O,Tn}
+function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,_Dp,Tp,O,Tn},
+    analytical_cube_to_sphere_map::Function) where {Dc,_Dp,Tp,O,Tn}
 
     println("analytical constructor")
 
@@ -43,7 +44,6 @@ function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
                             get_cell_type(cube_grid),
                             Gridap.Geometry.NonOriented())
 
-
   # create map from 2D reference FE to the sphere
   geo_cell_map = Fill( Gridap.Fields.GenericField( analytical_cube_to_sphere_map ), num_cells(cube_grid))
   cube_cell_map = get_cell_map(cube_grid)
@@ -51,9 +51,10 @@ function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
 
   transfer_info = (analytical_cube_to_sphere_map,false,1)
 
+  Dp = num_point_dims(sphere_grid)
   A = typeof(sphere_cell_map)
   B = typeof(analytical_cube_to_sphere_map)
-  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,analytical_cube_to_sphere_map,transfer_info)
+  CubedSphereGrid{Dc,Dp,_Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,analytical_cube_to_sphere_map,transfer_info)
 
 end
 
@@ -61,8 +62,8 @@ end
 """
 CubedSphereGrid -- convert analytical map to polynomial map
 """
-function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
-  analytical_cube_to_sphere_map::Function,order::Integer; transfer::Bool=false ) where {Dc,Dp,Tp,O,Tn}
+function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,_Dp,Tp,O,Tn},
+  analytical_cube_to_sphere_map::Function,order::Integer; transfer::Bool=false ) where {Dc,_Dp,Tp,O,Tn}
 
   cube_model = UnstructuredDiscreteModel(cube_grid)
   T_vec = eltype(get_node_coordinates(cube_model))
@@ -75,9 +76,10 @@ function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp,Tp,O,Tn},
   sphere_cell_map = get_cell_map(sphere_grid)
   transfer_info = (analytical_cube_to_sphere_map,transfer,order)
 
+  Dp = num_point_dims(sphere_grid)
   A = typeof(sphere_cell_map)
   B = typeof(FE_map)
-  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,FE_map,transfer_info)
+  CubedSphereGrid{Dc,Dp,_Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,FE_map,transfer_info)
 
 end
 
@@ -90,7 +92,7 @@ function CubedSphereGrid(cube_modelh::AdaptedDiscreteModel,maph::FEFunction,orde
 
   cube_gridh =  get_grid(cube_modelh)
   Dc = num_cell_dims(cube_grid)
-  Dp = num_point_dims(cube_grid)
+  _Dp = num_point_dims(cube_grid)
   Tp = eltype(eltype(get_node_coordinates(cube_grid)))
   O = typeof(OrientationStyle(cube_grid))
   Tn = typeof(nothing)
@@ -98,9 +100,10 @@ function CubedSphereGrid(cube_modelh::AdaptedDiscreteModel,maph::FEFunction,orde
   sphere_grid = get_sphere_grid_polynomial_mapping(cube_modelh,cube_gridh,maph,order)
   sphere_cell_map = get_cell_map(sphere_grid)
 
+  Dp = num_point_dims(sphere_grid)
   A = typeof(sphere_cell_map)
   B = typeof(maph)
-  CubedSphereGrid{Dc,Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,maph,transfer_info)
+  CubedSphereGrid{Dc,Dp,_Dp,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,maph,transfer_info)
 
 end
 
@@ -173,9 +176,9 @@ end
 """
 CSDiscreteModel
 """
-struct CubedSphereDiscreteModel{Dc,Dp,Tp,O,A,B} <: DiscreteModel{Dc,Dp}
-  CSgrid::CubedSphereGrid{Dc,Dp,Tp,O,A,B}
-  grid_topology::UnstructuredGridTopology{Dc,Dp,Tp,O}
+struct CubedSphereDiscreteModel{Dc,Dp,_Dp,Tp,O,A,B} <: DiscreteModel{Dc,Dp}
+  CSgrid::CubedSphereGrid{Dc,Dp,_Dp,Tp,O,A,B}
+  grid_topology::UnstructuredGridTopology{Dc,_Dp,Tp,O}
   face_labeling::FaceLabeling
 end
 
@@ -190,3 +193,53 @@ end
 function Gridap.Geometry.get_face_labeling(model::CubedSphereDiscreteModel)
   model.face_labeling
 end
+
+
+
+#########################
+
+
+struct CubedSphereAdaptedDiscreteModel{Dc,Dp,_Dp,E<:DiscreteModel,F<:DiscreteModel,G<:AdaptivityGlue} <: CubedSphereDiscreteModel{Dc,Dp}    #DiscreteModel{Dc,Dp}
+  model  ::E
+  parent ::F
+  glue   ::G
+end
+
+function CubedSphereAdaptedDiscreteModel(model::DiscreteModel,parent,glue)
+  @Gridap.Helpers.check !isa(model,CubedSphereAdaptedDiscreteModel)
+  E = typeof(model)
+  F = typeof(parent)
+  # Dp = num_point_dims(F)
+  G = typeof(glue)
+  Dc = num_cell_dims(model)
+  Dp = num_point_dims(F)
+  _Dp = num_point_dims(E)
+
+
+  return CubedSphereAdaptedDiscreteModel{Dc,Dp,_Dp,E,F,G}(model,parent,glue)
+end
+
+# DiscreteModel API
+Geometry.get_grid(model::CubedSphereAdaptedDiscreteModel)          = get_grid(model.model)
+Geometry.get_grid_topology(model::CubedSphereAdaptedDiscreteModel) = get_grid_topology(model.model)
+Geometry.get_face_labeling(model::CubedSphereAdaptedDiscreteModel) = get_face_labeling(model.model)
+
+# Other getters
+get_model(model::CubedSphereAdaptedDiscreteModel)  = model.model
+get_parent(model::CubedSphereAdaptedDiscreteModel{Dc,Dp,A,<:AdaptedDiscreteModel}) where {Dc,Dp,A} = get_model(model.parent)
+get_parent(model::CubedSphereAdaptedDiscreteModel{Dc,Dp,A,B}) where {Dc,Dp,A,B} = model.parent
+get_adaptivity_glue(model::CubedSphereAdaptedDiscreteModel) = model.glue
+
+# Relationships
+"""
+Returns true if m1 is a "child" model of m2, i.e., if m1 is the result of adapting m2
+"""
+function is_child(m1::CubedSphereAdaptedDiscreteModel,m2::DiscreteModel)
+  return get_parent(m1) === m2 # m1 = refine(m2)
+end
+
+function is_child(m1::CubedSphereAdaptedDiscreteModel,m2::CubedSphereAdaptedDiscreteModel)
+  return get_parent(m1) === get_model(m2) # m1 = refine(m2)
+end
+
+is_child(m1::DiscreteModel,m2::CubedSphereAdaptedDiscreteModel) = false
