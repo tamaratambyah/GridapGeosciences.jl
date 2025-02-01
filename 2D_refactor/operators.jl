@@ -9,53 +9,97 @@ using Gridap.Adaptivity
 using Test
 using LinearAlgebra
 using FillArrays
+using StaticArrays: SVector
+
 include("cube_surface_1_cell_per_panel.jl")
 include("structs.jl")
+include("refinement.jl")
 include("maps.jl")
 
-θϕ = VectorValue(π,π/4)
 
-metric(θϕ)
+# metric(θϕ)
 u(θϕ) = 3*θϕ[1] + 2*θϕ[2]^2
 w(θϕ) = VectorValue( 3*θϕ[1],2*θϕ[2])
 
-evaluate(surface_gradient(u),θϕ)
-evaluate(surface_divergence(w),θϕ)
-evaluate(surface_laplacian(u),θϕ)
+# θϕ = VectorValue(π,π/4)
+# evaluate(surface_gradient(u,metric),θϕ)
+# evaluate(surface_divergence(w),θϕ)
+# evaluate(surface_laplacian(u),θϕ)
 
 function metric(θϕ)
   θ,ϕ = θϕ
-  TensorValue{2,2}( (cos(ϕ))^2, 0,
-                      0,        1)
+  # TensorValue{2,2}( (cos(ϕ))^2, 0,
+  #                     0,        1)
+
+  TensorValue{2,2}( 1, 0, 0, 1)
 end
 
+θs = VectorValue(0,2π)
+ϕs = VectorValue(-π/2,π/2)
+θϕ = VectorValue(θs[2],ϕs[1])
 
-function surface_gradient(u)
+g = metric(θϕ)
+invg = inv(g)
+
+"""
+surface_gradient -- function input
+"""
+function surface_gradient(f::Function,g::Function)
+  println("function surface grad")
   function _surface_gradient(θϕ)
-     g=metric(θϕ)
-     inv(g)⋅(∇(u))(θϕ)
+    surface_gradient(f,g,θϕ)
   end
 end
 
+function surface_gradient(f::Function,g::Function,θϕ::Point)
+  println("function surface grad point")
 
-function surface_divergence(u)
+  _g=g(θϕ)
+  inv(_g)⋅( gradient(f,θϕ) )
+end
+
+function surface_gradient(f::Function,g::Function,θϕ::SVector)
+  println("function surface grad svector")
+
+  surface_gradient(f,g,Point(θϕ))
+end
+
+"""
+surface_gradient -- cellfield input
+"""
+function surface_gradient(a::CellField,g::Function)
+  println("cellfield function surface grad")
+  _g = CellField(g,get_triangulation(a))
+  surface_gradient(a,_g)
+end
+
+function surface_gradient(a::CellField,g::CellField)
+  println("cellfield cellfield surface grad")
+
+  println(inv(g))
+  ( gradient(a) )
+  # inv(g)⋅( gradient(a) )
+end
+
+
+function surface_divergence(u::Function,g::Function)
   function _surface_divergence(θϕ)
-     g=metric(θϕ)
+     _g=g(θϕ)
      function f(θϕ)
-        sqrt(det(g))*(u(θϕ))
+        sqrt(det(_g))*(u(θϕ))
      end
-     1.0/sqrt(det(g))*(∇⋅(f))(θϕ)
+     1.0/sqrt(det(_g))*(∇⋅(f))(θϕ)
   end
 end
 
 
-function surface_laplacian(u)
+function surface_laplacian(f::Function,g::Function)
   function _surface_laplacian(θϕ)
-    surface_divergence(surface_gradient(u))(θϕ)
+    surface_divergence(surface_gradient(f,g),g)(θϕ)
   end
 end
 
-f(θϕ) = surface_laplacian(u)(θϕ)
+f(θϕ) = surface_laplacian(u,metric)(θϕ)
 
 
 dir = datadir("2D_CubedSphereRefactor")
@@ -65,24 +109,38 @@ dir = datadir("2D_CubedSphereRefactor")
 cube_grid,topo,face_labels = cube_surface_1_cell_per_panel()
 
 CSgrid = CubedSphereGrid(cube_grid,map_cube_to_latlon)
+
 CSmodel = ManifoldDiscreteModel(CSgrid,topo,face_labels)
+CSmodelh = Gridap.Adaptivity.refine(CSmodel)
+model = Gridap.Adaptivity.refine(CSmodelh)
 
-Dp = num_point_dims(CSmodel)
-num_point_dims(CSgrid)
+writevtk(model,dir*"/model",append=false)
 
 
-V = FESpace(CSmodel,ReferenceFE(lagrangian,Float64,1); conformity=:H1)
+p = 1
+degree = 2*p+1
+V = FESpace(model,ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
-Ω = Triangulation(CSmodel)
-dΩ = Measure(Ω,4)
+Ω = Triangulation(model)
+dΩ = Measure(Ω,degree)
 
-a(u,v) = ∫(surface_gradient(v)⋅surface_gradient(u))dΩ
-b(v)   = ∫(v*0.0)dΩ
+_metric = CellField(metric,Ω)
+invg = evaluate(inv(_metric),get_cell_points(Ω))
 
-op = AffineFEOperator(a,b,U,V)
-fels = LinearFESolver(ls)
-uh = solve(fels,op)
+pt = (get_node_coordinates(Ω))
+
+
+_f = CellField(f,Ω)
+a(u,v) = ∫( surface_gradient(u,metric)⋅surface_gradient(v,metric) )dΩ
+b(v)   = ∫( 0.0*v )dΩ
+
+res(u,v) = a(u,v) - b(v)
+jac(u,du,v) = a(du,v)
+
+op = FEOperator(res,jac,U,V)
+solver = NLSolver(LUSolver())
+uh = solve(solver,op)
 
 e=u-uh
 ∇e = ∇(uh)-∇(u)∘xyz2θϕ

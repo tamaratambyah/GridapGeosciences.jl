@@ -1,6 +1,15 @@
 abstract type ManifoldDiscreteModel{Dc,Dp_grid,Dp_topo} <:  DiscreteModel{Dc,Dp_grid}  end
 
 
+# Implementation of the interface
+
+Gridap.Geometry.get_grid(model::ManifoldDiscreteModel) = model.grid
+
+Gridap.Geometry.get_grid_topology(model::ManifoldDiscreteModel) = model.grid_topology
+
+Gridap.Geometry.get_face_labeling(model::ManifoldDiscreteModel) = model.face_labeling
+
+Gridap.Geometry.num_point_dims(model::ManifoldDiscreteModel) = num_point_dims(get_grid(model))
 
 struct UnstructuredManifoldDiscreteModel{Dc,Dp_topo,Dp_grid,Tp,O} <: ManifoldDiscreteModel{Dc,Dp_grid,Dp_topo}
   grid::Grid{Dc,Dp_grid}#::UnstructuredGrid{Dc,Dp_grid,Tp,O,Tn}
@@ -12,15 +21,7 @@ function ManifoldDiscreteModel(grid::Grid,grid_topology::GridTopology,labels::Fa
   UnstructuredManifoldDiscreteModel(grid,grid_topology,labels)
 end
 
-# Implementation of the interface
 
-Gridap.Geometry.get_grid(model::UnstructuredManifoldDiscreteModel) = model.grid
-
-Gridap.Geometry.get_grid_topology(model::UnstructuredManifoldDiscreteModel) = model.grid_topology
-
-Gridap.Geometry.get_face_labeling(model::UnstructuredManifoldDiscreteModel) = model.face_labeling
-
-Gridap.Geometry.num_point_dims(model::UnstructuredManifoldDiscreteModel) = num_point_dims(get_grid(model))
 
 struct AdaptedManifoldDiscreteModel{Dc,Dp_grid,Dp_topo,A<:ManifoldDiscreteModel,
   B<:ManifoldDiscreteModel,C<:AdaptivityGlue} <: ManifoldDiscreteModel{Dc,Dp_grid,Dp_topo}
@@ -29,7 +30,7 @@ struct AdaptedManifoldDiscreteModel{Dc,Dp_grid,Dp_topo,A<:ManifoldDiscreteModel,
   glue   ::C
 end
 
-function AdaptedManifoldDiscreteModel(model,parent::ManifoldDiscreteModel{Dc,Dp_grid,Dp_topo},glue) where {Dc,Dp_grid,Dp_topo}
+function AdaptedManifoldDiscreteModel(model::ManifoldDiscreteModel{Dc,Dp_grid,Dp_topo},parent,glue) where {Dc,Dp_grid,Dp_topo}
   @Gridap.Helpers.check !isa(model,AdaptedManifoldDiscreteModel)
   A = typeof(model)
   B = typeof(parent)
@@ -70,8 +71,8 @@ Gridap.Adaptivity.is_child(m1::DiscreteModel,m2::AdaptedManifoldDiscreteModel) =
 """
 CubedSphereGrid --- grid type that contains:
       cube_grid == underlying cube
-      sphere_grid == cube_grid mapped to sphere surface
-      sphere_cell_map == cells maps from 2D ref FE space → surface of sphere
+      phys_grid == cube_grid mapped to physical space (i.e. lat-lon or sphere surface)
+      phys_cell_map == cells maps from 2D ref FE space → physical space (i.e. lat-lon or sphere surface)
       cube_to_sphere_map == map from cube → surface of sphere (anlaytical/polynomial)
       transfer_info  == (original analytical map, transfer bool, order)
                         transfer_bool = true, transfer map
@@ -84,13 +85,13 @@ CubedSphereGrid --- grid type that contains:
   Tp      : Float64                           = eltype(VectorValue{3,Float64})
   O       : typeof( Gridap.Geometry.NonOriented() )
   Tn      : typeof( nothing )
-  A       : typeof( sphere_cell_map )
+  A       : typeof( phys_cell_map )
   B       : typeof( cube_to_sphere_map )
 """
 struct CubedSphereGrid{Dc,Dp_grid,Dp_topo,Tp,O,Tn,A,B} <: Grid{Dc,Dp_grid} where Tn
   cube_grid::UnstructuredGrid{Dc,Dp_topo,Tp,O,Tn}
-  sphere_grid::UnstructuredGrid{Dc,Dp_grid,Tp,O,Tn}
-  sphere_cell_map::A
+  phys_grid::UnstructuredGrid{Dc,Dp_grid,Tp,O,Tn}
+  phys_cell_map::A
   cube_to_sphere_map::B
   transfer_info::Tuple{Function,Bool,Integer}
 end
@@ -99,31 +100,31 @@ end
 CubedSphereGrid -- with analaytical cube_to_sphere_map
 """
 function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp_topo,Tp,O,Tn},
-  analytical_cube_to_sphere_map::Function) where {Dc,Dp_topo,Tp,O,Tn}
+  analytical_cube_to_phys_map::Function) where {Dc,Dp_topo,Tp,O,Tn}
 
   println("analytical constructor")
 
   # map the nodes from the cube to the sphere
   cube_nodes = get_node_coordinates(cube_grid)
-  sphere_nodes = map( (XYZ)-> analytical_cube_to_sphere_map(XYZ), cube_nodes  ) #lazy_map( map_cube_to_sphere, cube_nodes  )
+  sphere_nodes = map( (XYZ)-> analytical_cube_to_phys_map(XYZ), cube_nodes  ) #lazy_map( map_cube_to_sphere, cube_nodes  )
 
-  sphere_grid = Gridap.Geometry.UnstructuredGrid(sphere_nodes,
+  phys_grid = Gridap.Geometry.UnstructuredGrid(sphere_nodes,
                             get_cell_node_ids(cube_grid),
                             get_reffes(cube_grid),
                             get_cell_type(cube_grid),
                             Gridap.Geometry.NonOriented())
 
   # create map from 2D reference FE to the sphere
-  geo_cell_map = Fill( Gridap.Fields.GenericField( analytical_cube_to_sphere_map ), num_cells(cube_grid))
+  geo_cell_map = Fill( Gridap.Fields.GenericField( analytical_cube_to_phys_map ), num_cells(cube_grid))
   cube_cell_map = get_cell_map(cube_grid)
-  sphere_cell_map = lazy_map(∘,geo_cell_map,cube_cell_map)
+  phys_cell_map = lazy_map(∘,geo_cell_map,cube_cell_map)
 
-  transfer_info = (analytical_cube_to_sphere_map,false,1)
+  transfer_info = (analytical_cube_to_phys_map,false,1)
 
-  Dp_grid = num_point_dims(sphere_grid)
-  A = typeof(sphere_cell_map)
-  B = typeof(analytical_cube_to_sphere_map)
-  CubedSphereGrid{Dc,Dp_grid,Dp_topo,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,analytical_cube_to_sphere_map,transfer_info)
+  Dp_grid = num_point_dims(phys_grid)
+  A = typeof(phys_cell_map)
+  B = typeof(analytical_cube_to_phys_map)
+  CubedSphereGrid{Dc,Dp_grid,Dp_topo,Tp,O,Tn,A,B}(cube_grid,phys_grid,phys_cell_map,analytical_cube_to_phys_map,transfer_info)
 
 end
 
@@ -131,23 +132,23 @@ end
 CubedSphereGrid -- convert analytical map to polynomial map
 """
 function CubedSphereGrid(cube_grid::UnstructuredGrid{Dc,Dp_topo,Tp,O,Tn},
-  analytical_cube_to_sphere_map::Function,order::Integer; transfer::Bool=false ) where {Dc,Dp_topo,Tp,O,Tn}
+  analytical_cube_to_phys_map::Function,order::Integer; transfer::Bool=false ) where {Dc,Dp_topo,Tp,O,Tn}
 
   cube_model = UnstructuredDiscreteModel(cube_grid)
   T_vec = eltype(get_node_coordinates(cube_model))
   V_vec = FESpace(cube_model,
                   ReferenceFE(lagrangian,T_vec,order),
                   conformity=:H1)
-  FE_map = interpolate(analytical_cube_to_sphere_map,V_vec)
+  FE_map = interpolate(analytical_cube_to_phys_map,V_vec)
 
-  sphere_grid = get_sphere_grid_polynomial_mapping(cube_model,cube_grid,FE_map,order)
-  sphere_cell_map = get_cell_map(sphere_grid)
-  transfer_info = (analytical_cube_to_sphere_map,transfer,order)
+  phys_grid = get_phys_grid_polynomial_mapping(cube_model,cube_grid,FE_map,order)
+  phys_cell_map = get_cell_map(phys_grid)
+  transfer_info = (analytical_cube_to_phys_map,transfer,order)
 
-  Dp_grid = num_point_dims(sphere_grid)
-  A = typeof(sphere_cell_map)
+  Dp_grid = num_point_dims(phys_grid)
+  A = typeof(phys_cell_map)
   B = typeof(FE_map)
-  CubedSphereGrid{Dc,Dp_grid,Dp_topo,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,FE_map,transfer_info)
+  CubedSphereGrid{Dc,Dp_grid,Dp_topo,Tp,O,Tn,A,B}(cube_grid,phys_grid,phys_cell_map,FE_map,transfer_info)
 
 end
 
@@ -165,21 +166,21 @@ function CubedSphereGrid(cube_modelh::AdaptedManifoldDiscreteModel,maph::FEFunct
   O = typeof(OrientationStyle(cube_grid))
   Tn = typeof(nothing)
 
-  sphere_grid = get_sphere_grid_polynomial_mapping(cube_modelh,cube_gridh,maph,order)
-  sphere_cell_map = get_cell_map(sphere_grid)
+  phys_grid = get_phys_grid_polynomial_mapping(cube_modelh,cube_gridh,maph,order)
+  phys_cell_map = get_cell_map(phys_grid)
 
-  Dp_grid = num_point_dims(sphere_grid)
-  A = typeof(sphere_cell_map)
+  Dp_grid = num_point_dims(phys_grid)
+  A = typeof(phys_cell_map)
   B = typeof(maph)
-  CubedSphereGrid{Dc,Dp_grid,Dp_topo,Tp,O,Tn,A,B}(cube_grid,sphere_grid,sphere_cell_map,maph,transfer_info)
+  CubedSphereGrid{Dc,Dp_grid,Dp_topo,Tp,O,Tn,A,B}(cube_grid,phys_grid,phys_cell_map,maph,transfer_info)
 
 end
 
 
 """
-get_sphere_grid_polynomial_mapping -- applyies polynomial mapping to cube nodes
+get_phys_grid_polynomial_mapping -- applyies polynomial mapping to cube nodes
 """
-function get_sphere_grid_polynomial_mapping(cube_model,cube_grid,FE_map::FEFunction,order::Integer)
+function get_phys_grid_polynomial_mapping(cube_model,cube_grid,FE_map::FEFunction,order::Integer)
 
   T_vec = eltype(get_node_coordinates(cube_model)) # VectorValue{3,Float64}
 
@@ -199,12 +200,12 @@ function get_sphere_grid_polynomial_mapping(cube_model,cube_grid,FE_map::FEFunct
   Gridap.Geometry._cell_vector_to_dof_vector!(sphere_nodes,cell_node_ids,vhx)
 
 
-  sphere_grid = Gridap.Geometry.UnstructuredGrid(sphere_nodes,
+  phys_grid = Gridap.Geometry.UnstructuredGrid(sphere_nodes,
                             cell_node_ids,
                             get_reffes(cube_grid),
                             get_cell_type(cube_grid),
                             Gridap.Geometry.NonOriented())
-  return sphere_grid
+  return phys_grid
 end
 
 
@@ -214,23 +215,23 @@ grid API
 Gridap.Geometry.OrientationStyle(grid::CubedSphereGrid) = Gridap.Geometry.NonOriented()
 
 function Gridap.Geometry.get_reffes(grid::CubedSphereGrid)
-  Gridap.Geometry.get_reffes(grid.sphere_grid)
+  Gridap.Geometry.get_reffes(grid.phys_grid)
 end
 
 function Gridap.Geometry.get_cell_type(grid::CubedSphereGrid)
-  Gridap.Geometry.get_cell_type(grid.sphere_grid)
+  Gridap.Geometry.get_cell_type(grid.phys_grid)
 end
 
 function Gridap.Geometry.get_node_coordinates(grid::CubedSphereGrid)
-  Gridap.Geometry.get_node_coordinates(grid.sphere_grid)
+  Gridap.Geometry.get_node_coordinates(grid.phys_grid)
 end
 
 function Gridap.Geometry.get_cell_node_ids(grid::CubedSphereGrid)
-  Gridap.Geometry.get_cell_node_ids(grid.sphere_grid)
+  Gridap.Geometry.get_cell_node_ids(grid.phys_grid)
 end
 
 function Gridap.Geometry.get_cell_map(grid::CubedSphereGrid)
-  grid.sphere_cell_map
+  grid.phys_cell_map
 end
 
 function get_cube_to_sphere_map(grid::CubedSphereGrid)

@@ -27,6 +27,9 @@ CSmodel = ManifoldDiscreteModel(CSgrid,topo,face_labels)
 CSmodelh = Gridap.Adaptivity.refine(CSmodel)
 CSmodelh2 = Gridap.Adaptivity.refine(CSmodelh)
 
+num_point_dims(CSmodelh)
+
+
 writevtk(CSmodel,dir*"/CSmodel",append=false)
 writevtk(CSmodelh,dir*"/CSmodelh",append=false)
 writevtk(CSmodelh2,dir*"/CSmodelh2",append=false)

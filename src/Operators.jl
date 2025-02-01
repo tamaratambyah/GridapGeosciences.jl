@@ -81,6 +81,7 @@ function gradient_unit_sphere(v)
   function tmp(θϕ)
      Gθϕ=G_unit_sphere(θϕ)
      Jθϕ=J_unit_sphere(θϕ)
+     println(inv(Gθϕ))
      Jθϕ⋅inv(Gθϕ)⋅(∇(v))(θϕ)
   end
 end

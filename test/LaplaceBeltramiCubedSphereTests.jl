@@ -11,6 +11,10 @@
 # For the discretization of the sphere, it uses the so-called cubed sphere
 # mesh
 
+using DrWatson
+using Gridap
+using GridapGeosciences
+
 function u(x)
   sin(π*x[1])*cos(π*x[2])*exp(x[3])
 end
@@ -24,7 +28,11 @@ function Gridap.∇(::typeof(u))
   gradient_unit_sphere(uθϕ)
 end
 
-function solve_laplace_beltrami(model,order,degree,ls=BackslashSolver())
+model=CubedSphereDiscreteModel(2)
+order=1
+degree = 2*order+1
+ls = LUSolver()
+# function solve_laplace_beltrami(model,order,degree,ls=BackslashSolver())
     V = FESpace(model,ReferenceFE(lagrangian,Float64,order); conformity=:H1)
     U = TrialFESpace(V)
 
@@ -44,4 +52,4 @@ function solve_laplace_beltrami(model,order,degree,ls=BackslashSolver())
     # H1-norm
     # sqrt(sum(∫( e*e + (∇e)⋅(∇e) )dΩ))
     sqrt(sum(∫( (∇e)⋅(∇e) )dΩ))#,uh
-end
+# end
