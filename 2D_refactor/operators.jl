@@ -17,14 +17,7 @@ include("refinement.jl")
 include("maps.jl")
 
 
-# metric(θϕ)
-u(θϕ) = 3*θϕ[1] + 2*θϕ[2]^2
-w(θϕ) = VectorValue( 3*θϕ[1],2*θϕ[2])
 
-# θϕ = VectorValue(π,π/4)
-# evaluate(surface_gradient(u,metric),θϕ)
-# evaluate(surface_divergence(w),θϕ)
-# evaluate(surface_laplacian(u),θϕ)
 
 function metric(θϕ)
   θ,ϕ = θϕ
@@ -33,13 +26,6 @@ function metric(θϕ)
 
   TensorValue{2,2}( 1, 0, 0, 1)
 end
-
-θs = VectorValue(0,2π)
-ϕs = VectorValue(-π/2,π/2)
-θϕ = VectorValue(θs[2],ϕs[1])
-
-g = metric(θϕ)
-invg = inv(g)
 
 """
 surface_gradient -- function input
@@ -99,6 +85,14 @@ function surface_laplacian(f::Function,g::Function)
   end
 end
 
+# metric(θϕ)
+u(θϕ) = 3*θϕ[1] + 2*θϕ[2]^2
+# w(θϕ) = VectorValue( 3*θϕ[1],2*θϕ[2])
+# θϕ = VectorValue(π,π/4)
+# evaluate(surface_gradient(u,metric),θϕ)
+# evaluate(surface_divergence(w),θϕ)
+# evaluate(surface_laplacian(u),θϕ)
+
 f(θϕ) = surface_laplacian(u,metric)(θϕ)
 
 
@@ -107,14 +101,14 @@ dir = datadir("2D_CubedSphereRefactor")
 
 
 cube_grid,topo,face_labels = cube_surface_1_cell_per_panel()
-
 CSgrid = CubedSphereGrid(cube_grid,map_cube_to_latlon)
+model = ManifoldDiscreteModel(CSgrid,topo,face_labels)
+# CSmodelh = Gridap.Adaptivity.refine(_CSmodel)
+# CSmodel = Gridap.Adaptivity.refine(CSmodelh)
+# model = CartesianDiscreteModel((0,2π,-π/2,π/2), (1,1))
 
-CSmodel = ManifoldDiscreteModel(CSgrid,topo,face_labels)
-CSmodelh = Gridap.Adaptivity.refine(CSmodel)
-model = Gridap.Adaptivity.refine(CSmodelh)
-
-writevtk(model,dir*"/model",append=false)
+# writevtk(model,dir*"/model",append=false)
+# writevtk(CSmodel,dir*"/CSmodel",append=false)
 
 
 p = 1
@@ -125,26 +119,86 @@ U = TrialFESpace(V)
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
 
-_metric = CellField(metric,Ω)
-invg = evaluate(inv(_metric),get_cell_points(Ω))
+# _metric = CellField(metric,Ω)
+# invg = evaluate(inv(_metric),get_cell_points(Ω))
+# pt = (get_node_coordinates(Ω))
+# _f = CellField(f,Ω)
 
-pt = (get_node_coordinates(Ω))
 
-
-_f = CellField(f,Ω)
 a(u,v) = ∫( surface_gradient(u,metric)⋅surface_gradient(v,metric) )dΩ
-b(v)   = ∫( 0.0*v )dΩ
+_a(u,v) = ∫( gradient(u)⋅gradient(v) )dΩ
+b(v)   = ∫( 0*v )dΩ
 
-res(u,v) = a(u,v) - b(v)
-jac(u,du,v) = a(du,v)
+# res(u,v) = a(u,v) - b(v)
+# jac(u,du,v) = a(du,v)
 
-op = FEOperator(res,jac,U,V)
-solver = NLSolver(LUSolver())
-uh = solve(solver,op)
+# op = AffineFEOperator(a,b,U,V)
 
-e=u-uh
-∇e = ∇(uh)-∇(u)∘xyz2θϕ
+uh = zero(U)
+du = get_trial_fe_basis(U)
+v = get_fe_basis(V)
+assem = SparseMatrixAssembler(U,V)
 
-# H1-norm
-# sqrt(sum(∫( e*e + (∇e)⋅(∇e) )dΩ))
-sqrt(sum(∫( (∇e)⋅(∇e) )dΩ))#,uh
+matdata = collect_cell_matrix(U,V,a(du,v))
+A = assemble_matrix(assem, matdata)
+
+_matdata = collect_cell_matrix(U,V,_a(du,v))
+_A = assemble_matrix(assem, _matdata)
+
+dc = a(du,v)
+trial = U
+test = V
+
+w = []
+
+for strian in get_domains(dc)
+  scell_mat = get_contribution(dc,strian)
+  cell_mat, trian = move_contributions(scell_mat,strian)
+  push!(w,cell_mat)
+end
+
+W = collect(w[1])
+
+
+
+# cell_reffe =  Fill(ReferenceFE(lagrangian,Float64,p),num_cells(model))
+# conf = H1Conformity()
+
+
+# cell_fe = Gridap.FESpaces.CellFE(model,cell_reffe,conf)
+# trian = Triangulation(model)
+# labels = get_face_labeling(model)
+# dirichlet_tags=Int[]
+# dirichlet_masks=nothing
+# constraint=nothing
+# vector_type=nothing
+
+# @assert num_cells(cell_fe) == num_cells(model) """\n
+# The number of cells provided in the `cell_fe` argument ($(cell_fe.num_cells) cells)
+# does not match the number of cells ($(num_cells(model)) cells) in the provided DiscreteModel.
+# """
+# _vector_type = _get_vector_type(vector_type,cell_fe,trian)
+# F = _ConformingFESpace(
+#     _vector_type,
+#     model,
+#     labels,
+#     cell_fe,
+#     dirichlet_tags,
+#     dirichlet_masks,
+#     trian)
+# V = _add_constraint(F,cell_fe.max_order,constraint)
+# V
+
+
+
+
+
+
+
+
+
+# solver = NLSolver(LUSolver())
+# uh = solve(solver,op)
+
+# e=u-uh
+# sqrt(sum(∫( e*e  )dΩ))
