@@ -21,10 +21,10 @@ include("maps.jl")
 
 function metric(θϕ)
   θ,ϕ = θϕ
-  # TensorValue{2,2}( (cos(ϕ))^2, 0,
-  #                     0,        1)
+  TensorValue{2,2}( (cos(ϕ))^2, 0,
+                      0,        1)
 
-  TensorValue{2,2}( 1, 0, 0, 1)
+  # TensorValue{2,2}( 1, 0, 0, 1)
 end
 
 """
@@ -95,6 +95,54 @@ u(θϕ) = 3*θϕ[1] + 2*θϕ[2]^2
 
 f(θϕ) = surface_laplacian(u,metric)(θϕ)
 
+# a(R) = R/sqrt(3)
+# R(a) = a*sqrt(3)
+
+# function A_other(θϕ,a)
+#   θ,ϕ = θϕ
+#   (R(a)*cos(θ)*cos(ϕ)/a)*( TensorValue{2,2}( cos(θ), 0,
+#                   -sin(θ)*sin(ϕ), cos(ϕ)) )
+# end
+
+# function A_top(θϕ,a)
+#   θ,ϕ = θϕ
+#   (R(a)*sin(ϕ)/a)*( TensorValue{2,2}( cos(θ), sin(θ),
+#                   -sin(θ)*sin(ϕ), sin(ϕ)*cos(θ) ) )
+
+# end
+
+# function A_bottom(θϕ,a)
+#   θ,ϕ = θϕ
+#   (R(a)*sin(ϕ)/a)*( TensorValue{2,2}( -cos(θ), sin(θ),
+#                   sin(θ)*sin(ϕ), sin(ϕ)*cos(θ) ) )
+
+# end
+
+# function metric(θϕ)
+#   X,Y,Z =  θϕ2xyz(θϕ)
+#   a=1
+#   println(Z)
+#   if Z == 1
+#     A = A_top(θϕ,a)
+#   elseif Z == -1
+#     A = A_bottom(θϕ,a)
+#   else
+#     A = A_other(θϕ,a)
+#   end
+#   g = transpose(A)⋅A
+#   println(A)
+#   println(g)
+#   println(inv(g))
+#   g
+# end
+
+
+t = evaluate(metric,get_cell_points(Ω))
+
+
+
+
+
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
@@ -103,12 +151,12 @@ dir = datadir("2D_CubedSphereRefactor")
 cube_grid,topo,face_labels = cube_surface_1_cell_per_panel()
 CSgrid = CubedSphereGrid(cube_grid,map_cube_to_latlon)
 model = ManifoldDiscreteModel(CSgrid,topo,face_labels)
-# CSmodelh = Gridap.Adaptivity.refine(_CSmodel)
-# CSmodel = Gridap.Adaptivity.refine(CSmodelh)
+CSmodelh = Gridap.Adaptivity.refine(model)
+CSmodel = Gridap.Adaptivity.refine(CSmodelh)
 # model = CartesianDiscreteModel((0,2π,-π/2,π/2), (1,1))
 
-# writevtk(model,dir*"/model",append=false)
-# writevtk(CSmodel,dir*"/CSmodel",append=false)
+writevtk(model,dir*"/model",append=false)
+writevtk(CSmodelh,dir*"/CSmodel",append=false)
 
 
 p = 1
@@ -119,20 +167,17 @@ U = TrialFESpace(V)
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
 
-# _metric = CellField(metric,Ω)
-# invg = evaluate(inv(_metric),get_cell_points(Ω))
-# pt = (get_node_coordinates(Ω))
-# _f = CellField(f,Ω)
 
 
 a(u,v) = ∫( surface_gradient(u,metric)⋅surface_gradient(v,metric) )dΩ
 _a(u,v) = ∫( gradient(u)⋅gradient(v) )dΩ
-b(v)   = ∫( 0*v )dΩ
+b(v)   = ∫( f*v )dΩ
 
 # res(u,v) = a(u,v) - b(v)
 # jac(u,du,v) = a(du,v)
 
 # op = AffineFEOperator(a,b,U,V)
+# uh = solve(op)
 
 uh = zero(U)
 du = get_trial_fe_basis(U)
@@ -145,10 +190,14 @@ A = assemble_matrix(assem, matdata)
 _matdata = collect_cell_matrix(U,V,_a(du,v))
 _A = assemble_matrix(assem, _matdata)
 
-dc = a(du,v)
-trial = U
-test = V
+vecdata = collect_cell_vector(V,b(v))
+rhs = assemble_vector(assem, vecdata)
 
+uh = A\rhs
+
+dc = a(du,v)
+
+keys = get_domains(dc)
 w = []
 
 for strian in get_domains(dc)

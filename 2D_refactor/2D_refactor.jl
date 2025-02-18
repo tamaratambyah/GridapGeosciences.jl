@@ -35,6 +35,17 @@ writevtk(CSmodelh,dir*"/CSmodelh",append=false)
 writevtk(CSmodelh2,dir*"/CSmodelh2",append=false)
 
 
+sphere_nodes = get_node_coordinates(CSmodelh2)
+latlon = map(x->xyz2θϕ(x),sphere_nodes)
+unique(latlon)
+
+xvals = map(x->x[1],latlon)
+yvals = map(x->x[2],latlon)
+
+using Plots
+plot()
+scatter!(xvals,yvals)
+
 cube_nodes = get_node_coordinates(cube_grid)
 
 
