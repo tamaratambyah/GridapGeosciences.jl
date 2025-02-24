@@ -39,10 +39,10 @@ function cube_surface_1_cell_per_panel_2D()
   Point(1.0, -1.0)   # node 2
   Point(-1.0, 1.0)   # node 3
   Point(1.0, 1.0)    # node 4
-  Point(-1.0, -1.0)  # node 5
-  Point(1.0, -1.0)   # node 6
-  Point(-1.0, 1.0)  # node 7
-  Point(1.0, 1.0) # node 8
+  Point(0.0, 0.0)  # node 5
+  Point(0.0, 0.0)   # node 6
+  Point(0.0, 0.0)  # node 7
+  Point(0.0, 0.0) # node 8
   ]
 
   ## CCAM panel ordering
