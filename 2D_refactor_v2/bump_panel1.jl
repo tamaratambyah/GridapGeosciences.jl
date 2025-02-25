@@ -4,7 +4,7 @@ function bump_matrics()
         0.0 1.0]
   B = TensorValue(_B)
   A = transpose(B)
-  b = Point(1,0,0)
+  b = Point(1.0,0.0,0.0)
   return A, B, b
 end
 
@@ -19,7 +19,7 @@ function bump_panel1_3D_to_2D(x::Point{3})
 end
 
 
-A,B,b = bump_matrics()
+# A,B,b = bump_matrics()
 
-bump_panel1_2D_to_3D(Point(1,1))
-bump_panel1_3D_to_2D(Point(1,1,1))
+# bump_panel1_2D_to_3D(Point(1,1))
+# bump_panel1_3D_to_2D(Point(1,1,1))
