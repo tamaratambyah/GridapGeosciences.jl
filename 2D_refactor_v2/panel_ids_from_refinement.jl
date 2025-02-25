@@ -78,8 +78,7 @@ function get_panel_ids(models::Vector{<:DiscreteModel})
 
 end
 
-
-
+### Test with CartesianDiscreteModel
 coarse_model = CartesianDiscreteModel((0,1,0,1),(2,2))
 model = Gridap.Adaptivity.refine(coarse_model)
 fine_model = Gridap.Adaptivity.refine(model)
@@ -95,6 +94,26 @@ for i in 1:length(panel_ids)
   tmp = ( panel_ids[i] .<= num_cells(coarse_model) )
   @test sum(tmp) == length(panel_ids[i]  )
 end
+
+
+### Test with cube_model
+include("cube_surface_1_cell_per_panel_2D.jl")
+coarse_model = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel_2D()...)
+model = Gridap.Adaptivity.refine(coarse_model)
+fine_model = Gridap.Adaptivity.refine(model)
+super_fine_model = Gridap.Adaptivity.refine(fine_model)
+super_duper_fine_model = Gridap.Adaptivity.refine(super_fine_model)
+
+# list of models going coarse -> fine
+models = [coarse_model, model, fine_model, super_fine_model, super_duper_fine_model]
+panel_ids = get_panel_ids(models)
+
+# test there are no panel_ids > num_cells(coarse_model)
+for i in 1:length(panel_ids)
+  tmp = ( panel_ids[i] .<= num_cells(coarse_model) )
+  @test sum(tmp) == length(panel_ids[i]  )
+end
+
 
 
 #################### debugging #####################################
