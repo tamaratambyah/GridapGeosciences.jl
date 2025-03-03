@@ -113,3 +113,65 @@ cache = array_cache(z)
 master4() = lazy_collect(cache,z)
 
 @benchmark master4()
+
+
+###  mulitple inputs
+_f(i) = x -> x.*x .+ i
+# function _f(i)
+#   function tmp(x)
+#     x.*x .+ i
+#   end
+# end
+
+_g(j) = x -> 2.0.*x .+ j
+# function _g(j)
+#   function tmp(x)
+#     2.0.*x .+ j
+#   end
+# end
+
+Master = Gridap.Arrays.Operation(_g(3))(_f(2))
+z = lazy_map(Master,xs)
+cache = array_cache(z)
+master5() = lazy_collect(cache,z)
+
+@benchmark master5()
+
+
+struct SquareMap2{T} <: Map
+  i::T
+end
+
+function Gridap.Arrays.return_cache(k::SquareMap2,x::Vector)
+  y = similar(x)
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,k::SquareMap2,x::Vector)
+  y = cache
+  y .= x.*x .+ k.i
+  return y
+end
+
+
+struct Times2Map2{T} <: Map
+  j::T
+end
+
+function Gridap.Arrays.return_cache(k::Times2Map2,x::Vector)
+  y = similar(x)
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,k::Times2Map2,x::Vector)
+  y = cache
+  y .= 2.0.*x .+ k.j
+  return y
+end
+
+Master = Gridap.Arrays.Operation(Times2Map2(3))(SquareMap2(2))
+z = lazy_map(Master,xs)
+cache = array_cache(z)
+master4() = lazy_collect(cache,z)
+
+@benchmark master4()
