@@ -40,6 +40,9 @@ BumpMap() = Panel1BumpMap(A_bump,B_bump,b_bump)
 
 ### Coarset model
 model = cube_model_3D
+model = Gridap.Adaptivity.refine(model)
+
+
 panel_ids = get_panel_ids(model)
 cell_coords = get_cell_coordinates(model)
 cmaps = get_cell_map(model)

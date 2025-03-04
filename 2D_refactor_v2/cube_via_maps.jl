@@ -33,7 +33,7 @@ cell_node_ids = get_cell_node_ids(model)
 
 
 ################################################################################
-##### Test Rotation map
+##### Test Rotation map where panel_id is input
 rotate_panel_p_to_1, rotate_panel_1_to_p = panel_rotations()
 rp1 = map(TensorValue,rotate_panel_p_to_1)
 r1p = map(TensorValue,rotate_panel_1_to_p)
@@ -58,6 +58,24 @@ bm2() = lazy_collect(cache,coords_panelp)
 
 # print_lazy_collect(coords_panelp,cell_node_ids)
 test_coords(coords_panelp,cell_coords)
+
+
+
+################################################################################
+##### Test Rotation map where panel_id is NOT input
+include("maps/maps.jl")
+panel = 4
+PanelMap() = PanelRotationMap(rp1[panel])
+InvPanelMap() = PanelRotationMap(r1p[panel])
+
+coords_panel1 = lazy_map(PanelMap(), cell_coords[panel])
+coords_panelp = lazy_map(InvPanelMap(), coords_panel1)
+cache = array_cache(coords_panelp)
+bm2() = lazy_collect(cache,coords_panelp)
+@benchmark bm2()
+
+print_lazy_arr(coords_panelp)
+
 
 ################################################################################
 ##### Test  Bump map
@@ -116,18 +134,3 @@ test_coords(coords_panelp,cell_coords)
 
 mapped_grid = make_grid(get_grid_topology(model),coords_panelp)
 writevtk(mapped_grid,dir*"/ref_cube_model_3D",append=false)
-
-
-# ###############################################################################
-# ######## Map cmaps
-ref_cell_coords = get_cell_ref_coordinates(get_grid(model))
-
-cell_coords = lazy_map(evaluate,cmaps,ref_cell_coords)
-coords_panel1 = lazy_map(PanelMap(), cell_coords, panel_ids)
-coords_panel1_2D = lazy_map(BumpMap(), coords_panel1)
-coords_panel1_3D = lazy_map(BumpMap(), coords_panel1_2D)
-Master = lazy_map(InvPanelMap(), coords_panel1_3D, panel_ids)
-
-test_coords(Master,cell_coords)
-
-# evaluate(Master[1],ref_cell_coords[1])

@@ -4,7 +4,7 @@ struct PanelRotationMap{A} <: Map # rotation panel p using mats[p]
   mats::A
 end
 
-function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx,panel_id::Int64)
+function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx::AbstractArray{<:VectorValue},panel_id::Int64)
   A = f.mats[panel_id]
   x = first(cellx)
   T = typeof(A⋅x)
@@ -12,14 +12,25 @@ function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx,panel_id::Int64)
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,cellx,panel_id::Int64)
+function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,cellx::AbstractArray{<:VectorValue},panel_id::Int64)
   y = cache
   A = f.mats[panel_id]
   map!(x -> A⋅x, y, cellx)
   return y
 end
 
+### if no panel id is given, assume mats is the correct panel matrix
+function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx::VectorValue)
+  y = zero(cellx)
+  return y
+end
 
+function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,cellx::VectorValue)
+  y = cache
+  A = f.mats
+  y = A .⋅ cellx
+  return y
+end
 
 ################################################################################
 ##### Bump map: panel 1 points 2D <-> 3D

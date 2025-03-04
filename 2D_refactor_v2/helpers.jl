@@ -13,6 +13,13 @@ function print_lazy_collect(arr,cell_node_ids)
   end
 end
 
+function print_lazy_arr(arr)
+  cache = array_cache(arr)
+  for i in eachindex(arr)
+    println(getindex!(cache, arr, i))
+  end
+end
+
 function test_coords(arr,cell_coords)
   cache = array_cache(arr)
   for i in eachindex(arr)
