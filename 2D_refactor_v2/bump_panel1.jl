@@ -1,10 +1,12 @@
 function bump_matrics()
-  _B = [0.0 0.0
+  A = [0.0 1.0 0.0
+        0.0 0.0 1.0]
+  B = [0.0 0.0
         1.0 0.0
         0.0 1.0]
-  B = TensorValue(_B)
-  A = transpose(B)
-  b = Point(1.0,0.0,0.0)
+  b = [1.0
+       0.0
+       0.0]
   return A, B, b
 end
 

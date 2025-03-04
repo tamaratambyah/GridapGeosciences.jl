@@ -13,7 +13,7 @@ include("cube_surface_1_cell_per_panel_2D.jl")
 include("cube_surface_1_cell_per_panel.jl")
 include("panel_rotations.jl")
 include("bump_panel1.jl")
-include("maps.jl")
+# include("maps.jl")
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)

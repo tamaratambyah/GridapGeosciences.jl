@@ -49,6 +49,17 @@ function panel_rotations()
   return rotate_panel_p_to_1, rotate_panel_1_to_p
 end
 
+# rotate_panel_p_to_1, rotate_panel_1_to_p = panel_rotations()
+
+
+# panel = 6
+# N = cell_coords[panel]
+
+# R = TensorValue(rotate_panel_p_to_1[panel])
+# test = [(R) for i in 1:4]
+# println(R.⋅N)
+
+# v
 # ids = get_cell_node_ids(cube_grid)
 
 # # check nodes of panel p rotate back to panel 1
