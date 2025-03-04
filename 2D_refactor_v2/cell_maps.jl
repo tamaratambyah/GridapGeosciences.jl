@@ -33,30 +33,45 @@ cell_node_ids = get_cell_node_ids(model)
 ref_cell_coords = get_cell_ref_coordinates(get_grid(model))
 
 
-### get cube maps
+### maps required for cube
 rotate_panel_p_to_1, rotate_panel_1_to_p = panel_rotations()
 rp1 = map(TensorValue,rotate_panel_p_to_1)
 r1p = map(TensorValue,rotate_panel_1_to_p)
 
+_A , _B, _b = bump_matrics()
+A_bump = TensorValue(_A)
+B_bump = TensorValue(_B)
+b_bump = VectorValue(_b)
 
-MasterPanelMaps = []
-for panel = 1:6
-  PanelMap() = PanelRotationMap(rp1[panel])
-  InvPanelMap() = PanelRotationMap(r1p[panel])
 
-  master = Operation(PanelMap())(InvPanelMap())
-  push!(MasterPanelMaps,master)
+Rp1 = map(p->PanelRotationMap(rp1[p]), 1:6)
+R1p = map(p->PanelRotationMap(r1p[p]), 1:6)
+Bump = Panel1BumpMap(A_bump,B_bump,b_bump)
+
+
+
+struct CellPanelMaps{A,B} <: Map # map from ref FE -> panel p
+  Rp1::A
+  R1p::A
+  Bump::B
 end
 
-cell_panel_maps = [MasterPanelMaps[i] for i in panel_ids]
+function Gridap.Arrays.return_cache(f::CellPanelMaps,panel_id::Int64,cmap)
+  y = first(f.Rp1)
+  return y
+end
 
-cell = 4
-panel_id = panel_ids[cell]
+function Gridap.Arrays.evaluate!(cache,f::CellPanelMaps,panel_id::Int64,cmap)
+  y = cache
+  # y = f.R1p[panel_id] ∘ f.Bump∘ f.Bump∘ f.Rp1[panel_id] ∘ cmap
+  y = Operation(f.R1p[panel_id])(Operation(f.Bump)(Operation(f.Bump)(Operation(f.Rp1[panel_id])(cmap) )  ) )
+  return y
+end
 
-ff = Operation(cell_panel_maps[panel_id])(cmaps[cell])
-@test evaluate(ff,ref_cell_coords[cell]) == cell_coords[cell]
+cell_panel_maps = lazy_map(CellPanelMaps(Rp1,R1p,Bump), panel_ids, cmaps)
+cache = array_cache(cell_panel_maps)
+bm1() = lazy_collect(cache,cell_panel_maps)
+@benchmark bm1()
 
-_cell_panel_maps = lazy_map(x->x, cell_panel_maps )
-
-gg =  lazy_map(Broadcasting(∘),_cell_panel_maps, cmaps )
-evaluate(gg[1],ref_cell_coords[cell])
+test_cell_maps(cell_panel_maps,ref_cell_coords,cell_coords)
+evaluate(cell_panel_maps[1],ref_cell_coords[1])

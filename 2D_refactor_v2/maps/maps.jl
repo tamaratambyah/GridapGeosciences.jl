@@ -20,15 +20,32 @@ function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,cellx::AbstractArray{
 end
 
 ### if no panel id is given, assume mats is the correct panel matrix
-function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx::VectorValue)
-  y = zero(cellx)
+function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx::AbstractArray{<:VectorValue})
+  A = f.mats
+  x = first(cellx)
+  T = typeof(A⋅x)
+  y = similar(cellx,T)
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,cellx::VectorValue)
+function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,cellx::AbstractArray{<:VectorValue})
   y = cache
   A = f.mats
-  y = A .⋅ cellx
+  map!(x -> A⋅x, y, cellx)
+  return y
+end
+
+
+### if no panel id is given, assume mats is the correct panel matrix
+function Gridap.Arrays.return_cache(f::PanelRotationMap,x::VectorValue)
+  y = zero(x)
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,x::VectorValue)
+  y = cache
+  A = f.mats
+  y = A .⋅ x
   return y
 end
 
@@ -74,6 +91,35 @@ function Gridap.Arrays.evaluate!(cache,f::Panel1BumpMap,
   return y
 end
 
+
+function Gridap.Arrays.return_cache(f::Panel1BumpMap,x::VectorValue{D}) where {D}
+  A = f.A_bump
+  B = f.B_bump
+
+  if D == 3 # D==3, -> y == 2 components; bump 3D -> 2D
+    T = typeof(A⋅x)
+  elseif D == 2 # D==2 -> y == 3 components;  bump 2D -> 3D
+    T = typeof(B⋅x)
+  end
+
+  y = zero(T)
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::Panel1BumpMap,x::VectorValue{D}) where {D}
+  y = cache
+  A = f.A_bump
+  B = f.B_bump
+  b = f.b_bump
+
+  if D == 3 # bump 3D -> 2D
+    y = A.⋅x
+  elseif D == 2 # bump 2D -> 3D
+    y = B.⋅x .+ b
+  end
+
+  return y
+end
 
 
 ################################################################################

@@ -29,6 +29,13 @@ function test_coords(arr,cell_coords)
 end
 
 
+function test_cell_maps(arr,ref_coords,cell_coords)
+  for i in eachindex(arr)
+    @test evaluate(arr[i],ref_coords[i]) == cell_coords[i]
+  end
+  println("Yay!")
+end
+
 
 function get_nodes_from_coords(topo::UnstructuredGridTopology{Dc,Dp},
   coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}}) where {Dc,Dp,D,T}
