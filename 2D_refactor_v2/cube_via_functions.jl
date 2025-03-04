@@ -11,10 +11,10 @@ using LinearAlgebra
 using FillArrays
 using BenchmarkTools
 
-include("panel_rotations.jl")
-include("bump_panel1.jl")
-include("cube_surface_1_cell_per_panel.jl")
-include("panel_ids_from_refinement_v2.jl")
+include("maps/panel_rotations.jl")
+include("maps/bump_panel1.jl")
+include("cube_topo/cube_surface_1_cell_per_panel.jl")
+include("maps/panel_ids_from_refinement_v2.jl")
 
 
 dir = datadir("2D_CubedSphereRefactor")
