@@ -40,17 +40,37 @@ end
 function get_nodes_from_coords(topo::UnstructuredGridTopology{Dc,Dp},
   coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}}) where {Dc,Dp,D,T}
 
-  cache = array_cache(coords_array)
   cell_node_ids = get_faces(topo,Dc,0)
   nodes = similar(coords_array, VectorValue{D,T}, num_vertices(topo))
+
+  get_nodes_from_coords!(nodes,cell_node_ids,coords_array)
+
+  return nodes
+end
+
+function get_nodes_from_coords(grid::Grid{Dc,Dp},
+  coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}}) where {Dc,Dp,D,T}
+
+  cell_node_ids = get_cell_node_ids(grid)
+  nodes = similar(coords_array, VectorValue{D,T}, num_nodes(grid))
+
+  get_nodes_from_coords!(nodes,cell_node_ids,coords_array)
+
+  return nodes
+end
+
+function get_nodes_from_coords!(nodes,cell_node_ids,
+  coords_array::AbstractArray{<:Vector{<:VectorValue}})
+
+  cache = array_cache(coords_array)
 
   for i in eachindex(coords_array)
     ids = cell_node_ids[i]
     nodes[ids] .= getindex!(cache, coords_array, i)
   end
 
-  return nodes
 end
+
 
 function make_grid(topo::UnstructuredGridTopology{Dc,Dp},coords_array::AbstractArray) where {Dc,Dp}
   nodes = get_nodes_from_coords(topo,coords_array)
@@ -71,7 +91,7 @@ function plot_latlons(latlon,simName::String)
   _colors = palette(:tab10)
   p1 = plot(title = "Cells")
   p2 = plot(title = "Cell points")
-
+  p3 = plot(title = "Mesh")
 
   cache = array_cache(latlon)
   for i in eachindex(latlon)
@@ -81,12 +101,16 @@ function plot_latlons(latlon,simName::String)
     lon = map(x->x[1],out)
     lat = map(x->x[2],out)
 
-    plot!(p1,lon,lat,c=_colors[panel])
+    plot!(p1,lon,lat,lw=2,c=_colors[panel])
     scatter!(p2,lon,lat,marker=markers[panel],c=_colors[panel])
+    plot!(p3,lon,lat,seriestype=:path,linestyle=:solid,lw=2,
+          c=_colors[panel],marker=markers[panel])
   end
   plot!(p1,legend=false,xlabel="longitude",ylabel="latitude")
   plot!(p2,legend=false,xlabel="longitude",ylabel="latitude")
+  plot!(p3,legend=false,xlabel="longitude",ylabel="latitude")
 
   savefig(p1,plotsdir()*"/$(simName)_cells")
   savefig(p2,plotsdir()*"/$(simName)_cells_points")
+  savefig(p3,plotsdir()*"/$(simName)_mesh")
 end

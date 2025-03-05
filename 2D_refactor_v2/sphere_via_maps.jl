@@ -88,3 +88,15 @@ writevtk(mapped_grid,dir*"/CS_latlon",append=false)
 using Plots
 plot_latlons(panel1_latlon,"panel1") #### plot the lat lons in panel 1
 plot_latlons(panelp_latlon,"sphere") #### plot the lat lons in panel i=1,..,6
+
+
+
+################################################################################
+##### Test central angle  mapping 2D local Cartesian on panel 1 -> central angle
+central_angles = lazy_map(CentralAngleMap(), coords_panel1_2D)
+cache = array_cache(central_angles)
+bm1() = lazy_collect(cache,central_angles)
+@benchmark bm1()
+
+using Plots
+plot_latlons(central_angles,"central_angles")

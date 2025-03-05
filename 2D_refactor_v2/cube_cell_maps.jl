@@ -63,15 +63,23 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::CellPanelMaps,panel_id::Int64,cmap)
   y = cache
-  # y = f.R1p[panel_id] ∘ f.Bump∘ f.Bump∘ f.Rp1[panel_id] ∘ cmap
-  y = Operation(f.R1p[panel_id])(Operation(f.Bump)(Operation(f.Bump)(Operation(f.Rp1[panel_id])(cmap) )  ) )
+  y = f.R1p[panel_id] ∘ f.Bump∘ f.Bump∘ f.Rp1[panel_id] ∘ cmap
+  # y = Operation(f.R1p[panel_id])(Operation(f.Bump)(Operation(f.Bump)(Operation(f.Rp1[panel_id])(cmap) )  ) )
+
+  # About the same speed. ∘ is easier to read
   return y
 end
 
-cell_panel_maps = lazy_map(CellPanelMaps(Rp1,R1p,Bump), panel_ids, cmaps)
-cache = array_cache(cell_panel_maps)
-bm1() = lazy_collect(cache,cell_panel_maps)
-@benchmark bm1()
+# cell_panel_maps = lazy_map(CellPanelMaps(Rp1,R1p,Bump), panel_ids, cmaps)
+# cache = array_cache(cell_panel_maps)
+# bm1() = lazy_collect(cache,cell_panel_maps)
+# @benchmark bm1()
 
-test_cell_maps(cell_panel_maps,ref_cell_coords,cell_coords)
-evaluate(cell_panel_maps[1],ref_cell_coords[1])
+# test_cell_maps(cell_panel_maps,ref_cell_coords,cell_coords)
+# evaluate(cell_panel_maps[1],ref_cell_coords[1])
+
+# ### this allocates a lot!
+# phys_coords = lazy_map(evaluate,cell_panel_maps,ref_cell_coords)
+# cache = array_cache(phys_coords)
+# bm1() = lazy_collect(cache,phys_coords)
+# @benchmark bm1()
