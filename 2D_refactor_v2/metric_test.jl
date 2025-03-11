@@ -12,8 +12,8 @@ using FillArrays
 using BenchmarkTools
 include("cube_topo/cube_surface_1_cell_per_panel.jl")
 
-metric = [1 0
-          0 1]
+metric = [1.0 0.0
+          0.0 1.0]
 
 g = map(x->TensorValue(metric),1:6)
 

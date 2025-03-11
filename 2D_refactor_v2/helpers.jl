@@ -84,33 +84,39 @@ end
 
 
 
-function plot_latlons(latlon,simName::String)
+function plot_coords(coords,panel_ids,simName::String,xlab::String,ylab::String)
   !isdir(plotsdir()) && mkdir(plotsdir())
 
   markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross]
   _colors = palette(:tab10)
-  p1 = plot(title = "Cells")
-  p2 = plot(title = "Cell points")
-  p3 = plot(title = "Mesh")
 
-  cache = array_cache(latlon)
-  for i in eachindex(latlon)
+  # ids = [1,2,4,3,1] # for plotting Gridap ordered nodes
+  plot()
+
+  cache = array_cache(coords)
+  for i in eachindex(coords)
     panel = panel_ids[i]
-    out = getindex!(cache, latlon, i)
+    out = getindex!(cache, coords, i)
 
-    lon = map(x->x[1],out)
-    lat = map(x->x[2],out)
-
-    plot!(p1,lon,lat,lw=2,c=_colors[panel])
-    scatter!(p2,lon,lat,marker=markers[panel],c=_colors[panel])
-    plot!(p3,lon,lat,seriestype=:path,linestyle=:solid,lw=2,
+    plot!(extract_VectorValue(out)...,seriestype=:path,linestyle=:solid,lw=2,
           c=_colors[panel],marker=markers[panel])
   end
-  plot!(p1,legend=false,xlabel="longitude",ylabel="latitude")
-  plot!(p2,legend=false,xlabel="longitude",ylabel="latitude")
-  plot!(p3,legend=false,xlabel="longitude",ylabel="latitude")
 
-  savefig(p1,plotsdir()*"/$(simName)_cells")
-  savefig(p2,plotsdir()*"/$(simName)_cells_points")
-  savefig(p3,plotsdir()*"/$(simName)_mesh")
+  plot!(legend=false,xlabel="$xlab",ylabel="$ylab",title="$simName")
+  savefig(plotsdir()*"/$(simName)_mesh")
+end
+
+
+function extract_VectorValue(out::AbstractVector{VectorValue{D,Float64}}) where {D}
+  ids = [1,2,4,3,1] # for plotting Gridap ordered nodes
+  if D == 2
+    x = map(x->x[1],out)
+    y = map(x->x[2],out)
+    return x[ids], y[ids]
+  elseif D == 3
+    x = map(x->x[1],out)
+    y = map(x->x[2],out)
+    z = map(x->x[3],out)
+    return x[ids], y[ids], z[ids]
+  end
 end
