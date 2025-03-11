@@ -31,10 +31,31 @@ BumpMap() = Panel1BumpMap(A_bump,B_bump,b_bump)
 #####
 
 model = cube_model_3D
-
 ref_model = Gridap.Adaptivity.refine(model)
 ref_ref_model = Gridap.Adaptivity.refine(ref_model)
 ref_ref_ref_model = Gridap.Adaptivity.refine(ref_ref_model)
+
+# coordinates of panel 1
+panel_ids = get_panel_ids(ref_ref_ref_model)
+cell_coords = get_cell_coordinates(ref_ref_ref_model)
+p1 = findall(x->x==1,panel_ids)
+cell_coords_panel1 = cell_coords[p1]
+cell_coords_panel1_2D = lazy_map(BumpMap(), cell_coords_panel1)
+
+### a big hack is to refine a cartesian panel 1 at the same time as the cube model
+### then the reordering is not needed ....
+### seems very dirty to me, but it works
+panel1 = UnstructuredDiscreteModel(CartesianGrid((-1,1,-1,1), (1,1) ))
+ref_panel1 = Gridap.Adaptivity.refine(panel1)
+ref_ref_panel1 = Gridap.Adaptivity.refine(ref_panel1)
+ref_ref_ref_panel1 = Gridap.Adaptivity.refine(ref_ref_panel1)
+
+_cell_coords_panel1 = get_cell_coordinates(ref_ref_ref_panel1)
+
+println(cell_coords_panel1_2D .== _cell_coords_panel1)
+
+
+################################################################################
 
 # coordinates of panel 1
 panel_ids = get_panel_ids(ref_ref_ref_model)
@@ -70,10 +91,31 @@ target_ids  = reduce(vcat, [reindex[1:8], reindex[17:24],
                             reindex[41:48], reindex[57:64]])
 println(cell_coords_panel1_2D .== _cell_coords_panel1[target_ids])
 
+_f2c_cell_map,  = Gridap.Adaptivity._create_cartesian_f2c_maps((2,2), (2,2))
+
+o_f2c_cell_map,  = Gridap.Adaptivity._create_cartesian_f2c_maps((1,1), (2,2))
+
+
+ids = findall(x->x==1,_f2c_cell_map)
+
+new = []
+
 #### start recusion
 glue = get_adaptivity_glue(model)
 
 test = (glue.n2o_faces_map[end][p1])
+
+
+#####
+
+
+_glue = get_adaptivity_glue(model.parent)
+
+_test = (_glue.n2o_faces_map[end][p1])
+
+
+_c2f_cells = Adaptivity.get_o2n_faces_map(_f2c_cell_map)
+reindex = c2f_cells.data
 
 
 
