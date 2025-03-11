@@ -36,8 +36,9 @@ ref_ref_model = Gridap.Adaptivity.refine(ref_model)
 ref_ref_ref_model = Gridap.Adaptivity.refine(ref_ref_model)
 
 # coordinates of panel 1
-panel_ids = get_panel_ids(ref_ref_ref_model)
-cell_coords = get_cell_coordinates(ref_ref_ref_model)
+_model = ref_ref_model
+panel_ids = get_panel_ids(_model)
+cell_coords = get_cell_coordinates(_model)
 p1 = findall(x->x==1,panel_ids)
 cell_coords_panel1 = cell_coords[p1]
 cell_coords_panel1_2D = lazy_map(BumpMap(), cell_coords_panel1)
@@ -45,133 +46,36 @@ cell_coords_panel1_2D = lazy_map(BumpMap(), cell_coords_panel1)
 ### a big hack is to refine a cartesian panel 1 at the same time as the cube model
 ### then the reordering is not needed ....
 ### seems very dirty to me, but it works
-panel1 = UnstructuredDiscreteModel(CartesianGrid((-1,1,-1,1), (1,1) ))
-ref_panel1 = Gridap.Adaptivity.refine(panel1)
-ref_ref_panel1 = Gridap.Adaptivity.refine(ref_panel1)
-ref_ref_ref_panel1 = Gridap.Adaptivity.refine(ref_ref_panel1)
-
-_cell_coords_panel1 = get_cell_coordinates(ref_ref_ref_panel1)
-
-println(cell_coords_panel1_2D .== _cell_coords_panel1)
+# panel1 = UnstructuredDiscreteModel(CartesianGrid((-1,1,-1,1), (1,1) ))
+# ref_panel1 = Gridap.Adaptivity.refine(panel1)
+# ref_ref_panel1 = Gridap.Adaptivity.refine(ref_panel1)
+# ref_ref_ref_panel1 = Gridap.Adaptivity.refine(ref_ref_panel1)
+# _cell_coords_panel1 = get_cell_coordinates(ref_ref_ref_panel1)
+# println(cell_coords_panel1_2D .== _cell_coords_panel1)
 
 
 ################################################################################
+num_cells_p1 = length(p1)
 
-# coordinates of panel 1
-panel_ids = get_panel_ids(ref_ref_ref_model)
-cell_coords = get_cell_coordinates(ref_ref_ref_model)
-p1 = findall(x->x==1,panel_ids)
-cell_coords_panel1 = cell_coords[p1]
-cell_coords_panel1_2D = lazy_map(BumpMap(), cell_coords_panel1)
+## create cartesian grid for panel 1
+nC_p1 = Tuple(fill(Int(sqrt(num_cells_p1)),2))
+panel1 = UnstructuredGrid(CartesianGrid((-1,1,-1,1), nC_p1 ))
+_cell_coords_panel1 = get_cell_coordinates(panel1)
 
-## separate grid for panel 1
-nC_fine = Tuple(fill(Int(sqrt(length(p1))),2))
-fine_panel1 = UnstructuredGrid(CartesianGrid((-1,1,-1,1), nC_fine ))
-_cell_coords_panel1 = get_cell_coordinates(fine_panel1)
+## now do the reordering
+n = Int( num_cells_p1/4) # 1:4 partition rule
+m = Int(n/4)
 
-shuffled_panel1_cell_coords = copy(_cell_coords_panel1)
+nc_fine = Tuple(fill(Int(sqrt(n)),2))
+nc_coarse = Tuple(fill(Int(sqrt(m)),2))
 
-#### START
-model = ref_ref_ref_model
-parent = model.parent
+f2c_cell_map, fcell_to_child_id = Gridap.Adaptivity._create_cartesian_f2c_maps(nc_fine, (2,2))
+c2f_cell_map = Adaptivity.get_o2n_faces_map(f2c_cell_map)
 
-Nnew =  Int( num_cells(model)/6 )
-Nold = Int(  num_cells(parent)/6 )
-v = Tuple( fill( Int(sqrt(Nnew) ), 2) )
-w = Tuple( fill(Int(sqrt(Nold)  ), 2) )
-z = (2,2)
+_f2c_cell_map,  = Gridap.Adaptivity._create_cartesian_f2c_maps(nc_coarse, (2,2))
 
-f2c_cell_map, fcell_to_child_id = Gridap.Adaptivity._create_cartesian_f2c_maps((4,4), (2,2))
-c2f_cells = Adaptivity.get_o2n_faces_map(f2c_cell_map)
-reindex = c2f_cells.data
+p = sortperm(_f2c_cell_map)
 
-target_ids  = reduce(vcat, [reindex[1:8], reindex[17:24],
-                            reindex[9:16], reindex[25:32],
-                            reindex[33:40], reindex[49:56],
-                            reindex[41:48], reindex[57:64]])
-println(cell_coords_panel1_2D .== _cell_coords_panel1[target_ids])
+reindex = c2f_cell_map[p].data
 
-_f2c_cell_map,  = Gridap.Adaptivity._create_cartesian_f2c_maps((2,2), (2,2))
-
-o_f2c_cell_map,  = Gridap.Adaptivity._create_cartesian_f2c_maps((1,1), (2,2))
-
-
-ids = findall(x->x==1,_f2c_cell_map)
-
-new = []
-
-#### start recusion
-glue = get_adaptivity_glue(model)
-
-test = (glue.n2o_faces_map[end][p1])
-
-
-#####
-
-
-_glue = get_adaptivity_glue(model.parent)
-
-_test = (_glue.n2o_faces_map[end][p1])
-
-
-_c2f_cells = Adaptivity.get_o2n_faces_map(_f2c_cell_map)
-reindex = c2f_cells.data
-
-
-
-###### RECURSE 1
-model = ref_ref_model
-glue = get_adaptivity_glue(model)
-_test = (glue.n2o_faces_map[end][p1])
-
-
-###### RECURSE 2
-model = ref_model
-glue = get_adaptivity_glue(model)
-o_test = (glue.n2o_faces_map[end][p1])
-
-error
-
-### finish -- do nothing
-
-#
-
-# ################################################################################
-# ##### RECURSE 1
-# model = ref_ref_model
-
-# parent = model.parent
-
-# Nnew =  Int( num_cells(model)/6 )
-# Nold = Int(  num_cells(parent)/6 )
-# v = Tuple( fill( Int(sqrt(Nnew) ), 2) )
-# w = Tuple( fill(Int(sqrt(Nold)  ), 2) )
-# z = (4,4)
-
-
-# f2c_cell_map, fcell_to_child_id = Gridap.Adaptivity._create_cartesian_f2c_maps((2,2),(4,4))
-# c2f_cells = Adaptivity.get_o2n_faces_map(f2c_cell_map)
-# _reindex = c2f_cells.data
-
-
-
-# println(cell_coords_panel1_2D .== shuffled_panel1_cell_coords[_reindex[reindex]])
-
-# ###### RECURSE 2
-# model = ref_model
-# parent = model.parent
-
-# Nnew =  Int( num_cells(model)/6 )
-# Nold = Int(  num_cells(parent)/6 )
-# v = Tuple( fill( Int(sqrt(Nnew) ), 2) )
-# w = Tuple( fill(Int(sqrt(Nold)  ), 2) )
-# z = (8,8)
-
-# f2c_cell_map, fcell_to_child_id = Gridap.Adaptivity._create_cartesian_f2c_maps((1,1),(8,8))
-# c2f_cells = Adaptivity.get_o2n_faces_map(f2c_cell_map)
-# final_reindex = c2f_cells.data
-
-# println(cell_coords_panel1_2D .== shuffled_panel1_cell_coords[reindex[_reindex[final_reindex]]])
-
-
-# ####
+println(cell_coords_panel1_2D .== _cell_coords_panel1[reindex])
