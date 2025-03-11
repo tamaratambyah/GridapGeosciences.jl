@@ -37,7 +37,7 @@ ref_ref_ref_model = Gridap.Adaptivity.refine(ref_ref_model)
 ref_ref_ref_ref_model = Gridap.Adaptivity.refine(ref_ref_ref_model)
 
 # coordinates of panel 1
-_model = ref_ref_ref_ref_model
+_model = ref_ref_model
 panel_ids = get_panel_ids(_model)
 cell_coords = get_cell_coordinates(_model)
 p1 = findall(x->x==1,panel_ids)
@@ -58,10 +58,13 @@ n = Int(num_cells(_model.parent)/6)
 nc_fine = Tuple(fill(Int(sqrt(n)),2))
 f2c_cell_map, fcell_to_child_id = Gridap.Adaptivity._create_cartesian_f2c_maps(nc_fine, (2,2))
 c2f_cell_map = Adaptivity.get_o2n_faces_map(f2c_cell_map)
-p = collect(1: length(c2f_cell_map))
 
-reindex = c2f_cell_map[p].data
+og_cell_map = copy(c2f_cell_map)
+
+p = collect(1: length(c2f_cell_map))
+reindex = og_cell_map[p].data
 println(cell_coords_panel1_2D .== _cell_coords_panel1[reindex])
+
 
 
 # recurse
@@ -75,7 +78,15 @@ _f2c_cell_map,  = Gridap.Adaptivity._create_cartesian_f2c_maps(nc_coarse, (2,2))
 _c2f_cell_map = Adaptivity.get_o2n_faces_map(_f2c_cell_map)
 
 p = sortperm(_f2c_cell_map)
-reindex .= c2f_cell_map[p].data
+# reindex .= og_cell_map[p].data
+
+_reindex = c2f_cell_map[p].data
+if length(_reindex) == length(og_cell_map.data)
+  reindex .= _reindex
+else
+  reindex .= og_cell_map[_reindex].data
+end
+
 println(cell_coords_panel1_2D .== _cell_coords_panel1[reindex])
 
 
@@ -90,9 +101,15 @@ o_f2c_cell_map,  = Gridap.Adaptivity._create_cartesian_f2c_maps(nc_coarse, (2,2)
 o_c2f_cell_map = Adaptivity.get_o2n_faces_map(o_f2c_cell_map)
 
 p = sortperm(o_f2c_cell_map)
-o_reindex = _c2f_cell_map[p].data
-_reindex = c2f_cell_map[o_reindex].data
-println(cell_coords_panel1_2D .== _cell_coords_panel1[_reindex])
+_reindex = _c2f_cell_map[p].data
+# reindex .= og_cell_map[o_reindex].data
+if length(_reindex) == length(og_cell_map.data)
+  reindex .= _reindex
+else
+  reindex .= og_cell_map[_reindex].data
+end
+
+println(cell_coords_panel1_2D .== _cell_coords_panel1[reindex])
 
 
 
