@@ -11,43 +11,18 @@ using LinearAlgebra
 using FillArrays
 using BenchmarkTools
 using Plots
-include("helpers.jl")
-include("cube_topo/cube_surface_1_cell_per_panel.jl")
-include("maps/panel_ids_from_refinement_v2.jl")
-include("maps/panel_rotations.jl")
-include("maps/bump_panel1.jl")
-include("maps/maps.jl")
-
-
-dir = datadir("2D_CubedSphereRefactor")
-!isdir(dir) && mkdir(dir)
-
-cube_model_3D = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel()...)
-
-### get the cube maps
-rotate_panel_p_to_1, rotate_panel_1_to_p = panel_rotations()
-rp1 = map(TensorValue,rotate_panel_p_to_1)
-r1p = map(TensorValue,rotate_panel_1_to_p)
-
-_A , _B, _b = bump_matrics()
-A_bump = TensorValue(_A)
-B_bump = TensorValue(_B)
-b_bump = VectorValue(_b)
-
-PanelMap() = PanelRotationMap(rp1)
-InvPanelMap() = PanelRotationMap(r1p)
-BumpMap() = Panel1BumpMap(A_bump,B_bump,b_bump)
+include("initialise.jl")
 
 
 ### Coarset model
-model = cube_model_3D
-model = Gridap.Adaptivity.refine(model)
+_model = cube_model_3D
+# _model = ref_model
 
 
-panel_ids = get_panel_ids(model)
-cell_coords = get_cell_coordinates(model)
-cmaps = get_cell_map(model)
-cell_node_ids = get_cell_node_ids(model)
+panel_ids = get_panel_ids(_model)
+cell_coords = get_cell_coordinates(_model)
+cmaps = get_cell_map(_model)
+cell_node_ids = get_cell_node_ids(_model)
 
 coords_panel1 = lazy_map(PanelMap(), cell_coords, panel_ids)
 coords_panel1_2D = lazy_map(BumpMap(), coords_panel1)
@@ -65,10 +40,6 @@ bm1() = lazy_collect(cache,panel1_latlon)
 
 ################################################################################
 ##### Test Sigma: standard spherical mapping from latlon <-> 3D Cartesian
-a = 1.0
-r = a/sqrt(3)
-Sigma() = SigmaMap(r)
-
 panel1_latlon = lazy_map(GnomonicMap(), coords_panel1_2D)
 panel1_sphere = lazy_map(Sigma(),panel1_latlon)
 panelp_sphere = lazy_map(InvPanelMap(), panel1_sphere, panel_ids)
@@ -76,13 +47,13 @@ cache = array_cache(panelp_sphere)
 bm2() = lazy_collect(cache,panelp_sphere)
 @benchmark bm2()
 
-mapped_grid = make_grid(get_grid_topology(model),panelp_sphere)
+mapped_grid = make_grid(get_grid_topology(_model),panelp_sphere)
 writevtk(mapped_grid,dir*"/CS",append=false)
 
 
 panelp_latlon = lazy_map(Sigma(), panelp_sphere)
 
-mapped_grid = make_grid(get_grid_topology(model),panelp_latlon)
+mapped_grid = make_grid(get_grid_topology(_model),panelp_latlon)
 writevtk(mapped_grid,dir*"/CS_latlon",append=false)
 
 
@@ -103,7 +74,7 @@ plot_coords(central_angles,panel_ids,"panel1_central_angles","alpha","beta")
 
 
 ################################################################################
-##### Test inverse central angle  mapping 2D local Cartesian on panel 1 -> central angle
+##### Test inverse central angle  mapping central angel -> panel 1
 _coords_panel1_2D = lazy_map(InverseCentralAngleMap(), central_angles)
 cache = array_cache(_coords_panel1_2D)
 bm1() = lazy_collect(cache,_coords_panel1_2D)
@@ -113,70 +84,3 @@ plot_coords(_coords_panel1_2D,panel_ids,"panel1_coords_inv","x","y")
 
 
 ################################################################################
-# start with uniform spaced central angles
-Ncells_per_panel =  Int(num_cells(model)/6)
-panel1_ids = fill(1,Ncells_per_panel)
-domain = (-π/4,π/4,-π/4,π/4) # atan(-1), atan(1)
-partition = (Int(sqrt(Ncells_per_panel)),Int(sqrt(Ncells_per_panel)))
-panel1_grid = UnstructuredGrid(CartesianGrid(domain,partition))
-
-_central_angles = get_cell_coordinates(panel1_grid)
-plot_coords(_central_angles,panel1_ids,"panel1_central_angles","alpha","beta")
-
-# return local cartesian coords (non-uniform)
-_coords_panel1_2D = lazy_map(InverseCentralAngleMap(), _central_angles)
-cache = array_cache(_coords_panel1_2D)
-bm1() = lazy_collect(cache,_coords_panel1_2D)
-@benchmark bm1()
-
-plot_coords(_coords_panel1_2D,panel1_ids,"panel1_local_coords","x","y")
-
-# return lat lons
-_panel1_latlon = lazy_map(OtherGnomonicMap(), _central_angles)
-
-_all_panel1_latlon =  repeat(_panel1_latlon,6)
-_panel1_sphere = lazy_map(Sigma(),_all_panel1_latlon)
-_panelp_sphere = lazy_map(InvPanelMap(), _panel1_sphere, panel_ids)
-cache = array_cache(_panelp_sphere)
-bm2() = lazy_collect(cache,_panelp_sphere)
-@benchmark bm2()
-
-
-_panelp_latlon = lazy_map(Sigma(), _panelp_sphere)
-
-plot_coords(_panel1_latlon,panel1_ids,"panel1_latlon","longitude","latitude") #### plot the lat lons in panel 1
-plot_coords(_panelp_latlon,panel_ids,"latlon","longitude","latitude") #### plot the lat lons in panel i=1,..,6
-plot_coords(_panelp_sphere,panel_ids,"sphere","longitude","latitude") #### plot the lat lons in panel i=1,..,6
-
-
-
-
-
-
-## above as a function:
-
-
-
-
-function cubed_sphere_nodes(panel_ids)
-  Ncells_per_panel = Int(length(panel_ids)/6)
-
-  panel1_domain = (-π/4,π/4,-π/4,π/4) # atan(-1), atan(1)
-  partition = (Int(sqrt(Ncells_per_panel)),Int(sqrt(Ncells_per_panel)))
-  panel1_grid = UnstructuredGrid(CartesianGrid(panel1_domain,partition))
-
-  central_angles = get_cell_coordinates(panel1_grid)
-
-  coords_panel1_2D = lazy_map(InverseCentralAngleMap(), central_angles)  # return local cartesian coords (non-uniform)
-
-  # return lat lons
-  panel1_latlon = lazy_map(OtherGnomonicMap(), central_angles)
-
-  all_panel1_latlon =  repeat(panel1_latlon,6)
-  panel1_sphere = lazy_map(Sigma(),all_panel1_latlon)
-  panelp_sphere = lazy_map(InvPanelMap(), panel1_sphere, panel_ids)
-  panelp_latlon = lazy_map(Sigma(), panelp_sphere)
-
-  return panelp_latlon,  panelp_sphere, coords_panel1_2D
-
-end

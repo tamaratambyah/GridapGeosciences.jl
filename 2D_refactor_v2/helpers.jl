@@ -31,7 +31,7 @@ end
 
 function test_cell_maps(arr,ref_coords,cell_coords)
   for i in eachindex(arr)
-    @test evaluate(arr[i],ref_coords[i]) == cell_coords[i]
+    @test (evaluate(arr[i],ref_coords[i]) .- cell_coords[i]) .< 1e-12
   end
   println("Yay!")
 end

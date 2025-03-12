@@ -12,12 +12,13 @@ using FillArrays
 using BenchmarkTools
 
 include("initialise.jl")
-
+include("sphere_nodes_via_panel1.jl")
 
 ### Coarset model
-_model = cube_model_3D
- panel_ids = get_panel_ids(_model)
-cell_coords = get_cell_coordinates(_model)
+_model = ref_ref_model
+panel_ids = get_panel_ids(_model)
+cell_coords,  = cubed_sphere_nodes(_model)
+
 cmaps = get_cell_map(_model)
 cell_node_ids = get_cell_node_ids(_model)
 ref_cell_coords = get_cell_ref_coordinates(get_grid(_model))
@@ -27,24 +28,24 @@ ref_cell_coords = get_cell_ref_coordinates(get_grid(_model))
 Rp1 = map(p->PanelRotationMap(rp1[p]), 1:6)
 R1p = map(p->PanelRotationMap(r1p[p]), 1:6)
 Bump = Panel1BumpMap(A_bump,B_bump,b_bump)
+Cangels = CentralAngleMap()
 
 
-
-struct CubeCellPanelMaps{A,B} <: Map # map from ref FE -> panel p
+struct SphereCellPanelMaps{A,B,C} <: Map # map from ref FE -> panel p
   Rp1::A
   R1p::A
   Bump::B
+  Cangels::C
 end
 
-function Gridap.Arrays.return_cache(f::CubeCellPanelMaps,panel_id::Int64,cmap)
+function Gridap.Arrays.return_cache(f::SphereCellPanelMaps,panel_id::Int64,cmap)
   y = first(f.Rp1)
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::CubeCellPanelMaps,panel_id::Int64,cmap)
+function Gridap.Arrays.evaluate!(cache,f::SphereCellPanelMaps,panel_id::Int64,cmap)
   y = cache
-  y = f.R1p[panel_id] ∘ f.Bump∘ f.Bump∘ f.Rp1[panel_id] ∘ cmap
-  # y = Operation(f.R1p[panel_id])(Operation(f.Bump)(Operation(f.Bump)(Operation(f.Rp1[panel_id])(cmap) )  ) )
+  y =  f.Cangels ∘ f.Bump ∘ f.Rp1[panel_id] ∘ cmap
 
   # About the same speed. ∘ is easier to read
   return y
@@ -52,13 +53,15 @@ end
 
 
 
-cell_panel_maps = lazy_map(CubeCellPanelMaps(Rp1,R1p,Bump), panel_ids, cmaps)
+cell_panel_maps = lazy_map(SphereCellPanelMaps(Rp1,R1p,Bump,Cangels), panel_ids, cmaps)
 cache = array_cache(cell_panel_maps)
 bm1() = lazy_collect(cache,cell_panel_maps)
 @benchmark bm1()
 
-# test_cell_maps(cell_panel_maps,ref_cell_coords,cell_coords)
-evaluate(cell_panel_maps[1],ref_cell_coords[1])
+### because panel 1 is unifrom in cangels, this test fails
+
+test_cell_maps(cell_panel_maps,ref_cell_coords,cell_coords)
+
 # lazy_map(evaluate,cmaps, coord)
 
 

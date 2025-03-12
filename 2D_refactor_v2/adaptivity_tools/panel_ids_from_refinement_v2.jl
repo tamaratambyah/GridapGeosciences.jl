@@ -1,5 +1,4 @@
 using Gridap
-using BenchmarkTools
 
 function get_panel_ids(model::DiscreteModel)
     return collect(1:num_cells(model))
@@ -25,16 +24,6 @@ function get_panel_ids!(panel_ids, model::DiscreteModel)
 end
 
 
-# model     = CartesianDiscreteModel((0,1,0,1),(2,2))
-# ref_model = Gridap.Adaptivity.refine(model)
-# ref_ref_model = Gridap.Adaptivity.refine(ref_model)
-# ref_ref_ref_model = Gridap.Adaptivity.refine(ref_ref_model)
-
-# ids = get_panel_ids(model)
-# ref_ids = get_panel_ids(ref_model)
-# ref_ref_ids = get_panel_ids(ref_ref_model)
-# ref_ref_ref_ids = get_panel_ids(ref_ref_ref_model)
-
 ###############################################################################
 
 function _get_panel_ids(model::Gridap.Adaptivity.AdaptedDiscreteModel{Dc}) where Dc
@@ -54,15 +43,3 @@ function _get_panel_ids(model::Gridap.Adaptivity.AdaptedDiscreteModel{Dc}) where
 
   return panel_ids
 end
-
-# _ref_ref_ref_ids = _get_panel_ids(ref_ref_ref_model)
-
-# bm1() = get_panel_ids(ref_ref_ref_model)
-# @benchmark bm1()
-
-# bm2() = _get_panel_ids(ref_ref_ref_model)
-# @benchmark bm2()
-
-
-# @allocated get_panel_ids(ref_ref_ref_model)
-# @allocated _get_panel_ids(ref_ref_ref_model)
