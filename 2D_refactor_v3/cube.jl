@@ -12,7 +12,7 @@ using FillArrays
 using BenchmarkTools
 
 include("initialise.jl")
-include("ManifoldGrid.jl")
+
 
 ### Coarset model
 _model = cube_model_3D

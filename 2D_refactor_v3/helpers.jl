@@ -107,7 +107,7 @@ end
 
 
 
-function plot_coords(coords,panel_ids;simName::String="test",xlab::String="x",ylab::String="y")
+function plot_coords(coords,panel_ids;plotTitle::String="test",xlab::String="x",ylab::String="y")
   !isdir(plotsdir()) && mkdir(plotsdir())
 
   markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross]
@@ -125,8 +125,8 @@ function plot_coords(coords,panel_ids;simName::String="test",xlab::String="x",yl
           c=_colors[panel],marker=markers[panel])
   end
 
-  plot!(legend=false,xlabel="$xlab",ylabel="$ylab",title="$simName")
-  savefig(plotsdir()*"/$(simName)_mesh")
+  plot!(legend=false,xlabel="$xlab",ylabel="$ylab",title="$plotTitle")
+  savefig(plotsdir()*"/$(plotTitle)_mesh")
 end
 
 

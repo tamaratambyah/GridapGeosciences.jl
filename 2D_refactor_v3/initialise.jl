@@ -17,7 +17,7 @@ include("maps/sphere_cell_map.jl")
 include("adaptivity_tools/panel_ids_from_refinement.jl")
 include("cube_topo/cube_surface_1_cell_per_panel.jl")
 include("helpers.jl")
-
+include("ManifoldGrid.jl")
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)

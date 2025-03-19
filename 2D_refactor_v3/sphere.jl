@@ -12,7 +12,7 @@ using FillArrays
 using BenchmarkTools
 
 include("initialise.jl")
-include("ManifoldGrid.jl")
+
 
 ### Coarset model
 _model = cube_model_3D
@@ -39,13 +39,15 @@ using Plots
 panel_ids = get_panel_ids(manifold_grid)
 coords = get_cell_coordinates(manifold_grid)
 phys_cell_coords = get_phys_cell_coordinates(manifold_grid)
-
-plot_coords(coords,panel_ids)
-plot_coords(phys_cell_coords,panel_ids;simName="test2")
-
 latlon = lazy_map(GnomonicMap(),phys_cell_coords)
-plot_coords(latlon,panel_ids)
+local_xy = lazy_map(InverseCentralAngleMap(),phys_cell_coords)
+latlon_p = lazy_map(Sigma(),coords)
 
+plot_coords(coords,panel_ids;plotTitle="sphere")
+plot_coords(latlon_p,panel_ids;plotTitle="sphere_latlon")
+plot_coords(phys_cell_coords,ones(Int,size(panel_ids));plotTitle="panel1_central_angles")
+plot_coords(latlon,ones(Int,size(panel_ids));plotTitle="panel1_latlon")
+plot_coords(local_xy,ones(Int,size(panel_ids));plotTitle="panel1_local_xy")
 
 # sphere_maps = lazy_map(SphereAmbientCellMap() , get_panel_ids(_model), get_cell_map(_model))
 # cache = array_cache(sphere_maps)
