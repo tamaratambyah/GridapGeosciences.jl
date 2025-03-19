@@ -21,15 +21,14 @@ manifold_grid = CubedSphereGrid(ref_ref_ref_model)
 
 ref_cell_coords = get_cell_ref_coordinates(manifold_grid)
 
+parametric_cmaps = get_cell_map(manifold_grid)
+parametric_cell_coords = get_cell_coordinates(manifold_grid)
+test_cell_maps(parametric_cmaps,ref_cell_coords,parametric_cell_coords)
 
-cmaps = get_cell_map(manifold_grid)
-cell_coords = get_cell_coordinates(manifold_grid)
-test_cell_maps(cmaps,ref_cell_coords,cell_coords)
 
-
-p_cmaps = get_phys_cell_map(manifold_grid)
-p_cell_coords = get_phys_cell_coordinates(manifold_grid)
-test_cell_maps(p_cmaps,ref_cell_coords,p_cell_coords)
+ambient_cmaps = get_ambient_cell_map(manifold_grid)
+ambient_cell_coords = get_ambient_cell_coordinates(manifold_grid)
+test_cell_maps(ambient_cmaps,ref_cell_coords,ambient_cell_coords)
 
 writevtk(manifold_grid.ambient_grid,dir*"/CSgrid",append=false)
 
@@ -37,15 +36,15 @@ writevtk(manifold_grid.ambient_grid,dir*"/CSgrid",append=false)
 
 using Plots
 panel_ids = get_panel_ids(manifold_grid)
-coords = get_cell_coordinates(manifold_grid)
-phys_cell_coords = get_phys_cell_coordinates(manifold_grid)
-latlon = lazy_map(GnomonicMap(),phys_cell_coords)
-local_xy = lazy_map(InverseCentralAngleMap(),phys_cell_coords)
-latlon_p = lazy_map(Sigma(),coords)
+parametric_coords = get_cell_coordinates(manifold_grid)
+ambient_cell_coords = get_ambient_cell_coordinates(manifold_grid)
+latlon = lazy_map(GnomonicMap(),parametric_coords)
+local_xy = lazy_map(InverseCentralAngleMap(),parametric_coords)
+latlon_p = lazy_map(Sigma(),ambient_cell_coords)
 
-plot_coords(coords,panel_ids;plotTitle="sphere")
+plot_coords(ambient_cell_coords,panel_ids;plotTitle="sphere")
 plot_coords(latlon_p,panel_ids;plotTitle="sphere_latlon")
-plot_coords(phys_cell_coords,ones(Int,size(panel_ids));plotTitle="panel1_central_angles")
+plot_coords(parametric_coords,ones(Int,size(panel_ids));plotTitle="panel1_central_angles")
 plot_coords(latlon,ones(Int,size(panel_ids));plotTitle="panel1_latlon")
 plot_coords(local_xy,ones(Int,size(panel_ids));plotTitle="panel1_local_xy")
 

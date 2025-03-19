@@ -22,12 +22,17 @@ manifold_grid = CubeGrid(ref_ref_ref_ref_model)
 ref_cell_coords = get_cell_ref_coordinates(manifold_grid)
 
 
-cmaps = get_cell_map(manifold_grid)
-cell_coords = get_cell_coordinates(manifold_grid)
-test_cell_maps(cmaps,ref_cell_coords,cell_coords)
+parametric_cmaps = get_cell_map(manifold_grid)
+parametric_cell_coords = get_cell_coordinates(manifold_grid)
+test_cell_maps(parametric_cmaps,ref_cell_coords,parametric_cell_coords)
 
-p_cmaps = get_phys_cell_map(manifold_grid)
-p_cell_coords = get_phys_cell_coordinates(manifold_grid)
-test_cell_maps(p_cmaps,ref_cell_coords,p_cell_coords)
+ambient_cmaps = get_ambient_cell_map(manifold_grid)
+ambient_cell_coords = get_ambient_cell_coordinates(manifold_grid)
+test_cell_maps(ambient_cmaps,ref_cell_coords,ambient_cell_coords)
 
 writevtk(manifold_grid.ambient_grid,dir*"/grid",append=false)
+
+# coords = lazy_map(CubeParametricCellMap(), get_panel_ids(_model),get_cell_map(_model))
+# cache = array_cache(coords)
+# bm1() = lazy_collect(cache,coords)
+# @benchmark bm1()

@@ -32,6 +32,18 @@ function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,cellx::AbstractArray{
   return y
 end
 
+function Gridap.Arrays.return_cache(f::PanelRotationMap,x::VectorValue,panel_id::Int64)
+  y = zero(x)
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::PanelRotationMap,x::VectorValue,panel_id::Int64)
+  y = cache
+  A = f.mats[panel_id]
+  y = A .⋅ x
+  return y
+end
+
 """
 if no panel id is provided, assume mats is the correct panel matrix
 """
