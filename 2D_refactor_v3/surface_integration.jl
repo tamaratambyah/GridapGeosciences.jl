@@ -18,12 +18,15 @@ _model = cube_model_3D
 manifold_grid = CubeGrid(_model)
 panel_ids = get_panel_ids(manifold_grid)
 
-Ω = GenericTriangulation(manifold_grid)
-dΩ = Measure(Ω,2)
+order = 2
+
+Ω = BodyFittedTriangulation(_model, manifold_grid, IdentityVector(num_cells(manifold_grid)))
+# Ω = GenericTriangulation(manifold_grid)
+dΩ = Measure(Ω,order)
 
 f = CellField(1,Ω)
 
-quad = dΩ.quad
+quad = CellQuadrature(Ω,order) #dΩ.quad
 trian_f = get_triangulation(f)
 trian_x = get_triangulation(quad)
 
@@ -47,7 +50,7 @@ end
 evaluate(cell_Jt[1],quad.cell_point[1])
 
 
-lazy_map(IntegrationMap(),bx,quad.cell_weight,cell_Jtx)
+# lazy_map(IntegrationMap(),bx,quad.cell_weight,cell_Jtx)
 
 
 # integrate(f,dΩ)
