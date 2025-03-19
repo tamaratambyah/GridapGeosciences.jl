@@ -160,47 +160,18 @@ end
 """
 GnomonicMap
 
-Applies the Gnomonic maping from 2D local Cartesian points on the reference panel
-(panel 1) to lat-lon on the reference panel.
+Applies the Gnomonic maping from central angles to lat-lon on the reference panel.
 See eq (32) in Giraldo et al. 2003, JCP, doi:10.1016/S0021-9991(03)00300-0
-
-This implementation of the GnomonicMap is the composition of 2 maps,
-  1. map 2D local Cartesian -> central angles on reference panel
-  2. map central angles -> lat-lon on reference panel
 """
 struct GnomonicMap <: Map
 end
 
-function Gridap.Arrays.return_cache(k::GnomonicMap,cellx)
-  y = similar(cellx)
-  return y# CachedArray(y)
-end
-
-function Gridap.Arrays.evaluate!(cache,f::GnomonicMap,cellx)
-  # setsize!(cache,size(cellx))
-  y = cache
-  map!(x -> VectorValue(atan(x[1]),
-                        asin( x[2]/( (1+x[1]^2 + x[2]^2)^(0.5) ) ) ),
-                        y, cellx)
-  return y
-end
-
-
-"""
-GnomonicMap
-
-Applies the Gnomonic maping from central angles to lat-lon on the reference panel.
-See eq (32) in Giraldo et al. 2003, JCP, doi:10.1016/S0021-9991(03)00300-0
-"""
-struct OtherGnomonicMap <: Map
-end
-
-function Gridap.Arrays.return_cache(k::OtherGnomonicMap,cangles)
+function Gridap.Arrays.return_cache(k::GnomonicMap,cangles)
   y = similar(cangles)
   return y# CachedArray(y)
 end
 
-function Gridap.Arrays.evaluate!(cache,f::OtherGnomonicMap,cangles)
+function Gridap.Arrays.evaluate!(cache,f::GnomonicMap,cangles)
   # setsize!(cache,size(cellx))
   y = cache
   map!(x -> VectorValue(x[1],
@@ -211,56 +182,6 @@ function Gridap.Arrays.evaluate!(cache,f::OtherGnomonicMap,cangles)
 end
 
 
-
-"""
-CentralAngleMap
-
-Maps 2D local Cartesian points on the reference panel (panel 1) to the central
-angles
-cellx = (̃x,̃y)
-central angles = (̃α,̃̃β)
-
-̃α = atan(̃x)
-"""
-struct CentralAngleMap <: Map
-end
-
-function Gridap.Arrays.return_cache(k::CentralAngleMap,cellx)
-  y = similar(cellx)
-  return y# CachedArray(y)
-end
-
-function Gridap.Arrays.evaluate!(cache,f::CentralAngleMap,cellx)
-  # setsize!(cache,size(cellx))
-  y = cache
-  map!(x -> VectorValue(atan(x[1]),atan(x[2])),
-                        y, cellx)
-  return y
-end
-
-"""
-InverseCentralAngleMap
-
-Maps central angles (̃α,̃̃β) to 2D local Cartesian points on the reference panel (̃x,̃y)
-̃x = tan ̃α
-"""
-struct InverseCentralAngleMap <: Map
-end
-
-function Gridap.Arrays.return_cache(k::InverseCentralAngleMap,cangles)
-  y = similar(cangles)
-  return y# CachedArray(y)
-end
-
-function Gridap.Arrays.evaluate!(cache,f::InverseCentralAngleMap,cangles)
-  # setsize!(cache,size(cellx))
-  y = cache
-  map!(x -> VectorValue(tan(x[1]),tan(x[2])),
-                        y, cangles)
-  return y
-end
-
-################################################################################
 """
 SigmaMap
 
@@ -309,5 +230,56 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaMap,latlon::AbstractArray{<:Vecto
                         r*sin(x[1])*cos(x[2]),
                         r*sin(x[2])),
                         y, latlon)
+  return y
+end
+
+################################################################################
+"""
+CentralAngleMap
+
+Maps 2D local Cartesian points on the reference panel (panel 1) to the central
+angles
+cellx = (̃x,̃y)
+central angles = (̃α,̃̃β)
+
+̃α = atan(̃x)
+̃β = atan(̃y)
+"""
+struct CentralAngleMap <: Map
+end
+
+function Gridap.Arrays.return_cache(k::CentralAngleMap,cellx)
+  y = similar(cellx)
+  return y# CachedArray(y)
+end
+
+function Gridap.Arrays.evaluate!(cache,f::CentralAngleMap,cellx)
+  # setsize!(cache,size(cellx))
+  y = cache
+  map!(x -> VectorValue(atan(x[1]),atan(x[2])),
+                        y, cellx)
+  return y
+end
+
+"""
+InverseCentralAngleMap
+
+Maps central angles (̃α,̃̃β) to 2D local Cartesian points on the reference panel (̃x,̃y)
+̃x = tan ̃α
+̃y = tan ̃β
+"""
+struct InverseCentralAngleMap <: Map
+end
+
+function Gridap.Arrays.return_cache(k::InverseCentralAngleMap,cangles)
+  y = similar(cangles)
+  return y# CachedArray(y)
+end
+
+function Gridap.Arrays.evaluate!(cache,f::InverseCentralAngleMap,cangles)
+  # setsize!(cache,size(cellx))
+  y = cache
+  map!(x -> VectorValue(tan(x[1]),tan(x[2])),
+                        y, cangles)
   return y
 end
