@@ -14,11 +14,12 @@ using BenchmarkTools
 
 include("initialise.jl")
 
-_model = cube_model_3D
+_model = ref_model
+# _model = ref_model
 manifold_grid = CubeGrid(_model)
 panel_ids = get_panel_ids(manifold_grid)
 
-order = 2
+order = 4
 
 Ω = BodyFittedTriangulation(_model, manifold_grid, IdentityVector(num_cells(manifold_grid)))
 # Ω = GenericTriangulation(manifold_grid)
@@ -37,20 +38,31 @@ x = get_cell_points(quad)
 bx = b(x)
 
 
-cell_map = get_cell_map(quad.trian)
-cell_Jt = lazy_map(∇,cell_map)
-cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
-
-cache = array_cache(cell_Jt)
-for i in eachindex(cell_Jt)
-  grad = getindex!(cache, cell_Jt, i)
-  evaluate(grad,quad.cell_point[i])
-end
-
-evaluate(cell_Jt[1],quad.cell_point[1])
+# cell_map = get_cell_map(manifold_grid)
+# cell_Jt = lazy_map(∇,cell_map)
+# cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
 
 
-# lazy_map(IntegrationMap(),bx,quad.cell_weight,cell_Jtx)
+grid = manifold_grid.topo_grid
+cell_to_shapefuns = get_cell_shapefuns(grid)
+
+cell_to_coords = get_cell_coordinates(grid)
+_mapp_coords = lazy_map(PanelMap(),cell_to_coords,panel_ids)
+mapp_coords = lazy_map(BumpMap(),_mapp_coords)
 
 
-# integrate(f,dΩ)
+
+latlon_panel1 = lazy_map(GnomonicMap(), mapp_coords)
+sphere_panel1 = lazy_map(Sigma(),latlon_panel1)
+sphere_panelp = lazy_map(InvPanelMap(), sphere_panel1, panel_ids)
+
+
+_cell_map = lazy_map(linear_combination,sphere_panelp,cell_to_shapefuns)
+
+_cell_Jt = lazy_map(∇,_cell_map)
+_cell_Jtx = lazy_map(evaluate,_cell_Jt,quad.cell_point)
+int = lazy_map(IntegrationMap(),bx,quad.cell_weight,_cell_Jtx)
+
+sum(int)
+# 6*(2*a)^2
+4*π*r^2
