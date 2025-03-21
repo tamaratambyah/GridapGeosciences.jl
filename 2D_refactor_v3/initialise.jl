@@ -22,7 +22,7 @@ include("ManifoldGrid.jl")
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
-a = 1.0 #π/4.0
+a = π/4.0
 r = a*sqrt(3.0)
 
 cube_model_3D = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel(a)...)

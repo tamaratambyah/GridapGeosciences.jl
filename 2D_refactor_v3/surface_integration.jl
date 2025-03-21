@@ -14,55 +14,113 @@ using BenchmarkTools
 
 include("initialise.jl")
 
-_model = ref_model
-# _model = ref_model
-manifold_grid = CubeGrid(_model)
-panel_ids = get_panel_ids(manifold_grid)
+cube_surf_area = 6*(2*a)^2
+sphere_surf_area = 4*π*r^2
 
-order = 4
+#### need the sqrt(det(metric)) in the integral
+function sqrt_det_func(αβ)
+  α,β = αβ
+  r/( (1 + (tan(α))^2 + (tan(β))^2 )*cos(α)*cos(β)   )
+end
 
-Ω = BodyFittedTriangulation(_model, manifold_grid, IdentityVector(num_cells(manifold_grid)))
-# Ω = GenericTriangulation(manifold_grid)
+
+_model = cube_model_3D
+manifold_grid = CubedSphereGrid(_model)
+grid = get_grid(_model) ### underlying coarse grid``
+panel_ids = get_panel_ids(_model)
+
+order = 2
+
+manifold_model = UnstructuredDiscreteModel(manifold_grid.parametric_grid)
+Ω = Triangulation(manifold_model)
 dΩ = Measure(Ω,order)
 
 f = CellField(1,Ω)
+sqrt_det_g = CellField(sqrt_det_func,Ω)
+
+
 
 quad = CellQuadrature(Ω,order) #dΩ.quad
-trian_f = get_triangulation(f)
-trian_x = get_triangulation(quad)
+# trian_f = get_triangulation(f)
+# trian_x = get_triangulation(quad)
+# trian_sqrt_g = get_triangulation(sqrt_det_g)
 
-@Gridap.Helpers.check is_change_possible(trian_f,trian_x)
+# @Gridap.Helpers.check is_change_possible(trian_f,trian_x)
+# @Gridap.Helpers.check is_change_possible(trian_sqrt_g,trian_x)
+
 
 b = change_domain(f,quad.trian,quad.data_domain_style)
+sqrt_g = change_domain(sqrt_det_g,quad.trian,quad.data_domain_style)
+
 x = get_cell_points(quad)
+
 bx = b(x)
+sqrt_g_x = sqrt_g(x)
 
-
-# cell_map = get_cell_map(manifold_grid)
+# cell_map = get_ambient_cell_map(manifold_grid)
 # cell_Jt = lazy_map(∇,cell_map)
 # cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
 
-
-grid = manifold_grid.topo_grid
-cell_to_shapefuns = get_cell_shapefuns(grid)
-
-cell_to_coords = get_cell_coordinates(grid)
-_mapp_coords = lazy_map(PanelMap(),cell_to_coords,panel_ids)
-mapp_coords = lazy_map(BumpMap(),_mapp_coords)
+cell_to_shapefuns = get_cell_shapefuns(manifold_grid.parametric_grid)
+cell_to_coords = get_cell_coordinates(manifold_grid)
 
 
-
-latlon_panel1 = lazy_map(GnomonicMap(), mapp_coords)
-sphere_panel1 = lazy_map(Sigma(),latlon_panel1)
-sphere_panelp = lazy_map(InvPanelMap(), sphere_panel1, panel_ids)
-
-
-_cell_map = lazy_map(linear_combination,sphere_panelp,cell_to_shapefuns)
+_cell_map = lazy_map(linear_combination,cell_to_coords,cell_to_shapefuns)
 
 _cell_Jt = lazy_map(∇,_cell_map)
 _cell_Jtx = lazy_map(evaluate,_cell_Jt,quad.cell_point)
-int = lazy_map(IntegrationMap(),bx,quad.cell_weight,_cell_Jtx)
 
-sum(int)
-# 6*(2*a)^2
-4*π*r^2
+for i in 1:6
+  dd = evaluate(get_cell_map(manifold_grid)[i],quad.cell_point[i]) .== (evaluate(_cell_map[i],quad.cell_point[i]))
+  println(sum(dd))
+end
+
+## compute the integral by hand
+weights = collect1d(quad.cell_weight)
+
+z = 0.0
+for j in 1:6
+  aq = bx[j]
+  jq = map(x-> Gridap.TensorValues.meas(x),_cell_Jtx[j])
+  w = weights[j]
+  d = sqrt_g_x[j]
+  @inbounds for i in eachindex(aq)
+    z += aq[i]*w[i]*(jq[i])*d[i] # multiply by sqrt(det(g))
+  end
+
+end
+z
+
+
+
+
+########### operation Fields
+ncells = 6
+p = Point(1.0,2.0,3.0)
+x = fill(p,4)
+cell_to_x = Fill(x,ncells)
+
+Panelm = PanelRotationMap(rp1[1])
+bump = BumpMap()
+
+m = GenericField(bump)
+g = GenericField(Panelm)
+f = m∘g
+# f = Fields.OperationField(∘,(m,g))
+
+cell_to_m = Fill(m,ncells)
+cell_to_g = fill(g,ncells)
+cell_to_f = lazy_map(∘,cell_to_m,cell_to_g)
+cell_to_r = fill(f(x),ncells)
+cell_to_fx = lazy_map(evaluate,cell_to_f,cell_to_x)
+test_array(cell_to_fx,cell_to_r)
+
+cell_to_∇f = lazy_map((∇),cell_to_f)
+cell_to_∇fx = lazy_map(evaluate,cell_to_∇f,cell_to_x)
+cell_to_∇r = fill(evaluate(∇(f),x),ncells)
+test_array(cell_to_∇fx,cell_to_∇r)
+
+
+function evaluate!(cache,f::FieldGradient,x::Point)
+
+end
