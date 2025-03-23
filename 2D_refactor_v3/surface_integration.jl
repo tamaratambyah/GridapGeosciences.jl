@@ -20,8 +20,12 @@ sphere_surf_area = 4*π*r^2
 #### need the sqrt(det(metric)) in the integral
 function sqrt_det_func(αβ)
   α,β = αβ
-  r/( (1 + (tan(α))^2 + (tan(β))^2 )*cos(α)*cos(β)   )
+  sqrt( r^2/( (1 + (tan(α))^2 + (tan(β))^2 )^2*(cos(α))^2*(cos(β) )^2    )   )
+  # r/( (1 + (tan(α))^2 + (tan(β))^2 )*cos(α)*cos(β)   )
 end
+
+
+
 
 
 _model = cube_model_3D
@@ -65,6 +69,7 @@ cell_to_shapefuns = get_cell_shapefuns(manifold_grid.parametric_grid)
 cell_to_coords = get_cell_coordinates(manifold_grid)
 
 
+
 _cell_map = lazy_map(linear_combination,cell_to_coords,cell_to_shapefuns)
 
 _cell_Jt = lazy_map(∇,_cell_map)
@@ -77,19 +82,23 @@ end
 
 ## compute the integral by hand
 weights = collect1d(quad.cell_weight)
-
+jtx = collect1d(_cell_Jtx)
+sgx = collect1d(sqrt_g_x)
+_bx = collect1d(bx)
 z = 0.0
+
 for j in 1:6
-  aq = bx[j]
-  jq = map(x-> Gridap.TensorValues.meas(x),_cell_Jtx[j])
+  aq = _bx[j]
+  jq = jtx[j]
   w = weights[j]
-  d = sqrt_g_x[j]
+  d = sgx[j]
   @inbounds for i in eachindex(aq)
-    z += aq[i]*w[i]*(jq[i])*d[i] # multiply by sqrt(det(g))
+    z+=(aq[i]*w[i]*(Gridap.TensorValues.meas(jq[i]))*d[i]) # multiply by sqrt(det(g))
   end
 
 end
 z
+sphere_surf_area = 4*π*r^2
 
 
 
