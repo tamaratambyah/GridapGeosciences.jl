@@ -67,38 +67,6 @@ z
 6*z # assume each face of cube has same area
 4*π*r^2
 
-@benchmark map(x-> sqrt.(meas.(x)), gx)
-
-typeof(gx[1]) <: Vector{<:TensorValue}
-
-struct SquareRootMeasure <: Map
-end
-
-function Gridap.Arrays.return_cache(f::SquareRootMeasure,cellx::Vector{<:TensorValue})
-  x = first(cellx)
-  T = typeof((meas(x)))
-  y = similar(cellx,T)
-  return y
-end
-
-function Gridap.Arrays.evaluate!(cache,f::SquareRootMeasure,cellx::Vector{<:TensorValue})
-  y = cache
-
-  map!(x->(meas(x)), y, cellx)
-
-  # y .= sqrt.( meas.(cellx)  )
-
-  return y
-end
-
-
-z = lazy_map(SquareRootMeasure(),gx)
-cache = array_cache(z)
-bm() = lazy_collect(cache,z)
-@benchmark bm()
-
-
-
 #################################
 import Gridap.Helpers: @check
 import Gridap.TensorValues: meas

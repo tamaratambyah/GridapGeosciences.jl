@@ -13,6 +13,9 @@ using Test
 using LinearAlgebra
 using FillArrays
 using BenchmarkTools
+import Gridap.Helpers: @check
+import Gridap.TensorValues: meas
+
 
 include("surface_metric.jl")
 
@@ -32,26 +35,21 @@ metric(x) = TensorValue{2,2}(E(x),F(x),F(x),G(x))
 
 
 struct SurfaceQuadrature{DDS,IDS} <: CellDatum
-  quad::CellQuadrature{DDS,IDS}
   metric::CellField
+  quad::CellQuadrature{DDS,IDS}
 end
 
-function SurfaceQuadrature(quad::CellQuadrature{DDS,IDS},metric::Function) where {DDS,IDS}
+function SurfaceQuadrature(metric::Function,quad::CellQuadrature{DDS,IDS}) where {DDS,IDS}
   g = CellField(metric,quad.trian)
-  SurfaceQuadrature{DDS,IDS}(quad,g)
+  SurfaceQuadrature{DDS,IDS}(g,quad)
+end
+
+function SurfaceQuadrature(metric::Function,args...;kwargs...)
+  quad = CellQuadrature(args...;kwargs...)
+  SurfaceQuadrature(metric,quad)
 end
 
 
-s_quad = SurfaceQuadrature(quad,metric)
-
-
-out = integrate(1,s_quad)
-sum(out)*6
-
-
-
-import Gridap.Helpers: @check
-import Gridap.TensorValues: meas
 
 function Gridap.Fields.integrate(a,s_quad::SurfaceQuadrature)
   println("surface integrate 1")
@@ -83,8 +81,6 @@ function Gridap.Fields.integrate(f::CellField,s_quad::SurfaceQuadrature)
   bx = b(x)
   gx = g(x)
 
-  # bgx = lazy_map(SquareMeasure(),gx,bx)
-
   if quad.data_domain_style == ReferenceDomain() &&
             quad.integration_domain_style == PhysicalDomain()
     cell_map = get_cell_map(quad.trian)
@@ -96,17 +92,56 @@ function Gridap.Fields.integrate(f::CellField,s_quad::SurfaceQuadrature)
   end
 end
 
-import Gridap.Helpers: @check
 
 function Gridap.Fields.evaluate!(cache,k::IntegrationMap,aq::AbstractVector,w,jq::AbstractVector,gq::AbstractVector)
-  println("integration map")
-  T = typeof( testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(meas(testitem(gq)))
-            + testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(meas(testitem(gq))) )
+
+  T = typeof( testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq)))
+            + testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq))) )
   z = zero(T)
   @check length(aq) == length(w)
   @check length(aq) == length(jq)
   @inbounds for i in eachindex(aq)
-    z += aq[i]*w[i]*meas(jq[i])*sqrt(meas(gq[i]))
+    z += aq[i]*w[i]*meas(jq[i])*sqrt(det(gq[i]))
   end
   z
 end
+
+
+s_quad = SurfaceQuadrature(metric,quad)
+out = integrate(1,s_quad)
+sum(out)*6
+4*π*r^2
+
+
+
+struct SurfaceMeasure{C<:SurfaceQuadrature,A} <: Measure
+  metric :: A
+  s_quad :: C
+end
+
+function Gridap.CellData.Measure(metric,q::SurfaceQuadrature)
+  return SurfaceMeasure(metric,q)
+end
+
+Gridap.CellData.Measure(metric,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
+
+function SurfaceMeasure(metric,args...;kwargs...)
+  s_quad = SurfaceQuadrature(metric,args...;kwargs...)
+  return SurfaceMeasure(metric,s_quad)
+end
+
+Gridap.CellData.get_cell_quadrature(a::SurfaceMeasure) = a.s_quad.quad
+
+function Gridap.CellData.integrate(f,b::SurfaceMeasure)
+  c = integrate(f,b.s_quad)
+  cont = DomainContribution()
+  add_contribution!(cont,b.s_quad.quad.trian,c)
+  cont
+end
+
+
+dΩg = Measure(metric,Ω,order)
+
+_out = sum( integrate(1,dΩg))
+_out*6
+4*π*r^2
