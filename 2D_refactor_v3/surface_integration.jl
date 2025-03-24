@@ -14,26 +14,16 @@ using BenchmarkTools
 
 include("initialise.jl")
 
-cube_surf_area = 6*(2*a)^2
-sphere_surf_area = 4*π*r^2
-
-#### need the sqrt(det(metric)) in the integral
-function sqrt_det_func(αβ)
-  α,β = αβ
-  sqrt( r^2/( (1 + (tan(α))^2 + (tan(β))^2 )^2*(cos(α))^2*(cos(β) )^2    )   )
-  # r/( (1 + (tan(α))^2 + (tan(β))^2 )*cos(α)*cos(β)   )
-end
+include("surface_metric.jl")
 
 
-
-
-
-_model = cube_model_3D
+# _model = cube_model_3D
+_model = ref_ref_ref_model
 manifold_grid = CubedSphereGrid(_model)
 grid = get_grid(_model) ### underlying coarse grid``
 panel_ids = get_panel_ids(_model)
 
-order = 2
+order = 4
 
 manifold_model = UnstructuredDiscreteModel(manifold_grid.parametric_grid)
 Ω = Triangulation(manifold_model)
@@ -87,7 +77,7 @@ sgx = collect1d(sqrt_g_x)
 _bx = collect1d(bx)
 z = 0.0
 
-for j in 1:6
+for j in 1:num_cells(_model)
   aq = _bx[j]
   jq = jtx[j]
   w = weights[j]
@@ -98,38 +88,4 @@ for j in 1:6
 
 end
 z
-sphere_surf_area = 4*π*r^2
-
-
-
-
-########### operation Fields
-ncells = 6
-p = Point(1.0,2.0,3.0)
-x = fill(p,4)
-cell_to_x = Fill(x,ncells)
-
-Panelm = PanelRotationMap(rp1[1])
-bump = BumpMap()
-
-m = GenericField(bump)
-g = GenericField(Panelm)
-f = m∘g
-# f = Fields.OperationField(∘,(m,g))
-
-cell_to_m = Fill(m,ncells)
-cell_to_g = fill(g,ncells)
-cell_to_f = lazy_map(∘,cell_to_m,cell_to_g)
-cell_to_r = fill(f(x),ncells)
-cell_to_fx = lazy_map(evaluate,cell_to_f,cell_to_x)
-test_array(cell_to_fx,cell_to_r)
-
-cell_to_∇f = lazy_map((∇),cell_to_f)
-cell_to_∇fx = lazy_map(evaluate,cell_to_∇f,cell_to_x)
-cell_to_∇r = fill(evaluate(∇(f),x),ncells)
-test_array(cell_to_∇fx,cell_to_∇r)
-
-
-function evaluate!(cache,f::FieldGradient,x::Point)
-
-end
+4*π*r^2
