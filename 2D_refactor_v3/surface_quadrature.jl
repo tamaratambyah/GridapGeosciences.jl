@@ -16,7 +16,7 @@ using BenchmarkTools
 import Gridap.Helpers: @check
 import Gridap.TensorValues: meas
 
-
+include("measure_metric_map.jl")
 include("surface_metric.jl")
 
 a = 1.0
@@ -81,30 +81,33 @@ function Gridap.Fields.integrate(f::CellField,s_quad::SurfaceQuadrature)
   bx = b(x)
   gx = g(x)
 
+  bgx = lazy_map(MeasureMult(), bx, gx)
+
   if quad.data_domain_style == ReferenceDomain() &&
             quad.integration_domain_style == PhysicalDomain()
     cell_map = get_cell_map(quad.trian)
     cell_Jt = lazy_map(∇,cell_map)
     cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
-    lazy_map(IntegrationMap(),bx,quad.cell_weight,cell_Jtx,gx)
+    lazy_map(IntegrationMap(),bgx,quad.cell_weight,cell_Jtx)
+    # lazy_map(IntegrationMap(),bx,quad.cell_weight,cell_Jtx,gx)
   else
     @notimplemented
   end
 end
 
 
-function Gridap.Fields.evaluate!(cache,k::IntegrationMap,aq::AbstractVector,w,jq::AbstractVector,gq::AbstractVector)
+# function Gridap.Fields.evaluate!(cache,k::IntegrationMap,aq::AbstractVector,w,jq::AbstractVector,gq::AbstractVector)
 
-  T = typeof( testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq)))
-            + testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq))) )
-  z = zero(T)
-  @check length(aq) == length(w)
-  @check length(aq) == length(jq)
-  @inbounds for i in eachindex(aq)
-    z += aq[i]*w[i]*meas(jq[i])*sqrt(det(gq[i]))
-  end
-  z
-end
+#   T = typeof( testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq)))
+#             + testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq))) )
+#   z = zero(T)
+#   @check length(aq) == length(w)
+#   @check length(aq) == length(jq)
+#   @inbounds for i in eachindex(aq)
+#     z += aq[i]*w[i]*meas(jq[i])*sqrt(det(gq[i]))
+#   end
+#   z
+# end
 
 
 s_quad = SurfaceQuadrature(metric,quad)

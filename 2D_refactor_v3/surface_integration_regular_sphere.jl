@@ -12,9 +12,12 @@ using Test
 using LinearAlgebra
 using FillArrays
 using BenchmarkTools
+include("helpers.jl")
+include("measure_metric_map.jl")
 
 a = 1.0
-r = a*sqrt(3.0)
+# r = a*sqrt(3.0)
+r = 1.0
 
 E(x) = r^2 * 1.0
 
@@ -26,13 +29,14 @@ end
 F(x) = 0.0
 metric(x) = TensorValue{2,2}(E(x),F(x),F(x),G(x))
 
-order = 4
+order = 6
 
-parametric_model = CartesianDiscreteModel((-π,π,-π/2,π/2),(18,18))
+parametric_model = UnstructuredDiscreteModel(CartesianDiscreteModel((-π,π,-π/2,π/2),(18,18)))
 Ω = Triangulation(parametric_model)
 dΩ = Measure(Ω,order)
 
-f = CellField(1.0,Ω)
+_f(x) = (cos(x[2]))
+f = CellField(_f,Ω)
 _metric = CellField(metric,Ω)
 
 
@@ -54,7 +58,8 @@ cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
 weights = collect1d(quad.cell_weight)
 jtx = collect1d(cell_Jtx)
 sgx = map(x-> sqrt.(meas.(x)), gx)
-_bx = collect1d(bx)
+# _bx = collect1d(bx)
+_bx = lazy_map(MeasureMult(), bx, gx) # multiply by sqrt(det(g))
 z = 0.0
 
 for j in 1:num_cells(parametric_model)
@@ -63,9 +68,10 @@ for j in 1:num_cells(parametric_model)
   w = weights[j]
   d = sgx[j]
   @inbounds for i in eachindex(aq)
-    z+=(aq[i]*w[i]*(Gridap.TensorValues.meas(jq[i]))*d[i]) # multiply by sqrt(det(g))
+    z+=(aq[i]*w[i]*(Gridap.TensorValues.meas(jq[i]))) #*d[i]) # multiply by sqrt(det(g))
   end
 
 end
 z
+
 4*π*r^2
