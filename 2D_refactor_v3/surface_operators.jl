@@ -15,37 +15,11 @@ using LinearAlgebra
 using FillArrays
 using BenchmarkTools
 include("helpers.jl")
-include("surface_metric.jl")
+include("metric/surface_metric.jl")
 
 parametric_model = UnstructuredDiscreteModel(CartesianDiscreteModel((-π,π,-π/2,π/2),(8,8)))
 Ω = Triangulation(parametric_model)
 pts = get_cell_points(Ω)
-
-
-
-struct MetricInfo{A<:CellField,B<:CellField,C<:CellField} <: CellDatum
-  metric::A
-  sq_meas::B
-  inv_metric::C
-end
-
-function MetricInfo(metric::CellField,sq_meas::CellField,inv_metric::CellField)
-  A = typeof(metric)
-  B = typeof(sq_meas)
-  C = typeof(inv_metric)
-  MetricInfo{A,B,C}(metric,sq_meas,inv_metric)
-end
-
-function MetricInfo(metric_func::Function,Ω::Triangulation)
-  sq_meas_func(x) = sqrt(meas(metric_func(x)))
-  inv_metric_func(x) = inv(metric_func(x))
-
-  metric = CellField(metric_func,Ω)
-  sq_meas = CellField(sq_meas_func,Ω)
-  inv_metric = CellField(inv_metric_func,Ω)
-  MetricInfo(metric,sq_meas,inv_metric)
-end
-
 
 
 function surface_gradient(a::CellField,m::MetricInfo)
@@ -78,6 +52,52 @@ surf_lap(pts)
 evaluate(surface_gradient(a,m),pts)
 
 
+## auto diff
+function surface_gradient(f::Number,m::MetricInfo)
+  function grad_f(x::Point)
+    zero(return_type(outer,x,f))
+  end
+end
+
+
+function surface_gradient(f::Function,m::MetricInfo)
+  function _gradient(x)
+    m.inv_metric(x) ⋅ gradient(f,x)
+  end
+end
+
+function surface_divergence(f::Function,m::MetricInfo)
+  function _divergence(x)
+    _f(y) =  m.sq_meas_func(y)*f(y)
+    1/m.sq_meas(x) * divergence(_f,x)
+  end
+end
+
+
+### auto diff for laplacian not working ...
+
+
+# # tr(ForwardDiff.jacobian(
+# x = Point(0.0,0.0)
+# get_array(x)
+
+# using ForwardDiff
+# using StaticArrays
+# f(x) = x[1] + x[2]
+
+
+# grad(y) = ForwardDiff.gradient(f,y)
+
+# _f(y) = convert(SMatrix{2,2,Float64},m.inv_metric_func(y) ) * grad(y)
+# _f(get_array(x))
+
+# tr(ForwardDiff.jacobian(y->_f(y), get_array(x) ))
+
+# convert(SMatrix{2,2,Float64},m.inv_metric_func(get_array(x)) ) * grad(get_array(x))
+
+# tr(ForwardDiff.jacobian(y->( m.inv_metric_func(y) ⋅ ForwardDiff.gradient(f,y) ), get_array(x) ))
+
+# m.inv_metric_func(x)
 
 
 

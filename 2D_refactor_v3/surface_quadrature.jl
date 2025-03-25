@@ -20,7 +20,7 @@ a = 1.0
 r = a*sqrt(3.0)
 
 include("maps/metric_maps.jl")
-include("surface_metric.jl")
+include("metric/surface_metric.jl")
 include("surface_operators.jl")
 
 order = 4
@@ -153,9 +153,9 @@ struct SurfaceMeasure{C<:SurfaceQuadrature} <: Measure
   s_quad :: C
 end
 
-function SurfaceMeasure(q::SurfaceQuadrature)
-  C = typeof(q)
-  return SurfaceMeasure{C}(q)
+function SurfaceMeasure(s_quad::SurfaceQuadrature)
+  C = typeof(s_quad)
+  return SurfaceMeasure{C}(s_quad)
 end
 
 function SurfaceMeasure(metric,quad::CellQuadrature)
@@ -168,7 +168,7 @@ function SurfaceMeasure(metric,args...;kwargs...)
   return SurfaceMeasure(s_quad)
 end
 
-Gridap.CellData.Measure(q::SurfaceQuadrature) = SurfaceMeasure(q)
+Gridap.CellData.Measure(s_quad::SurfaceQuadrature) = SurfaceMeasure(s_quad)
 Gridap.CellData.Measure(metric,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
 
 Gridap.CellData.get_cell_quadrature(a::SurfaceMeasure) = a.s_quad.quad
@@ -198,3 +198,13 @@ dΩg = Measure(m,Ω,order)
 out = sum( integrate(1.0,dΩg))
 out*6
 4*π*r^2
+
+sum( ∫(1  )dΩg )*6
+
+#### try combining with surface operators
+
+f(x) = x[1] + x[2]
+g(x) = VectorValue(2.0*x[1], 3.0)
+sum( ∫( surface_gradient(f,m)  )dΩg )
+
+sum( ∫( surface_divergence(g,m) )dΩg )
