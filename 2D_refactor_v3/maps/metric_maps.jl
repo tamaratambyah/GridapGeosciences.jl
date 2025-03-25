@@ -1,4 +1,6 @@
 
+import Gridap.Helpers: @check
+import Gridap.TensorValues: meas
 struct MetricMeasure <: Map end
 
 function Gridap.Arrays.return_cache(k::MetricMeasure,gx::AbstractVector{<:TensorValue})

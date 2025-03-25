@@ -23,7 +23,7 @@ dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
 a = π/4.0
-r = a*sqrt(3.0)
+r = 1.0*sqrt(3.0)
 
 cube_model_3D = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel(a)...)
 

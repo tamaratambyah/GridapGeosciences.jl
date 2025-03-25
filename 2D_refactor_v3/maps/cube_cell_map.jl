@@ -17,3 +17,20 @@ function Gridap.Arrays.evaluate!(cache,f::CubeParametricCellMap,panel_id::Int64,
   # About the same speed. ∘ is easier to read
   return y
 end
+
+_model = cube_model_3D
+panel_ids = get_panel_ids(_model)
+Ω = Triangulation(_model)
+
+R(x) = rp1[x]
+# _R = Fill(  CellField(R(panel_ids),Ω,PhysicalDomain()), 6)
+
+
+_R = [CellField(rp1[i],Ω,PhysicalDomain()) for i in panel_ids]
+
+cmap = get_cell_map(_model)
+
+_cmap = lazy_map(∘,_R,cmap)
+
+_cell_Jt = lazy_map(∇,_cmap)
+_cell_Jtx = lazy_map(evaluate,_cell_Jt,quad.cell_point)
