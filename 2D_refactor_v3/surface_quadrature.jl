@@ -16,8 +16,9 @@ using BenchmarkTools
 import Gridap.Helpers: @check
 import Gridap.TensorValues: meas
 
-include("measure_metric_map.jl")
+include("maps/metric_maps.jl")
 include("surface_metric.jl")
+include("surface_operators.jl")
 
 a = 1.0
 r = a*sqrt(3.0)
@@ -28,28 +29,54 @@ parametric_model = CartesianDiscreteModel((-π/4,π/4,-π/4,π/4),(8,8))
 Ω = Triangulation(parametric_model)
 dΩ = Measure(Ω,order)
 
-f = CellField(1.0,Ω)
 quad = CellQuadrature(Ω,order)
 
-metric(x) = TensorValue{2,2}(E(x),F(x),F(x),G(x))
-
+metric_cf = CellField(metric_func,Ω)
 
 struct SurfaceQuadrature{DDS,IDS} <: CellDatum
   metric::CellField
+  gx::AbstractVector
+  gx_meas::AbstractVector
   quad::CellQuadrature{DDS,IDS}
 end
 
-function SurfaceQuadrature(metric::Function,quad::CellQuadrature{DDS,IDS}) where {DDS,IDS}
-  g = CellField(metric,quad.trian)
-  SurfaceQuadrature{DDS,IDS}(g,quad)
+
+function SurfaceQuadrature(g::CellField,quad::CellQuadrature{DDS,IDS}) where {DDS,IDS}
+
+  trian_x = get_triangulation(quad)
+  trian_g = get_triangulation(g)
+
+  msg = """\n
+    Your are trying to integrate a CellField using a CellQuadrature defined on incompatible
+    triangulations. Verify that either the two objects are defined in the same triangulation
+    or that the triangulaiton of the CellField is the background triangulation of the CellQuadrature.
+    """
+  @check is_change_possible(trian_g,trian_x) msg
+
+  # evaluate the metric on the quadtrature domain
+  _g = change_domain(g,quad.trian,quad.data_domain_style)
+  x = get_cell_points(quad)
+  gx = _g(x)
+  gx_meas = lazy_map(MetricMeasure(),gx) # get sqrt(meas(g)) for the area element
+
+  SurfaceQuadrature{DDS,IDS}(g,gx,gx_meas,quad)
 end
 
-function SurfaceQuadrature(metric::Function,args...;kwargs...)
+
+function SurfaceQuadrature(metric::Function,quad::CellQuadrature)
+  g = CellField(metric,quad.trian)
+  SurfaceQuadrature(g,quad)
+end
+
+function SurfaceQuadrature(m::MetricInfo,quad::CellQuadrature)
+  g = m.metric
+  SurfaceQuadrature(g,quad)
+end
+
+function SurfaceQuadrature(metric,args...;kwargs...)
   quad = CellQuadrature(args...;kwargs...)
   SurfaceQuadrature(metric,quad)
 end
-
-
 
 function Gridap.Fields.integrate(a,s_quad::SurfaceQuadrature)
   println("surface integrate 1")
@@ -61,12 +88,12 @@ end
 
 function Gridap.Fields.integrate(f::CellField,s_quad::SurfaceQuadrature)
   println("surface integrate")
+
   quad = s_quad.quad
-  metric = s_quad.metric
+  gx_meas = s_quad.gx_meas
 
   trian_f = get_triangulation(f)
   trian_x = get_triangulation(quad)
-  trian_g = get_triangulation(metric)
 
   msg = """\n
     Your are trying to integrate a CellField using a CellQuadrature defined on incompatible
@@ -76,12 +103,10 @@ function Gridap.Fields.integrate(f::CellField,s_quad::SurfaceQuadrature)
   @check is_change_possible(trian_f,trian_x) msg
 
   b = change_domain(f,quad.trian,quad.data_domain_style)
-  g = change_domain(metric,quad.trian,quad.data_domain_style)
   x = get_cell_points(quad)
   bx = b(x)
-  gx = g(x)
 
-  bgx = lazy_map(MeasureMult(), bx, gx)
+  bgx = lazy_map(LazyMult(), bx,  gx_meas)
 
   if quad.data_domain_style == ReferenceDomain() &&
             quad.integration_domain_style == PhysicalDomain()
@@ -109,29 +134,50 @@ end
 #   z
 # end
 
-
-s_quad = SurfaceQuadrature(metric,quad)
-out = integrate(1,s_quad)
+s_quad = SurfaceQuadrature(metric_func,quad)
+out = integrate(1.0,s_quad)
 sum(out)*6
 4*π*r^2
 
+_s_quad = SurfaceQuadrature(metric_cf,quad)
+_out = integrate(1.0,_s_quad)
+sum(_out)*6
+
+m = MetricInfo(metric_func,Ω)
+_s_quad = SurfaceQuadrature(m,quad)
+_out = integrate(1.0,_s_quad)
+sum(_out)*6
 
 
-struct SurfaceMeasure{C<:SurfaceQuadrature,A} <: Measure
+struct SurfaceMeasure{A,C<:SurfaceQuadrature} <: Measure
   metric :: A
   s_quad :: C
 end
 
-function Gridap.CellData.Measure(metric,q::SurfaceQuadrature)
-  return SurfaceMeasure(metric,q)
+function SurfaceMeasure(metric::Function,q::SurfaceQuadrature)
+  A = typeof(metric)
+  C = typeof(q)
+  return SurfaceMeasure{A,C}(metric,q)
 end
 
-Gridap.CellData.Measure(metric,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
+function SurfaceMeasure(metric::CellField,q::SurfaceQuadrature)
+  A = typeof(metric)
+  C = typeof(q)
+  return SurfaceMeasure{A,C}(metric,q)
+end
+
+function SurfaceMeasure(m::MetricInfo,q::SurfaceQuadrature)
+  metric = m.metric
+  return SurfaceMeasure(metric,q)
+end
 
 function SurfaceMeasure(metric,args...;kwargs...)
   s_quad = SurfaceQuadrature(metric,args...;kwargs...)
   return SurfaceMeasure(metric,s_quad)
 end
+
+Gridap.CellData.Measure(q::SurfaceQuadrature) = SurfaceMeasure(q.metric,q)
+Gridap.CellData.Measure(metric,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
 
 Gridap.CellData.get_cell_quadrature(a::SurfaceMeasure) = a.s_quad.quad
 
@@ -143,8 +189,20 @@ function Gridap.CellData.integrate(f,b::SurfaceMeasure)
 end
 
 
-dΩg = Measure(metric,Ω,order)
+dΩg = Measure(metric_func,Ω,order)
+out = sum( integrate(1.0,dΩg))
+out*6
+4*π*r^2
 
-_out = sum( integrate(1,dΩg))
+_dΩg = Measure(metric_cf,Ω,order)
+_out = sum( integrate(1.0,_dΩg))
 _out*6
+
+DΩg = Measure(s_quad)
+_out = sum( integrate(1.0,DΩg))
+_out*6
+
+dΩg = Measure(m,Ω,order)
+out = sum( integrate(1.0,dΩg))
+out*6
 4*π*r^2
