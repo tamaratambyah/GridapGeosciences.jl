@@ -13,7 +13,7 @@ using LinearAlgebra
 using FillArrays
 using BenchmarkTools
 include("helpers.jl")
-include("measure_metric_map.jl")
+include("maps/metric_maps.jl")
 
 a = 1.0
 # r = a*sqrt(3.0)

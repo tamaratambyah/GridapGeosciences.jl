@@ -16,12 +16,12 @@ using BenchmarkTools
 import Gridap.Helpers: @check
 import Gridap.TensorValues: meas
 
+a = 1.0
+r = a*sqrt(3.0)
+
 include("maps/metric_maps.jl")
 include("surface_metric.jl")
 include("surface_operators.jl")
-
-a = 1.0
-r = a*sqrt(3.0)
 
 order = 4
 
@@ -31,7 +31,6 @@ dΩ = Measure(Ω,order)
 
 quad = CellQuadrature(Ω,order)
 
-metric_cf = CellField(metric_func,Ω)
 
 struct SurfaceQuadrature{DDS,IDS} <: CellDatum
   metric::CellField
@@ -139,6 +138,7 @@ out = integrate(1.0,s_quad)
 sum(out)*6
 4*π*r^2
 
+metric_cf = CellField(metric_func,Ω)
 _s_quad = SurfaceQuadrature(metric_cf,quad)
 _out = integrate(1.0,_s_quad)
 sum(_out)*6
@@ -149,34 +149,26 @@ _out = integrate(1.0,_s_quad)
 sum(_out)*6
 
 
-struct SurfaceMeasure{A,C<:SurfaceQuadrature} <: Measure
-  metric :: A
+struct SurfaceMeasure{C<:SurfaceQuadrature} <: Measure
   s_quad :: C
 end
 
-function SurfaceMeasure(metric::Function,q::SurfaceQuadrature)
-  A = typeof(metric)
+function SurfaceMeasure(q::SurfaceQuadrature)
   C = typeof(q)
-  return SurfaceMeasure{A,C}(metric,q)
+  return SurfaceMeasure{C}(q)
 end
 
-function SurfaceMeasure(metric::CellField,q::SurfaceQuadrature)
-  A = typeof(metric)
-  C = typeof(q)
-  return SurfaceMeasure{A,C}(metric,q)
-end
-
-function SurfaceMeasure(m::MetricInfo,q::SurfaceQuadrature)
-  metric = m.metric
-  return SurfaceMeasure(metric,q)
+function SurfaceMeasure(metric,quad::CellQuadrature)
+  s_quad = SurfaceQuadrature(metric,quad)
+  return SurfaceMeasure(s_quad)
 end
 
 function SurfaceMeasure(metric,args...;kwargs...)
   s_quad = SurfaceQuadrature(metric,args...;kwargs...)
-  return SurfaceMeasure(metric,s_quad)
+  return SurfaceMeasure(s_quad)
 end
 
-Gridap.CellData.Measure(q::SurfaceQuadrature) = SurfaceMeasure(q.metric,q)
+Gridap.CellData.Measure(q::SurfaceQuadrature) = SurfaceMeasure(q)
 Gridap.CellData.Measure(metric,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
 
 Gridap.CellData.get_cell_quadrature(a::SurfaceMeasure) = a.s_quad.quad
