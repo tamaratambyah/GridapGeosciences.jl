@@ -17,31 +17,19 @@ include("helpers.jl")
 include("maps/metric_maps.jl")
 include("surface_metric_and_op/metric_info.jl")
 include("surface_metric_and_op/quadrature.jl")
+include("surface_metric_and_op/cubedsphere_metric.jl")
 
-a = 1.0
-# r = a*sqrt(3.0)
-r = 1.0
 
-E(x) = r^2 * 1.0
-
-function G(x)
-  u,v = x
-  r^2*(cos(u))^2
-end
-
-F(x) = 0.0
-metric_func(x) = TensorValue{2,2}(E(x),F(x),F(x),G(x))
+r = sqrt(3.0)
 
 order = 4
 
-parametric_model = UnstructuredDiscreteModel(CartesianDiscreteModel((-π,π,-π/2,π/2),(18,18)))
+parametric_model = CartesianDiscreteModel((-π/4,π/4,-π/4,π/4),(8,8))
 Ω = Triangulation(parametric_model)
 dΩ = Measure(Ω,order)
 
-_f(x) = 1.0#(cos(x[2]))
-f = CellField(_f,Ω)
+f = CellField(1.0,Ω)
 metric = CellField(metric_func,Ω)
-
 
 quad = CellQuadrature(Ω,order)
 
@@ -61,42 +49,39 @@ cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
 weights = collect1d(quad.cell_weight)
 jtx = collect1d(cell_Jtx)
 gx_meas = lazy_map(MetricMeasure(),gx)
-# _bx = collect1d(bx)
-_bx = lazy_map(LazyMult(), bx, gx_meas) # multiply by sqrt(det(g))
+_bx = lazy_map(LazyMult(), bx, gx_meas)# multiply by sqrt(det(g))
 z = 0.0
 
 for j in 1:num_cells(parametric_model)
   aq = _bx[j]
   jq = jtx[j]
   w = weights[j]
-  d = sgx[j]
+  d = gx_meas[j]
   @inbounds for i in eachindex(aq)
-    z+=(aq[i]*w[i]*(Gridap.TensorValues.meas(jq[i]))) #*d[i]) # multiply by sqrt(det(g))
+    z+=(aq[i]*w[i]*(Gridap.TensorValues.meas(jq[i]))*d[i] )
   end
 
 end
 z
-
+6*z # assume each face of cube has same area
 4*π*r^2
 
-
-
 s_quad = SurfaceQuadrature(metric_func,quad)
-sum(integrate(1.0,s_quad))
+6*sum(integrate(1.0,s_quad))
 4*π*r^2
 
 _s_quad = SurfaceQuadrature(metric,quad)
-sum(integrate(1.0,_s_quad))
+6*sum(integrate(1.0,_s_quad))
 
 
 m = MetricInfo(metric_func,Ω)
 _s_quad = SurfaceQuadrature(m,quad)
-sum(integrate(1.0,_s_quad))
+6*sum(integrate(1.0,_s_quad))
 
 DΩg = Measure(s_quad)
-sum( integrate(1.0,DΩg))
+6*sum( integrate(1.0,DΩg))
 
 dΩg = Measure(m,Ω,order)
-sum( integrate(1.0,dΩg))
+6*sum( integrate(1.0,dΩg))
 
-sum( ∫(1  )dΩg )
+6*sum( ∫(1  )dΩg )

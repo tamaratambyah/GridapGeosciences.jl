@@ -15,11 +15,11 @@ using LinearAlgebra
 using FillArrays
 using BenchmarkTools
 
-include("cube_topo/cube_surface_1_cell_per_panel.jl")
+include("geometry/cube_surface_1_cell_per_panel.jl")
 include("maps/maps.jl")
 include("maps/map_matrices.jl")
 include("metric/surface_metric.jl")
-include("surface_quadrature.jl")
+include("surface_metric_and_op/quadrature.jl")
 
 a = π/4
 npanels = 1
@@ -114,23 +114,3 @@ dΩg = Measure(m,Ω,order)
 out = sum( integrate(1.0,dΩg))
 out*6
 4*π*r^2
-
-
-############################################################
-function Gridap.Geometry.UnstructuredGrid(
-  node_coordinates::Vector{Point{Dp,Tp}},
-  cell_node_ids::Table{Int32,Vector{Int32},Vector{Int32}},
-  reffes::Vector{LagrangianRefFE{Dc}},
-  cell_types::Vector{Int8},
-  orientation_style,
-  facet_normal,
-  cell_map
-  ) where {Dc,Dp,Tp}
-  println("unstructed grid")
-  Tn = typeof(facet_normal)
-  B = typeof(orientation_style)
-  UnstructuredGrid{Dc,Dp,Tp,B,Tn}(node_coordinates,cell_node_ids,reffes,cell_types,
-  orientation_style,facet_normal,cell_map)
-end
-
-UnstructuredGrid(node_coords,cell_node_ids,cell_reffes,cell_type,OrientationStyle(topo_grid),nothing,cm)

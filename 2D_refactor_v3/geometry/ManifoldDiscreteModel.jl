@@ -1,0 +1,52 @@
+"""
+    ManifoldDiscreteModel
+
+Stores the ManifoldGrid in a model structure
+
+manifold_grid : bespoke manifold grid  (i.e. cube or cubed sphere)
+grid_topology : topology of the underlying cube
+face_labeling : face labeling
+
+The model interface is overloaded to return
+- [`get_grid(model::ManifoldDiscreteModel)`]
+- [`get_grid_topology(model::ManifoldDiscreteModel)`]
+- [`get_face_labeling(model::ManifoldDiscreteModel)`]
+
+ The following method has been added to return the panel_ids
+- [`get_panel_ids(model::ManifoldDiscreteModel)`]
+"""
+
+
+struct ManifoldDiscreteModel{Dc,Dp,Dp_topo,A<:Grid{Dc,Dp},B<:GridTopology{Dc,Dp_topo}} <: DiscreteModel{Dc,Dp}
+  manifold_grid:: A
+  grid_topology:: B
+  face_labeling::FaceLabeling
+end
+
+function ManifoldDiscreteModel(manifold_grid::ManifoldGrid,topo::GridTopology{Dc,Dp_topo},
+          labels::FaceLabeling) where {Dc,Dp_topo}
+  A = typeof(manifold_grid)
+  B = typeof(topo)
+  Dp = num_point_dims(manifold_grid)
+  ManifoldDiscreteModel{Dc,Dp,Dp_topo,A,B}(manifold_grid,topo,labels)
+end
+
+function ManifoldDiscreteModel(manifold_grid::ManifoldGrid)
+  topo_grid = get_topo_grid(manifold_grid)
+  topo = UnstructuredGridTopology(topo_grid)
+  face_labels = FaceLabeling(topo)
+  ManifoldDiscreteModel(manifold_grid,topo,face_labels)
+end
+
+function ManifoldDiscreteModel(model::DiscreteModel,name::ManifoldName)
+ manifold_grid = ManifoldGrid(model,name)
+ ManifoldDiscreteModel(manifold_grid)
+end
+
+Gridap.Geometry.get_grid(model::ManifoldDiscreteModel) = model.manifold_grid
+
+Gridap.Geometry.get_grid_topology(model::ManifoldDiscreteModel) = model.grid_topology
+
+Gridap.Geometry.get_face_labeling(model::ManifoldDiscreteModel) = model.face_labeling
+
+get_panel_ids(model::ManifoldDiscreteModel) = get_panel_ids(get_grid(model))

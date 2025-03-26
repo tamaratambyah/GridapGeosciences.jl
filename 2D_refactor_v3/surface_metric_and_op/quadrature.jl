@@ -1,36 +1,3 @@
-using DrWatson
-using Gridap
-using Gridap.Arrays
-using Gridap.ReferenceFEs
-using Gridap.Geometry
-using Gridap.FESpaces
-using Gridap.CellData
-using Gridap.Adaptivity
-using Gridap.Fields
-using Gridap.TensorValues
-using Gridap.Helpers
-using Test
-using LinearAlgebra
-using FillArrays
-using BenchmarkTools
-import Gridap.Helpers: @check
-import Gridap.TensorValues: meas
-
-a = 1.0
-r = a*sqrt(3.0)
-
-include("maps/metric_maps.jl")
-include("metric/surface_metric.jl")
-include("surface_operators.jl")
-
-order = 4
-
-parametric_model = CartesianDiscreteModel((-π/4,π/4,-π/4,π/4),(8,8))
-Ω = Triangulation(parametric_model)
-dΩ = Measure(Ω,order)
-
-quad = CellQuadrature(Ω,order)
-
 
 struct SurfaceQuadrature{DDS,IDS} <: CellDatum
   metric::CellField
@@ -120,34 +87,6 @@ function Gridap.Fields.integrate(f::CellField,s_quad::SurfaceQuadrature)
 end
 
 
-# function Gridap.Fields.evaluate!(cache,k::IntegrationMap,aq::AbstractVector,w,jq::AbstractVector,gq::AbstractVector)
-
-#   T = typeof( testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq)))
-#             + testitem(aq)*testitem(w)*meas(testitem(jq))*sqrt(det(testitem(gq))) )
-#   z = zero(T)
-#   @check length(aq) == length(w)
-#   @check length(aq) == length(jq)
-#   @inbounds for i in eachindex(aq)
-#     z += aq[i]*w[i]*meas(jq[i])*sqrt(det(gq[i]))
-#   end
-#   z
-# end
-
-s_quad = SurfaceQuadrature(metric_func,quad)
-out = integrate(1.0,s_quad)
-sum(out)*6
-4*π*r^2
-
-metric_cf = CellField(metric_func,Ω)
-_s_quad = SurfaceQuadrature(metric_cf,quad)
-_out = integrate(1.0,_s_quad)
-sum(_out)*6
-
-m = MetricInfo(metric_func,Ω)
-_s_quad = SurfaceQuadrature(m,quad)
-_out = integrate(1.0,_s_quad)
-sum(_out)*6
-
 
 struct SurfaceMeasure{C<:SurfaceQuadrature} <: Measure
   s_quad :: C
@@ -169,7 +108,9 @@ function SurfaceMeasure(metric,args...;kwargs...)
 end
 
 Gridap.CellData.Measure(s_quad::SurfaceQuadrature) = SurfaceMeasure(s_quad)
-Gridap.CellData.Measure(metric,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
+# Gridap.CellData.Measure(metric::Function,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
+# Gridap.CellData.Measure(metric::CellField,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
+Gridap.CellData.Measure(metric::MetricInfo,args...;kwargs...) = SurfaceMeasure(metric,args...;kwargs...)
 
 Gridap.CellData.get_cell_quadrature(a::SurfaceMeasure) = a.s_quad.quad
 
@@ -179,32 +120,3 @@ function Gridap.CellData.integrate(f,b::SurfaceMeasure)
   add_contribution!(cont,b.s_quad.quad.trian,c)
   cont
 end
-
-
-dΩg = Measure(metric_func,Ω,order)
-out = sum( integrate(1.0,dΩg))
-out*6
-4*π*r^2
-
-_dΩg = Measure(metric_cf,Ω,order)
-_out = sum( integrate(1.0,_dΩg))
-_out*6
-
-DΩg = Measure(s_quad)
-_out = sum( integrate(1.0,DΩg))
-_out*6
-
-dΩg = Measure(m,Ω,order)
-out = sum( integrate(1.0,dΩg))
-out*6
-4*π*r^2
-
-sum( ∫(1  )dΩg )*6
-
-#### try combining with surface operators
-
-f(x) = x[1] + x[2]
-g(x) = VectorValue(2.0*x[1], 3.0)
-sum( ∫( surface_gradient(f,m)  )dΩg )
-
-sum( ∫( surface_divergence(g,m) )dΩg )

@@ -6,24 +6,35 @@ using Gridap.Geometry
 using Gridap.FESpaces
 using Gridap.CellData
 using Gridap.Adaptivity
+using Gridap.Helpers
+using Gridap.TensorValues
+using Gridap.Fields
 using Test
 using LinearAlgebra
 using FillArrays
 using BenchmarkTools
 include("maps/map_matrices.jl")
 include("maps/maps.jl")
-include("maps/cube_cell_map.jl")
-include("maps/sphere_cell_map.jl")
+include("maps/metric_maps.jl")
+# include("maps/cube_cell_map.jl")
+# include("maps/sphere_cell_map.jl")
 include("adaptivity_tools/panel_ids_from_refinement.jl")
-include("cube_topo/cube_surface_1_cell_per_panel.jl")
+include("geometry/cube_surface_1_cell_per_panel.jl")
+include("geometry/ManifoldGrid.jl")
+include("geometry/ManifoldDiscreteModel.jl")
+include("surface_metric_and_op/metric_info.jl")
+include("surface_metric_and_op/cubedsphere_metric.jl")
+include("surface_metric_and_op/operators.jl")
+include("surface_metric_and_op/quadrature.jl")
+
 include("helpers.jl")
-include("ManifoldGrid.jl")
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
-a = π/4.0
-r = 1.0*sqrt(3.0)
+a = π/4.0 ## to generate the cube of central angles
+_a = 1.0 ## to compute the radius of the sphere
+r = _a*sqrt(3.0)
 
 cube_model_3D = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel(a)...)
 

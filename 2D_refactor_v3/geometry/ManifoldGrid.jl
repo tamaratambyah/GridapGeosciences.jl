@@ -38,19 +38,31 @@ The following method has been added to return the panel_ids
 - [`get_panel_ids(grid::ManifoldGrid)`]
 """
 
-struct ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A<:Grid{Dc,Dp_topo},B<:Grid{Dc,Dp_parm},C<:Grid{Dc,Dp},E,F,G,H} <: Grid{Dc,Dp}
+abstract type ManifoldName end
+
+struct Cube <: ManifoldName end
+struct CubedSphere <: ManifoldName end
+
+const cube = Cube()
+const cubedsphere = CubedSphere()
+
+
+struct ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A<:Grid{Dc,Dp_topo},B<:Grid{Dc,Dp_parm},C<:Grid{Dc,Dp},E,F,G} <: Grid{Dc,Dp}
+  name::ManifoldName
   topo_grid::A
   parametric_grid::B
   ambient_grid::C
   parametric_cell_map::E
   ambient_cell_map::F
   parametric_cell_coords::G
-  panel_ids::H
+  panel_ids::Vector{Int}
 end
 
-function ManifoldGrid(topo_grid::Grid{Dc,Dp_topo},parametric_grid::Grid{Dc,Dp_parm},
-  ambient_grid::Grid{Dc,Dp},parametric_cell_map,ambient_cell_map,parametric_cell_coords,
-  panel_ids) where {Dc,Dp,Dp_topo,Dp_parm}
+function ManifoldGrid(name::ManifoldName,
+  topo_grid::Grid{Dc,Dp_topo},
+  parametric_grid::Grid{Dc,Dp_parm},
+  ambient_grid::Grid{Dc,Dp},
+  parametric_cell_map,ambient_cell_map,parametric_cell_coords,panel_ids) where {Dc,Dp,Dp_topo,Dp_parm}
 
   A = typeof(topo_grid)
   B = typeof(parametric_grid)
@@ -58,21 +70,25 @@ function ManifoldGrid(topo_grid::Grid{Dc,Dp_topo},parametric_grid::Grid{Dc,Dp_pa
   E = typeof(parametric_cell_map)
   F = typeof(ambient_cell_map)
   G = typeof(parametric_cell_coords)
-  H = typeof(panel_ids)
 
-  ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A,B,C,E,F,G,H}(topo_grid,parametric_grid,
+  ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A,B,C,E,F,G}(name,topo_grid,parametric_grid,
     ambient_grid,parametric_cell_map,ambient_cell_map,parametric_cell_coords,
     panel_ids)
 end
 
-function ManifoldGrid(model::DiscreteModel)
-  topo_grid = get_grid(model)
+function ManifoldGrid(model::DiscreteModel,name::ManifoldName)
   panel_ids = get_panel_ids(model)
-  GenericManifoldGrid()
+  topo_grid = get_grid(model)
+  ManifoldGrid(topo_grid,panel_ids,name)
 end
 
-function GenericManifoldGrid()
+function ManifoldGrid(model::DiscreteModel)
+  GenericManifoldGrid(model)
+end
+
+function GenericManifoldGrid(model::DiscreteModel)
   println("not implemented yet")
+  @notimplemented
 end
 
 function cell_maps_from_coords(cell_coords,cell_reffes,cell_type)
@@ -96,7 +112,9 @@ parametric_cell_map == Bump ∘ Rp1 ∘ cmap
 ambient_cell_map == cmap
 
 """
-function CubeGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids) where {Dc,Dp_topo}
+function ManifoldGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids,::Cube) where {Dc,Dp_topo}
+  println("cube manifold grid")
+
   cmaps = get_cell_map(topo_grid)
   cell_node_ids = get_cell_node_ids(topo_grid)
   topo_cell_coords = get_cell_coordinates(topo_grid)
@@ -109,15 +127,11 @@ function CubeGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids) where {Dc,Dp_topo}
 
   parametric_cell_map = cell_maps_from_coords(parametric_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
-  ManifoldGrid(topo_grid,parametric_grid,topo_grid,parametric_cell_map,cmaps,parametric_cell_coords,panel_ids)
+  ManifoldGrid(cube,topo_grid,parametric_grid,topo_grid,parametric_cell_map,
+              cmaps,parametric_cell_coords,panel_ids)
 
 end
 
-function CubeGrid(model::DiscreteModel)
-  panel_ids = get_panel_ids(model)
-  topo_grid = get_grid(model)
-  CubeGrid(topo_grid,panel_ids)
-end
 
 function get_cube_nodes(topo_cell_coords,panel_ids)
   coords_panel1 = lazy_map(PanelMap(), topo_cell_coords, panel_ids)
@@ -136,7 +150,9 @@ parametric_cell_map == Bump ∘ Rp1 ∘ cmap
 ambient_cell_map == R1p ∘ SigmaMap ∘ GnomonicMap ∘ Bump ∘ Rp1 ∘ cmap
 
 """
-function CubedSphereGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids) where {Dc,Dp_topo}
+function ManifoldGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids,::CubedSphere) where {Dc,Dp_topo}
+  println("cubed sphere manifold grid")
+
   cmaps = get_cell_map(topo_grid)
   cell_node_ids = get_cell_node_ids(topo_grid)
   topo_cell_coords = get_cell_coordinates(topo_grid)
@@ -157,14 +173,9 @@ function CubedSphereGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids) where {Dc,Dp_top
   ambient_cell_map = cell_maps_from_coords(ambient_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
 
-  ManifoldGrid(topo_grid,parametric_grid,ambient_grid,parametric_cell_map,ambient_cell_map,parametric_cell_coords,panel_ids)
+  ManifoldGrid(cubedsphere,topo_grid,parametric_grid,ambient_grid,parametric_cell_map,
+              ambient_cell_map,parametric_cell_coords,panel_ids)
 
-end
-
-function CubedSphereGrid(model::DiscreteModel)
-  panel_ids = get_panel_ids(model)
-  topo_grid = get_grid(model)
-  CubedSphereGrid(topo_grid,panel_ids)
 end
 
 
@@ -177,9 +188,7 @@ function get_cubed_sphere_nodes(topo_cell_coords,panel_ids)
   sphere_panel1 = lazy_map(Sigma(),latlon_panel1)
   sphere_panelp = lazy_map(InvPanelMap(), sphere_panel1, panel_ids)
 
-
   return cangles_panel1, sphere_panelp
-
 end
 
 

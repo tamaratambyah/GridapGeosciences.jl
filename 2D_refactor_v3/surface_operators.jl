@@ -9,33 +9,26 @@ using Gridap.Adaptivity
 using Gridap.Fields
 using Gridap.TensorValues
 using Gridap.Helpers
-using Gridap.CellData
 using Test
 using LinearAlgebra
 using FillArrays
 using BenchmarkTools
 include("helpers.jl")
-include("metric/surface_metric.jl")
+include("maps/metric_maps.jl")
+include("surface_metric_and_op/metric_info.jl")
+include("surface_metric_and_op/operators.jl")
+include("surface_metric_and_op/quadrature.jl")
+include("surface_metric_and_op/cubedsphere_metric.jl")
 
-parametric_model = UnstructuredDiscreteModel(CartesianDiscreteModel((-π,π,-π/2,π/2),(8,8)))
+
+r = sqrt(3.0)
+parametric_model = UnstructuredDiscreteModel(CartesianDiscreteModel((-π/4,π/4,-π/4,π/4),(8,8)))
 Ω = Triangulation(parametric_model)
 pts = get_cell_points(Ω)
 
-
-function surface_gradient(a::CellField,m::MetricInfo)
-  m.inv_metric⋅ gradient(a)
-end
-
-function surface_divergence(v::CellField,m::MetricInfo)
-  f = m.sq_meas*v
-  1/m.sq_meas * divergence(f)
-end
-
-function surface_laplacian(f::CellField,m::MetricInfo)
-  surface_divergence(surface_gradient(f,m),m)
-end
-
+order = 4
 m = MetricInfo(metric_func,Ω)
+dΩg = Measure(m,Ω,order)
 
 a = CellField(x->x[1],Ω)
 b = CellField(x->VectorValue(x[1],x[2]),Ω)
@@ -51,27 +44,13 @@ surf_lap(pts)
 
 evaluate(surface_gradient(a,m),pts)
 
+#### try combining with surface operators
 
-## auto diff
-function surface_gradient(f::Number,m::MetricInfo)
-  function grad_f(x::Point)
-    zero(return_type(outer,x,f))
-  end
-end
+f(x) = x[1] + x[2]
+h(x) = VectorValue(2.0*x[1], 3.0)
+sum( ∫( surface_gradient(f,m)  )dΩg )
 
-
-function surface_gradient(f::Function,m::MetricInfo)
-  function _gradient(x)
-    m.inv_metric(x) ⋅ gradient(f,x)
-  end
-end
-
-function surface_divergence(f::Function,m::MetricInfo)
-  function _divergence(x)
-    _f(y) =  m.sq_meas_func(y)*f(y)
-    1/m.sq_meas(x) * divergence(_f,x)
-  end
-end
+sum( ∫( surface_divergence(h,m) )dΩg )
 
 
 ### auto diff for laplacian not working ...

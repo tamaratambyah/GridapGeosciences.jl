@@ -6,6 +6,9 @@ using Gridap.Geometry
 using Gridap.FESpaces
 using Gridap.CellData
 using Gridap.Adaptivity
+using Gridap.Fields
+using Gridap.TensorValues
+using Gridap.Helpers
 using Test
 using LinearAlgebra
 using FillArrays
@@ -13,11 +16,11 @@ using BenchmarkTools
 
 include("initialise.jl")
 
+# _model = cube_model_3D ### Coarset cube model
+_model = ref_ref_ref_model
 
-### Coarset model
-_model = cube_model_3D
-
-manifold_grid = CubedSphereGrid(ref_ref_ref_model)
+### Test manifold grid
+manifold_grid = ManifoldGrid(_model,cubedsphere)
 
 ref_cell_coords = get_cell_ref_coordinates(manifold_grid)
 
@@ -32,8 +35,17 @@ test_cell_maps(ambient_cmaps,ref_cell_coords,ambient_cell_coords)
 
 writevtk(manifold_grid.ambient_grid,dir*"/CSgrid",append=false)
 
+### Test manifold model
+manifold_model = ManifoldDiscreteModel(_model,cubedsphere)
+order = 4
+Ω = Triangulation(manifold_model)
+m = MetricInfo(metric_func,Ω)
+dΩg = Measure(m,Ω,order)
+sum( integrate(1.0,dΩg))
+4*π*r^2
 
 
+### plot meshes
 using Plots
 panel_ids = get_panel_ids(manifold_grid)
 parametric_coords = get_cell_coordinates(manifold_grid)
@@ -47,8 +59,3 @@ plot_coords(latlon_p,panel_ids;plotTitle="sphere_latlon")
 plot_coords(parametric_coords,ones(Int,size(panel_ids));plotTitle="panel1_central_angles")
 plot_coords(latlon,ones(Int,size(panel_ids));plotTitle="panel1_latlon")
 plot_coords(local_xy,ones(Int,size(panel_ids));plotTitle="panel1_local_xy")
-
-# sphere_maps = lazy_map(SphereAmbientCellMap() , get_panel_ids(_model), get_cell_map(_model))
-# cache = array_cache(sphere_maps)
-# bm1() = lazy_collect(cache,sphere_maps)
-# @benchmark bm1()
