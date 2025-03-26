@@ -15,7 +15,7 @@ using BenchmarkTools
 
 import Gridap.TensorValues: meas
 include("helpers.jl")
-include("surface_metric.jl")
+include("metric/surface_metric.jl")
 
 a = 1.0
 r = a*sqrt(3.0)

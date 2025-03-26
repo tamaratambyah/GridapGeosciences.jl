@@ -16,79 +16,39 @@ using BenchmarkTools
 
 include("initialise.jl")
 include("maps/metric_maps.jl")
-include("surface_metric.jl")
-
+include("metric/surface_metric.jl")
+include("surface_quadrature.jl")
 
 # _model = cube_model_3D
 _model = ref_ref_model
 manifold_grid = CubedSphereGrid(_model)
-
-order = 6
-
-manifold_model = UnstructuredDiscreteModel(manifold_grid.parametric_grid)
-Ω = Triangulation(manifold_model)
-dΩ = Measure(Ω,order)
-
-f = CellField(1.0,Ω)
-g = CellField(metric_func,Ω)
-
-quad = CellQuadrature(Ω,order)
-
-b = change_domain(f,quad.trian,quad.data_domain_style)
-
-x = get_cell_points(quad)
-bx = b(x)
-
-_g = change_domain(g,quad.trian,quad.data_domain_style)
-x = get_cell_points(quad)
-gx = _g(x)
-gx_meas = lazy_map(MetricMeasure(),gx) # get sqrt(meas(g)) for the area element
+face_labels = get_face_labeling(_model)
+order = 4
 
 
 
-node_to_coords = get_node_coordinates(manifold_grid.ambient_grid)
-cell_to_nodes = get_cell_node_ids(manifold_grid)
-lazy_map(Broadcasting(Reindex(node_to_coords)),cell_to_nodes)
-
-
-cell_to_coords = collect1d( lazy_map(evaluate,get_cell_map(manifold_grid),get_cell_ref_coordinates(manifold_grid)) )
-
-# cell_to_coords = manifold_grid.parametric_cell_coords
-
-
-type_to_reffes = get_reffes(manifold_grid)
-cell_to_type = get_cell_type(manifold_grid)
-type_to_shapefuns = map(get_shapefuns, type_to_reffes)
-cell_to_shapefuns = expand_cell_data(type_to_shapefuns,cell_to_type)
-
-
-
-_cell_map = lazy_map(linear_combination,cell_to_coords,cell_to_shapefuns)
-
-
-
-_cell_Jt = lazy_map(∇,_cell_map)
-_cell_Jtx = lazy_map(evaluate,_cell_Jt,quad.cell_point)
-
-
-
-
-
-## compute the integral by hand
-weights = collect1d(quad.cell_weight)
-jtx = collect1d(_cell_Jtx)
-bgx = lazy_map(LazyMult(), bx,  gx_meas) # multiply by sqrt(det(g))
-z = 0.0
-
-for j in 1:num_cells(manifold_model)
-  aq = bgx[j]
-  jq = jtx[j]
-  w = weights[j]
-  @inbounds for i in eachindex(aq)
-    z+=(aq[i]*w[i]*(Gridap.TensorValues.meas(jq[i])) )
-  end
-
+struct ManifoldDiscreteModel{Dc,Dp,Dp_topo,A<:Grid{Dc,Dp},B<:GridTopology{Dc,Dp_topo}} <: DiscreteModel{Dc,Dp}
+  manifold_grid:: A
+  grid_topology:: B
+  face_labeling::FaceLabeling
 end
-z
 
+function ManifoldDiscreteModel(manifold_grid::Grid{Dc,Dp},topo::GridTopology{Dc,Dp_topo},labels) where {Dc,Dp,Dp_topo}
+  A = typeof(manifold_grid)
+  B = typeof(topo)
+  ManifoldDiscreteModel{Dc,Dp,Dp_topo,A,B}(manifold_grid,topo,labels)
+end
+
+Gridap.Geometry.get_grid(model::ManifoldDiscreteModel) = model.manifold_grid
+
+Gridap.Geometry.get_grid_topology(model::ManifoldDiscreteModel) = model.grid_topology
+
+Gridap.Geometry.get_face_labeling(model::ManifoldDiscreteModel) = model.face_labeling
+
+
+manifold_model = ManifoldDiscreteModel(manifold_grid,get_grid_topology(_model),get_face_labeling(_model))
+Ω = Triangulation(manifold_model)
+m = MetricInfo(metric_func,Ω)
+dΩg = Measure(m,Ω,order)
+sum( integrate(1.0,dΩg))
 4*π*r^2

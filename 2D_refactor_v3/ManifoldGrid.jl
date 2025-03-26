@@ -75,6 +75,16 @@ function GenericManifoldGrid()
   println("not implemented yet")
 end
 
+function cell_maps_from_coords(cell_coords,cell_reffes,cell_type)
+
+  ctype_shapefuns = map(get_shapefuns,cell_reffes)
+  cell_shapefuns = expand_cell_data(ctype_shapefuns,cell_type)
+
+  cell_map = lazy_map(linear_combination,cell_coords,cell_shapefuns)
+
+  Fields.MemoArray(cell_map)
+end
+
 
 """
 CubeSurfaceGrid
@@ -97,7 +107,7 @@ function CubeGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids) where {Dc,Dp_topo}
   parametric_grid = Gridap.Geometry.UnstructuredGrid(parametric_nodes,cell_node_ids,
       get_reffes(topo_grid),get_cell_type(topo_grid),OrientationStyle(topo_grid))
 
-  parametric_cell_map = lazy_map(CubeParametricCellMap(), panel_ids, cmaps)
+  parametric_cell_map = cell_maps_from_coords(parametric_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
   ManifoldGrid(topo_grid,parametric_grid,topo_grid,parametric_cell_map,cmaps,parametric_cell_coords,panel_ids)
 
@@ -112,8 +122,6 @@ end
 function get_cube_nodes(topo_cell_coords,panel_ids)
   coords_panel1 = lazy_map(PanelMap(), topo_cell_coords, panel_ids)
   coords_panel1_2D = lazy_map(BumpMap(), coords_panel1)
-  # coords_panel1_3D = lazy_map(BumpMap(), coords_panel1_2D)
-  # coords_panelp = lazy_map(InvPanelMap(), coords_panel1_3D, panel_ids)
   return coords_panel1_2D
 end
 
@@ -139,16 +147,14 @@ function CubedSphereGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids) where {Dc,Dp_top
   parametric_grid = Gridap.Geometry.UnstructuredGrid(parametric_nodes,cell_node_ids,
       get_reffes(topo_grid),get_cell_type(topo_grid),OrientationStyle(topo_grid))
 
-  parametric_cell_map = lazy_map(CubeParametricCellMap(), panel_ids, cmaps)
-
-
+  parametric_cell_map = cell_maps_from_coords(parametric_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
   ambient_nodes = get_nodes_from_coords(topo_grid,ambient_cell_coords)
 
   ambient_grid = Gridap.Geometry.UnstructuredGrid(ambient_nodes,cell_node_ids,
       get_reffes(topo_grid),get_cell_type(topo_grid),OrientationStyle(topo_grid))
 
-  ambient_cell_map = lazy_map(SphereAmbientCellMap(), panel_ids, cmaps)
+  ambient_cell_map = cell_maps_from_coords(ambient_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
 
   ManifoldGrid(topo_grid,parametric_grid,ambient_grid,parametric_cell_map,ambient_cell_map,parametric_cell_coords,panel_ids)
