@@ -8,8 +8,6 @@ parametric_grid         : grid of the parametric domain (for FEM) i.e. panel 1
                           - note, this grid represents panel 1, and only panel 1
                           nodes are non-zero.
 ambient_grid            : grid of the ambient space (manifold)
-parametric_cell_map     : map to the parametric space (used for integration)
-ambient_cell_map        : map to ambient space (manifold - not the integration space)
 parametric_cell_coords  : the cell coords in parametric space
                         - this must be stored separatately as we cannot have dG
                          type nodes
@@ -47,13 +45,11 @@ const cube = Cube()
 const cubedsphere = CubedSphere()
 
 
-struct ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A<:Grid{Dc,Dp_topo},B<:Grid{Dc,Dp_parm},C<:Grid{Dc,Dp},E,F,G} <: Grid{Dc,Dp}
+struct ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A<:Grid{Dc,Dp_topo},B<:Grid{Dc,Dp_parm},C<:Grid{Dc,Dp},G} <: Grid{Dc,Dp}
   name::ManifoldName
   topo_grid::A
   parametric_grid::B
   ambient_grid::C
-  parametric_cell_map::E
-  ambient_cell_map::F
   parametric_cell_coords::G
   panel_ids::Vector{Int}
 end
@@ -62,18 +58,15 @@ function ManifoldGrid(name::ManifoldName,
   topo_grid::Grid{Dc,Dp_topo},
   parametric_grid::Grid{Dc,Dp_parm},
   ambient_grid::Grid{Dc,Dp},
-  parametric_cell_map,ambient_cell_map,parametric_cell_coords,panel_ids) where {Dc,Dp,Dp_topo,Dp_parm}
+  parametric_cell_coords,panel_ids) where {Dc,Dp,Dp_topo,Dp_parm}
 
   A = typeof(topo_grid)
   B = typeof(parametric_grid)
   C = typeof(ambient_grid)
-  E = typeof(parametric_cell_map)
-  F = typeof(ambient_cell_map)
   G = typeof(parametric_cell_coords)
 
-  ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A,B,C,E,F,G}(name,topo_grid,parametric_grid,
-    ambient_grid,parametric_cell_map,ambient_cell_map,parametric_cell_coords,
-    panel_ids)
+  ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A,B,C,G}(name,topo_grid,parametric_grid,
+    ambient_grid,parametric_cell_coords,panel_ids)
 end
 
 function ManifoldGrid(model::DiscreteModel,name::ManifoldName)
@@ -125,10 +118,9 @@ function ManifoldGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids,::Cube) where {Dc,Dp
   parametric_grid = Gridap.Geometry.UnstructuredGrid(parametric_nodes,cell_node_ids,
       get_reffes(topo_grid),get_cell_type(topo_grid),OrientationStyle(topo_grid))
 
-  parametric_cell_map = cell_maps_from_coords(parametric_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
+  # parametric_cell_map = cell_maps_from_coords(parametric_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
-  ManifoldGrid(cube,topo_grid,parametric_grid,topo_grid,parametric_cell_map,
-              cmaps,parametric_cell_coords,panel_ids)
+  ManifoldGrid(cube,topo_grid,parametric_grid,topo_grid,parametric_cell_coords,panel_ids)
 
 end
 
@@ -163,18 +155,17 @@ function ManifoldGrid(topo_grid::Grid{Dc,Dp_topo},panel_ids,::CubedSphere) where
   parametric_grid = Gridap.Geometry.UnstructuredGrid(parametric_nodes,cell_node_ids,
       get_reffes(topo_grid),get_cell_type(topo_grid),OrientationStyle(topo_grid))
 
-  parametric_cell_map = cell_maps_from_coords(parametric_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
+  # parametric_cell_map = cell_maps_from_coords(parametric_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
   ambient_nodes = get_nodes_from_coords(topo_grid,ambient_cell_coords)
 
   ambient_grid = Gridap.Geometry.UnstructuredGrid(ambient_nodes,cell_node_ids,
       get_reffes(topo_grid),get_cell_type(topo_grid),OrientationStyle(topo_grid))
 
-  ambient_cell_map = cell_maps_from_coords(ambient_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
+  # ambient_cell_map = cell_maps_from_coords(ambient_cell_coords, get_reffes(topo_grid),get_cell_type(topo_grid))
 
 
-  ManifoldGrid(cubedsphere,topo_grid,parametric_grid,ambient_grid,parametric_cell_map,
-              ambient_cell_map,parametric_cell_coords,panel_ids)
+  ManifoldGrid(cubedsphere,topo_grid,parametric_grid,ambient_grid,parametric_cell_coords,panel_ids)
 
 end
 
@@ -196,7 +187,6 @@ end
 """
 grid API
 """
-Gridap.Geometry.get_cell_map(grid::ManifoldGrid) = grid.parametric_cell_map
 Gridap.Geometry.get_cell_coordinates(grid::ManifoldGrid) = grid.parametric_cell_coords
 Gridap.Geometry.get_node_coordinates(grid::ManifoldGrid) = get_node_coordinates(grid.parametric_grid)
 Gridap.Geometry.get_cell_node_ids(grid::ManifoldGrid) = get_cell_node_ids(grid.parametric_grid)
@@ -205,12 +195,26 @@ Gridap.Geometry.get_cell_type(grid::ManifoldGrid) = get_cell_type(grid.parametri
 Gridap.Geometry.get_cell_ref_coordinates(grid::ManifoldGrid) = get_cell_ref_coordinates(grid.topo_grid)
 Gridap.Geometry.OrientationStyle(grid::ManifoldGrid) = Gridap.Geometry.NonOriented()
 
+function Gridap.Geometry.get_cell_map(grid::ManifoldGrid)
+  cell_to_coords = get_cell_coordinates(grid)
+  cell_to_shapefuns = get_cell_shapefuns(grid)
+  lazy_map(linear_combination,cell_to_coords,cell_to_shapefuns)
+end
+
+
+
 """
 ambient grid functions
 """
-get_ambient_cell_map(grid::ManifoldGrid) = grid.ambient_cell_map
 get_ambient_node_coordinates(grid::ManifoldGrid) = get_node_coordinates(grid.ambient_grid)
 get_ambient_cell_coordinates(grid::ManifoldGrid) = get_cell_coordinates(grid.ambient_grid)
+
+function get_ambient_cell_map(grid::ManifoldGrid)
+  cell_to_coords = get_ambient_cell_coordinates(grid)
+  cell_to_shapefuns = get_cell_shapefuns(grid)
+  lazy_map(linear_combination,cell_to_coords,cell_to_shapefuns)
+end
+
 
 """
 additional helper functions

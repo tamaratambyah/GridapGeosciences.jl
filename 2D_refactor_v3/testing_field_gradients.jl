@@ -53,7 +53,7 @@ evaluate(f,pt)
 
 ## gradient
 # the gradient is just the coefficient matrix
-
+# Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:PanelRotationField},x::VectorValue)
   f.object.mats
 end
@@ -63,6 +63,7 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:PanelRotationField},
 
   w = cache
   w = f.object.mats
+  return transpose(w)
 end
 
 
@@ -119,6 +120,7 @@ evaluate(k,pt)
 
 ### gradient
 # the gradient is just the coefficient matrix
+# Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:Panel1BumpField},x::VectorValue{D}) where {D}
 
   if D == 3
@@ -142,42 +144,88 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:Panel1BumpField},x::
     y = f.object.B_bump
   end
 
-  return y
+  return transpose(y)
 
 end
 
-# f ∘ g = f(g(x))
-function Base.:∘(f::Field,g::Field)
-  print("my composition")
-  Operation(g)(f)
-end
+# # f ∘ g = f(g(x))
+# function Base.:∘(f::Field,g::Field)
+#   print("my composition")
+#   Operation(g)(f)
+# end
 
 gradient(g)(pt)
+
+#### composition
+
+# function Gridap.Fields.gradient(f::Fields.OperationField{<:Field})
+#   a = f.op
+#   @notimplementedif length(f.fields) != 1
+#   b, = f.fields
+#   x = ∇(a)∘b
+#   y = ∇(b)
+#   # y⋅x
+#   x⋅y
+# end
+
 k = g ∘ f
 w = gradient(k)
-w(pt)
-# gradient(f∘ g)(pt)
+gradk = w(pt)
+get_array(gradk)
 
-x = Point(1.0)
-fa(x) = VectorValue(1.0,2.0)
-fb(x) = x[1] + x[2]
+_k = f ∘ g
+_w = gradient(_k)
+_gradk = _w(Point(1.0,1.0))
+get_array(_w(Point(1.0,1.0)))
 
-_fba = Operation(fb)(fa)
-evaluate(_fba,x)
 
-fab = Operation(fa)(fb)
-c = evaluate(fab,x)
+
+# x = Point(1.0,1.0)
+# fa(x) = VectorValue(x[1],2.0)
+# fb(x) = x[1] + x[2]
+
+# f = GenericField(fa)
+# g = GenericField(fb)
+
+# k = g∘f
+# k(x)
+
+# gradk = gradient(k)
+# gradk(x)
+
+# _k = f∘g
+# _k(x)
+
+# _gradk = gradient(_k)
+# _gradk(x)
+# _fba = Operation(fb)(fa)
+# evaluate(_fba,x)
+
+# fab = Operation(fa)(fb)
+# c = evaluate(fab,x)
 
 
 ########### compose with cmaps
-model = CartesianDiscreteModel((-1,1,-1,1),(2,2))
-grid = UnstructuredGrid(get_grid(model))
+include("geometry/cube_surface_1_cell_per_panel.jl")
+cube_model_3D = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel(1.0)...)
+Ω = Triangulation(cube_model_3D)
+dΩ = Measure(Ω,3)
+grid = get_grid(cube_model_3D)
 
 cmap = get_cell_map(grid)
+evaluate(cmap[1],Point(1,1))
+f
 _f = fill(f,num_cells(grid))
-_cmap = _f∘cmap
+_g = fill(g,num_cells(grid))
+_k = fill(g ∘ f,num_cells(grid))
+_cmap = lazy_map(∘,_k,cmap)
 evaluate(_cmap[1],Point(1,1))
 
+
+quad = dΩ.quad
+cell_Jt = lazy_map(∇,_cmap)
+cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
+map(x->Gridap.TensorValues.meas(x),cell_Jtx[1])
 
 1;
 

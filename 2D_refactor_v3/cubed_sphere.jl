@@ -17,7 +17,7 @@ using BenchmarkTools
 include("initialise.jl")
 
 # _model = cube_model_3D ### Coarset cube model
-_model = ref_ref_ref_model
+_model = ref_ref_model
 
 ### Test manifold grid
 manifold_grid = ManifoldGrid(_model,cubedsphere)
@@ -33,16 +33,18 @@ ambient_cmaps = get_ambient_cell_map(manifold_grid)
 ambient_cell_coords = get_ambient_cell_coordinates(manifold_grid)
 test_cell_maps(ambient_cmaps,ref_cell_coords,ambient_cell_coords)
 
-writevtk(manifold_grid.ambient_grid,dir*"/CSgrid",append=false)
+# writevtk(manifold_grid.ambient_grid,dir*"/CSgrid",append=false)
 
 ### Test manifold model
 manifold_model = ManifoldDiscreteModel(_model,cubedsphere)
-order = 4
+order = 2
 Ω = Triangulation(manifold_model)
 m = MetricInfo(metric_func,Ω)
 dΩg = Measure(m,Ω,order)
 sum( integrate(1.0,dΩg))
 4*π*r^2
+
+
 
 
 ### plot meshes
