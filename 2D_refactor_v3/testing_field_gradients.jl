@@ -146,14 +146,40 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:Panel1BumpField},x::
 
 end
 
+# f ∘ g = f(g(x))
+function Base.:∘(f::Field,g::Field)
+  print("my composition")
+  Operation(g)(f)
+end
+
 gradient(g)(pt)
+k = g ∘ f
+w = gradient(k)
+w(pt)
+# gradient(f∘ g)(pt)
 
-gradient(g∘ f)(Point(1,1,1))
-gradient(f∘ g)(pt)
+x = Point(1.0)
+fa(x) = VectorValue(1.0,2.0)
+fb(x) = x[1] + x[2]
+
+_fba = Operation(fb)(fa)
+evaluate(_fba,x)
+
+fab = Operation(fa)(fb)
+c = evaluate(fab,x)
 
 
+########### compose with cmaps
+model = CartesianDiscreteModel((-1,1,-1,1),(2,2))
+grid = UnstructuredGrid(get_grid(model))
 
-1
+cmap = get_cell_map(grid)
+_f = fill(f,num_cells(grid))
+_cmap = _f∘cmap
+evaluate(_cmap[1],Point(1,1))
+
+
+1;
 
 ################################################################
 
