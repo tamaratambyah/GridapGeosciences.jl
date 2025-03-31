@@ -7,7 +7,7 @@ using LinearAlgebra
 using FillArrays
 
 
-const a = 1.0 #π/4.0 ## to generate the cube of central angles
+const a = π/4.0 ## to generate the cube of central angles
 _a = 1.0 ## to compute the radius of the sphere
 const r = _a*sqrt(3.0)
 

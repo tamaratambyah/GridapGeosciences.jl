@@ -37,14 +37,8 @@ parametric_cmap = lazy_map(∘,k,cmaps)
 test_cell_maps(parametric_cmap,ref_cell_coords,_parametric_cell_coords)
 test_cell_maps(parametric_cmap,ref_cell_coords,parametric_cell_coords)
 
-
-
-
-
-
-
-
+## required for quadrature
 quad = dΩ.quad
-cell_Jt = lazy_map(∇,parametric_cmap)
+cell_Jt = lazy_map(∇,parametric_cell_map)
 cell_Jtx = lazy_map(evaluate,cell_Jt,quad.cell_point)
 map(x->Gridap.TensorValues.meas(x),cell_Jtx[1])

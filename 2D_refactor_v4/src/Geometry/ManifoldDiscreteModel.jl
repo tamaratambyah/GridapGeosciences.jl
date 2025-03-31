@@ -12,15 +12,16 @@ The model interface is overloaded to return
 - [`get_grid_topology(model::ManifoldDiscreteModel)`]
 - [`get_face_labeling(model::ManifoldDiscreteModel)`]
 
- The following method has been added to return the panel_ids
+ The following method has been added to return useful infomation
 - [`get_panel_ids(model::ManifoldDiscreteModel)`]
+- [`get_manifold_name(model::ManifoldDiscreteModel)`]
 """
 
 
 struct ManifoldDiscreteModel{Dc,Dp,Dp_topo,A<:Grid{Dc,Dp},B<:GridTopology{Dc,Dp_topo}} <: DiscreteModel{Dc,Dp}
   manifold_grid:: A
   grid_topology:: B
-  face_labeling::FaceLabeling
+  face_labeling:: FaceLabeling
 end
 
 function ManifoldDiscreteModel(manifold_grid::ManifoldGrid,topo::GridTopology{Dc,Dp_topo},
@@ -44,13 +45,9 @@ function ManifoldDiscreteModel(model::DiscreteModel,name::ManifoldName)
 end
 
 Gridap.Geometry.get_grid(model::ManifoldDiscreteModel) = model.manifold_grid
-
 Gridap.Geometry.get_grid_topology(model::ManifoldDiscreteModel) = model.grid_topology
-
 Gridap.Geometry.get_face_labeling(model::ManifoldDiscreteModel) = model.face_labeling
-
 Gridap.Geometry.get_cell_coordinates(model::ManifoldDiscreteModel) = get_cell_coordinates(get_grid(model))
 
 get_panel_ids(model::ManifoldDiscreteModel) = get_panel_ids(get_grid(model))
-
 get_manifold_name(model::ManifoldDiscreteModel) = get_manifold_name(get_grid(model))

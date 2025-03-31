@@ -125,15 +125,18 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:PanelRotationFiel
   println("getting cache")
   A = f.object.mats
   T = typeof(transpose(A))
-  y = similar(cellx,T)
-  println(y)
-  return y
+  y = similar(cellx,T,size(cellx))
+  c = CachedArray(y)
+  return c
 end
 
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:PanelRotationField},cellx::AbstractArray{<:VectorValue})
-  y = cache
+  c, = cache
+  setsize!(c,size(cellx))
+  y = c.array
   A = f.object.mats
-  map!(x -> transpose(A), y, cellx)
+  # map!(x -> transpose(A), y, cellx)
+  fill!(y,transpose(A))
   return y
 end
 

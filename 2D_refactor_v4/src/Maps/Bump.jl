@@ -78,13 +78,14 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:BumpField},
   cellx::AbstractArray{<:VectorValue{3}})
   T = typeof(transpose(f.object.A_bump) )
   y = similar(cellx,T)
-
-  return y
+  c = CachedArray(y)
+  return c
 end
 
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:BumpField},
   cellx::AbstractArray{<:VectorValue{3}})
-  y = cache
+  setsize!(cache,size(cellx))
+  y = cache.array
   AT = transpose(f.object.A_bump)
   map!(x -> AT, y, cellx)
 
@@ -156,13 +157,14 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:BumpField},
   cellx::AbstractArray{<:VectorValue{2}})
   T = typeof(transpose(f.object.B_bump) )
   y = similar(cellx,T)
-
-  return y
+  c = CachedArray(y)
+  return c
 end
 
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:BumpField},
   cellx::AbstractArray{<:VectorValue{2}})
-  y = cache
+  setsize!(cache,size(cellx))
+  y = cache.array
   AT = transpose(f.object.B_bump)
   map!(x -> AT, y, cellx)
 
