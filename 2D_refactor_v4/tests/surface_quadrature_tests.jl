@@ -34,3 +34,23 @@ area_test(manifold_model,2)
 area_test(manifold_model,4)
 area_test(manifold_model,6)
 area_test(manifold_model,8)
+
+
+
+
+# quad = dΩg.s_quad.quad
+# b = change_domain(f_cf,quad.trian,quad.data_domain_style)
+# x = get_cell_points(quad)
+# bx = b(x)
+
+# g = m.metric
+# _g = change_domain(g,quad.trian,quad.data_domain_style)
+# x = get_cell_points(quad)
+# gx = _g(x)
+# gx_meas = lazy_map(MetricMeasure(),gx)
+
+# y = bx[4].*gx_meas[4]
+# z = lazy_map(Broadcasting(*), bx, gx_meas)
+# println(y)
+# println(z[4])
+# println(y-z[4])

@@ -46,7 +46,7 @@ Multiplies two lazy arrays
 """
 struct LazyMult <: Map end
 
-function Gridap.Arrays.return_cache(k::LazyMult,ax::AbstractVector,bx::AbstractVector)
+function Gridap.Arrays.return_cache(k::LazyMult,ax::AbstractArray,bx::AbstractArray)
   @check length(ax) == length(bx)
   a = first(ax)
   b = first(bx)
@@ -55,7 +55,7 @@ function Gridap.Arrays.return_cache(k::LazyMult,ax::AbstractVector,bx::AbstractV
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,k::LazyMult,ax::AbstractVector,bx::AbstractVector)
+function Gridap.Arrays.evaluate!(cache,k::LazyMult,ax::AbstractArray,bx::AbstractArray)
   y = cache
   y .= ax .* bx
   return y

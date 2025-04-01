@@ -46,3 +46,7 @@ surf_div(pts)./1
 
 surf_lap = surface_laplacian(f_cf,m)
 surf_lap(pts)./1
+
+
+###
+writevtk(Ω,dir*"/surface_functions",cellfields=["fh"=>f_cf,"f"=>f],append=false)

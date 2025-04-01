@@ -78,7 +78,7 @@ function Gridap.Fields.integrate(f::CellField,s_quad::SurfaceQuadrature)
   x = get_cell_points(quad)
   bx = b(x)
 
-  bgx = lazy_map(LazyMult(), bx,  gx_meas)
+  bgx = lazy_map(Broadcasting(*), bx, gx_meas) # lazy_map(LazyMult(), bx,  gx_meas)
 
   if quad.data_domain_style == ReferenceDomain() &&
             quad.integration_domain_style == PhysicalDomain()
