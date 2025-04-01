@@ -5,7 +5,7 @@ using Gridap.CellData, Gridap.Adaptivity, Gridap.Helpers, Gridap.TensorValues, G
 using Test, BenchmarkTools
 using LinearAlgebra
 using FillArrays
-
+import Gridap.TensorValues: meas
 
 const a = π/4.0 ## to generate the cube of central angles
 _a = 1.0 ## to compute the radius of the sphere
@@ -13,9 +13,10 @@ const r = _a*sqrt(3.0)
 
 
 
-include(("../src/Maps/PanelRotation.jl"))
-include("../src/Maps/Bump.jl")
-include("../src/Maps/SphericalMaps.jl")
+include("Fields/PanelRotation.jl")
+include("Fields/Bump.jl")
+include("Fields/SphericalMaps.jl")
+include("Fields/MetricMaps.jl")
 
 include("Geometry/cube_surface_1_cell_per_panel.jl")
 include("Geometry/ManifoldGrid.jl")
@@ -24,17 +25,11 @@ include("Geometry/ManifoldDiscreteModel.jl")
 include("Adaptivity/panel_ids_from_refinement.jl")
 include("Adaptivity/Refinement.jl")
 
-include("../src/helpers.jl")
+include("CellData/SurfaceMetric.jl")
+include("CellData/SurfaceOperators.jl")
+include("CellData/SurfaceQuadrature.jl")
 
-# include("maps/metric_maps.jl")
-# include("maps/cube_cell_map.jl")
-# include("maps/sphere_cell_map.jl")
-
-# include("surface_metric_and_op/metric_info.jl")
-# include("surface_metric_and_op/cubedsphere_metric.jl")
-# include("surface_metric_and_op/operators.jl")
-# include("surface_metric_and_op/quadrature.jl")
-
+include("helpers.jl")
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)

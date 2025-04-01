@@ -148,3 +148,32 @@ function extract_VectorValue(out::AbstractVector{VectorValue{D,Float64}}) where 
     return x[ids], y[ids], z[ids]
   end
 end
+
+
+function true_area(name::ManifoldName)
+  if name == CubedSphere()
+    4*π*r^2
+  elseif name == Cube()
+    6*(2*a)^2
+  end
+end
+
+function get_refined_models(model,levs_refinement::Int)
+  models = Any[model]
+  for i in 1:levs_refinement
+    ref_model = Adaptivity.refine(models[i])
+    push!(models,ref_model)
+  end
+  models
+end
+
+
+function get_surface_area(manifold_model,order::Int)
+  Ω = Triangulation(manifold_model)
+  m = Metric(manifold_model)
+  dΩg = Measure(m,Ω,order)
+
+  computed_area = sum( integrate(1.0,dΩg))
+
+  return computed_area
+end

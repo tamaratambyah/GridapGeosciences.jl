@@ -51,3 +51,5 @@ Gridap.Geometry.get_cell_coordinates(model::ManifoldDiscreteModel) = get_cell_co
 
 get_panel_ids(model::ManifoldDiscreteModel) = get_panel_ids(get_grid(model))
 get_manifold_name(model::ManifoldDiscreteModel) = get_manifold_name(get_grid(model))
+
+get_manifold_name(model::AdaptedDiscreteModel) = get_manifold_name(model.model)
