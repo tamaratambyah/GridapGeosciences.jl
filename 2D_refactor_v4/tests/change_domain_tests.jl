@@ -12,8 +12,7 @@ model = Adaptivity.refine(coarse_model)
 ref_model = Adaptivity.refine(model)
 
 manifold_model = ref_model
-ambient_model = Geometry.GenericDiscreteModel(get_ambient_grid(get_grid(manifold_model)),
-get_grid_topology(manifold_model),get_face_labeling(manifold_model) )
+ambient_model = AmbientDiscreteModel(ref_model)
 
 
 Ω_parametric = Triangulation(manifold_model)
@@ -38,7 +37,7 @@ writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>cf_parametric],append=
 cf_parametric = change_domain(CellField(f,Ω_parametric),ReferenceDomain())
 cf_parametric(pts_parametric)
 
-cf_ambient = GenericCellField(CellData.get_data(cf),Ω_ambient,ReferenceDomain())
+cf_ambient = GenericCellField(CellData.get_data(cf_parametric),Ω_ambient,ReferenceDomain())
 cf_ambient(pts_ambient)
 
 writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)

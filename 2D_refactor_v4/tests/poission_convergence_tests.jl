@@ -8,31 +8,47 @@ using FillArrays
 
 include("../src/initialise.jl")
 
-manifold_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
-model = Adaptivity.refine(manifold_model)
+coarse_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
+model = Adaptivity.refine(coarse_model)
+ref_model = Adaptivity.refine(model)
+
 p = 2
 order = 2*p+1
 
-u_ambient(x) = x[1]*x[2]*x[3] #*(a-x[1]) + x[2]*(a-x[2])
+u_ambient(x) = x[1]*x[2]*x[3]
 
-function u_parametric(αβ)
-  map = PanelRotationMap(rp1[p]) ∘  Sigma() ∘ GnomonicMap()
-  XYZ = map(αβ)
-  u_ambient(XYZ)
-end
+manifold_model = ref_model
+ambient_model = AmbientDiscreteModel(ref_model)
 
-u(x) = x[1]
+Ω_parametric = Triangulation(manifold_model)
+Ω_ambient = Triangulation(ambient_model)
 
-Ω = Triangulation(model)
-m = Metric(cubedsphere,Ω)
-dΩg = Measure(m,Ω,order)
+
+pts_ambient = get_cell_points(Ω_ambient)
+pts_parametric = get_cell_points(Ω_parametric)
+
+######## ambient -> parametric
+cf_ambient = change_domain(CellField(u_ambient,Ω_ambient),ReferenceDomain())
+cf_parametric = GenericCellField(CellData.get_data(cf_ambient),Ω_parametric,ReferenceDomain())
+_cf_parametric = change_domain(cf_parametric,PhysicalDomain())
+
+writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
+writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>cf_parametric, "v"=>_cf_parametric],append=false)
+
+m = Metric(cubedsphere,Ω_parametric)
+dΩg = Measure(m,Ω_parametric,order)
 l2(e,dΩg) = sum(∫(e⊙e)dΩg)
 
+f_cf = -1.0*surface_laplacian(_cf_parametric,m)
 
-u_cf = CellField(u,Ω)
-f_cf = -1.0*surface_laplacian(u_cf,m)
+### not working
+grad = gradient(_cf_parametric)
+evaluate(grad,pts_parametric.cell_phys_point[1])
+grad(pts_parametric)
 
-V = FESpace(model,ReferenceFE(lagrangian,Float64,p); conformity=:H1)
+
+
+V = FESpace(manifold_model,ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
 bilinear(u,v) = ∫(  surface_gradient(v,m)⋅ surface_gradient(u,m)  )dΩg
