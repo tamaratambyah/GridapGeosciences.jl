@@ -10,10 +10,18 @@ include("../src/initialise.jl")
 
 manifold_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
 model = Adaptivity.refine(manifold_model)
-p = 1
+p = 2
 order = 2*p+1
 
-u(x) = x[1] #*(a-x[1]) + x[2]*(a-x[2])
+u_ambient(x) = x[1]*x[2]*x[3] #*(a-x[1]) + x[2]*(a-x[2])
+
+function u_parametric(αβ)
+  map = PanelRotationMap(rp1[p]) ∘  Sigma() ∘ GnomonicMap()
+  XYZ = map(αβ)
+  u_ambient(XYZ)
+end
+
+u(x) = x[1]
 
 Ω = Triangulation(model)
 m = Metric(cubedsphere,Ω)
@@ -35,10 +43,7 @@ ls = LUSolver()
 uh = solve(ls,op)
 
 e = uh-u_cf
-
-dΩ = Measure(Ω,order)
-
-l2(e,dΩ)
+l2(e,dΩg)
 
 writevtk(Ω,dir*"/possion",cellfields=["uh"=>uh,"u"=>u_cf, "e"=>e],append=false)
 # writevtk(get_ambient_grid(get_grid(model)),dir*"/possion",cellfields=["uh"=>uh,"u"=>u_cf, "e"=>e],append=false)
