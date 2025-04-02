@@ -28,7 +28,7 @@ f(x) = x[1]
 cf_ambient = change_domain(CellField(f,Ω_ambient),ReferenceDomain())
 cf_ambient(pts_ambient)
 
-cf_parametric = GenericCellField(CellData.get_data(cf),Ω_parametric,ReferenceDomain())
+cf_parametric = GenericCellField(CellData.get_data(cf_ambient),Ω_parametric,ReferenceDomain())
 cf_parametric(pts_parametric)
 
 writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
