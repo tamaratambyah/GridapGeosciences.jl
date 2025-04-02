@@ -51,5 +51,47 @@ Gridap.Geometry.get_cell_coordinates(model::ManifoldDiscreteModel) = get_cell_co
 
 get_panel_ids(model::ManifoldDiscreteModel) = get_panel_ids(get_grid(model))
 get_manifold_name(model::ManifoldDiscreteModel) = get_manifold_name(get_grid(model))
-
 get_manifold_name(model::AdaptedDiscreteModel) = get_manifold_name(model.model)
+
+struct AmbientDiscreteModel{Dc,Dp,Dp_topo,A<:Grid{Dc,Dp},B<:GridTopology{Dc,Dp_topo}} <: DiscreteModel{Dc,Dp}
+  grid:: A
+  topology:: B
+  face_labeling:: FaceLabeling
+  manifold_model::ManifoldDiscreteModel
+end
+
+function AmbientDiscreteModel(grid::ManifoldGrid,topo::GridTopology{Dc,Dp_topo},
+  labels::FaceLabeling,manifold_model::ManifoldDiscreteModel) where {Dc,Dp_topo}
+  A = typeof(grid)
+  B = typeof(topo)
+  Dp = num_point_dims(grid)
+  AmbientDiscreteModel{Dc,Dp,Dp_topo,A,B}(grid,topo,labels,manifold_model)
+end
+
+function AmbientDiscreteModel(model::ManifoldDiscreteModel)
+  manifold_grid = get_grid(model)
+  ambient_grid = get_ambient_grid(manifold_grid)
+  topo = get_grid_topology(manifold_model)
+  labels = get_face_labeling(manifold_model)
+  AmbientDiscreteModel(ambient_grid,topo,labels,model)
+end
+
+function AmbientDiscreteModel(amodel::AdaptedDiscreteModel)
+  model = amodel.model
+  AmbientDiscreteModel(model)
+end
+
+Gridap.Geometry.get_grid(model::AmbientDiscreteModel) = model.grid
+Gridap.Geometry.get_grid_topology(model::AmbientDiscreteModel) = model.topology
+Gridap.Geometry.get_face_labeling(model::AmbientDiscreteModel) = model.face_labeling
+
+
+function Gridap.Geometry.get_background_model(trian::BodyFittedTriangulation)
+  model = trian.model
+ if isa(model,AmbientDiscreteModel)
+  println("new background model")
+  return model.manifold_model
+ end
+ return model
+
+end

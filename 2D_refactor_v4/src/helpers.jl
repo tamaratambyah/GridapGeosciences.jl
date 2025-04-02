@@ -168,10 +168,10 @@ function get_refined_models(model,levs_refinement::Int)
 end
 
 
-function get_surface_area(manifold_model,order::Int)
+function get_surface_area(manifold_model,degree::Int)
   Ω = Triangulation(manifold_model)
   m = Metric(manifold_model)
-  dΩg = Measure(m,Ω,order)
+  dΩg = Measure(m,Ω,degree)
 
   computed_area = sum( integrate(1.0,dΩg))
 
