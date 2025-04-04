@@ -6,6 +6,7 @@ using Test, BenchmarkTools
 using LinearAlgebra
 using FillArrays
 
+
 include("../src/initialise.jl")
 
 coarse_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
@@ -42,6 +43,11 @@ l2(e,dΩg) = sum(∫(e⊙e)dΩg)
 f_cf = -1.0*surface_laplacian(_cf_parametric,m)
 
 ### not working
+m_cf = CellField(m.metric_func,Ω_parametric)
+gradient(_cf_parametric)(pts_parametric)
+
+(m_cf ⋅ _cf_parametric)(pts_parametric)
+
 grad = gradient(_cf_parametric)
 evaluate(grad,pts_parametric.cell_phys_point[1])
 grad(pts_parametric)

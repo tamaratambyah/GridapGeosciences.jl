@@ -15,7 +15,9 @@ const r = _a*sqrt(3.0)
 
 include("Fields/PanelRotation.jl")
 include("Fields/Bump.jl")
-include("Fields/SphericalMaps.jl")
+include("Fields/Gnomonic.jl")
+include("Fields/Sigma.jl")
+include("Fields/CentralAngle.jl")
 include("Fields/MetricMaps.jl")
 
 include("Geometry/cube_surface_1_cell_per_panel.jl")

@@ -162,3 +162,29 @@ _cell_pts = lazy_map(PanelMap(),cell_pts,panel_ids)
 z = lazy_map(BumpMap(),_cell_pts)
 cache = array_cache(z)
 @benchmark lazy_collect(cache,z)
+
+
+
+################################################################################
+### Sigma
+################################################################################
+cell_pts = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
+cellx = fill(cell_pts,n)
+
+r = 1.0
+σ =  SigmaField(r)
+gradσ = gradient(σ)
+z = evaluate(gradσ,cell_pts[1])
+
+z = lazy_map(gradσ,cell_pts)
+cache = array_cache(z)
+print_lazy_arr(z)
+@benchmark lazy_collect(cache,z)
+
+pinJt = pinvJt(gradσ)
+evaluate(pinJt,cell_pts[1])
+
+z = lazy_map(pinJt,cell_pts)
+cache = array_cache(z)
+print_lazy_arr(z)
+@benchmark lazy_collect(cache,z)
