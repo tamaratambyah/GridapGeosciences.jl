@@ -29,7 +29,7 @@ struct SigmaField{A} <: Gridap.Fields.Field
 end
 
 
-""" map 3D point on sphere -> latlon (2D) """
+""" map 3D point on sphere -> latlon (2D), σ^{-1}: (X_s, Y_s, Z_s) → (θ,ϕ)  """
 function Gridap.Arrays.return_cache(k::SigmaField,cellx::AbstractArray{<:VectorValue{3,T}}) where {T}
   y = similar(cellx,VectorValue{2,T})
   return y
@@ -55,7 +55,58 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{3})
   return y
 end
 
-""" map latlon -> 3D point on sphere """
+"""
+gradient of σ^{-1}: (X_s, Y_s, Z_s) → (θ,ϕ)  is:
+  J = [ -1/(X^2+1)  1/(Y^2+1)   0
+          0           0         1/( sqrt(1-Z^2) ) ]
+
+# Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
+# Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
+                                          4 0 1]
+"""
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},
+  cellx::AbstractArray{<:VectorValue{3,T}}) where {T}
+  _T = typeof(TensorValue{3,2,T})
+  y = similar(cellx,_T,size(cellx))
+  CachedArray(y)
+end
+
+function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::AbstractArray{<:VectorValue{3}})
+  cache,  = c
+  setsize!(cache,size(cellx))
+  y = cache.array
+  r = f.object.r
+
+  map!(x -> TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)),  0,
+                                0,               0,               (1/(sqrt(1-x[3]^2)))
+                            ),
+                    y, cellx)
+
+  return y
+
+end
+
+
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{3,T}) where {T}
+  zero(TensorValue{3,2,T}) ## Jacobian is 2x3, recall we need to return transpose
+end
+
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{3})
+  y = cache
+  r = f.object.r
+  y = TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)), 0,
+                          0,                  0,            (1/(sqrt(1-x[3]^2)))
+                          )
+  return y
+end
+
+
+
+
+
+
+
+""" map latlon -> 3D point on sphere, σ: (θ,ϕ) → (X_s, Y_s, Z_s) """
 function Gridap.Arrays.return_cache(k::SigmaField,latlon::AbstractArray{<:VectorValue{2,T}}) where {T}
   y = similar(latlon,VectorValue{3,T})
   return y#CachedArray(y)
@@ -91,15 +142,19 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{2})
   return y
 end
 
-
-## gradient: is just ....
+"""
+gradient of σ: θ,ϕ → X_s, Y_s, Z_s  is:
+  J = ( -r*sinθ*cosϕ  -r*cosθ*sinϕ
+         r*cosθ*cosϕ  -r*sinθ*sinϕ
+          0            r*cosϕ  )
 # Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
 # Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
-#                                         4 0 1]
+                                          4 0 1]
+"""
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},
   cellx::AbstractArray{<:VectorValue{2,T}}) where {T}
   _T = typeof(TensorValue{2,3,T})
-  y = similar(cellx,T,size(cellx))
+  y = similar(cellx,_T,size(cellx))
   CachedArray(y)
 end
 
@@ -109,8 +164,8 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
   y = cache.array
   r = f.object.r
 
-  map!(x -> TensorValue{2,3}(-r*sin(x[1])*cos(x[2]), -r*sin(x[2])*cos(x[1]),
-                              r*cos(x[1])*cos(x[2]), -r*sin(x[2])*sin(x[1]),
+  map!(x -> TensorValue{2,3}(-r*sin(x[1])*cos(x[2]), -r*cos(x[1])*sin(x[2]),
+                              r*cos(x[1])*cos(x[2]), -r*sin(x[1])*sin(x[2]),
                               0,                      r*cos(x[2])),
                     y, cellx)
 
@@ -126,12 +181,11 @@ end
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{2})
   y = cache
   r = f.object.r
-  y = TensorValue{2,3}(-r*sin(x[1])*cos(x[2]), -r*sin(x[2])*cos(x[1]),
-                        r*cos(x[1])*cos(x[2]), -r*sin(x[2])*sin(x[1]),
+  y = TensorValue{2,3}(-r*sin(x[1])*cos(x[2]), -r*cos(x[1])*sin(x[2]),
+                        r*cos(x[1])*cos(x[2]), -r*sin(x[1])*sin(x[2]),
                         0,                      r*cos(x[2]))
   return y
 end
-
 
 
 """

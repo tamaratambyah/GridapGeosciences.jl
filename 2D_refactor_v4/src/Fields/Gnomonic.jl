@@ -2,6 +2,8 @@
 Gnomonic
 - GnomonicMap
 - GnomonicField
+- InvGnomonicMap
+- InvGnomonicField
 
 Applies the Gnomonic maping from central angles to lat-lon on the reference panel.
 - See eq (32) in Giraldo et al. 2003, JCP, doi:10.1016/S0021-9991(03)00300-0
@@ -16,11 +18,13 @@ purposes
 
 """
 GnomonicField
+
+γ: (α,β) → (θ,ϕ)
+map central angles (2D) → latlon (2D)
 """
 
 struct GnomonicField <: Gridap.Fields.Field
 end
-
 
 function Gridap.Arrays.return_cache(k::GnomonicField,cellcangles::AbstractArray{<:VectorValue{2}})
   y = similar(cellcangles)
@@ -52,24 +56,99 @@ function Gridap.Arrays.evaluate!(cache,f::GnomonicField,cangle::VectorValue{2})
   return y
 end
 
-## gradient: is just ....
+"""
+gradient of γ: (α,β) → (θ,ϕ) is:
+  J = [ 1 0
+        F G ]
+where
+F = tan(α)*sec(α)*tan(β)/ρ^2
+G = (sec(β))^2 sec(α)/ρ^2
+ρ^2 = 1 + (tanα)^2 + (tanβ)^2
+
 # Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
-function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},cellx::AbstractArray{<:VectorValue})
+# Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
+                                          4 0 1]
+"""
+
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},cangles::AbstractArray{<:VectorValue{2}})
+  _T = typeof(TensorValue{2,2,Float64})
+  y = similar(cangles,_T,size(cangles))
+  CachedArray(y)
+end
+
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},cangles::AbstractArray{<:VectorValue{2}})
   @notimplemented
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},cellx::AbstractArray{<:VectorValue})
+
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},cangle::VectorValue{2})
+  zero(TensorValue{2,2,Float64})
+end
+
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},cangle::VectorValue{2})
   @notimplemented
 end
 
 
-function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},x::VectorValue)
-  @notimplemented
+
+"""
+InvGnomonicField
+
+γ^{-1}: (θ,ϕ) → (α,β)
+map latlon (2D) → central angles (2D)
+"""
+
+struct InvGnomonicField <: Gridap.Fields.Field
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},x::VectorValue)
-  @notimplemented
+function Gridap.Arrays.return_cache(k::InvGnomonicField,latlons::AbstractArray{<:VectorValue{2}})
+  y = similar(latlons)
+  return y
 end
+
+function Gridap.Arrays.evaluate!(cache,f::InvGnomonicField,latlons::AbstractArray{<:VectorValue{2}})
+  # setsize!(cache,size(cellx))
+  y = cache
+  map!(x -> VectorValue(latlon[1],
+                        atan( tan(latlon[2]), cos(latlon[1]) )
+                        ),
+                        y, latlons)
+  return y
+end
+
+
+
+function Gridap.Arrays.return_cache(k::InvGnomonicField,latlon::VectorValue{2})
+  y = zero(VectorValue{2,Float64})
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::InvGnomonicField,latlon::VectorValue{2})
+  y = cache
+  y =  VectorValue(latlon[1],
+                   atan( tan(latlon[2]), cos(latlon[1]) )
+                        )
+  return y
+end
+
+
+"""
+gradient of γ^{-1}: (θ,ϕ) → (α,β) is:
+  J = [ 1 0
+        F G ]
+where
+F = (cosθ*tanϕ*tanθ)/( (tanϕ)^2 + (cosθ)^2 )
+G = cosθ/( ( (tanϕ)^2 + (cosθ)^2  )*(cosϕ)^2   )
+
+# Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
+# Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
+                                          4 0 1]
+"""
+
+
+
+
+
 
 
 
