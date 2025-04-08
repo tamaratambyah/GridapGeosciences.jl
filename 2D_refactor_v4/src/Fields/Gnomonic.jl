@@ -76,17 +76,30 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},ca
   CachedArray(y)
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},cangles::AbstractArray{<:VectorValue{2}})
-  @notimplemented
+function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:GnomonicField},cangles::AbstractArray{<:VectorValue{2}})
+  cache,  = c
+  setsize!(cache,size(cangles))
+  y = cache.array
+
+  map!(x -> TensorValue{2,2}( 1, (-1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*tan(x[1])*sec(x[1])*tan(x[2]),
+                              0, ( 1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*(sec(x[2]))^2*sec(x[1])
+                            ),
+                    y, cangles)
+
+  return y
 end
 
 
-function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},cangle::VectorValue{2})
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},x::VectorValue{2})
   zero(TensorValue{2,2,Float64})
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},cangle::VectorValue{2})
-  @notimplemented
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},x::VectorValue{2})
+  y = cache
+  y = TensorValue{2,2}( 1, (-1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*tan(x[1])*sec(x[1])*tan(x[2]),
+                        0, ( 1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*(sec(x[2]))^2*sec(x[1])
+                                     )
+  return y
 end
 
 
@@ -146,7 +159,37 @@ G = cosθ/( ( (tanϕ)^2 + (cosθ)^2  )*(cosϕ)^2   )
 """
 
 
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InvGnomonicField},latlons::AbstractArray{<:VectorValue{2}})
+  _T = typeof(TensorValue{2,2,Float64})
+  y = similar(latlons,_T,size(latlons))
+  CachedArray(y)
+end
 
+function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:InvGnomonicField},latlons::AbstractArray{<:VectorValue{2}})
+  cache,  = c
+  setsize!(cache,size(latlons))
+  y = cache.array
+
+  map!(x -> TensorValue{2,2}( 1, ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
+                              0, ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
+                              ),
+                    y, latlons)
+
+  return y
+end
+
+
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InvGnomonicField},x::VectorValue{2})
+  zero(TensorValue{2,2,Float64})
+end
+
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InvGnomonicField},x::VectorValue{2})
+  y = cache
+  y = TensorValue{2,2}( 1, ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
+                        0, ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
+                                     )
+  return y
+end
 
 
 

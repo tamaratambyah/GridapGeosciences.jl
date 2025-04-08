@@ -9,6 +9,18 @@ using FillArrays
 
 include("../src/initialise.jl")
 
+######## mappings
+R = lazy_map(x-> PanelRotationField(r1p[x]), 1:6)
+_R = lazy_map(x-> PanelRotationField(rp1[x]), 1:6)
+γ = GnomonicField()
+γinv = InvGnomonicField()
+σ = SigmaField(r)
+
+M = lazy_map(x->    R[x]∘ σ ∘ γ, 1:6)
+Minv = lazy_map(x-> γinv ∘ σ ∘ _R[x], 1:6)
+
+#########
+
 coarse_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
 model = Adaptivity.refine(coarse_model)
 ref_model = Adaptivity.refine(model)
@@ -19,38 +31,34 @@ order = 2*p+1
 u_ambient(x) = x[1]*x[2]*x[3]
 
 manifold_model = ref_model
-ambient_model = AmbientDiscreteModel(ref_model)
+ambient_model = AmbientDiscreteModel(manifold_model)
+panel_ids = get_panel_ids(manifold_model)
 
 Ω_parametric = Triangulation(manifold_model)
 Ω_ambient = Triangulation(ambient_model)
-
 
 pts_ambient = get_cell_points(Ω_ambient)
 pts_parametric = get_cell_points(Ω_parametric)
 
 ######## ambient -> parametric
-cf_ambient = change_domain(CellField(u_ambient,Ω_ambient),ReferenceDomain())
-cf_parametric = GenericCellField(CellData.get_data(cf_ambient),Ω_parametric,ReferenceDomain())
-_cf_parametric = change_domain(cf_parametric,PhysicalDomain())
+cf_ambient  = CellField(u_ambient,Ω_ambient)
+cell_field = get_data(cf_ambient)
+cell_invmap =  lazy_map(Reindex(M),panel_ids)
+
+cell_field_phys = lazy_map(Broadcasting(∘),cell_field,cell_invmap)
+cf_parametric = CellData.similar_cell_field(cf_ambient,cell_field_phys,Ω_parametric,PhysicalDomain() )
+cf_parametric(pts_parametric)
 
 writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
-writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>cf_parametric, "v"=>_cf_parametric],append=false)
+writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>cf_parametric],append=false)
+
 
 m = Metric(cubedsphere,Ω_parametric)
 dΩg = Measure(m,Ω_parametric,order)
 l2(e,dΩg) = sum(∫(e⊙e)dΩg)
 
-f_cf = -1.0*surface_laplacian(_cf_parametric,m)
-
 ### not working
-m_cf = CellField(m.metric_func,Ω_parametric)
-gradient(_cf_parametric)(pts_parametric)
-
-(m_cf ⋅ _cf_parametric)(pts_parametric)
-
-grad = gradient(_cf_parametric)
-evaluate(grad,pts_parametric.cell_phys_point[1])
-grad(pts_parametric)
+f_cf = -1.0*surface_laplacian(cf_parametric,m)
 
 
 

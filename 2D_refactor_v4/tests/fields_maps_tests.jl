@@ -121,7 +121,7 @@ cache = array_cache(z)
 
 
 ################################################################################
-#### Composition of fields
+#### Composition of fields: testing
 ################################################################################
 f = PanelRotationField(rp1[1])
 g = BumpField(A_bump,B_bump,b_bump)
@@ -188,3 +188,53 @@ z = lazy_map(pinJt,cell_pts)
 cache = array_cache(z)
 print_lazy_arr(z)
 @benchmark lazy_collect(cache,z)
+
+
+
+################################################################################
+### Gamma
+################################################################################
+γ = GnomonicField()
+gradγ = gradient(γ)
+z = evaluate(gradγ,cell_pts[1])
+
+z = lazy_map(gradγ,cell_pts)
+cache = array_cache(z)
+print_lazy_arr(z)
+@benchmark lazy_collect(cache,z)
+
+pinJt = pinvJt(gradγ)
+evaluate(pinJt,cell_pts[1])
+
+z = lazy_map(pinJt,cell_pts)
+cache = array_cache(z)
+print_lazy_arr(z)
+@benchmark lazy_collect(cache,z)
+
+
+################################################################################
+#### Composition of fields: parametric -> ambient
+################################################################################
+
+R = lazy_map(x-> PanelRotationField(r1p[x]), 1:6)
+γ = GnomonicField()
+σ = SigmaField(r)
+
+M = lazy_map(x-> R[x]∘ σ ∘ γ, 1:6)
+
+# Φn = lazy_map(x-> R[x] ∘ σ ∘ γ, panel_ids)
+# Φn = fill(PanelRotationField(r1p[1]) ∘ σ ∘ γ, n)
+Φn = lazy_map(Reindex(M),panel_ids)
+
+
+z = lazy_map(evaluate,Φn,cellx)
+cache = array_cache(z)
+getindex!(cache,z,1)
+@benchmark lazy_collect(cache,z)
+
+
+gradΦn = lazy_map(Broadcasting(∇),Φn)
+z = lazy_map(evaluate,gradΦn,cellx)
+cache = array_cache(z)
+@benchmark lazy_collect(cache,z)
+getindex!(cache,z,1)
