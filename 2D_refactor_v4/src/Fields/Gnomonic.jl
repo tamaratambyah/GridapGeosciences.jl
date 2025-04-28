@@ -102,6 +102,15 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},x::Ve
   return y
 end
 
+# function Gridap.Arrays.return_cache(cache,f::FieldGradient{2,<:GnomonicField},x::VectorValue{2})
+#   zero(TensorValue{2,2,Float64})
+# end
+
+# function Gridap.Arrays.evaluate!(cache,f::FieldGradient{2,<:GnomonicField},x::VectorValue{2})
+#   y = cache
+#   y = zero(TensorValue{2,2,Float64})
+#   return y
+# end
 
 
 """

@@ -8,7 +8,8 @@ function surface_divergence(v::CellField,m::Metric)
 end
 
 function surface_laplacian(f::CellField,m::Metric)
-  surface_divergence(surface_gradient(f,m),m)
+  g = surface_gradient(f,m)
+  surface_divergence(g,m)
 end
 
 

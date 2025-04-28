@@ -177,3 +177,6 @@ function get_surface_area(manifold_model,degree::Int)
 
   return computed_area
 end
+
+
+l2(e,dΩ) = sum(∫(e⊙e)dΩ)
