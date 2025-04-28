@@ -23,6 +23,7 @@ include("Fields/MetricMaps.jl")
 include("Geometry/cube_surface_1_cell_per_panel.jl")
 include("Geometry/ManifoldGrid.jl")
 include("Geometry/ManifoldDiscreteModel.jl")
+include("Geometry/ChangeDomainMaps.jl")
 
 include("Adaptivity/panel_ids_from_refinement.jl")
 include("Adaptivity/Refinement.jl")
