@@ -40,7 +40,7 @@ cf_ambient(pts_ambient)
 writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
 writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>cf_parametric],append=false)
 
-# This is Minv ∘ f. Mathematically this is correct.  Why does this work?
+# This is Minv ∘ f. Mathematically this is correct.  Why does this not work?
 _cf_mapped = lazy_map(Broadcasting(∘),cmap_parametric_2_ambient,get_data(cf_parametric))
 _cf_ambient = CellData.similar_cell_field(cf_parametric,_cf_mapped,Ω_ambient,PhysicalDomain() )
 _cf_ambient(pts_ambient)
