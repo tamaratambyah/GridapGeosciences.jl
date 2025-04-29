@@ -79,7 +79,7 @@ cache = array_cache(z)
 getindex!(cache,z,1)
 
 #### map tests:
-z = lazy_map(PanelMap(),cell_pts,panel_ids)
+z = lazy_map(Rp1PanelMap(),cell_pts,panel_ids)
 cache = array_cache(z)
 @benchmark lazy_collect(cache,z)
 
@@ -158,7 +158,7 @@ getindex!(cache,z,1)
 #### Composition of Maps
 ################################################################################
 
-_cell_pts = lazy_map(PanelMap(),cell_pts,panel_ids)
+_cell_pts = lazy_map(Rp1PanelMap(),cell_pts,panel_ids)
 z = lazy_map(BumpMap(),_cell_pts)
 cache = array_cache(z)
 @benchmark lazy_collect(cache,z)

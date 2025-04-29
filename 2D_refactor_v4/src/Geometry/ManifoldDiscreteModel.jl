@@ -59,12 +59,31 @@ helpers to make DiscreteModel for the ambient space
 function AmbientDiscreteModel(model::ManifoldDiscreteModel)
   manifold_grid = get_grid(model)
   ambient_grid = get_ambient_grid(manifold_grid)
-  topo = get_grid_topology(manifold_model)
-  labels = get_face_labeling(manifold_model)
-  Geometry.GenericDiscreteModel(ambient_grid,topo,labels)
+  # topo = get_grid_topology(manifold_model)
+  # labels = get_face_labeling(manifold_model)
+  # Geometry.GenericDiscreteModel(ambient_grid,topo,labels)
+  Geometry.UnstructuredDiscreteModel(ambient_grid)
 end
 
 function AmbientDiscreteModel(amodel::AdaptedDiscreteModel)
   model = amodel.model
   AmbientDiscreteModel(model)
+end
+
+"""
+helpers to make DiscreteModel for the latlon space
+"""
+function LatlonDiscreteModel(model::ManifoldDiscreteModel)
+  ambient_grid = get_ambient_grid(get_grid(model))
+  sphere_nodes = get_node_coordinates(ambient_grid)
+
+  latlon_nodes = collect1d(lazy_map(Sigma(),sphere_nodes))
+  latlon_grid = Geometry.UnstructuredGrid(latlon_nodes,get_cell_node_ids(ambient_grid),
+                  get_reffes(ambient_grid),get_cell_type(ambient_grid),OrientationStyle(ambient_grid))
+  Geometry.UnstructuredDiscreteModel(latlon_grid)
+end
+
+function LatlonDiscreteModel(amodel::AdaptedDiscreteModel)
+  model = amodel.model
+  LatlonDiscreteModel(model)
 end

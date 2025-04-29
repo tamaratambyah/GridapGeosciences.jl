@@ -26,7 +26,7 @@ ref_cell_coords = get_cell_ref_coordinates(cube_model)
 cmaps = get_cell_map(cube_model)
 cell_coords = get_cell_coordinates(cube_model)
 
-_coords = lazy_map(PanelMap(),cell_coords,panel_ids)
+_coords = lazy_map(Rp1PanelMap(),cell_coords,panel_ids)
 _parametric_cell_coords = lazy_map(BumpMap(),_coords)
 
 g =  BumpField(A_bump,B_bump,b_bump)

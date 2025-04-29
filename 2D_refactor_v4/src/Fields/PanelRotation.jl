@@ -159,8 +159,8 @@ struct PanelRotationMap{A} <: Map
   mats::A
 end
 
-PanelMap() = PanelRotationMap(rp1)
-InvPanelMap() = PanelRotationMap(r1p)
+Rp1PanelMap() = PanelRotationMap(rp1)
+R1pPanelMap() = PanelRotationMap(r1p)
 
 function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx::AbstractArray{<:VectorValue},panel_id::Int64)
   A = f.mats[panel_id]

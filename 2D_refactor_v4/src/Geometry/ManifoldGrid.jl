@@ -141,7 +141,7 @@ end
 
 
 function get_cube_nodes(topo_cell_coords,panel_ids)
-  coords_panel1 = lazy_map(PanelMap(), topo_cell_coords, panel_ids)
+  coords_panel1 = lazy_map(Rp1PanelMap(), topo_cell_coords, panel_ids)
   coords_panel1_2D = lazy_map(BumpMap(), coords_panel1)
   return coords_panel1_2D
 end
@@ -187,12 +187,12 @@ end
 
 function get_cubed_sphere_nodes(topo_cell_coords,panel_ids)
 
-  coords_panel1 = lazy_map(PanelMap(), topo_cell_coords, panel_ids)
+  coords_panel1 = lazy_map(Rp1PanelMap(), topo_cell_coords, panel_ids)
   cangles_panel1 = lazy_map(BumpMap(), coords_panel1)
 
   latlon_panel1 = lazy_map(GnomonicMap(), cangles_panel1)
   sphere_panel1 = lazy_map(Sigma(),latlon_panel1)
-  sphere_panelp = lazy_map(InvPanelMap(), sphere_panel1, panel_ids)
+  sphere_panelp = lazy_map(R1pPanelMap(), sphere_panel1, panel_ids)
 
   return cangles_panel1, sphere_panelp
 end
