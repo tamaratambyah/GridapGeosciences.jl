@@ -47,7 +47,7 @@ const cube = Cube()
 const cubedsphere = CubedSphere()
 
 
-struct ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A<:Grid{Dc,Dp_topo},B<:Grid{Dc,Dp_parm},C<:Grid{Dc,Dp},E,G} <: Grid{Dc,Dp}
+struct ManifoldGrid{Dc,Dp,Dp_topo,Dp_parm,A<:Grid{Dc,Dp_topo},B<:Grid{Dc,Dp_parm},C<:Grid{Dc,Dp},E,G} <: Grid{Dc,Dp_parm}
   name::ManifoldName
   topo_grid::A
   parametric_grid::B

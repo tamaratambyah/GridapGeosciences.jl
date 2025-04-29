@@ -38,7 +38,8 @@ dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
 
-cube_model_3D = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel(a)...)
+# cube_model_3D = UnstructuredDiscreteModel(cube_surface_1_cell_per_panel(a)...)
+cube_model_3D = Geometry.GenericDiscreteModel(cube_surface_1_cell_per_panel(a)...)
 
 ##### make some refined models
 # model = cube_model_3D

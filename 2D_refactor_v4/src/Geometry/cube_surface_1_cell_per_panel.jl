@@ -51,6 +51,8 @@ function cube_surface_1_cell_per_panel(a::Float64)
   reffes = LagrangianRefFE(Float64,QUAD,1)
   cell_reffes=[reffes]
 
+  # nodes_2d = collect1d(lazy_map(BumpMap(),nodes))
+
   topo = UnstructuredGridTopology(nodes,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
   face_labels = FaceLabeling(topo)
 

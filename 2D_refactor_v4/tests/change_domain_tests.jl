@@ -9,13 +9,15 @@ using FillArrays
 include("../src/initialise.jl")
 coarse_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
 model = Adaptivity.refine(coarse_model)
-ref_model = Adaptivity.refine(model)
+# ref_model = Adaptivity.refine(model)
 # ref_ref_model = Adaptivity.refine(ref_model)
 
-manifold_model = ref_model
+manifold_model = model
 ambient_model = AmbientDiscreteModel(manifold_model)
 latlon_model = LatlonDiscreteModel(manifold_model)
 panel_ids = get_panel_ids(manifold_model)
+
+
 
 Ω_parametric = Triangulation(manifold_model)
 Ω_ambient = Triangulation(ambient_model)
@@ -86,3 +88,11 @@ plot_coords(get_cell_coordinates(latlon_model),panel_ids)
 
 # writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
 # writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>cf_parametric],append=false)
+
+
+# cell_vals = cf_parametric(pts_parametric)
+# av_vals = map(x->mean(x),cell_vals)
+# _av_vals = reshape(av_vals,(6,4))
+# using Plots
+# plot()
+# surface(_av_vals)
