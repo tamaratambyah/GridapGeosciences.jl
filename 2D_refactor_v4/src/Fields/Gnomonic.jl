@@ -66,14 +66,13 @@ G = (sec(β))^2 sec(α)/ρ^2
 ρ^2 = 1 + (tanα)^2 + (tanβ)^2
 
 # Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
-
+# Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
+                                          4 0 1]
 The transpose of the jacobian is:
   JT = [ 1 F
          0 G]
-to input this as a TensorValue, use data = (1,0,F,G)
-
-# Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
-                                          4 0 1]
+To write as a TensorValue:
+  TensorValue{2,2}(1,0,F,G)
 """
 
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:GnomonicField},cangles::AbstractArray{<:VectorValue{2}})
@@ -87,8 +86,10 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:GnomonicField},cangles::
   setsize!(cache,size(cangles))
   y = cache.array
 
-  map!(x -> TensorValue{2,2}( 1, (-1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*tan(x[1])*sec(x[1])*tan(x[2]),
-                              0, ( 1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*(sec(x[2]))^2*sec(x[1])
+  map!(x -> TensorValue{2,2}( 1,
+                              0.0,
+                              (-1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*tan(x[1])*sec(x[1])*tan(x[2]),
+                              ( 1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*(sec(x[2]))^2*sec(x[1])
                             ),
                     y, cangles)
 
@@ -102,9 +103,11 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},x::VectorValue{2})
   y = cache
-  y = TensorValue{2,2}( 1, (-1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*tan(x[1])*sec(x[1])*tan(x[2]),
-                        0, ( 1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*(sec(x[2]))^2*sec(x[1])
-                                     )
+  y = TensorValue{2,2}( 1,
+                        0.0,
+                        (-1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*tan(x[1])*sec(x[1])*tan(x[2]),
+                        ( 1/( 1 + (tan(x[1]))^2 + (tan(x[2]))^2) )*(sec(x[2]))^2*sec(x[1])
+                       )
   return y
 end
 
@@ -171,6 +174,12 @@ G = cosθ/( ( (tanϕ)^2 + (cosθ)^2  )*(cosϕ)^2   )
 # Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
 # Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
                                           4 0 1]
+
+The transpose of the jacobian is:
+  JT = [ 1 F
+         0 G]
+To write as a TensorValue:
+  TensorValue{2,2}(1,0,F,G)
 """
 
 
@@ -185,8 +194,10 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:InvGnomonicField},latlon
   setsize!(cache,size(latlons))
   y = cache.array
 
-  map!(x -> TensorValue{2,2}( 1, ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
-                              0, ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
+  map!(x -> TensorValue{2,2}( 1,
+                              0.0,
+                              ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
+                              ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
                               ),
                     y, latlons)
 
@@ -200,8 +211,10 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InvGnomonicField},x::VectorValue{2})
   y = cache
-  y = TensorValue{2,2}( 1, ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
-                        0, ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
+  y = TensorValue{2,2}( 1,
+                        0.0,
+                        ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
+                        ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
                                      )
   return y
 end

@@ -38,7 +38,8 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaField,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
-  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),  sin(x[3])), y, cellx)
+  # map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),  sin(x[3])), y, cellx)
+  map!(x -> VectorValue( (atan(x[2], x[1])),  sin(x[3])), y, cellx)
   return y
 end
 
@@ -50,7 +51,9 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   y = cache
-  y = VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
+  # y = VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
+  #                  sin(x[3]))
+  y = VectorValue( (atan(x[2], x[1])),
                    sin(x[3]))
   return y
 end
@@ -63,6 +66,14 @@ gradient of σ^{-1}: (X_s, Y_s, Z_s) → (θ,ϕ)  is:
 # Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
 # Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
                                           4 0 1]
+
+The transpose is:
+  JT = [ -1/(X^2+1)  0
+          1/(Y^2+1)  0
+            0        1/( sqrt(1-Z^2) ) ]
+
+To write as a TensorValue:
+  TensorValue{3,2}( -1/(X^2+1),  1/(Y^2+1),  0,  0, 0, 1/( sqrt(1-Z^2) ) )
 """
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},
   cellx::AbstractArray{<:VectorValue{3,T}}) where {T}
@@ -77,8 +88,8 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
   y = cache.array
   r = f.object.r
 
-  map!(x -> TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)),  0,
-                                0,               0,               (1/(sqrt(1-x[3]^2)))
+  map!(x -> TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)),  0.0,
+                                0.0,               0.0,               (1/(sqrt(1-x[3]^2)))
                             ),
                     y, cellx)
 
@@ -94,8 +105,8 @@ end
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{3})
   y = cache
   r = f.object.r
-  y = TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)), 0,
-                          0,                  0,            (1/(sqrt(1-x[3]^2)))
+  y = TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)), 0.0,
+                          0.0,                  0.0,            (1/(sqrt(1-x[3]^2)))
                           )
   return y
 end
@@ -150,6 +161,13 @@ gradient of σ: θ,ϕ → X_s, Y_s, Z_s  is:
 # Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
 # Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
                                           4 0 1]
+
+The transpose is:
+  JT = ( -r*sinθ*cosϕ  r*cosθ*cosϕ  0
+         -r*cosθ*sinϕ -r*sinθ*sinϕ  r*cosϕ  )
+
+To write as a TensorValue:
+  TensorValue{2,3}(-r*sinθ*cosϕ, -r*cosθ*sinϕ, r*cosθ*cosϕ, -r*sinθ*sinϕ, 0, r*cosϕ )
 """
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},
   cellx::AbstractArray{<:VectorValue{2,T}}) where {T}
@@ -166,7 +184,7 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
 
   map!(x -> TensorValue{2,3}(-r*sin(x[1])*cos(x[2]), -r*cos(x[1])*sin(x[2]),
                               r*cos(x[1])*cos(x[2]), -r*sin(x[1])*sin(x[2]),
-                              0,                      r*cos(x[2])),
+                              0.0,                      r*cos(x[2])),
                     y, cellx)
 
   return y
@@ -183,7 +201,7 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::Vecto
   r = f.object.r
   y = TensorValue{2,3}(-r*sin(x[1])*cos(x[2]), -r*cos(x[1])*sin(x[2]),
                         r*cos(x[1])*cos(x[2]), -r*sin(x[1])*sin(x[2]),
-                        0,                      r*cos(x[2]))
+                        0.0,                      r*cos(x[2]))
   return y
 end
 
@@ -207,7 +225,8 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaMap,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
-  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),  sin(x[3])), y, cellx)
+  # map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),  sin(x[3])), y, cellx)
+  map!(x -> VectorValue( (atan(x[2], x[1])),  sin(x[3])), y, cellx)
   return y
 end
 
@@ -219,7 +238,9 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaMap,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   y = cache
-  y = VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
+  # y = VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
+  #                  sin(x[3]))
+  y = VectorValue( (atan(x[2], x[1])),
                    sin(x[3]))
   return y
 end
