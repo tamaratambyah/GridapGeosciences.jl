@@ -44,6 +44,6 @@ face_labels = FaceLabeling(topo)
 reffes = LagrangianRefFE(Float64,QUAD,1)
 cell_reffes=[reffes]
 
-cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_2d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
+grid = Gridap.Geometry.UnstructuredGrid(nodes_2d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 
-model = Geometry.GenericDiscreteModel(cube_grid,topo,face_labels)
+model = Geometry.GenericDiscreteModel(grid,topo,face_labels)

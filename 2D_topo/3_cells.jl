@@ -16,25 +16,25 @@ function generate_ptr(n)
 end
 
 a = 1.0
-npanels = 3
+ncells = 3
 
 ## CCAM panel ordering
 data = [ 1,2,5,6, 2,3,6,7, 7,4,3,8 ] # 3 horizontal cells, 1 internal edge flipped
 ptr = generate_ptr(3)
 cell_node_ids = Table(data,ptr)
 
-polytopes = fill(QUAD,npanels)
-cell_type = fill(1,npanels)
+polytopes = fill(QUAD,ncells)
+cell_type = fill(1,ncells)
 
-nodes_2d = a.* [
-  Point(-1.0, -1.0)  # node 1
-  Point(1.0, -1.0)   # node 2
-  Point(-1.0, 1.0)   # node 3
-  Point(1.0, 1.0)    # node 4
-  Point(0.0, 0.0)  # node 5
-  Point(0.0, 0.0)   # node 6
-  Point(0.0, 0.0)   # node 6
-  Point(0.0, 0.0)   # node 6
+nodes_2d = [
+  VectorValue{2, Float64}(0.0, 0.0)
+ VectorValue{2, Float64}(1.0, 0.0)
+ VectorValue{2, Float64}(2.0, 0.0)
+ VectorValue{2, Float64}(3.0, 0.0)
+ VectorValue{2, Float64}(0.0, 3.0)
+ VectorValue{2, Float64}(1.0, 3.0)
+ VectorValue{2, Float64}(2.0, 3.0)
+ VectorValue{2, Float64}(3.0, 3.0)
 ]
 
 topo = UnstructuredGridTopology(nodes_2d,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
@@ -43,6 +43,6 @@ face_labels = FaceLabeling(topo)
 reffes = LagrangianRefFE(Float64,QUAD,1)
 cell_reffes=[reffes]
 
-cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_2d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
+grid = Gridap.Geometry.UnstructuredGrid(nodes_2d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 
-model = Geometry.GenericDiscreteModel(cube_grid,topo,face_labels)
+model = Geometry.GenericDiscreteModel(grid,topo,face_labels)
