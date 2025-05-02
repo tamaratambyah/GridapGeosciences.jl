@@ -1,6 +1,6 @@
 using Gridap
-# include("1_cell_per_panel.jl")
-include("3_cells.jl")
+include("1_cell_per_panel.jl")
+# include("3_cells.jl")
 
 
 const starting_edges=[1,3]
@@ -197,6 +197,3 @@ model = consistently_orient_model!(model,get_cell_coordinates(get_grid(model)))
 new_topo = get_grid_topology(model)
 new_perms = get_cell_permutations(new_topo,1)
 new_cell_node_ids = get_cell_node_ids(model)
-
-
-# model = UnstructuredDiscreteModel(CartesianDiscreteModel((0,3,0,3),(3,1)))

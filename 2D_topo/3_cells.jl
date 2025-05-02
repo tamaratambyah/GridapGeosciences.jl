@@ -19,14 +19,14 @@ a = 1.0
 ncells = 3
 
 ## CCAM panel ordering
-data = [ 1,2,5,6, 2,3,6,7, 7,4,3,8 ] # 3 horizontal cells, 1 internal edge flipped
+data = [ 1,2,5,6, 2,3,6,7, 7,8,3,4 ] # 3 horizontal cells, 1 internal edge flipped
 ptr = generate_ptr(3)
 cell_node_ids = Table(data,ptr)
 
 polytopes = fill(QUAD,ncells)
 cell_type = fill(1,ncells)
 
-nodes_2d = [
+nodes_2d = a.* [
   VectorValue{2, Float64}(0.0, 0.0)
  VectorValue{2, Float64}(1.0, 0.0)
  VectorValue{2, Float64}(2.0, 0.0)
