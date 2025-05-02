@@ -80,7 +80,10 @@ function LatlonDiscreteModel(model::ManifoldDiscreteModel)
   ambient_grid = get_ambient_grid(get_grid(model))
   sphere_nodes = get_node_coordinates(ambient_grid)
 
-  latlon_nodes = collect1d(lazy_map(Sigma(),sphere_nodes))
+  sphere_cell_coords = get_cell_coordinates(ambient_grid)
+  latlon_cell_coords = lazy_map(Sigma(), sphere_cell_coords)
+  latlon_nodes = get_nodes_from_coords(ambient_grid,latlon_cell_coords)
+  # latlon_nodes = collect1d(lazy_map(Sigma(),sphere_nodes))
   latlon_grid = Geometry.UnstructuredGrid(latlon_nodes,get_cell_node_ids(ambient_grid),
                   get_reffes(ambient_grid),get_cell_type(ambient_grid),OrientationStyle(ambient_grid))
   Geometry.UnstructuredDiscreteModel(latlon_grid)

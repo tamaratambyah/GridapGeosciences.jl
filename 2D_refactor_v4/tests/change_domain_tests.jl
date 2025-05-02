@@ -12,7 +12,7 @@ model = Adaptivity.refine(coarse_model)
 # ref_model = Adaptivity.refine(model)
 # ref_ref_model = Adaptivity.refine(ref_model)
 
-manifold_model = model
+manifold_model = coarse_model
 ambient_model = AmbientDiscreteModel(manifold_model)
 latlon_model = LatlonDiscreteModel(manifold_model)
 panel_ids = get_panel_ids(manifold_model)
@@ -35,45 +35,35 @@ writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>cf_parametric],append=
 ## change domain: parametric -> ambient
 # Mathematically, f: Ωp → R. Minv: Ωa → Ωp. Then, Minv ∘ f: (Ωa → Ωp) ∘ (Ωp → R) = Ωa → R
 ###############################################################################
-cmap_ambient = lazy_map(x-> γinv ∘ σ ∘ PanelRotationField(rp1[x]), panel_ids)  # ambient -> parametric
+cmap_ambient = map(x-> γinv ∘ (σ ∘ PanelRotationField(rp1[x])), panel_ids)  # ambient -> parametric
 
 # This is f ∘ Minv. Why does this work? Mathematically, this is not correct
 cf_mapped = lazy_map(Broadcasting(∘),get_data(cf_parametric),cmap_ambient)
 
-cf_ambient = CellData.similar_cell_field(cf_parametric,cf_mapped,Ω_ambient,PhysicalDomain() )
+cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
 cf_ambient(pts_ambient)
 writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
 
 
-
-
-# This is Minv ∘ f. Mathematically this is correct.  Why does this not work?
-# _cf_mapped = lazy_map(Broadcasting(∘),cmap_ambient,get_data(cf_parametric))
-# _cf_ambient = CellData.similar_cell_field(cf_parametric,_cf_mapped,Ω_ambient,PhysicalDomain() )
-# _cf_ambient(pts_ambient)
 
 ################################################################################
 ## change domain: parametric -> ambient -> latlon
 ###############################################################################
 
 # cmap_latlon = lazy_map(Reindex(Linv),panel_ids)
-cmap_latlon = lazy_map(x-> γinv ∘ σ ∘ PanelRotationField(rp1[x]) ∘ σ, panel_ids) # latlon_p -> ambient -> parametric
 
-cf_mapped = lazy_map(Broadcasting(∘),get_data(cf_parametric),cmap_latlon)
-
-cf_latlon = CellData.similar_cell_field(cf_parametric,cf_mapped,Ω_latlon,PhysicalDomain() )
-# strian = Ω_parametric
-# ttrian = Ω_latlon
-# D = num_cell_dims(strian)
-# sglue = get_glue(strian,Val(D))
-# tglue = get_glue(ttrian,Val(D))
-# cf_latlon = CellData.change_domain_phys_phys(cf_parametric,ttrian,sglue,tglue)
+cmap_latlon = map(x-> γinv ∘ (σ ∘ (PanelRotationField(rp1[x]) ∘ σ) ), panel_ids) # latlon_p -> ambient -> parametric
+cf_mapped = lazy_map((∘),get_data(cf_parametric),cmap_latlon)
+cf_latlon = CellData.GenericCellField(cf_mapped,Ω_latlon,PhysicalDomain() )
 
 writevtk(Ω_latlon,dir*"/latlon",cellfields=["u"=>cf_latlon],append=false)
 writevtk(latlon_model,dir*"/latlon_model",append=false)
 
+
+
+
 using Plots
-plot_coords(get_cell_coordinates(latlon_model),panel_ids)
+plot_coords(get_cell_coordinates(latlon_model),panel_ids,get_cell_node_ids(latlon_model))
 ################################################################################
 ## change domain: ambient -> parametric
 ################################################################################

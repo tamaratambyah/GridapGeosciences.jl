@@ -112,21 +112,22 @@ end
 
 
 
-function plot_coords(coords,panel_ids;plotTitle::String="test",xlab::String="x",ylab::String="y")
+function plot_coords(coords,panel_ids,cell_node_ids;plotTitle::String="test",xlab::String="x",ylab::String="y")
   !isdir(plotsdir()) && mkdir(plotsdir())
 
   markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross]
   _colors = palette(:tab10)
 
-  # ids = [1,2,4,3,1] # for plotting Gridap ordered nodes
+  ids = [1,2,4,3] # for plotting Gridap ordered nodes
   plot()
 
   cache = array_cache(coords)
   for i in eachindex(coords)
     panel = panel_ids[i]
     out = getindex!(cache, coords, i)
-
+    q = text.((cell_node_ids[i])[ids], halign=:left, valign=:bottom,10)
     plot!(extract_VectorValue(out)...,seriestype=:path,linestyle=:solid,lw=2,
+    series_annotations = q,
           c=_colors[panel],marker=markers[panel])
   end
 

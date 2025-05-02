@@ -38,7 +38,9 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaField,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
-  # map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),  sin(x[3])), y, cellx)
+  # map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
+  #                        rem2pi(sin(x[3]),RoundNearest)),
+  #  y, cellx)
   map!(x -> VectorValue( (atan(x[2], x[1])),  sin(x[3])), y, cellx)
   return y
 end
@@ -52,7 +54,7 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   y = cache
   # y = VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
-  #                  sin(x[3]))
+  #                  rem2pi(sin(x[3]),RoundNearest))
   y = VectorValue( (atan(x[2], x[1])),
                    sin(x[3]))
   return y
