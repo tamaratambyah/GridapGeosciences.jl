@@ -15,7 +15,7 @@ end
 
 ## auto diff
 function surface_gradient(f::Number,m::Metric)
-  function grad_f(x::Point)
+  function grad_f(x::Gridap.Fields.Point)
     zero(return_type(outer,x,f))
   end
 end

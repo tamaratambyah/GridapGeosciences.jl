@@ -31,14 +31,14 @@ function cube_surface_1_cell_per_panel(a::Float64)
   npanels = 6
 
   nodes = a.* [
-    Point(1.0, -1.0, -1.0)  # node 1
-    Point(1.0, 1.0, -1.0)   # node 2
-    Point(1.0, -1.0, 1.0)   # node 3
-    Point(1.0, 1.0, 1.0)    # node 4
-    Point(-1.0, -1.0, 1.0)  # node 5
-    Point(-1.0, 1.0, 1.0)   # node 6
-    Point(-1.0, 1.0, -1.0)  # node 7
-    Point(-1.0, -1.0, -1.0) # node 8
+    Fields.Point(1.0, -1.0, -1.0)  # node 1
+    Fields.Point(1.0, 1.0, -1.0)   # node 2
+    Fields.Point(1.0, -1.0, 1.0)   # node 3
+    Fields.Point(1.0, 1.0, 1.0)    # node 4
+    Fields.Point(-1.0, -1.0, 1.0)  # node 5
+    Fields.Point(-1.0, 1.0, 1.0)   # node 6
+    Fields.Point(-1.0, 1.0, -1.0)  # node 7
+    Fields.Point(-1.0, -1.0, -1.0) # node 8
   ]
 
   ## CCAM panel ordering

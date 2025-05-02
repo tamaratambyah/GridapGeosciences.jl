@@ -8,6 +8,11 @@ using FillArrays
 
 include("../src/initialise.jl")
 coarse_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
+
+RT = RaviartThomasRefFE(Float64,QUAD,1)
+FESpace(coarse_model,RT)
+
+
 model = Adaptivity.refine(coarse_model)
 # ref_model = Adaptivity.refine(model)
 # ref_ref_model = Adaptivity.refine(ref_model)
