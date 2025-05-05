@@ -20,7 +20,8 @@ a = 1.0
 npanels = 6
 
 ## CCAM panel ordering
-data = [ 1,2,3,4, 3,4,5,6, 4,2,6,7, 6,7,5,8, 7,2,8,1, 8,1,5,3  ]
+# data = [ 1,2,3,4, 3,4,5,6, 4,2,6,7, 6,7,5,8, 7,2,8,1, 8,1,5,3  ] # original
+data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5  ] # reorient + rotated
 ptr = generate_ptr(npanels)
 cell_node_ids = Table(data,ptr)
 
