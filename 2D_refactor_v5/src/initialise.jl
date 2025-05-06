@@ -10,15 +10,19 @@ import Gridap.TensorValues: meas
 const a = 1.0
 
 include("Geometry/coarse_cube_surface.jl")
-
-include("Geometry/Bump.jl")
-include("Geometry/PanelRotation.jl")
-
 include("Geometry/ManifoldGrid.jl")
 include("Geometry/ManifoldDiscreteModel.jl")
 
 include("Adaptivity/panel_ids_from_refinement.jl")
 include("Adaptivity/Refinement.jl")
+
+include("CellData/SurfaceMetric.jl")
+include("CellData/SurfaceOperators.jl")
+include("CellData/SurfaceQuadrature.jl")
+
+include("Fields/Bump.jl")
+include("Fields/PanelRotation.jl")
+include("Fields/MetricMaps.jl")
 
 include("helpers.jl")
 

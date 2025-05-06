@@ -162,13 +162,13 @@ function extract_VectorValue(out::AbstractVector{VectorValue{D,Float64}}) where 
 end
 
 
-# function true_area(name::ManifoldName)
-#   if name == CubedSphere()
-#     4*π*r^2
-#   elseif name == Cube()
-#     6*(2*a)^2
-#   end
-# end
+function true_area(name::ManifoldName)
+  if name == CubedSphere()
+    4*π*r^2
+  elseif name == Cube()
+    6*(2*a)^2
+  end
+end
 
 function get_refined_models(model,levs_refinement::Int)
   models = Any[model]
