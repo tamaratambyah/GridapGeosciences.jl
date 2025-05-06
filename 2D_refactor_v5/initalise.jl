@@ -9,8 +9,7 @@ import Gridap.TensorValues: meas
 
 a = 1.0
 
-include("coarse_cube_surface.jl")
-
+include("Geometry/coarse_cube_surface.jl")
 
 include("Geometry/Bump.jl")
 include("Geometry/PanelRotation.jl")
@@ -27,4 +26,6 @@ include("helpers.jl")
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
-cube_model_2D = UnstructuredDiscreteModel(coarse_cube_surface_2D(a)...)
+
+cube_grid_3D,topo_3D,face_labels_3D, = coarse_cube_surface_3D(a)
+cube_model_3D = UnstructuredDiscreteModel(cube_grid_3D,topo_3D,face_labels_3D)

@@ -74,8 +74,7 @@ function get_cube_nodes_2D(cube_cell_coords_3D,panel_ids)
   return coords_panel1_2D
 end
 
-function cube_surface_2D(cube_grid_3D::Grid{Dc,Dp},
-  topo_3D::GridTopology{Dc,Dp},panel_ids::Vector{Int}) where {Dc,Dp}
+function cube_surface_2D(cube_grid_3D::Grid{Dc,Dp},panel_ids::Vector{Int}) where {Dc,Dp}
 
   cell_coords_3D = get_cell_coordinates(cube_grid_3D)
   cell_coords_panel1_2D = get_cube_nodes_2D(cell_coords_3D,panel_ids)

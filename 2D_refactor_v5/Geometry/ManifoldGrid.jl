@@ -34,10 +34,9 @@ function ManifoldGrid(name::ManifoldName,
     panel_ids)
 end
 
-function ManifoldGrid(name::Cube,
-  cube_grid_3D::Grid{Dc,Dp_amb},topo_3D::GridTopology{Dc,Dp_amb},panel_ids::Vector{Int}) where {Dc,Dp_amb}
+function ManifoldGrid(name::Cube,cube_grid_3D::Grid{Dc,Dp_amb},panel_ids::Vector{Int}) where {Dc,Dp_amb}
 
-  cube_grid_2D, = cube_surface_2D(cube_grid_3D,topo_3D,panel_ids)
+  cube_grid_2D, = cube_surface_2D(cube_grid_3D,panel_ids)
 
   parametric_grid, parametric_cell_map, parametric_cell_coords = construct_parametric_grid(cube_grid_2D,cube_grid_3D,panel_ids)
   ambient_grid = construct_ambient_grid(name,cube_grid_3D,panel_ids)
@@ -54,10 +53,8 @@ function ManifoldGrid(model::DiscreteModel,name::ManifoldName)
   @assert !all(panel_ids .> 6) """\n
   Invalid panel ids! \n Panel ids must be 1,…,6
   """
-
   cube_grid_3D = get_grid(model)
-  topo_3D = get_grid_topology(model)
-  ManifoldGrid(name,cube_grid_3D,topo_3D,panel_ids)
+  ManifoldGrid(name,cube_grid_3D,panel_ids)
 end
 
 function ManifoldGrid(model::DiscreteModel)
@@ -119,7 +116,7 @@ Gridap.Geometry.get_node_coordinates(grid::ManifoldGrid) = get_node_coordinates(
 Gridap.Geometry.get_cell_node_ids(grid::ManifoldGrid) = get_cell_node_ids(grid.parametric_grid)
 Gridap.Geometry.get_reffes(grid::ManifoldGrid) = get_reffes(grid.parametric_grid)
 Gridap.Geometry.get_cell_type(grid::ManifoldGrid) = get_cell_type(grid.parametric_grid)
-Gridap.Geometry.get_cell_ref_coordinates(grid::ManifoldGrid) = get_cell_ref_coordinates(grid.cube_grid)
+Gridap.Geometry.get_cell_ref_coordinates(grid::ManifoldGrid) = get_cell_ref_coordinates(grid.cube_grid_3D)
 Gridap.Geometry.OrientationStyle(grid::ManifoldGrid) = Gridap.Geometry.NonOriented()
 
 

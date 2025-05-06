@@ -34,9 +34,9 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::ManifoldDis
   panel_ids = get_panel_ids(model)
   new_to_old_cells = glue.n2o_faces_map[Dc+1]
   ref_panel_ids = panel_ids[new_to_old_cells]
-  manifold_grid = ManifoldGrid(get_manifold_name(model),ref_cube_grid_3D,topo,ref_panel_ids)
+  manifold_grid = ManifoldGrid(get_manifold_name(model),ref_cube_grid_3D,ref_panel_ids)
 
-  ref_model = ManifoldDiscreteModel(manifold_grid,topo,labels)
+  ref_model = ManifoldDiscreteModel(manifold_grid)
   adapted_model = AdaptedDiscreteModel(ref_model,model,glue)
 
   return adapted_model

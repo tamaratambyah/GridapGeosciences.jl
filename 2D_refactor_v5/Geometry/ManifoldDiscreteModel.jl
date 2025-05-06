@@ -19,24 +19,22 @@ end
 function ManifoldDiscreteModel(manifold_grid::ManifoldGrid{Dc,Dp},topo_2D::GridTopology{Dc,Dp},
   labels::FaceLabeling) where {Dc,Dp}
 
-  parametric_model = UnstructuredDiscreteModel(get_parametric_grid(manifold_grid),topo,labels)
+  parametric_model = UnstructuredDiscreteModel(get_parametric_grid(manifold_grid),topo_2D,labels)
   ambient_grid = get_ambient_grid(manifold_grid)
   ambient_topo = UnstructuredGridTopology(ambient_grid)
   ambient_model = UnstructuredDiscreteModel(ambient_grid,ambient_topo,labels)
 
-  ManifoldDiscreteModel(manifold_grid,topo,labels,parametric_model,ambient_model)
+  ManifoldDiscreteModel(manifold_grid,topo_2D,labels,parametric_model,ambient_model)
 end
 
-function ManifoldDiscreteModel(manifold_grid::ManifoldGrid{Dc,Dp},topo_3D::GridTopology{Dc,Dp_amb},
-  labels::FaceLabeling) where {Dc,Dp,Dp_amb}
-
-  @check Dp_amb > Dp
+function ManifoldDiscreteModel(manifold_grid::ManifoldGrid{Dc,Dp}) where {Dc,Dp}
 
   panel_ids = get_panel_ids(manifold_grid)
   cube_grid_3D = get_3D_cube_grid(manifold_grid)
+  Dp_amb = num_point_dims(cube_grid_3D)
+  @check Dp_amb > Dp
 
-  cube_grid_2D,topo_2D, = cube_surface_2D(cube_grid_3D,topo_3D,panel_ids)
-
+  cube_grid_2D,topo_2D,labels = cube_surface_2D(cube_grid_3D,panel_ids)
 
   parametric_model = UnstructuredDiscreteModel(get_parametric_grid(manifold_grid),topo_2D,labels)
   ambient_grid = get_ambient_grid(manifold_grid)
@@ -47,13 +45,10 @@ function ManifoldDiscreteModel(manifold_grid::ManifoldGrid{Dc,Dp},topo_3D::GridT
 end
 
 
-# function ManifoldDiscreteModel(model::DiscreteModel{D},name::ManifoldName)
-#   manifold_grid = ManifoldGrid(model,name)
-#   topo = get_grid_topology(model)
-#   labels = get_face_labeling(model)
-
-#   ManifoldDiscreteModel(manifold_grid,topo,labels)
-# end
+function ManifoldDiscreteModel(model::DiscreteModel,name::ManifoldName)
+  manifold_grid = ManifoldGrid(model,name)
+  ManifoldDiscreteModel(manifold_grid)
+end
 
 Gridap.Geometry.get_grid(model::ManifoldDiscreteModel) = model.manifold_grid
 Gridap.Geometry.get_grid_topology(model::ManifoldDiscreteModel) = model.grid_topology
@@ -62,6 +57,10 @@ Gridap.Geometry.get_cell_coordinates(model::ManifoldDiscreteModel) = get_cell_co
 
 get_panel_ids(model::ManifoldDiscreteModel) = get_panel_ids(get_grid(model))
 get_manifold_name(model::ManifoldDiscreteModel) = get_manifold_name(get_grid(model))
-get_manifold_name(model::AdaptedDiscreteModel) = get_manifold_name(model.model)
 get_parametric_model(model::ManifoldDiscreteModel) = model.parametric_model
 get_ambient_model(model::ManifoldDiscreteModel) = model.ambient_model
+
+
+get_manifold_name(amodel::AdaptedDiscreteModel) = get_manifold_name(amodel.model)
+get_parametric_model(amodel::AdaptedDiscreteModel) = get_parametric_model(amodel.model)
+get_ambient_model(amodel::AdaptedDiscreteModel) = get_ambient_model(amodel.model)
