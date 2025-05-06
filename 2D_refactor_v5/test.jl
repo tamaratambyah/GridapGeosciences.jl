@@ -9,21 +9,50 @@ import Gridap.TensorValues: meas
 
 a = 1.0
 
-include("coarse_cube_surface_2D.jl")
-include("Adaptivity/panel_ids_from_refinement.jl")
-
-include("Geometry/Bump.jl")
+include("coarse_cube_surface.jl")
 include("Geometry/PanelRotation.jl")
-
+include("Geometry/Bump.jl")
 include("helpers.jl")
-include("ManifoldGrid.jl")
-include("ManifoldDiscreteModel.jl")
+include("Geometry/ManifoldGrid.jl")
+include("Geometry/ManifoldDiscreteModel.jl")
 
-dir = datadir("2D_CubedSphereRefactor")
-!isdir(dir) && mkdir(dir)
+cube_grid_3D,topo_3D,face_labels_3D,panel_ids = coarse_cube_surface_3D(a)
+cube_grid_2D,topo_2D,face_labels_2D,panel_ids = cube_surface_2D(cube_grid_3D,topo_3D,panel_ids)
 
 
-cube_model_2D = UnstructuredDiscreteModel(coarse_cube_surface_2D(a)...)
+
+manifold_grid = ManifoldGrid(cube,cube_grid_3D,topo_3D,panel_ids)
+
+num_point_dims(manifold_grid)
+num_cell_dims(manifold_grid)
+
+
+model = ManifoldDiscreteModel(manifold_grid,topo_3D,face_labels_3D)
+num_point_dims(model)
+
+ref_model = Adaptivity.refine(model)
+num_point_dims(ref_model)
+num_cell_dims(ref_model)
+
+writevtk(get_ambient_grid(get_grid(ref_model)),dir*"/ref_grid",append=false)
+
+
+kk
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 manifold_grid = ManifoldGrid(cube_model_2D,cube)
 panel_ids = get_panel_ids(manifold_grid)

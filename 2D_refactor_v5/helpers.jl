@@ -87,8 +87,11 @@ function get_nodes_from_coords!(nodes,cell_node_ids,
 end
 
 function get_panel_1_nodes_from_coords(grid::Grid{Dc,Dp},
-  coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}},
-  panel_ids::Vector{Int}) where {Dc,Dp,D,T}
+  coords_array::AbstractArray,
+  panel_ids::Vector{Int}) where {Dc,Dp}
+
+  T = eltype(first(testitem(coords_array)))
+  D = length(first(testitem(coords_array)))
 
   # nodes = similar(coords_array, VectorValue{D,T}, num_nodes(grid))
   nodes = zeros(VectorValue{D,T}, num_nodes(grid))

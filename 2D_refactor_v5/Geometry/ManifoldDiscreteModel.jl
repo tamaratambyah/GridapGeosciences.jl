@@ -16,19 +16,44 @@ function ManifoldDiscreteModel(manifold_grid::ManifoldGrid{Dc,Dp},topo::GridTopo
   ManifoldDiscreteModel{Dc,Dp,Dp_amb,A,B,E,F}(manifold_grid,topo,labels,parametric_model,ambient_model)
 end
 
-function ManifoldDiscreteModel(model::DiscreteModel,name::ManifoldName)
-  manifold_grid = ManifoldGrid(model,name)
-  topo = get_grid_topology(model)
-  labels = get_face_labeling(model)
+function ManifoldDiscreteModel(manifold_grid::ManifoldGrid{Dc,Dp},topo_2D::GridTopology{Dc,Dp},
+  labels::FaceLabeling) where {Dc,Dp}
 
   parametric_model = UnstructuredDiscreteModel(get_parametric_grid(manifold_grid),topo,labels)
-
   ambient_grid = get_ambient_grid(manifold_grid)
   ambient_topo = UnstructuredGridTopology(ambient_grid)
   ambient_model = UnstructuredDiscreteModel(ambient_grid,ambient_topo,labels)
 
   ManifoldDiscreteModel(manifold_grid,topo,labels,parametric_model,ambient_model)
 end
+
+function ManifoldDiscreteModel(manifold_grid::ManifoldGrid{Dc,Dp},topo_3D::GridTopology{Dc,Dp_amb},
+  labels::FaceLabeling) where {Dc,Dp,Dp_amb}
+
+  @check Dp_amb > Dp
+
+  panel_ids = get_panel_ids(manifold_grid)
+  cube_grid_3D = get_3D_cube_grid(manifold_grid)
+
+  cube_grid_2D,topo_2D, = cube_surface_2D(cube_grid_3D,topo_3D,panel_ids)
+
+
+  parametric_model = UnstructuredDiscreteModel(get_parametric_grid(manifold_grid),topo_2D,labels)
+  ambient_grid = get_ambient_grid(manifold_grid)
+  ambient_topo = UnstructuredGridTopology(ambient_grid)
+  ambient_model = UnstructuredDiscreteModel(ambient_grid,ambient_topo,labels)
+
+  ManifoldDiscreteModel(manifold_grid,topo_2D,labels,parametric_model,ambient_model)
+end
+
+
+# function ManifoldDiscreteModel(model::DiscreteModel{D},name::ManifoldName)
+#   manifold_grid = ManifoldGrid(model,name)
+#   topo = get_grid_topology(model)
+#   labels = get_face_labeling(model)
+
+#   ManifoldDiscreteModel(manifold_grid,topo,labels)
+# end
 
 Gridap.Geometry.get_grid(model::ManifoldDiscreteModel) = model.manifold_grid
 Gridap.Geometry.get_grid_topology(model::ManifoldDiscreteModel) = model.grid_topology

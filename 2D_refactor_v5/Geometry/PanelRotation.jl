@@ -159,8 +159,11 @@ struct PanelRotationMap{A} <: Map
   mats::A
 end
 
-Rp1PanelMap() = PanelRotationMap(rp1_3D)
-R1pPanelMap() = PanelRotationMap(r1p_3D)
+Rp1PanelMap3D() = PanelRotationMap(rp1_3D)
+R1pPanelMap3D() = PanelRotationMap(r1p_3D)
+
+Rp1PanelMap2D() = PanelRotationMap(rp1_2D)
+R1pPanelMap2D() = PanelRotationMap(r1p_2D)
 
 function Gridap.Arrays.return_cache(f::PanelRotationMap,cellx::AbstractArray{<:VectorValue},panel_id::Int64)
   A = f.mats[panel_id]
@@ -253,6 +256,11 @@ function _panel_rotation_matrices_3D()
         0.0 1.0 0.0
         1.0 0.0 0.0]
 
+  # rotation about Y axis by π/2
+  _Ry = [0.0 0.0 1.0
+         0.0 1.0 0.0
+         -1.0 0.0 0.0]
+
   # rotation about Z axis by π/2
   Rz = [0.0 -1.0 0.0
         1.0 0.0 0.0
@@ -268,12 +276,12 @@ function _panel_rotation_matrices_3D()
   A_21 = inv(A_12) # panel 2 -> 1
 
   """ Panel 3: right """
-  A_23 = Rx # panel 2 -> 3: rotation about X axis by 3π/2
+  A_23 = _Ry*Rx # panel 2 -> 3: (rotation about Y axis by π/2)*(rotation about X axis by 3π/2)
   A_13 = A_23*A_12 # panel 1-> 3: panel 2 -> 3 ⋅ panel 1 -> 2
   A_31 = inv(A_13) # panel 3 -> 1
 
   """ Panel 4: back """
-  A_34 = Rz # panel 3 -> 4: rotation about Z axis by π/2
+  A_34 = Rx*Rz # panel 3 -> 4: (rotation about X axis by 3π/2)*(rotation about Z axis by π/2)
   A_14 = A_34*A_13 # panel 1 -> 4: panel 3 -> 4 ⋅ panel 1 -> 3
   A_41 = inv(A_14) # panel 4 -> 1
 
@@ -283,7 +291,7 @@ function _panel_rotation_matrices_3D()
   A_51 = inv(A_15)
 
   """ Panel 6: left"""
-  A_56 = Rx # panel 5 -> 6: rotation about X axis by 3π/2
+  A_56 = _Ry*Rx # panel 5 -> 6: (rotation about Y axis by π/2)*(rotation about X axis by 3π/2)
   A_16 = A_56*A_15 # panel 1 -> 6: panel 5 -> 6 ⋅ panel 1 -> 5
   A_61 = inv(A_16)
 
