@@ -1,3 +1,26 @@
+"""
+    ManifoldDiscreteModel
+
+Stores the ManifoldGrid in a model structure
+
+manifold_grid     : bespoke manifold grid  (i.e. cube or cubed sphere)
+grid_topology     : topology of the underlying cube
+face_labeling     : face labeling
+parametric_model  : model associated to parametric grid
+ambient_model     : model associated to ambient grid
+
+The model interface is overloaded to return
+- [`get_grid(model::ManifoldDiscreteModel)`]
+- [`get_grid_topology(model::ManifoldDiscreteModel)`]
+- [`get_face_labeling(model::ManifoldDiscreteModel)`]
+
+ The following method has been added to return useful infomation
+- [`get_panel_ids(model::ManifoldDiscreteModel)`]
+- [`get_manifold_name(model::ManifoldDiscreteModel)`]
+- [`get_parametric_model(model::ManifoldDiscreteModel)`]
+- [`get_ambient_model(model::ManifoldDiscreteModel)`]
+"""
+
 struct ManifoldDiscreteModel{Dc,Dp,Dp_amb,A<:Grid{Dc,Dp},B<:GridTopology{Dc,Dp},
           E<:DiscreteModel{Dc,Dp},F<:DiscreteModel{Dc,Dp_amb}} <: DiscreteModel{Dc,Dp}
   manifold_grid:: A

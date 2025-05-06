@@ -1,3 +1,44 @@
+"""
+    ManifoldGrid
+
+Stores the information required to solve on the surface
+name                    : name of the manifold (i.e. cube or cubedsphere)
+cube_grid_3D            : grid of the associated cube in 3D
+parametric_grid         : grid of the parametric domain (for FEM) i.e. panel 1
+                          - note, this grid represents panel 1, and only panel 1
+                          nodes are non-zero.
+ambient_grid            : grid of the ambient space (manifold)
+parametric_cell_map     : map to the parametric space (used for integration)
+parametric_cell_coords  : the cell coords in parametric space
+                        - this must be stored separatately as we cannot have dG
+                         type nodes
+panel_ids               : panel ids corresponding to the panels of the cube
+
+The grid interface is overloaded to return the parametric_grid
+- [`get_node_coordinates(grid::ManifoldGrid)]
+- [`get_cell_node_ids(grid::ManifoldGrid)`]
+- [`get_reffes(grid::ManifoldGrid)`]
+- [`get_cell_type(grid::ManifoldGrid)`]
+- [`get_cell_ref_coordinates(grid::ManifoldGrid)`]
+- [`get_cell_coordinates(grid::ManifoldGrid)`]
+- ['OrientationStyle(grid::ManifoldGrid)``]
+
+The following methods have been added to return the ambient_grid
+- [`get_ambient_node_coordinates(grid::ManifoldGrid)`]
+- [`get_ambient_cell_coordinates(grid::ManifoldGrid)`]
+- [`get_ambient_cell_map(grid::ManifoldGrid)`]
+
+The following methods have been added to return the invidiual grids
+- [`get_topo_grid(grid::ManifoldGrid)`]
+- [`get_parametric_grid(grid::ManifoldGrid)`]
+- [`get_ambient_grid(grid::ManifoldGrid)`]
+
+The following helper methods have been added to return useful grid information
+- [`get_panel_ids(grid::ManifoldGrid)`]
+- [`get_manifold_name(grid::ManifoldGrid)`]
+"""
+
+
 abstract type ManifoldName end
 struct Cube <: ManifoldName end
 struct CubedSphere <: ManifoldName end
@@ -22,6 +63,8 @@ function ManifoldGrid(name::ManifoldName,
   parametric_grid::Grid{Dc,Dp},
   ambient_grid::Grid{Dc,Dp_amb},
   parametric_cell_map,parametric_cell_coords,panel_ids) where {Dc,Dp,Dp_amb}
+
+  @check Dp_amb > Dp
 
   A = typeof(cube_grid_3D)
   B = typeof(parametric_grid)

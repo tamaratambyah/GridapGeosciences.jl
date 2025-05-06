@@ -1,20 +1,12 @@
 """
-coarse_cube_surface_2D -- builds the flat cube geometry, with correct
-periodicity, with 1 cell per panel based on the CCAM ordering of panels. This
-geometry contains 8 nodes. The following table information is required:
+coarse_cube_surface -- builds the flat cube geometry, with correct
+periodicity, with 1 cell per panel based on the CCAM ordering of panels.
 
 This cube has faces [-a,a] where the side length is 2a.
 For the standard cube with faces [-1,1], set a = 1.
 For the central angle mesh where cube faces are [-π/4,π/4]^2, set a = π/4.
 
-
-panel/cell no | cell_node_ids
-      1       |   [1 2 3 4]
-      2       |   [3 4 5 6]
-      3       |   [4 2 6 7]
-      4       |   [6 7 5 8]
-      5       |   [7 2 8 1]
-      6       |   [8 1 5 3]
+The cube surface has 8 nodes:
 
   node no     |   Point in 2D   |   Point in 3D
       1       |   a * (-1,-1)   |   a * (1,-1,-1)
@@ -26,13 +18,30 @@ panel/cell no | cell_node_ids
       7       |   a * (0,0)     |   a * (-1,1,-1)
       8       |   a * (0,0)     |   a * (-1,-1,-1)
 
-Note, the nodes are 2D. This is so that Dp = 2. Only the nodes on panel 1
-(nodes 1-4) make sense in the nodes_2d array. The remaining nodes are set to
-(0,0). The 3D nodes on panel p can be obtained by applying the bump 2D->3D map,
-and then the rotation map to panel 1.
+Note, the nodes in 3D are correct, while the nodes in 2D are only correct on
+panel 1.
+The 3D nodes are used for refinement.
+The 2D nodes are used to create a topology with Dp = 2
+
+
+The orientation of the panels is different from the CCAM orientation.
+The original CCAM mesh was reorientated and rotated by Alberto's algorthim (see notes).
+The cell_node_ids below compare the original CCAM mesh to the reorientated one.
+
+  panel/cell no | CCAM cell_node_ids  | Reorientated cell_nod_ids |
+        1       |   [1 2 3 4]         |   [1 2 3 4]
+        2       |   [3 4 5 6]         |   [3 4 5 6]
+        3       |   [4 2 6 7]         |   [2 7 4 6]
+        4       |   [6 7 5 8]         |   [8 5 7 6]
+        5       |   [7 2 8 1]         |   [1 8 2 7]
+        6       |   [8 1 5 3]         |   [1 3 8 5]
 """
 
 
+"""
+coarse_cube_surface_3D -- creates the cube surface in 3D using the above
+information.
+"""
 function coarse_cube_surface_3D(a::Float64)
   npanels = 6
 
@@ -68,12 +77,23 @@ function coarse_cube_surface_3D(a::Float64)
 end
 
 
+"""
+get_cube_nodes_2D --- returns nodes in 2D on panel 1.
+The 2D nodes are computed by applying the panel rotation map and then bump map
+"""
 function get_cube_nodes_2D(cube_cell_coords_3D,panel_ids)
   coords_panel1_3D = lazy_map(Rp1PanelMap3D(), cube_cell_coords_3D, panel_ids)
   coords_panel1_2D = lazy_map(BumpMap(), coords_panel1_3D)
   return coords_panel1_2D
 end
 
+
+"""
+cube_surface_2D -- returns a cube surface grid and topology in 2D.
+
+The notable difference is that the nodes are 2D, and thus Dp=2.
+However, these nodes are only correct on panel 1
+"""
 function cube_surface_2D(cube_grid_3D::Grid{Dc,Dp},panel_ids::Vector{Int}) where {Dc,Dp}
 
   cell_coords_3D = get_cell_coordinates(cube_grid_3D)

@@ -7,7 +7,7 @@ using LinearAlgebra
 using FillArrays
 import Gridap.TensorValues: meas
 
-a = 1.0
+const a = 1.0
 
 include("Geometry/coarse_cube_surface.jl")
 
