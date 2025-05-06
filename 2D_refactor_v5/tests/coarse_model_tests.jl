@@ -1,7 +1,7 @@
 using Gridap
 include("../src/initialise.jl")
 
-manifold_model = ManifoldDiscreteModel(cube_model_3D,cube)
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(1),cube)
 
 num_point_dims(manifold_model)
 num_cell_dims(manifold_model)

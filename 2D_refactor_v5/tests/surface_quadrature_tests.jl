@@ -14,7 +14,7 @@ function area_test(manifold_model,order::Int)
 end
 
 ## test the area of cube  -- apply 1 level of refinement
-_manifold_model = ManifoldDiscreteModel(cube_model_3D,cube)
+_manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(1),cube)
 manifold_model = Adaptivity.refine(_manifold_model)
 
 area_test(manifold_model,2)

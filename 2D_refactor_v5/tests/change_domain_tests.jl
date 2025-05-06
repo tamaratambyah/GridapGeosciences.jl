@@ -1,7 +1,7 @@
 using Gridap
 include("../src/initialise.jl")
 
-manifold_model = ManifoldDiscreteModel(cube_model_3D,cube)
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(1),cube)
 ambient_model = get_ambient_model(manifold_model)
 panel_ids = get_panel_ids(manifold_model)
 
@@ -11,7 +11,9 @@ panel_ids = get_panel_ids(manifold_model)
 pts_parametric = get_cell_points(Ω_parametric)
 pts_ambient = get_cell_points(Ω_ambient)
 
-# functions in the parametric space
+################################################################################
+#### functions in the parametric space
+################################################################################
 alpha(x) = x[1]
 beta(x) = x[2]
 

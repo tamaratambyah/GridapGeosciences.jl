@@ -7,8 +7,6 @@ using LinearAlgebra
 using FillArrays
 import Gridap.TensorValues: meas
 
-const a = 1.0
-
 include("Geometry/coarse_cube_surface.jl")
 include("Geometry/ManifoldGrid.jl")
 include("Geometry/ManifoldDiscreteModel.jl")
@@ -30,6 +28,11 @@ include("helpers.jl")
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
+function coarse_cube_model_3D(a::Real)
+  cube_grid_3D,topo_3D,face_labels_3D, = coarse_cube_surface_3D(a)
+  cube_model_3D = UnstructuredDiscreteModel(cube_grid_3D,topo_3D,face_labels_3D)
 
-cube_grid_3D,topo_3D,face_labels_3D, = coarse_cube_surface_3D(a)
-cube_model_3D = UnstructuredDiscreteModel(cube_grid_3D,topo_3D,face_labels_3D)
+  global A_bump, B_bump, b_bump = bump_matrics(a)
+
+  return cube_model_3D
+end

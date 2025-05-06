@@ -42,7 +42,7 @@ The cell_node_ids below compare the original CCAM mesh to the reorientated one.
 coarse_cube_surface_3D -- creates the cube surface in 3D using the above
 information.
 """
-function coarse_cube_surface_3D(a::Float64)
+function coarse_cube_surface_3D(a::Real)
   npanels = 6
 
   nodes_3d = a.* [

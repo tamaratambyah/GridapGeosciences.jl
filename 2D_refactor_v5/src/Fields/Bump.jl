@@ -289,7 +289,7 @@ returns the TensorValue matrices required to bump points 2D <-> 3D on panel 1.
 note, it is assumed the cube faces are [-a,a]^2 so that panel 1 has X = a
 """
 
-function bump_matrics(a::Float64)
+function bump_matrics(a::Real)
   _A , _B, _b = _bump_matrics(a)
   A_bump = TensorValue(_A)
   B_bump = TensorValue(_B)
@@ -297,7 +297,7 @@ function bump_matrics(a::Float64)
   return A_bump, B_bump, b_bump
 end
 
-function _bump_matrics(a::Float64)
+function _bump_matrics(a::Real)
   A = [0.0 1.0 0.0
        0.0 0.0 1.0]
   B = [0.0 0.0
@@ -309,4 +309,4 @@ function _bump_matrics(a::Float64)
   return A, B, b
 end
 
-const A_bump, B_bump, b_bump = bump_matrics(a)
+# const A_bump, B_bump, b_bump = bump_matrics(a)
