@@ -68,7 +68,7 @@ function lon(x)
   # acos(X/sqrt(X^2+Y^2))
   # asin(Y/sqrt(X^2+Y^2))
   # atan(Y,X)
-  rem2pi(Float64(my_atan(X,Y)), RoundDown,)
+  rem2pi(Float64(my_atan(X,Y)), RoundDown)
 end
 
 function lat(x)
@@ -94,11 +94,13 @@ cvals_lon = cf_lon(pts)
 cf_lat = CellField(lat,Ω_ambient)
 cvals_lat = cf_lat(pts)
 
-
+cf_X = CellField(X,Ω_ambient)
+cf_Y = CellField(Y,Ω_ambient)
+cf_Z = CellField(Z,Ω_ambient)
 
 writevtk(Ω_ambient,dir*"/ambient",
         cellfields=["a"=>cf_alpha,"b"=>cf_beta, "lat"=>cf_lat, "lon"=>cf_lon,
-        "X"=>cf_X,"Y"=>cf_Y,"Z"=>cf_Z, "other_lon"=>cf],
+        "X"=>cf_X,"Y"=>cf_Y,"Z"=>cf_Z],
         append=false)
 
 ################################################################################
