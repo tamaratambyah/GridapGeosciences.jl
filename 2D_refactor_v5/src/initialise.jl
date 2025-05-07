@@ -20,6 +20,8 @@ include("CellData/SurfaceQuadrature.jl")
 
 include("Fields/Bump.jl")
 include("Fields/PanelRotation.jl")
+include("Fields/Gnomonic.jl")
+include("Fields/Sigma.jl")
 include("Fields/MetricMaps.jl")
 
 include("helpers.jl")
@@ -28,11 +30,19 @@ include("helpers.jl")
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
+!isdir(plotsdir()) && mkdir(plotsdir())
+
 function coarse_cube_model_3D(a::Real)
-  cube_grid_3D,topo_3D,face_labels_3D, = coarse_cube_surface_3D(a)
-  cube_model_3D = UnstructuredDiscreteModel(cube_grid_3D,topo_3D,face_labels_3D)
+
+  cube_model_3D = _coarse_cube_model_3D(a)
 
   global A_bump, B_bump, b_bump = bump_matrics(a)
+  global r = 1.0*sqrt(3.0)
+  return cube_model_3D
+end
 
+function _coarse_cube_model_3D(a::Real)
+  cube_grid_3D,topo_3D,face_labels_3D, = coarse_cube_surface_3D(a)
+  cube_model_3D = UnstructuredDiscreteModel(cube_grid_3D,topo_3D,face_labels_3D)
   return cube_model_3D
 end

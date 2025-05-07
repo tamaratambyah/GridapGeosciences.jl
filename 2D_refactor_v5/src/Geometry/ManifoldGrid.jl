@@ -77,14 +77,14 @@ function ManifoldGrid(name::ManifoldName,
     panel_ids)
 end
 
-function ManifoldGrid(name::Cube,cube_grid_3D::Grid{Dc,Dp_amb},panel_ids::Vector{Int}) where {Dc,Dp_amb}
+function ManifoldGrid(name::ManifoldName,cube_grid_3D::Grid{Dc,Dp_amb},panel_ids::Vector{Int}) where {Dc,Dp_amb}
 
   cube_grid_2D, = cube_surface_2D(cube_grid_3D,panel_ids)
 
   parametric_grid, parametric_cell_map, parametric_cell_coords = construct_parametric_grid(cube_grid_2D,cube_grid_3D,panel_ids)
   ambient_grid = construct_ambient_grid(name,cube_grid_3D,panel_ids)
 
-  ManifoldGrid(cube,cube_grid_3D,parametric_grid,ambient_grid,
+  ManifoldGrid(name,cube_grid_3D,parametric_grid,ambient_grid,
     parametric_cell_map,parametric_cell_coords,panel_ids)
 
 end
@@ -145,9 +145,45 @@ function construct_ambient_grid(::Cube,cube_grid_3D::Grid{Dc,Dp_amb},panel_ids::
 end
 
 
+"""
+CubedSphereGrid
+"""
+function construct_ambient_grid(::CubedSphere,cube_grid_3D::Grid{Dc,Dp_amb},panel_ids::Vector{Int}) where {Dc,Dp_amb}
+  println("cubed sphere manifold grid")
+
+  cmaps = get_cell_map(cube_grid_3D)
+
+  cube_cell_coords_3D = get_cell_coordinates(cube_grid_3D)
+  ambient_cell_coords = get_cubed_sphere_nodes(cube_cell_coords_3D,panel_ids)
+
+  ambient_nodes = get_nodes_from_coords(cube_grid_3D,ambient_cell_coords)
+
+
+  g =  BumpField(A_bump,B_bump,b_bump)
+  k = map(p-> PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField() ∘ g ∘ PanelRotationField(rp1_3D[p]), panel_ids)
+  ambient_cell_map = lazy_map(∘,k,cmaps)
+
+
+  ambient_grid = Gridap.Geometry.UnstructuredGrid(ambient_nodes,get_cell_node_ids(cube_grid_3D),
+    get_reffes(cube_grid_3D),get_cell_type(cube_grid_3D),OrientationStyle(cube_grid_3D),
+    nothing,ambient_cell_map)
+
+  return ambient_grid
+end
 
 
 
+function get_cubed_sphere_nodes(cube_cell_coords_3D,panel_ids)
+
+  coords_panel1 = lazy_map(Rp1PanelMap3D(), cube_cell_coords_3D, panel_ids)
+  cangles_panel1 = lazy_map(BumpMap(), coords_panel1)
+
+  latlon_panel1 = lazy_map(GnomonicMap(), cangles_panel1)
+  sphere_panel1 = lazy_map(Sigma(),latlon_panel1)
+  sphere_panelp = lazy_map(R1pPanelMap3D(), sphere_panel1, panel_ids)
+
+  return sphere_panelp
+end
 
 
 """

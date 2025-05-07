@@ -1,7 +1,9 @@
 using Gridap
 include("../src/initialise.jl")
 
-manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(1),cube)
+
+# manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(1),cube)
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
 ref_manifold_model = Adaptivity.refine(manifold_model)
 ref_ref_manifold_model = Adaptivity.refine(ref_manifold_model)
 

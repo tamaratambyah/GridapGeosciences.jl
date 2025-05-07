@@ -166,7 +166,7 @@ function true_area(name::ManifoldName)
   if name == CubedSphere()
     4*π*r^2
   elseif name == Cube()
-    6*(2*a)^2
+    6*(2*1.0)^2
   end
 end
 
@@ -192,3 +192,27 @@ end
 
 
 l2(e,dΩ) = sum(∫(e⊙e)dΩ)
+
+
+
+"""
+Round a cellwise array of vector values
+"""
+struct RoundVectorValues <: Map
+end
+
+function Gridap.Arrays.return_cache(f::RoundVectorValues,
+  cellx::AbstractArray{<:VectorValue})
+  x = first(cellx)
+  T = typeof(x)
+  y = similar(cellx,T)
+  return y
+end
+
+
+function Gridap.Arrays.evaluate!(cache,f::RoundVectorValues,
+  cellx::AbstractArray{<:VectorValue})
+  y = cache
+  map!(x -> VectorValue(round.(get_array(x))) , y, cellx)
+  return y
+end

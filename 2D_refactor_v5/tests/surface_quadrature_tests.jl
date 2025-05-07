@@ -1,4 +1,6 @@
 using Gridap
+using Plots
+using LaTeXStrings
 
 include("../src/initialise.jl")
 
@@ -13,6 +15,9 @@ function area_test(manifold_model,order::Int)
   @test area_diff < 1e-8
 end
 
+################################################################################
+#### test surface area of cube
+################################################################################
 ## test the area of cube  -- apply 1 level of refinement
 _manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(1),cube)
 manifold_model = Adaptivity.refine(_manifold_model)
@@ -20,11 +25,64 @@ manifold_model = Adaptivity.refine(_manifold_model)
 area_test(manifold_model,2)
 area_test(manifold_model,4)
 
-
+################################################################################
+#### surface area of sphere
+################################################################################
 # ## test the area of cubed sphere -- apply 1 level of refinement
-# _manifold_model = ManifoldDiscreteModel(cube_model_3D,cubedsphere)
-# manifold_model = Adaptivity.refine(_manifold_model)
-# area_test(manifold_model,2)
-# area_test(manifold_model,4)
-# area_test(manifold_model,6)
-# area_test(manifold_model,8)
+_manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
+manifold_model = Adaptivity.refine(_manifold_model)
+area_test(manifold_model,2)
+area_test(manifold_model,4)
+area_test(manifold_model,6)
+area_test(manifold_model,8)
+
+################################################################################
+#### surface area convergence
+################################################################################
+nc = [1,2,4,8]  # sqrt num cells per panel
+qdegrees = [2,4,6,8] # quadrature orders
+
+# set up plot attributes
+markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross]
+_colors = palette(:tab10)
+
+### New cubed sphre model: test convergence over series of refined models
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
+models = get_refined_models(manifold_model,3)
+
+plot()
+# compute and plot errors in surface area
+for i in 1:length(qdegrees)
+  degree = qdegrees[i]
+  errs = []
+  for i in 1:length(models)
+    manifold_model = models[i]
+    err_h = abs(get_surface_area(manifold_model,degree) - true_area(cubedsphere))/ true_area(cubedsphere)
+    push!(errs, err_h )
+  end
+  plot!(0:length(errs)-1,errs,
+  lw=3,ms=6,
+  c=_colors[i],
+  markershape=markers[i],
+      label = "q_degree: $degree"
+      )
+end
+
+## compute the convergence rates
+dx =   ( sqrt.( 4*π*r^2 ./ (6*nc.^2) ) ) # average width of cell on sphere
+gg = [1e-3dx.^2, 5e-6dx.^4, 5e-9dx.^6, 5e-12dx.^8] # some manipulation to get the plot to look nice
+for i in 1:length(gg)
+  plot!(0:length(dx)-1, gg[i],
+  lw=2,ms=6,
+  c=_colors[i],
+  label="",
+  linestyle=:dot,
+  yscale=:log10)
+end
+plot!(yscale=:log10,framestyle=:box,
+title = "surface area of cubed sphere",)
+plot!(xlabel="refinement level",
+      ylabel=L"|a_h - 4πr^2|/4πr^2",)
+plot!(show=true)
+
+savefig(plotsdir()*"/surface_area_comparison_error")
