@@ -6,6 +6,7 @@ using Test, BenchmarkTools
 using LinearAlgebra
 using FillArrays
 import Gridap.TensorValues: meas
+using StaticArrays
 
 include("Geometry/coarse_cube_surface.jl")
 include("Geometry/ManifoldGrid.jl")

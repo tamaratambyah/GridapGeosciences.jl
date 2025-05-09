@@ -56,6 +56,20 @@ function Gridap.Arrays.evaluate!(cache,f::GnomonicField,cangle::VectorValue{2})
   return y
 end
 
+
+function Gridap.Arrays.return_cache(k::GnomonicField,cangle::SVector{2})
+  y = zero(VectorValue{2,Float64})
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::GnomonicField,cangle::SVector{2})
+  y = cache
+  y =  VectorValue(cangle[1],
+                  asin( ( tan(cangle[2]) ) / ( (1+ (tan(cangle[1]))^2 + (tan(cangle[2]))^2 )^(0.5) ) )
+                        )
+  return y
+end
+
 """
 gradient of γ: (α,β) → (θ,ϕ) is:
   J = [ 1 0

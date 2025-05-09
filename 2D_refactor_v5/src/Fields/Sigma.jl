@@ -6,7 +6,7 @@ Sigma
 The standard spherical mapping from lat-lon <-> 3D Cartesian on sphere surface.
 
 The `latlon` variable is latlon = (θ, ϕ).
-θ is the longitude, computed to be [-π,π]
+θ is the longitude, computed to be [0,2*π] (use rem2pi(θ,RoundDown))
 ϕ is the latitude, computed to be [-π/2, π/2]
 
 `r` is the radius of the sphere, which is assumed to be constant
@@ -38,10 +38,10 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaField,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
-  # map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
-  #                        rem2pi(sin(x[3]),RoundNearest)),
-  #  y, cellx)
-  map!(x -> VectorValue( (atan(x[2], x[1])),  sin(x[3])), y, cellx)
+  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundToZero),
+                              atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) )
+  ),
+   y, cellx)
   return y
 end
 
@@ -53,10 +53,10 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   y = cache
-  # y = VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
-  #                  rem2pi(sin(x[3]),RoundNearest))
-  y = VectorValue( (atan(x[2], x[1])),
-                   sin(x[3]))
+  y = VectorValue( rem2pi(atan(x[2], x[1]),RoundToZero),
+                  atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) )
+                   )
+
   return y
 end
 
@@ -227,10 +227,9 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaMap,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
-  map!(x -> VectorValue( atan(x[2], x[1]),
+  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundToZero),
                                  atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) )),
                         y, cellx)
-  # map!(x -> VectorValue( (atan(x[2], x[1])),  sin(x[3])), y, cellx)
   return y
 end
 
@@ -243,10 +242,8 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaMap,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   # println("this func")
   y = cache
-  y = VectorValue(  atan(x[2], x[1]),
+  y = VectorValue(  rem2pi(atan(x[2], x[1]),RoundToZero),
                            atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) ))
-  # y = VectorValue( (atan(x[2], x[1])),
-                  #  sin(x[3]))
   return y
 end
 
