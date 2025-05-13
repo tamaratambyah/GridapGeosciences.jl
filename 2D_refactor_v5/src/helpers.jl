@@ -265,3 +265,26 @@ function my_atan(x,y)
 
   return angle
 end
+
+
+
+
+struct ExtractVectorValues{A} <: Map
+  id::A
+end
+
+function Gridap.Arrays.return_cache(f::ExtractVectorValues,
+  cellx::AbstractArray{<:VectorValue})
+  x = first(cellx)
+  T = typeof(x[f.id])
+  y = similar(cellx,T)
+  return y
+end
+
+
+function Gridap.Arrays.evaluate!(cache,f::ExtractVectorValues,
+  cellx::AbstractArray{<:VectorValue})
+  y = cache
+  map!(x -> x[f.id] , y, cellx)
+  return y
+end

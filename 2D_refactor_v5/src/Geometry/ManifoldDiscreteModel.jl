@@ -87,3 +87,22 @@ get_ambient_model(model::ManifoldDiscreteModel) = model.ambient_model
 get_manifold_name(amodel::AdaptedDiscreteModel) = get_manifold_name(amodel.model)
 get_parametric_model(amodel::AdaptedDiscreteModel) = get_parametric_model(amodel.model)
 get_ambient_model(amodel::AdaptedDiscreteModel) = get_ambient_model(amodel.model)
+
+
+
+function get_latlon_model(model::ManifoldDiscreteModel)
+  @check get_manifold_name(model) == CubedSphere()
+  ambient_model = get_ambient_model(model)
+  ambient_grid = get_grid(ambient_model)
+
+  ambient_cell_coords = get_cell_coordinates(ambient_model)
+  latlon_cell_coords = lazy_map(Sigma(),ambient_cell_coords)
+  latlon_nodes = get_nodes_from_coords(get_grid(ambient_model),latlon_cell_coords)
+
+  latlon_grid = UnstructuredGrid(latlon_nodes,get_cell_node_ids(ambient_grid),
+        get_reffes(ambient_grid),get_cell_type(ambient_grid),OrientationStyle(ambient_grid))
+
+  UnstructuredDiscreteModel(latlon_grid,get_grid_topology(model),get_face_labeling(model))
+end
+
+get_latlon_model(amodel::AdaptedDiscreteModel) = get_latlon_model(amodel.model)

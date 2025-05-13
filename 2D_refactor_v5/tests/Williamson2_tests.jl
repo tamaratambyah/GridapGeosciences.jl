@@ -102,7 +102,24 @@ cf_mapped = lazy_map(Broadcasting(∘),get_data(cf),cmap_ambient)
 velocity_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
 cvals_ambient = velocity_ambient(get_cell_points(Ω_ambient))
 
-sum(cvals_ambient .≈ uX_cvals)
+sum(cvals_ambient .≈ uX_cvals) == num_cells(sphere_manifold_model)
+
+################################################################################
+#### Gradient function
+################################################################################
+# compute gradient in parametric space
+# grad_cell_field = map(p->GenericField(u_ambient(p,grad_uX)),panel_ids)
+# grad_cf = GenericCellField(grad_cell_field,Ω,PhysicalDomain())
+grad_cf = gradient(cf_parametric)
+cvals_grad = grad_cf(pts)
+
+# map to ambient
+cf_mapped = lazy_map(Broadcasting(push_∇),get_data(grad_cf),cmap_ambient)
+grad_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
+cvals_grad_ambient = grad_ambient(pts_ambient)
+
+sum(cvals_grad_ambient .≈ grad_uX_cvals) == num_cells(sphere_manifold_model)
+
 
 
 ################################################################################
@@ -115,32 +132,22 @@ surf_gradcf = surface_gradient(cf_parametric,m)
 surf_gradcf(pts)
 
 
-_
+
 ## map to ambient
 cf_mapped = lazy_map(Broadcasting(push_∇),get_data(surf_gradcf),cmap_ambient)
 surf_grad_ambient = CellData.similar_cell_field(cf_parametric,cf_mapped,Ω_ambient,PhysicalDomain() )
 cvals_surf_grad_ambient = surf_grad_ambient(get_cell_points(Ω_ambient))
 
-# display(cvals_grad_cf_ambient./1)
-
-
-writevtk(Ω_ambient,dir*"/williamson2",
-      cellfields=["u"=>velocity_ambient,"gradu"=>grad_ambient, "surf_grad"=>surf_grad_ambient],append=false)
 
 
 
-################################################################################
-#### Gradient function
-################################################################################
-# gradient function in parametric space
-grad_cell_field = map(p->GenericField(u_ambient(p,grad_uX)),panel_ids)
-grad_cf = GenericCellField(grad_cell_field,Ω,PhysicalDomain())
-cvals_grad = grad_cf(pts)
 
-# display(grad_cf(pts))
 
-# gg = push_∇(get_data(grad_cf)[1],cmap_parametric[1]) ∘ cmap_ambient[1]
-# evaluate(gg,pts_ambient.cell_phys_point[1])
+
+
+
+
+### debug
 
 ∇map = lazy_map(Broadcasting(∇),cmap_parametric)
 
