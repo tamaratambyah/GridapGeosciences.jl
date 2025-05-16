@@ -62,20 +62,20 @@ end
 
 """
 gradient of σ^{-1}: (X_s, Y_s, Z_s) → (θ,ϕ)  is:
-  J = [ -1/(X^2+1)  1/(Y^2+1)   0
-          0           0         1/( sqrt(1-Z^2) ) ]
+  J = [ -Y/(X^2+Y^2)                  X/(X^2+Y^2)                0
+        -(XZ)/(R^2*sqrt(X^2+Y^2))    -(YZ)/(R^2*sqrt(X^2+Y^2))  sqrt(X^2+Y^2)/R^2 ]
 
 # Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
 # Note  TensorValue{2,3}(0,4,1,0,5,1) == [0 1 5
                                           4 0 1]
 
 The transpose is:
-  JT = [ -1/(X^2+1)  0
-          1/(Y^2+1)  0
-            0        1/( sqrt(1-Z^2) ) ]
+  JT = [ -Y/(X^2+Y^2)  -(XZ)/(R^2*sqrt(X^2+Y^2))
+          X/(X^2+Y^2)  -(YZ)/(R^2*sqrt(X^2+Y^2))
+          0             sqrt(X^2+Y^2)/R^2  ]
 
 To write as a TensorValue:
-  TensorValue{3,2}( -1/(X^2+1),  1/(Y^2+1),  0,  0, 0, 1/( sqrt(1-Z^2) ) )
+  TensorValue{3,2}( -Y/(X^2+Y^2),   X/(X^2+Y^2),  0,  -(XZ)/(R^2*sqrt(X^2+Y^2)), -(YZ)/(R^2*sqrt(X^2+Y^2)), sqrt(X^2+Y^2)/R^2 )
 """
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},
   cellx::AbstractArray{<:VectorValue{3,T}}) where {T}
@@ -90,8 +90,12 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
   y = cache.array
   r = f.object.r
 
-  map!(x -> TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)),  0.0,
-                                0.0,               0.0,               (1/(sqrt(1-x[3]^2)))
+  map!(x -> TensorValue{3,2}( (-x[2]/(x[1]*x[1] + x[2]*x[2])),
+                              (x[1]/(x[1]*x[1] + x[2]*x[2])),
+                              0.0,
+                              (-x[1]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
+                              (-x[2]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
+                              (sqrt(x[1]*x[1] + x[2]*x[2]))/(r^2)
                             ),
                     y, cellx)
 
@@ -107,8 +111,12 @@ end
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{3})
   y = cache
   r = f.object.r
-  y = TensorValue{3,2}( (-1/(x[1]^2 +1)), (1/(x[2]^2 +1)), 0.0,
-                          0.0,                  0.0,            (1/(sqrt(1-x[3]^2)))
+  y = TensorValue{3,2}( (-x[2]/(x[1]*x[1] + x[2]*x[2])),
+                         (x[1]/(x[1]*x[1] + x[2]*x[2])),
+                         0.0,
+                         (-x[1]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
+                         (-x[2]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
+                         (sqrt(x[1]*x[1] + x[2]*x[2]))/(r^2)
                           )
   return y
 end
@@ -184,9 +192,12 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
   y = cache.array
   r = f.object.r
 
-  map!(x -> TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]), -r*cos( rem2pi(x[1],RoundDown) )*sin(x[2]),
-                              r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]), -r*sin( rem2pi(x[1],RoundDown) )*sin(x[2]),
-                              0.0,                      r*cos(x[2])),
+  map!(x -> TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
+                             -r*cos( rem2pi(x[1],RoundDown) )*sin(x[2]),
+                              r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
+                             -r*sin( rem2pi(x[1],RoundDown) )*sin(x[2]),
+                              0.0,
+                              r*cos(x[2])),
                     y, cellx)
 
   return y
@@ -201,9 +212,12 @@ end
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{2})
   y = cache
   r = f.object.r
-  y = TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]), -r*cos( rem2pi(x[1],RoundDown) )*sin(x[2]),
-                        r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]), -r*sin( rem2pi(x[1],RoundDown) )*sin(x[2]),
-                        0.0,                      r*cos(x[2]))
+  y = TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
+                       -r*cos( rem2pi(x[1],RoundDown) )*sin(x[2]),
+                        r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
+                        -r*sin( rem2pi(x[1],RoundDown) )*sin(x[2]),
+                        0.0,
+                        r*cos(x[2]))
   return y
 end
 
