@@ -24,18 +24,18 @@ purposes
 """SigmaField
 """
 
-struct SigmaField{A} <: Gridap.Fields.Field
+struct InvSigmaField{A} <: Gridap.Fields.Field
   r::A # sphere radius
 end
 
 
 """ map 3D point on sphere -> latlon (2D), σ^{-1}: (X_s, Y_s, Z_s) → (θ,ϕ)  """
-function Gridap.Arrays.return_cache(k::SigmaField,cellx::AbstractArray{<:VectorValue{3,T}}) where {T}
+function Gridap.Arrays.return_cache(k::InvSigmaField,cellx::AbstractArray{<:VectorValue{3,T}}) where {T}
   y = similar(cellx,VectorValue{2,T})
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::SigmaField,cellx::AbstractArray{<:VectorValue{3}})
+function Gridap.Arrays.evaluate!(cache,f::InvSigmaField,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
   map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundDown),
@@ -45,12 +45,12 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,cellx::AbstractArray{<:Vect
   return y
 end
 
-function Gridap.Arrays.return_cache(k::SigmaField,x::VectorValue{3,T}) where {T}
+function Gridap.Arrays.return_cache(k::InvSigmaField,x::VectorValue{3,T}) where {T}
   y = zero(VectorValue{2,T})
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{3})
+function Gridap.Arrays.evaluate!(cache,f::InvSigmaField,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   y = cache
   y = VectorValue( rem2pi(atan(x[2], x[1]),RoundDown),
@@ -77,14 +77,14 @@ The transpose is:
 To write as a TensorValue:
   TensorValue{3,2}( -Y/(X^2+Y^2),   X/(X^2+Y^2),  0,  -(XZ)/(R^2*sqrt(X^2+Y^2)), -(YZ)/(R^2*sqrt(X^2+Y^2)), sqrt(X^2+Y^2)/R^2 )
 """
-function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InvSigmaField},
   cellx::AbstractArray{<:VectorValue{3,T}}) where {T}
   _T = typeof(TensorValue{3,2,T})
   y = similar(cellx,_T,size(cellx))
   CachedArray(y)
 end
 
-function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::AbstractArray{<:VectorValue{3}})
+function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:InvSigmaField},cellx::AbstractArray{<:VectorValue{3}})
   cache,  = c
   setsize!(cache,size(cellx))
   y = cache.array
@@ -104,11 +104,11 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
 end
 
 
-function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{3,T}) where {T}
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InvSigmaField},x::VectorValue{3,T}) where {T}
   zero(TensorValue{3,2,T}) ## Jacobian is 2x3, recall we need to return transpose
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{3})
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InvSigmaField},x::VectorValue{3})
   y = cache
   r = f.object.r
   y = TensorValue{3,2}( (-x[2]/(x[1]*x[1] + x[2]*x[2])),
@@ -126,6 +126,9 @@ end
 
 
 
+struct SigmaField{A} <: Gridap.Fields.Field
+  r::A # sphere radius
+end
 
 """ map latlon -> 3D point on sphere, σ: (θ,ϕ) → (X_s, Y_s, Z_s) """
 function Gridap.Arrays.return_cache(k::SigmaField,latlon::AbstractArray{<:VectorValue{2,T}}) where {T}

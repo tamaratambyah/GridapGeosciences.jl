@@ -108,8 +108,7 @@ cf_ambient(pts_ambient)
 ################################################################################
 #### Vectorfields in the latlon space
 ################################################################################
-cmap_ambient = map(x-> InvGnomonicField() ∘ SigmaField(r) ∘ PanelRotationField(rp1_3D[x]) , panel_ids)  # ambient -> parametric
-cmap_parametric = map(x->  SigmaField(r) ∘  PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)  # parametric -> ambient
+cmap_ambient = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]) , panel_ids)  # ambient -> parametric
 
 function uθϕ(θϕ)
   θ,ϕ = θϕ
@@ -125,6 +124,30 @@ function u_latlon(p::Int,uθϕ::Function)
     uθϕ(latlon_panelp)
   end
 end
+
+RT = FESpace(manifold_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
+# cell_field = map(p->GenericField(u_latlon(p,uθϕ)),panel_ids)
+uh = interpolate_everywhere(u_latlon(1,uθϕ), RT)
+
+cmap_parametric = map(x->  PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)  # parametric -> ambient
+Jt = lazy_map(Broadcasting(∇),cmap_parametric)
+Jt_inv = lazy_map(Operation(pinvJt),Jt)
+
+# do the piola map, then map to ambient space
+cf_mapped =  lazy_map(Broadcasting(⋅),Jt_inv,get_data(uh))
+cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,DomainStyle(uh))
+
+dΩ_ambient  = CellQuadrature(Ω_ambient,2)
+quad_pts_ambient = get_cell_points(dΩ_ambient)
+
+cvals_ambient = cf_ambient(quad_pts_ambient)
+writevtk(Ω_ambient,dir*"/ambient_vector",cellfields=["u"=>cf_ambient],append=false)
+
+
+
+
+
+
 
 cell_field = map(p->GenericField(u_latlon(p,uθϕ)),panel_ids)
 cf_parametric = CellData.GenericCellField(cell_field,Ω_parametric,PhysicalDomain())
@@ -164,21 +187,34 @@ writevtk(Ω_latlon,dir*"/latlon_vector",cellfields=["u"=>uh],append=false)
 
 
 cmap = map(x-> SigmaField(r), panel_ids)
+invcmap = map(x-> InvSigmaField(r), panel_ids)
+
+
+Jt = map(x-> ∇(SigmaField(r)), panel_ids)
+Jt_inv = lazy_map(Operation(pinvJt),Jt)
 
 # do the piola map, then map to ambient space
-_cf_mapped = lazy_map(Broadcasting(push_∇),get_data(uh),cmap)
-cf_mapped = lazy_map(Broadcasting(∘),_cf_mapped,cmap)
+cf_mapped =  lazy_map(Broadcasting(⋅),Jt_inv,get_data(uh))
 cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,DomainStyle(uh))
+
+dΩ_ambient  = CellQuadrature(Ω_ambient,2)
+quad_pts_ambient = get_cell_points(dΩ_ambient)
+
+cvals_ambient = cf_ambient(quad_pts_ambient)
+writevtk(Ω_ambient,dir*"/ambient_vector",cellfields=["u"=>cf_ambient],append=false)
+
+
+
+
 
 _RT = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
 free_values = zero_free_values(_RT)
 s = get_fe_dof_basis(_RT)
-cell_vals =  s(cf_ambient)
+cell_vals =  s(cf_mapped)
 gather_free_values!(free_values,_RT,cell_vals)
 
 
-cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
-cvals_ambient = cf_ambient(pts_ambient)
+
 
 
 writevtk(Ω_parametric,dir*"/parametric_vector",cellfields=["u"=>cf_parametric],append=false)

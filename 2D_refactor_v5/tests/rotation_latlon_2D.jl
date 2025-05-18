@@ -7,12 +7,13 @@ include("../src/initialise.jl")
 
 _model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
 model = Adaptivity.refine(_model)
+panel_ids = get_panel_ids(model)
 
 X_cell_coords = get_cell_coordinates(get_ambient_model(model))
 
-parametric_cell_coords =  get_cell_coordinates(model)
+parametric_cell_coords =  get_grid(model).parametric_cell_coords
 
-θϕ_cell_coords = get_cell_coordinates(get_latlon_model(model))
+θϕ_cell_coords = lazy_map(SigmaMap(r),X_cell_coords)
 
 
 
@@ -33,6 +34,8 @@ p = 4
 
 shift = shifts[p]
 
+panel1 = θϕ_cell_coords[panel_ids.==1]
+
 ϕs = map(θϕ_cell_coords[1]) do x
   asin( sin(x[2])*cos(shift[2]) +  cos(x[1])*cos(x[2])*sin(shift[2]) )
 end
@@ -46,10 +49,10 @@ end
 θϕ = map(θs,ϕs) do θ,ϕ
   VectorValue(θ,ϕ)
 end
-θϕ_cell_coords[p]
+θϕ_cell_coords[panel_ids.== p][1]
 
 
-θϕ[perms_1p[p]] ≈ θϕ_cell_coords[p]
+θϕ[perms_1p[p]] ≈ θϕ_cell_coords[panel_ids.== p][1]
 θϕ_cell_coords[p][perms_p1[p]] ≈ θϕ
 
 struct ParametricToLatLonMap{A,B} <: Map
@@ -81,20 +84,27 @@ function Gridap.Arrays.evaluate!(cache,f::ParametricToLatLonMap,cellθϕ1::Abstr
 
   map!( (i,j)-> VectorValue(i,j), y, θs,ϕs)
 
-  return y[perm]
-
+  # return y[perm]
+  return y
+#
 end
 
-panel_ids = get_panel_ids(model)
 θϕ1 =  lazy_map(GnomonicMap(),parametric_cell_coords)
 
 z = lazy_map(ParametricToLatLonMap(shifts,perms_1p),θϕ1,panel_ids)
-cache = array_cache(z)
-bm() = lazy_collect(cache,z)
-@benchmark bm()
+_X_cell_coords = lazy_map(SigmaMap(r),z)
+
+# cache = array_cache(z)
+# bm() = lazy_collect(cache,z)
+# @benchmark bm()
 
 (z .≈ θϕ_cell_coords)
 
-cell = 6
+cell = 24
 z[cell]
 θϕ_cell_coords[cell]
+
+
+
+X_cell_coords[cell]
+_X_cell_coords[cell]
