@@ -55,6 +55,32 @@ Jt = lazy_map(Broadcasting(∇),m)
 det_Jt = lazy_map(Operation(meas),(Jt))
 det_Jtx = lazy_map(evaluate,det_Jt,quad_parametric.cell_point)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ################################################################################
 #### debugging
 # _pinvJt = lazy_map(Broadcasting(pinvJt),Jt)
