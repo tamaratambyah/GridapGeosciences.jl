@@ -2,7 +2,7 @@ using Gridap
 include("../src/initialise.jl")
 
 manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
-manifold_model = Adaptivity.refine(manifold_model)
+# manifold_model = Adaptivity.refine(manifold_model)
 
 ambient_model = get_ambient_model(manifold_model)
 latlon_model = get_latlon_model(manifold_model)
@@ -19,9 +19,12 @@ pts_latlon = get_cell_points(Ω_latlon)
 
 
 
+cmap_ambient = map(x-> InvGnomonicField() ∘ SigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)  # ambient -> parametric
+cmap_parametric = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)  # parametric -> ambient
+
 
 ################################################################################
-#### functions in the parametric space
+#### Scalar-valued functions in the parametric space
 ################################################################################
 cmap_ambient = map(x-> InvGnomonicField() ∘ SigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)  # ambient -> parametric
 
@@ -38,6 +41,63 @@ cvals_ambient = cf_ambient(pts_ambient)
 display(cvals_parametric)
 display(cvals_ambient)
 cvals_parametric ≈ cvals_ambient
+
+quad_parametric = CellQuadrature(Ω_parametric,2)
+quad_pts_parametric = quad_parametric.cell_point
+quad_ambient = CellQuadrature(Ω_ambient,2)
+quad_pts_ambient = quad_ambient.cell_point
+
+cc = get_cell_map(ambient_model)
+pp = lazy_map(∘,cmap_ambient,cc)
+
+Jt = lazy_map((∇),pp)
+det_Jt = lazy_map(Operation(meas),(Jt))
+det_Jtx = lazy_map(evaluate,det_Jt,quad_pts_ambient)
+
+cvals_parametric = cf_parametric(quad_pts_parametric)
+cvals_ambient = cf_ambient(quad_pts_ambient)
+
+
+
+
+#####
+quad_parametric = CellQuadrature(Ω_parametric,2)
+quad_pts_parametric = quad_parametric.cell_point
+quad_ambient = CellQuadrature(Ω_ambient,2)
+quad_pts_ambient = quad_ambient.cell_point
+
+H1 = FESpace(manifold_model,ReferenceFE(lagrangian,Float64,1),conformity=:H1)
+alpha(x) = x[1]
+
+uh = interpolate_everywhere(alpha,H1)
+uhc = get_data(uh)
+cvals_parametric = uh(get_cell_points(quad_parametric))
+
+M =  map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
+Minv = map(x-> InvGnomonicField() ∘ SigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+
+
+cf_mapped = lazy_map(Broadcasting(∘),get_data(uh),Minv)
+cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,DomainStyle(uh) )
+cvals_ambient = cf_ambient(get_cell_points(quad_ambient))
+
+Jt = lazy_map((∇),gg)
+det_Jt = lazy_map(Operation(meas),(Jt))
+det_Jtx = lazy_map(evaluate,det_Jt,pts_ambient)
+det_Jt[1](Point(0,0))
+
+# cf_parametric = CellField(alpha,Ω_parametric)
+# cvals_parametric = cf_parametric(pts_parametric)
+
+# cf_mapped = lazy_map(Broadcasting(∘),get_data(cf_parametric),cmap_ambient)
+# cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
+# cvals_ambient = cf_ambient(pts_ambient)
+
+display(cvals_parametric)
+display(cvals_ambient)
+cvals_parametric ≈ cvals_ambient
+
+
 
 #####
 beta(x) = x[2]
@@ -61,11 +121,8 @@ writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
 
 
 ################################################################################
-#### Vectorfields in the parametric space
+#### Vector-valued functions in the parametric space
 ################################################################################
-cmap_ambient = map(x-> InvGnomonicField() ∘ SigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)  # ambient -> parametric
-cmap_parametric = map(x->   PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)  # parametric -> ambient
-
 function u(αβ)
   α,β = αβ
   VectorValue((α+π/4)*(α-π/4),(β+π/4)*(β-π/4))

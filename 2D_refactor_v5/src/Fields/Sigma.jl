@@ -125,10 +125,10 @@ end
 
 
 
-
 struct SigmaField{A} <: Gridap.Fields.Field
   r::A # sphere radius
 end
+
 
 """ map latlon -> 3D point on sphere, σ: (θ,ϕ) → (X_s, Y_s, Z_s) """
 function Gridap.Arrays.return_cache(k::SigmaField,latlon::AbstractArray{<:VectorValue{2,T}}) where {T}
