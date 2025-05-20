@@ -95,14 +95,15 @@ function get_latlon_model(model::ManifoldDiscreteModel)
   ambient_model = get_ambient_model(model)
   ambient_grid = get_grid(ambient_model)
 
-  ambient_cell_coords = get_cell_coordinates(ambient_model)
-  latlon_cell_coords = lazy_map(Sigma(),ambient_cell_coords)
-  latlon_nodes = get_nodes_from_coords(get_grid(ambient_model),latlon_cell_coords)
+  ambient_nodes = get_node_coordinates(ambient_grid)
+
+  latlon_nodes = collect1d(lazy_map(Sigma(),ambient_nodes))
 
   latlon_grid = UnstructuredGrid(latlon_nodes,get_cell_node_ids(ambient_grid),
-        get_reffes(ambient_grid),get_cell_type(ambient_grid),OrientationStyle(ambient_grid))
+  get_reffes(ambient_grid),get_cell_type(ambient_grid),OrientationStyle(ambient_grid))
 
   UnstructuredDiscreteModel(latlon_grid,get_grid_topology(model),get_face_labeling(model))
+
 end
 
 get_latlon_model(amodel::AdaptedDiscreteModel) = get_latlon_model(amodel.model)

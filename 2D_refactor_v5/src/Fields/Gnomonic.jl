@@ -154,8 +154,8 @@ end
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicField,latlons::AbstractArray{<:VectorValue{2}})
   # setsize!(cache,size(cellx))
   y = cache
-  map!(x -> VectorValue(latlon[1],
-                        atan( tan(latlon[2]), cos(latlon[1]) )
+  map!(x -> VectorValue(rem2pi(latlon[1],RoundNearest),
+                        atan( tan(latlon[2]), cos(rem2pi(latlon[1],RoundNearest)) )
                         ),
                         y, latlons)
   return y
@@ -170,8 +170,8 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicField,latlon::VectorValue{2})
   y = cache
-  y =  VectorValue(latlon[1],
-                   atan( tan(latlon[2]), cos(latlon[1]) )
+  y =  VectorValue(rem2pi(latlon[1],RoundNearest),
+                   atan( tan(latlon[2]), cos(rem2pi(latlon[1],RoundNearest)) )
                         )
   return y
 end
@@ -210,8 +210,8 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:InvGnomonicField},latlon
 
   map!(x -> TensorValue{2,2}( 1,
                               0.0,
-                              ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
-                              ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
+                              ( cos( rem2pi(x[1],RoundNearest) )*tan(x[2])*tan(rem2pi(x[1],RoundNearest)) )/( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ),
+                              ( cos(rem2pi(x[1],RoundNearest)) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ) )
                               ),
                     y, latlons)
 
@@ -227,8 +227,8 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InvGnomonicField},x:
   y = cache
   y = TensorValue{2,2}( 1,
                         0.0,
-                        ( cos(x[1])*tan(x[2])*tan(x[1]) )/( (tan(x[2]))^2 + (cos(x[1]))^2 ),
-                        ( cos(x[1]) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(x[1]))^2 ) )
+                        ( cos(rem2pi(x[1],RoundNearest))*tan(x[2])*tan(rem2pi(x[1],RoundNearest)) )/( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ),
+                        ( cos(rem2pi(x[1],RoundNearest)) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ) )
                                      )
   return y
 end
@@ -297,7 +297,7 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicMap,latlons::AbstractArray{<:VectorValue{2}})
   y = cache
-  map!(x -> VectorValue(x[1],
+  map!(x -> VectorValue(rem2pi(x[1],RoundNearest),
                         atan( tan(x[2]), cos(x[1]))
                         ),
                         y, latlons)
@@ -312,7 +312,7 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicMap,latlon::VectorValue{2})
   y = cache
-  y = VectorValue(latlon[1],
+  y = VectorValue(rem2pi(latlon[1],RoundNearest),
                   atan( tan(latlon[2]), cos(latlon[1]))
                         )
   return y

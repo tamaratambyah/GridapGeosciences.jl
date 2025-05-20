@@ -6,7 +6,7 @@ Sigma
 The standard spherical mapping from lat-lon <-> 3D Cartesian on sphere surface.
 
 The `latlon` variable is latlon = (θ, ϕ).
-θ is the longitude, computed to be [0,2*π] (use rem2pi(θ,RoundDown))
+θ is the longitude, computed to be [-π, π] (use rem2pi(θ,RoundNearest))
 ϕ is the latitude, computed to be [-π/2, π/2]
 
 `r` is the radius of the sphere, which is assumed to be constant
@@ -38,7 +38,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::InvSigmaField,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
-  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundDown),
+  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
                               atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) )
   ),
    y, cellx)
@@ -53,7 +53,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::InvSigmaField,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   y = cache
-  y = VectorValue( rem2pi(atan(x[2], x[1]),RoundDown),
+  y = VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
                   atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) )
                    )
 
@@ -142,8 +142,8 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,latlon::AbstractArray{<:Vec
   # setsize!(cache,size(cellx))
   y = cache
   r = f.r
-  map!(x -> VectorValue(r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                        r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
+  map!(x -> VectorValue(r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                        r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
                         r*sin(x[2])),
                         y, latlon)
   return y
@@ -160,8 +160,8 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{2})
 
   y = cache
   r = f.r
-  y = VectorValue(r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                  r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
+  y = VectorValue(r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                  r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
                   r*sin(x[2]))
   return y
 end
@@ -195,10 +195,10 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
   y = cache.array
   r = f.object.r
 
-  map!(x -> TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                             -r*cos( rem2pi(x[1],RoundDown) )*sin(x[2]),
-                              r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                             -r*sin( rem2pi(x[1],RoundDown) )*sin(x[2]),
+  map!(x -> TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                             -r*cos( rem2pi(x[1],RoundNearest) )*sin(x[2]),
+                              r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                             -r*sin( rem2pi(x[1],RoundNearest) )*sin(x[2]),
                               0.0,
                               r*cos(x[2])),
                     y, cellx)
@@ -215,10 +215,10 @@ end
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{2})
   y = cache
   r = f.object.r
-  y = TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                       -r*cos( rem2pi(x[1],RoundDown) )*sin(x[2]),
-                        r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                        -r*sin( rem2pi(x[1],RoundDown) )*sin(x[2]),
+  y = TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                       -r*cos( rem2pi(x[1],RoundNearest) )*sin(x[2]),
+                        r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                        -r*sin( rem2pi(x[1],RoundNearest) )*sin(x[2]),
                         0.0,
                         r*cos(x[2]))
   return y
@@ -244,7 +244,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::SigmaMap,cellx::AbstractArray{<:VectorValue{3}})
   # 3D point on sphere -> lat lon
   y = cache
-  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundDown),
+  map!(x -> VectorValue( rem2pi(atan(x[2], x[1]),RoundNearest),
                                  atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) )),
                         y, cellx)
   return y
@@ -259,7 +259,7 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaMap,x::VectorValue{3})
   # 3D point on sphere -> lat lon
   # println("this func")
   y = cache
-  y = VectorValue(  rem2pi(atan(x[2], x[1]),RoundDown),
+  y = VectorValue(  rem2pi(atan(x[2], x[1]),RoundNearest),
                            atan(x[3], sqrt(x[1]*x[1] + x[2]*x[2]) ))
   return y
 end
@@ -276,8 +276,8 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaMap,latlon::AbstractArray{<:Vecto
   # setsize!(cache,size(cellx))
   y = cache
   r = f.r
-  map!(x -> VectorValue(r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                        r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
+  map!(x -> VectorValue(r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                        r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
                         r*sin(x[2])),
                         y, latlon)
   return y
@@ -294,8 +294,8 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaMap,x::VectorValue{2})
 
   y = cache
   r = f.r
-  y = VectorValue(r*cos( rem2pi(x[1],RoundDown) )*cos(x[2]),
-                  r*sin( rem2pi(x[1],RoundDown) )*cos(x[2]),
+  y = VectorValue(r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+                  r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
                   r*sin(x[2]))
   return y
 end
