@@ -2,52 +2,6 @@ using Gridap
 using Gridap.Arrays, Gridap.ReferenceFEs, Gridap.Geometry, Gridap.FESpaces
 using Gridap.CellData, Gridap.Adaptivity, Gridap.Helpers, Gridap.TensorValues, Gridap.Fields
 
-model1 = UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(2,2)))
-model2 = UnstructuredDiscreteModel(CartesianDiscreteModel((0,2,0,2),(2,2)))
-
-Ω1 = Triangulation(model1)
-dΩ1 = CellQuadrature(Ω1,2)
-quad_pts_1 = get_cell_points(dΩ1)
-RT1 = FESpace(model1,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
-
-Ω2 = Triangulation(model2)
-dΩ2 = CellQuadrature(Ω2,2)
-quad_pts_2 = get_cell_points(dΩ2)
-RT2 = FESpace(model2,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
-
-u(x) = VectorValue(1.0,1.0)
-uh1 = interpolate_everywhere(u,RT1)
-
-A_mat = TensorValue{2,2}(2,0,0,1)
-
-cmaps = map(x-> XTimes2Field(A_mat), 1:num_cells(model1))
-
-mapped_fields = lazy_map(Broadcasting(push_∇),get_data(uh1),cmaps)
-cf_mapped = lazy_map(Broadcasting(∘),mapped_fields,cmaps)
-
-cf2 = CellData.GenericCellField(cf_mapped,Ω2,DomainStyle(uh1))
-cf2((quad_pts_2))
-
-
-
-
-# do the piola map, then map to model2
-Jt = ∇(phi)
-Jt_inv = pinvJt(Jt)
-det_Jt = meas(Jt)
-change = det_Jt*Jt_inv
-
-_RT = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
-free_values = zero_free_values(_RT)
-s = get_fe_dof_basis(_RT)
-cell_vals =  s(cf_mapped)
-gather_free_values!(free_values,_RT,cell_vals)
-
-
-
-
-
-
 struct XTimes2Field{A} <: Field
   A_mat::A
 end
@@ -123,6 +77,55 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:XTimes2Field},x::Vec
 
   return y
 end
+
+
+model1 = UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(2,2)))
+model2 = UnstructuredDiscreteModel(CartesianDiscreteModel((0,2,0,2),(2,2)))
+
+Ω1 = Triangulation(model1)
+dΩ1 = CellQuadrature(Ω1,2)
+quad_pts_1 = get_cell_points(dΩ1)
+RT1 = FESpace(model1,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
+
+Ω2 = Triangulation(model2)
+dΩ2 = CellQuadrature(Ω2,2)
+quad_pts_2 = get_cell_points(dΩ2)
+RT2 = FESpace(model2,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
+
+u(x) = VectorValue(1.0,1.0)
+uh1 = interpolate_everywhere(u,RT1)
+
+A_mat = TensorValue{2,2}(2,0,0,1)
+
+cmaps = map(x-> XTimes2Field(A_mat), 1:num_cells(model1))
+
+mapped_fields = lazy_map(Broadcasting(push_∇),get_data(uh1),cmaps)
+cf_mapped = lazy_map(Broadcasting(∘),mapped_fields,cmaps)
+
+cf2 = CellData.GenericCellField(cf_mapped,Ω2,DomainStyle(uh1))
+cf2((quad_pts_2))
+
+
+
+
+# do the piola map, then map to model2
+Jt = ∇(phi)
+Jt_inv = pinvJt(Jt)
+det_Jt = meas(Jt)
+change = det_Jt*Jt_inv
+
+_RT = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
+free_values = zero_free_values(_RT)
+s = get_fe_dof_basis(_RT)
+cell_vals =  s(cf_mapped)
+gather_free_values!(free_values,_RT,cell_vals)
+
+
+
+
+
+
+
 
 
 

@@ -16,19 +16,6 @@ pts_ambient = get_cell_points(Ω_ambient)
 quad_parametric = CellQuadrature(Ω_parametric,2)
 quad_ambient = CellQuadrature(Ω_ambient,2)
 
-####
-# function Fields.pinvJt(Jt::MultiValue{Tuple{D1,D2}}) where {D1,D2}
-#   # @check D1 < D2
-#   if D1 < D2
-#     J = transpose(Jt)
-#     return transpose(inv(Jt⋅J)⋅Jt)
-#   else
-#     println("my inverse")
-#     J = transpose(Jt)
-#     return transpose(Jt⋅inv(J⋅Jt))
-#   end
-# end
-
 ################################################################################
 #### consider sigma map -> only defined on quad points
 ################################################################################
@@ -47,7 +34,7 @@ cvals_parametric = lazy_map(evaluate,uh_cf,quad_parametric.cell_point)
 
 m = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids) # 2D alpha,beta -> 3D X,Y,Z sphere
 
-uh_cf_mapped = lazy_map(Broadcasting(∘),uh_cf,m)
+uh_cf_mapped = lazy_map(Broadcasting(∘),get_data(uh),m)
 # cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,DomainStyle(uh) )
 cvals_ambient =  lazy_map(evaluate,uh_cf_mapped,quad_ambient.cell_point)
 
@@ -56,11 +43,23 @@ det_Jt = lazy_map(Operation(meas),(Jt))
 det_Jtx = lazy_map(evaluate,det_Jt,quad_parametric.cell_point)
 
 
+## map a new FE function
+_H1 = FESpace(ambient_model,ReferenceFE(lagrangian,Float64,1),conformity=:H1)
+free_values = zero_free_values(_H1)
+
+
+s = get_fe_dof_basis(_H1)
+trian = get_triangulation(_H1)
+f = CellField(object,trian,DomainStyle(s))
+  cell_vals = s(f)
 
 
 
-
-
+cell_vals = uh.cell_dof_values
+gather_free_values!(free_values,_H1,cell_vals)
+_uh = FEFunction(H1,free_values)
+_uh(pts_ambient)
+writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>_uh],append=false)
 
 
 
