@@ -1,6 +1,6 @@
 using Gridap
 include("../src/initialise.jl")
-
+include("../src/Visualization/VisualizationData.jl")
 
 manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
 manifold_model = Adaptivity.refine(manifold_model)
@@ -40,7 +40,7 @@ end
 ################################################################################
 function uθϕ_scalar(θϕ)
   θ,ϕ = θϕ
-  ϕ
+  rem2pi(θ,RoundNearest)
 end
 
 cell_field = map(p->GenericField(u_latlon(p,uθϕ_scalar)),panel_ids)
@@ -56,7 +56,14 @@ uh = solve(LUSolver(),op)
 
 writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>uh],append=false)
 
+mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+cf_mapped = lazy_map(Broadcasting(∘),get_data(uh),mapping)
+cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
 
+writevtk(cubedsphere,Ω_ambient,dir*"/ambient_quad",cellfields=["u"=>cf_ambient],append=false)
+writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
+
+### compare values
 cdofs = get_cell_dof_values(uh)
 for p in collect(1:6)
   panel_vals = cdofs[panel_ids.==p]
@@ -64,14 +71,7 @@ for p in collect(1:6)
   println("---p = $p: Minimum = ", minimum(minimum.(panel_vals)) )
 end
 
-mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
-cf_mapped = lazy_map(Broadcasting(∘),get_data(uh),mapping)
-cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
-
-writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
-
 ambient_vals = cf_ambient(pts_ambient)
-
 for p in collect(1:6)
   panel_vals = ambient_vals[panel_ids.==p]
   println("---p = $p: Maximum = ", maximum(maximum.(panel_vals)) )
@@ -96,9 +96,10 @@ function u_latlon_vector(p::Int,uθϕ::Function)
     # cmap = InvSigmaField(r) ∘ PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
     cmap = InvGnomonicField() ∘ InvSigmaField(r)  ∘ PanelRotationField(rp1_3D[p]) ∘ SigmaField(r)
     Jt = ∇(cmap)
+    det_J = meas(Jt)
     Jt_inv = evaluate(pinvJt(Jt),latlon_panelp)
 
-    Jt_inv ⋅ uθϕ(latlon_panelp)
+    det_J * Jt_inv ⋅ uθϕ(latlon_panelp)
   end
 end
 
@@ -109,6 +110,7 @@ end
 function uθϕ_vector(θϕ)
   θ,ϕ = θϕ
   VectorValue(cos(θ),0.0)
+  VectorValue(X,Y,Z)
 end
 
 
@@ -132,7 +134,7 @@ gather_free_and_dirichlet_values!(free_values,dirichlet_values,RT,cell_vals)
 uh = FEFunction(RT,free_values,dirichlet_values)
 
 
-writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>uh],append=false)
+writevtk(Ω_parametcubedsphere,ric,dir*"/parametric",cellfields=["u"=>uh],append=false)
 
 # cdofs = get_cell_dof_values(uh)
 # for p in collect(1:6)
@@ -144,15 +146,67 @@ writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>uh],append=false)
 mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
 inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
+Jt = lazy_map(Broadcasting(gradient),mapping)
+Jt_inv = lazy_map(Broadcasting(pinvJt),Jt)
+det_J = lazy_map(Operation(Mymeas),Jt_inv)
+_det_J = lazy_map(Broadcasting(∘),det_J,inv_mapping)
+
+cf_det_J = CellData.GenericCellField(_det_J,Ω_ambient,PhysicalDomain() )
+writevtk(cubedsphere,Ω_ambient,dir*"/ambient_vector_det",cellfields=["u"=>cf_det_J],append=false)
+
+function u_func(X)
+  VectorValue(X[1],X[2],X[3])
+end
+writevtk(Ω_ambient,dir*"/ambient_vector_det",cellfields=["u"=>u_func],append=false)
+
+
+function f(XY)
+
+  if pole
+    VectorValue(XY[1],0.0,0.0)
+  else
+    VectorValue(XY[1],XY[2],XY[3])
+  end
+
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Mymeas(Jt::MultiValue{Tuple{D1,D2}}) where {D1,D2}
+  J = transpose(Jt)
+  (det(Jt⋅J))
+end
+
+
+change = lazy_map(*,det_J,Jt_inv)
+
 _uh = change_domain(uh,Ω_parametric,PhysicalDomain())
+# _cf_mapped = lazy_map(Broadcasting(push_∇),get_data(_uh),mapping)
 _cf_mapped = lazy_map(Broadcasting(push_∇),get_data(_uh),mapping)
-cf_mapped = lazy_map(Broadcasting(∘),_cf_mapped,inv_mapping)
+_cf_mapped2 = lazy_map(*,det_J,_cf_mapped)
+cf_mapped = lazy_map(Broadcasting(∘),_cf_mapped2,inv_mapping)
 
 cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
 cvals_ambient = cf_ambient(pts_ambient)
-writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
+writevtk(cubedsphere,Ω_ambient,dir*"/ambient_vector",cellfields=["u"=>cf_ambient, "f"=>f_cf_ambient],append=false)
 
 
+f_cf_mapped = lazy_map(Broadcasting(push_∇),get_data(f),mapping)
+f_cf_mapped = lazy_map(Broadcasting(∘),f_cf_mapped,inv_mapping)
+f_cf_ambient = CellData.GenericCellField(f_cf_mapped,Ω_ambient,PhysicalDomain() )
 ################################################################################
 ##### Visualisation hack: remove the bad cells
 ################################################################################
@@ -182,9 +236,9 @@ end
 
 bad_node = get_cell_node_ids(latlon_model)[cell][idx]
 
-# p1_bad_cells = get_faces(get_grid_topology(latlon_model),0,2)[bad_node]
+p1_bad_cells = get_faces(get_grid_topology(latlon_model),0,2)[bad_node]
 # p1_bad_cells = [13, 14, 15, 16, 25, 26, 27, 28, 37, 38, 39, 40, 49, 50, 51, 52]
-p1_bad_cells = [15, 16, 27, 28, 37, 38,  49, 50]
+# p1_bad_cells = [15, 16, 27, 28, 37, 38,  49, 50]
 Nc = num_cells(latlon_model)
 n_cells_per_panel = Nc/6
 p2_bad_cells = Int(n_cells_per_panel) .+ p1_bad_cells
@@ -196,86 +250,10 @@ good_cells = setdiff(collect(1:Nc),bad_cells)
 
 Ω_view = Triangulation(ambient_model,good_cells)
 cf_view = change_domain(cf_ambient,Ω_view,PhysicalDomain() )
-writevtk(Ω_view,dir*"/ambient_view",cellfields=["u"=>cf_view],append=false)
-
-################################################################################
-##### Visualise at quad points
-################################################################################
-struct MyVisualizationGrid{Dc,Dp} <: Grid{Dc,Dp}
-  sub_grid::UnstructuredGrid{Dc,Dp}
-  sub_cell_to_cell::AbstractVector{<:Integer}
-  cell_to_refpoints::AbstractVector{<:AbstractVector{<:Point}}
-  cell_quad::AbstractVector{<:AbstractVector{<:Point}}
-end
-
-Gridap.Geometry.get_reffes(g::MyVisualizationGrid) = get_reffes(g.sub_grid)
-
-Gridap.Geometry.get_cell_type(g::MyVisualizationGrid) = get_cell_type(g.sub_grid)
-
-Gridap.Geometry.get_node_coordinates(g::MyVisualizationGrid) = get_node_coordinates(g.sub_grid)
-
-Gridap.Geometry.get_cell_node_ids(g::MyVisualizationGrid) = get_cell_node_ids(g.sub_grid)
-
-function MyVisualizationGrid(trian::Triangulation, ref_grids::AbstractArray{<:UnstructuredGrid})
-  dΩ = Measure(trian,2)
-  cell_quad = dΩ.quad.cell_point
-
-  cell_to_ctype = collect1d(get_cell_type(trian))
-  ctype_to_refpoints = map(get_node_coordinates, ref_grids)
-  cell_to_refpoints = CompressedArray(ctype_to_refpoints,cell_to_ctype)
-  cell_map = get_cell_map(trian)
-  cell_to_points = lazy_map(evaluate,cell_map, cell_to_refpoints)
-
-  node_to_coords, cell_to_offset = Gridap.Visualization._prepare_node_to_coords(cell_to_points)
-
-  ctype_to_scell_to_snodes = map(get_cell_node_ids,ref_grids)
-
-  sub_cell_to_nodes, sub_cell_to_cell = Gridap.Visualization._prepare_sub_cell_to_nodes(
-    cell_to_ctype,ctype_to_scell_to_snodes,cell_to_offset)
-
-  ctype_to_reffes = map(get_reffes,ref_grids)
-  ctype_to_scell_type = map(get_cell_type,ref_grids)
-  sctype_to_reffe, sub_cell_to_sctype = Gridap.Visualization._prepare_sctype_to_reffe(
-    ctype_to_reffes,ctype_to_scell_type,cell_to_ctype)
-
-  sub_grid = UnstructuredGrid(
-    node_to_coords,
-    sub_cell_to_nodes,
-    sctype_to_reffe,
-    sub_cell_to_sctype,
-    NonOriented())
-
-    MyVisualizationGrid(sub_grid,sub_cell_to_cell,cell_to_refpoints,cell_quad )
-
-end
+f_cf_view = change_domain(f_cf_ambient,Ω_view,PhysicalDomain() )
+writevtk(Ω_view,dir*"/ambient_view2",cellfields=["u"=>cf_view, "f"=>f_cf_view],append=false,nsubcells=8)
 
 
-function Gridap.Visualization.visualization_data(
-  trian::Triangulation, filebase::AbstractString;
-  order=-1, nsubcells=-1, celldata=Dict(), cellfields=Dict())
 
-  println("my vis")
-  if order == -1 && nsubcells == -1
-    # Use the given cells as visualization cells
-    f = (reffe) -> UnstructuredGrid(reffe)
-  elseif order != -1 && nsubcells == -1
-    # Use cells of given order as visualization cells
-    f = (reffe) -> UnstructuredGrid(LagrangianRefFE(Float64,get_polytope(reffe),order))
-  elseif order == -1 && nsubcells != -1
-    # Use linear sub-cells with nsubcells per direction
-    f = (reffe) -> UnstructuredGrid(compute_reference_grid(reffe,nsubcells))
-  else
-    @unreachable "order and nsubcells kw-arguments can not be given at the same time"
-  end
-
-  ref_grids = map(f, get_reffes(trian))
-  visgrid = MyVisualizationGrid(trian,ref_grids)
-
-  cdata = Gridap.Visualization._prepare_cdata(celldata,visgrid.sub_cell_to_cell)
-  pdata = Gridap.Visualization._prepare_pdata(trian,cellfields,visgrid.cell_quad)
-
-  (Gridap.Visualization.VisualizationData(visgrid,filebase;celldata=cdata,nodaldata=pdata),)
-end
-
-writevtk(Ω_ambient,dir*"/ambient",cellfields=["u"=>cf_ambient],append=false)
+writevtk(Ω_ambient,dir*"/ambient_",cellfields=["u"=>cf_ambient],append=false)
 writevtk(Ω_view,dir*"/ambient_view",cellfields=["u"=>cf_view],append=false)
