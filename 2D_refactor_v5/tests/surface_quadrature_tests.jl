@@ -61,7 +61,7 @@ for i in 1:length(qdegrees)
     push!(errs, err_h )
   end
   plot!(0:length(errs)-1,errs,
-  lw=3,ms=6,
+  lw=4,ms=6,
   c=_colors[i],
   markershape=markers[i],
       label = "q_degree: $degree"
@@ -80,9 +80,13 @@ for i in 1:length(gg)
   yscale=:log10)
 end
 plot!(yscale=:log10,framestyle=:box,
-title = "surface area of cubed sphere",)
-plot!(xlabel="refinement level",
-      ylabel=L"|a_h - 4πr^2|/4πr^2",)
-plot!(show=true)
-
+# title = "surface area of cubed sphere",
+xlabel=L"n",
+ylabel=L"|a_h - 4πr^2|/4πr^2"
+)
+# plot!(xlabel="refinement level",
+#       ylabel=L"|a_h - 4πr^2|/4πr^2",)
+plot!(show=true,legend=:bottomleft)
+plot!(xtickfontsize=12,ytickfontsize=12,
+legendfontsize=12,guidefontsize=18)
 savefig(plotsdir()*"/surface_area_comparison_error")

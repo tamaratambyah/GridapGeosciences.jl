@@ -158,6 +158,10 @@ uh = FEFunction(RT,free_values)
 ################################################################################
 mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
 inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+# cmaps = get_cell_map(Ω_parametric)
+# inv_cmaps = lazy_map(inverse_map,cmaps)
+# _mapping =  lazy_map(∘,mapping,cmaps)
+# _inv_mapping = lazy_map(∘,inv_cmaps,inv_mapping)
 
 Jt = lazy_map(Broadcasting(gradient),mapping)
 Jt_pinv = lazy_map(Broadcasting(pinvJt),Jt)
@@ -192,20 +196,21 @@ writevtk(Ω_ambient,dir*"/ambient_tangent",cellfields=["f"=>tangent_f,"u_ambient
 ##################### debugging - change domain
 cell_map = get_cell_map(Ω_parametric)
 cell_invmap = lazy_map(inverse_map,cell_map)
-  cell_field_ref = get_data(a)
-  cell_field_phys = lazy_map(Broadcasting(∘),cell_field_ref,cell_invmap)
-  similar_cell_field(a,cell_field_phys,trian,PhysicalDomain())
 
-xt = evaluate(cell_map[65],Point(1,1))
-evaluate(cell_invmap[65],xt)
+cell = 5
+xt = evaluate(cell_map[cell],Point(0,0))
+evaluate(cell_invmap[cell],xt)
 
 
-manifold_grid = get_grid(manifold_model)
-cmaps = get_cell_map(manifold_grid.cube_grid_3D)
+model = UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1,0,1),(2,2,2)))
+# Ω_cube =  Triangulation(_coarse_cube_model_3D(π/4))
+Ω_cube = Triangulation(model)
+cmaps = get_cell_map(Ω_cube)
 inv_cmaps = lazy_map(inverse_map,cmaps)
 
-xt = evaluate(cmaps[65],Point(1,1))
-evaluate(inv_cmaps[65],xt)
+cell = 1
+xt = evaluate(cmaps[cell],Point(0,0,0))
+evaluate(inv_cmaps[cell],xt)
 
 evaluate(inv_cmaps[1],Point(0,0,0))
 
