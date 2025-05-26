@@ -24,18 +24,19 @@ pts_latlon = get_cell_points(Ω_latlon)
 ################################################################################
 
 function tangent_f(X)
-  # VectorValue(-X[2],X[1],0)
+  vec = VectorValue(-X[2],X[1],0)
 
-  vec = VectorValue(X[1]^2,X[1]*X[2],X[3])
+  # vec = VectorValue(X[1]^2,X[1]*X[2],X[3])
   normal_vec = 1/r*VectorValue(X[1],X[2],X[3])
   normal_comp = (vec⋅normal_vec)*normal_vec
 
   vec - normal_comp
 end
 
-tangent_f(Point(1,1,1))
+# _RT = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
+# ambient_uh = interpolate(tangent_f,_RT)
 
-writevtk(Ω_ambient,dir*"/ambient_tangent",cellfields=["u"=>tangent_f],append=false)
+# writevtk(Ω_ambient,dir*"/ambient_tangent",cellfields=["u"=>tangent_f,"uh"=>ambient_uh],append=false)
 
 
 ################################################################################
@@ -49,6 +50,7 @@ writevtk(Ω_ambient,dir*"/ambient_tangent",cellfields=["u"=>tangent_f],append=fa
 function Mymeas(Jt::MultiValue{Tuple{D1,D2}}) where {D1,D2}
   J = transpose(Jt)
   d = (det(Jt⋅J))
+  println(d)
   if abs(d) < 9.9e-15
     return abs(d)
   else
@@ -60,6 +62,7 @@ end
 function MyInvmeas(Jt::MultiValue{Tuple{D1,D2}}) where {D1,D2}
   J = transpose(Jt)
   d = (det(Jt⋅J))
+  println(d)
   if abs(d) < 9.9e-15
     return 1/abs(d)
   else
@@ -67,6 +70,7 @@ function MyInvmeas(Jt::MultiValue{Tuple{D1,D2}}) where {D1,D2}
   end
 
 end
+
 
 
 panel1_αβ = (get_grid(manifold_model).parametric_cell_coords)[panel_ids .==1]
@@ -103,42 +107,31 @@ end
 ##### Map analytical vector valued function from X,Y,Z -> α,β
 ##### 1. Map a point α,β -> X,Y,Z
 ##### 2. Compute u(X,Y,Z)
-##### 2. Compute J cooresponding to X,Y,Z -> α,β
-##### 2. Evaluate v(α,β) = J^{-T} ⋅ u(X,Y,Z)
+##### 3. Compute J cooresponding to X,Y,Z -> α,β
+##### 4. Evaluate v(α,β) = J⋅u(X,Y,Z)
+## Note, this is a coordinate transform of an analytic function, so do not need to
+## apply the piola transform (I think)
 ################################################################################
-
-
 function u_ambient_vector(p::Int,uX::Function)
   function _u(αβ)
-    latlon_panel1 = evaluate(GnomonicMap(), αβ)
-    sphere_panel1 = evaluate(Sigma(),latlon_panel1)
-    sphere_panelp = evaluate(PanelRotationMap(r1p_3D[p]), sphere_panel1)
 
     cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
     inv_cmap = InvGnomonicField() ∘ InvSigmaField(r)  ∘ PanelRotationField(rp1_3D[p])
 
-    Jt = ∇(cmap)
-    Jt_inv = ∇(inv_cmap)
+    XYZ = cmap(αβ)
+    J_XYZ = transpose( ∇(inv_cmap)(XYZ) )
 
-    Jt_x = evaluate(Jt,αβ)
-    pinv_Jt_x = evaluate(pinvJt(Jt),αβ)
+    J_XYZ ⋅ uX(XYZ)
 
-    det_Jt_x = evaluate(Mymeas,Jt_x)
-
-    (det_Jt_x) * transpose(pinv_Jt_x) ⋅ uX(sphere_panelp)
   end
 end
 
 
 
-
-
-
 ################################################################################
-##### Vector valued functions
+##### Interoplate vector valued function
 ################################################################################
 
-dΩ = Measure(Ω_parametric,2)
 RT = FESpace(manifold_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
 
 ## interpolate everywhere
@@ -153,23 +146,25 @@ f = CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 cell_vals = s(f)
 
 ## interpolate!
-gather_free_and_dirichlet_values!(free_values,dirichlet_values,RT,cell_vals)
-uh = FEFunction(RT,free_values,dirichlet_values)
-
-
-
-
+# gather_free_and_dirichlet_values!(free_values,dirichlet_values,RT,cell_vals)
+# uh = FEFunction(RT,free_values,dirichlet_values)
+gather_free_values!(free_values,RT,cell_vals)
+uh = FEFunction(RT,free_values)
 # writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>uh],append=false)
 
+################################################################################
+##### Map back to ambient space for visualisation
+## Note, here we are mapping a FEFunction, so need to apply the full Piola transform
+################################################################################
 mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
 inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
 Jt = lazy_map(Broadcasting(gradient),mapping)
-pinv_Jt = lazy_map(Operation(pinvJt),Jt)
-det_Jt = lazy_map(Operation(Mymeas),Jt)
-change = lazy_map(*,det_Jt,pinv_Jt)
+Jt_pinv = lazy_map(Broadcasting(pinvJt),Jt)
+inv_det_J = lazy_map(Broadcasting(Operation(meas)),Jt)
+change = lazy_map(*,inv_det_J,Jt_pinv)
 
-_uh = change_domain(uh,Ω_parametric,PhysicalDomain())
+_uh = change_domain(uh.cell_field,ReferenceDomain(),PhysicalDomain())
 
 _cf_mapped = lazy_map(Broadcasting(⋅),change,get_data(_uh))
 cf_mapped = lazy_map(Broadcasting(∘),_cf_mapped,inv_mapping)
@@ -178,3 +173,42 @@ cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
 cvals_ambient = cf_ambient(pts_ambient)
 
 writevtk(Ω_ambient,dir*"/ambient_tangent",cellfields=["f"=>tangent_f,"u"=>cf_ambient],append=false)
+
+############ get cell vals on ambient RT
+_RT = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
+# uh_ambient = interpolate(cf_ambient,_RT)
+
+_free_values = zero_free_values(_RT)
+_s = get_fe_dof_basis(_RT)
+_cell_vals = _s(cf_ambient)
+
+## interpolate!
+gather_free_values!(_free_values,_RT,_cell_vals)
+uh_ambient = FEFunction(_RT,_free_values)
+
+writevtk(Ω_ambient,dir*"/ambient_tangent",cellfields=["f"=>tangent_f,"u_ambient"=>uh_ambient],append=false,nsubcells=4)
+
+
+##################### debugging - change domain
+cell_map = get_cell_map(Ω_parametric)
+cell_invmap = lazy_map(inverse_map,cell_map)
+  cell_field_ref = get_data(a)
+  cell_field_phys = lazy_map(Broadcasting(∘),cell_field_ref,cell_invmap)
+  similar_cell_field(a,cell_field_phys,trian,PhysicalDomain())
+
+xt = evaluate(cell_map[65],Point(1,1))
+evaluate(cell_invmap[65],xt)
+
+
+manifold_grid = get_grid(manifold_model)
+cmaps = get_cell_map(manifold_grid.cube_grid_3D)
+inv_cmaps = lazy_map(inverse_map,cmaps)
+
+xt = evaluate(cmaps[65],Point(1,1))
+evaluate(inv_cmaps[65],xt)
+
+evaluate(inv_cmaps[1],Point(0,0,0))
+
+g =  BumpField(A_bump,B_bump,b_bump)
+k = map(p-> g ∘ PanelRotationField(rp1_3D[p]), panel_ids)
+parametric_cell_map = lazy_map(∘,k,cmaps)

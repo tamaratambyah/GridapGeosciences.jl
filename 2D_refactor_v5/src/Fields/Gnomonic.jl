@@ -35,7 +35,7 @@ function Gridap.Arrays.evaluate!(cache,f::GnomonicField,cellcangles::AbstractArr
   # setsize!(cache,size(cellx))
   y = cache
   map!(x -> VectorValue(x[1],
-                        asin( ( tan(x[2]) ) / ( (1+ (tan(x[1]))^2 + (tan(x[2]))^2 )^(0.5) ) )
+                        asin( ( tan(x[2]) ) / ( sqrt(1+ (tan(x[1]))^2 + (tan(x[2]))^2 ) ) )
                         ),
                         y, cellcangles)
   return y
@@ -51,7 +51,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::GnomonicField,cangle::VectorValue{2})
   y = cache
   y =  VectorValue(cangle[1],
-                  asin( ( tan(cangle[2]) ) / ( (1+ (tan(cangle[1]))^2 + (tan(cangle[2]))^2 )^(0.5) ) )
+                  asin( ( tan(cangle[2]) ) / ( sqrt(1+ (tan(cangle[1]))^2 + (tan(cangle[2]))^2 ) ) )
                         )
   return y
 end
@@ -65,7 +65,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::GnomonicField,cangle::SVector{2})
   y = cache
   y =  VectorValue(cangle[1],
-                  asin( ( tan(cangle[2]) ) / ( (1+ (tan(cangle[1]))^2 + (tan(cangle[2]))^2 )^(0.5) ) )
+                  asin( ( tan(cangle[2]) ) / ( sqrt(1+ (tan(cangle[1]))^2 + (tan(cangle[2]))^2 )  ) )
                         )
   return y
 end
@@ -125,17 +125,6 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:GnomonicField},x::Ve
   return y
 end
 
-# function Gridap.Arrays.return_cache(cache,f::FieldGradient{2,<:GnomonicField},x::VectorValue{2})
-#   zero(TensorValue{2,2,Float64})
-# end
-
-# function Gridap.Arrays.evaluate!(cache,f::FieldGradient{2,<:GnomonicField},x::VectorValue{2})
-#   y = cache
-#   y = zero(TensorValue{2,2,Float64})
-#   return y
-# end
-
-
 """
 InvGnomonicField
 
@@ -154,8 +143,8 @@ end
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicField,latlons::AbstractArray{<:VectorValue{2}})
   # setsize!(cache,size(cellx))
   y = cache
-  map!(x -> VectorValue(rem2pi(latlon[1],RoundNearest),
-                        atan( tan(latlon[2]), cos(rem2pi(latlon[1],RoundNearest)) )
+  map!(x -> VectorValue(latlon[1],
+                        atan( tan(latlon[2]), cos(latlon[1]) )
                         ),
                         y, latlons)
   return y
@@ -170,8 +159,8 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicField,latlon::VectorValue{2})
   y = cache
-  y =  VectorValue(rem2pi(latlon[1],RoundNearest),
-                   atan( tan(latlon[2]), cos(rem2pi(latlon[1],RoundNearest)) )
+  y =  VectorValue(latlon[1],
+                   atan( tan(latlon[2]), cos(latlon[1]) )
                         )
   return y
 end
@@ -210,8 +199,8 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:InvGnomonicField},latlon
 
   map!(x -> TensorValue{2,2}( 1,
                               0.0,
-                              ( cos( rem2pi(x[1],RoundNearest) )*tan(x[2])*tan(rem2pi(x[1],RoundNearest)) )/( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ),
-                              ( cos(rem2pi(x[1],RoundNearest)) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ) )
+                              (tan(x[2])*sec(x[1])*tan(x[1]))/( ((tan(x[2]))^2)*( (sec(x[1]))^2) + 1 ),
+                              (cos(x[1])*(sec(x[2]))^2 )/( (tan(x[2]))^2 + (cos(x[1]))^2 )
                               ),
                     y, latlons)
 
@@ -227,8 +216,8 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InvGnomonicField},x:
   y = cache
   y = TensorValue{2,2}( 1,
                         0.0,
-                        ( cos(rem2pi(x[1],RoundNearest))*tan(x[2])*tan(rem2pi(x[1],RoundNearest)) )/( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ),
-                        ( cos(rem2pi(x[1],RoundNearest)) )/( (cos(x[2]))^2*( (tan(x[2]))^2 + (cos(rem2pi(x[1],RoundNearest)))^2 ) )
+                        (tan(x[2])*sec(x[1])*tan(x[1]))/( ((tan(x[2]))^2)*( (sec(x[1]))^2) + 1 ),
+                        (cos(x[1])*(sec(x[2]))^2 )/( (tan(x[2]))^2 + (cos(x[1]))^2 )
                                      )
   return y
 end
@@ -252,7 +241,7 @@ function Gridap.Arrays.evaluate!(cache,f::GnomonicMap,cellcangles::AbstractArray
   # setsize!(cache,size(cellx))
   y = cache
   map!(x -> VectorValue(x[1],
-                        asin( ( tan(x[2]) ) / ( (1+ (tan(x[1]))^2 + (tan(x[2]))^2 )^(0.5) ) )
+                        asin( ( tan(x[2]) ) / ( sqrt(1+ (tan(x[1]))^2 + (tan(x[2]))^2 ) ) )
                         ),
                         y, cellcangles)
   return y
@@ -268,7 +257,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::GnomonicMap,cangle::VectorValue{2})
   y = cache
   y =  VectorValue(cangle[1],
-                  asin( ( tan(cangle[2]) ) / ( (1+ (tan(cangle[1]))^2 + (tan(cangle[2]))^2 )^(0.5) ) )
+                  asin( ( tan(cangle[2]) ) / ( sqrt(1+ (tan(cangle[1]))^2 + (tan(cangle[2]))^2 ) ) )
                         )
   return y
 end
@@ -297,7 +286,7 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicMap,latlons::AbstractArray{<:VectorValue{2}})
   y = cache
-  map!(x -> VectorValue(rem2pi(x[1],RoundNearest),
+  map!(x -> VectorValue(x[1],
                         atan( tan(x[2]), cos(x[1]))
                         ),
                         y, latlons)
@@ -312,7 +301,7 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::InvGnomonicMap,latlon::VectorValue{2})
   y = cache
-  y = VectorValue(rem2pi(latlon[1],RoundNearest),
+  y = VectorValue(latlon[1],
                   atan( tan(latlon[2]), cos(latlon[1]))
                         )
   return y

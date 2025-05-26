@@ -93,9 +93,9 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:InvSigmaField},cellx::Ab
   map!(x -> TensorValue{3,2}( (-x[2]/(x[1]*x[1] + x[2]*x[2])),
                               (x[1]/(x[1]*x[1] + x[2]*x[2])),
                               0.0,
-                              (-x[1]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
-                              (-x[2]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
-                              (sqrt(x[1]*x[1] + x[2]*x[2]))/(r^2)
+                              ( (-x[1]*x[3])/( (x[1]*x[1] + x[2]*x[2] + x[3]*x[3])*(sqrt(x[1]*x[1] + x[2]*x[2]))) ),
+                              ( (-x[2]*x[3])/( (x[1]*x[1] + x[2]*x[2] + x[3]*x[3])*(sqrt(x[1]*x[1] + x[2]*x[2]))) ),
+                              ( (sqrt(x[1]*x[1] + x[2]*x[2]))/(x[1]*x[1] + x[2]*x[2] + x[3]*x[3]) )
                             ),
                     y, cellx)
 
@@ -112,11 +112,11 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InvSigmaField},x::Ve
   y = cache
   r = f.object.r
   y = TensorValue{3,2}( (-x[2]/(x[1]*x[1] + x[2]*x[2])),
-                         (x[1]/(x[1]*x[1] + x[2]*x[2])),
-                         0.0,
-                         (-x[1]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
-                         (-x[2]*x[3])/(r^2*(sqrt(x[1]*x[1] + x[2]*x[2]))),
-                         (sqrt(x[1]*x[1] + x[2]*x[2]))/(r^2)
+                        (x[1]/(x[1]*x[1] + x[2]*x[2])),
+                        0.0,
+                        ( (-x[1]*x[3])/( (x[1]*x[1] + x[2]*x[2] + x[3]*x[3])*(sqrt(x[1]*x[1] + x[2]*x[2]))) ),
+                        ( (-x[2]*x[3])/( (x[1]*x[1] + x[2]*x[2] + x[3]*x[3])*(sqrt(x[1]*x[1] + x[2]*x[2]))) ),
+                        ( (sqrt(x[1]*x[1] + x[2]*x[2]))/(x[1]*x[1] + x[2]*x[2] + x[3]*x[3]) )
                           )
   return y
 end
@@ -142,8 +142,8 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,latlon::AbstractArray{<:Vec
   # setsize!(cache,size(cellx))
   y = cache
   r = f.r
-  map!(x -> VectorValue(r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
-                        r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+  map!(x -> VectorValue(r*cos(x[1])*cos(x[2]),
+                        r*sin(x[1])*cos(x[2]),
                         r*sin(x[2])),
                         y, latlon)
   return y
@@ -160,8 +160,8 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{2})
 
   y = cache
   r = f.r
-  y = VectorValue(r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
-                  r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
+  y = VectorValue(r*cos(x[1])*cos(x[2]),
+                  r*sin(x[1])*cos(x[2]),
                   r*sin(x[2]))
   return y
 end
@@ -195,10 +195,10 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:SigmaField},cellx::Abstr
   y = cache.array
   r = f.object.r
 
-  map!(x -> TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
-                             -r*cos( rem2pi(x[1],RoundNearest) )*sin(x[2]),
-                              r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
-                             -r*sin( rem2pi(x[1],RoundNearest) )*sin(x[2]),
+  map!(x -> TensorValue{2,3}(-r*sin(x[1])*cos(x[2]),
+                             -r*cos(x[1])*sin(x[2]),
+                              r*cos(x[1])*cos(x[2]),
+                             -r*sin(x[1])*sin(x[2]),
                               0.0,
                               r*cos(x[2])),
                     y, cellx)
@@ -215,10 +215,10 @@ end
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:SigmaField},x::VectorValue{2})
   y = cache
   r = f.object.r
-  y = TensorValue{2,3}(-r*sin( rem2pi(x[1],RoundNearest) )*cos(x[2]),
-                       -r*cos( rem2pi(x[1],RoundNearest) )*sin(x[2]),
-                        r*cos( rem2pi(x[1],RoundNearest) )*cos(x[2]),
-                        -r*sin( rem2pi(x[1],RoundNearest) )*sin(x[2]),
+  y = TensorValue{2,3}(-r*sin(x[1])*cos(x[2]),
+                       -r*cos(x[1])*sin(x[2]),
+                        r*cos(x[1])*cos(x[2]),
+                        -r*sin(x[1])*sin(x[2]),
                         0.0,
                         r*cos(x[2]))
   return y
