@@ -25,12 +25,18 @@ pts_latlon = get_cell_points(Ω_latlon)
 
 function tangent_f(X)
   vec = VectorValue(-X[2],X[1],0)
-
   # vec = VectorValue(X[1]^2,X[1]*X[2],X[3])
-  normal_vec = 1/r*VectorValue(X[1],X[2],X[3])
-  normal_comp = (vec⋅normal_vec)*normal_vec
 
-  vec - normal_comp
+  normal_vec = 1/sqrt(X[1]*X[1] + X[2]*X[2] + X[3]*X[3])*VectorValue(X[1],X[2],X[3])
+  normal_comp = (vec⋅normal_vec)*normal_vec
+  tangent_comp = vec - normal_comp
+
+  println(dot(normal_comp, tangent_comp))
+  @assert norm(normal_vec) ≈ 1.0 # check length of normal vector = 1
+  @assert dot(normal_comp, tangent_comp) <= 9.9e-15 # check normal and tangent components are perpendicular
+
+  tangent_comp
+
 end
 
 # _RT = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
@@ -112,6 +118,25 @@ end
 ## Note, this is a coordinate transform of an analytic function, so do not need to
 ## apply the piola transform (I think)
 ################################################################################
+αβ = Point(-π/4,π/4)
+p = 2
+cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
+
+Jt = ∇(cmap)
+J = Operation(transpose)(Jt)
+Jt_x = Jt(αβ)
+J_x = J(αβ)
+
+pinvJ = inv(Jt_x⋅J_x)⋅Jt_x
+meas(pinvJ)
+
+pinvJt(Jt_x)
+
+
+XYZ = cmap(αβ)
+v = Point(-XYZ[2],XYZ[1],0.0)
+v - J_x ⋅ pinvJ ⋅ v
+
 function u_ambient_vector(p::Int,uX::Function)
   function _u(αβ)
 
@@ -150,7 +175,7 @@ cell_vals = s(f)
 # uh = FEFunction(RT,free_values,dirichlet_values)
 gather_free_values!(free_values,RT,cell_vals)
 uh = FEFunction(RT,free_values)
-# writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>uh],append=false)
+writevtk(Ω_parametric,dir*"/parametric",cellfields=["u"=>uh],append=false)
 
 ################################################################################
 ##### Map back to ambient space for visualisation
@@ -202,18 +227,24 @@ xt = evaluate(cell_map[cell],Point(0,0))
 evaluate(cell_invmap[cell],xt)
 
 
-model = UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1,0,1),(2,2,2)))
-# Ω_cube =  Triangulation(_coarse_cube_model_3D(π/4))
-Ω_cube = Triangulation(model)
-cmaps = get_cell_map(Ω_cube)
-inv_cmaps = lazy_map(inverse_map,cmaps)
+###
+model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
+grid = get_grid(model)
+trian = Triangulation(model)
 
-cell = 1
-xt = evaluate(cmaps[cell],Point(0,0,0))
-evaluate(inv_cmaps[cell],xt)
+cell_to_coords = get_cell_coordinates(grid)
+cell_to_shapefuns = get_cell_shapefuns(grid)
+# cmaps = lazy_map(linear_combination,cell_to_coords,cell_to_shapefuns)
 
-evaluate(inv_cmaps[1],Point(0,0,0))
+cmaps = get_cell_map(trian)
+c = cmaps[2]
+xt = evaluate(c,Point(1.0,1.0))
+evaluate(inverse_map(c),xt)
 
-g =  BumpField(A_bump,B_bump,b_bump)
-k = map(p-> g ∘ PanelRotationField(rp1_3D[p]), panel_ids)
-parametric_cell_map = lazy_map(∘,k,cmaps)
+
+
+cell_map = get_cell_map()
+cell_invmap = lazy_map(inverse_map,cell_map)
+cell_field_ref = get_data(a)
+cell_field_phys = lazy_map(Broadcasting(∘),cell_field_ref,cell_invmap)
+similar_cell_field(a,cell_field_phys,Ω_parametric,PhysicalDomain())
