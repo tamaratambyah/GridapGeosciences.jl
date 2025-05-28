@@ -53,6 +53,29 @@ function u_ambient_vector(p::Int,uX::Function)
   end
 end
 
+
+
+function u_projection(p::Int,uX::Function)
+  function _u(XYZ)
+    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
+    inv_cmap = InvGnomonicField() ∘ InvSigmaField(r)  ∘ PanelRotationField(rp1_3D[p])
+
+    αβ = inv_cmap(XYZ)
+
+    Jt = ∇(cmap)
+    J = Operation(transpose)(Jt) # 3 x 2
+    pinvJ = Operation(pinv)(J) # 2 x 3
+
+    Jt_x = Jt(αβ)
+    J_x = J(αβ)
+    pinvJ_x = pinvJ(αβ)
+
+    J_x ⋅ pinvJ_x ⋅ uX(XYZ)
+
+  end
+end
+
+
 ################################################################################
 ##### Interoplate cell-wise array of generic fields
 ################################################################################
@@ -70,7 +93,11 @@ function Gridap.FESpaces._cell_vals(fs::SingleFieldFESpace,cf_ambient::CellField
   s(cf_ambient)
 end
 
-
+function pinv(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
+  @check D1 !== D2
+  Jt = transpose(J)
+  inv(Jt⋅J)⋅Jt
+end
 
 
 using Plots
@@ -89,10 +116,10 @@ vec_func2(X) = VectorValue(-X[1]*X[3],-X[2]*X[3],X[3]*X[3]-r^2)
 vec_func3(X) = VectorValue(X[1]*X[1],X[2]*X[2],X[3]*X[3])
 vec_func4(X) = VectorValue(X[1]^2,X[1]*X[2],X[3])
 
-vec_funs = [vec_func1, vec_func2, vec_func3, vec_func4]
+vec_funs = [vec_func4]#, vec_func2, vec_func3, vec_func4]
 
-legendinf = [L"u = (-y,x,0)",L"v = (-xz,-yz,z^2-r^2)",
-            L"w = (x^2,y^2,z^2)", L"q = (x^2,xy,z)"]
+legendinf = [L"u_X = (-y,x,0)",L"u_X = (-xz,-yz,z^2-r^2)",
+            L"u_X = (x^2,y^2,z^2)", L"u_X = (x^2,xy,z)"]
 
 plot()
 for j in 1:length(vec_funs)
@@ -113,6 +140,11 @@ for j in 1:length(vec_funs)
     RT_ambient = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
     analytic_u_ambient = interpolate(tangent_f(vec),RT_ambient)
 
+    ## projection analytic function into ambient space
+    project_cell_field = map(p->GenericField(u_projection(p,tangent_f(vec))),panel_ids)
+    uh_ambient_project = interpolate(project_cell_field,RT_ambient)
+
+
     ## interpolate mapped analytic function into parametric space
     RT = FESpace(manifold_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
     cell_field = map(p->GenericField(u_ambient_vector(p,tangent_f(vec))),panel_ids)
@@ -124,6 +156,7 @@ for j in 1:length(vec_funs)
 
     Jt = lazy_map(Broadcasting(gradient),mapping)
     J = lazy_map(Operation(transpose),Jt)
+    pinvJ = lazy_map(Operation(pinv),J)
 
     _uh = change_domain(uh.cell_field,ReferenceDomain(),PhysicalDomain())
 
@@ -135,15 +168,28 @@ for j in 1:length(vec_funs)
     ### Convert ambient cellfield into a FEFunction by evaluating the field at the dofs
     uh_ambient = interpolate(cf_ambient,RT_ambient)
 
+
+    ## compute J pinv(J) uh_ambient
+    change = lazy_map(Broadcasting(⋅),J,pinvJ)
+    _change = lazy_map(Broadcasting(∘),change,inv_mapping)
+    cf_change = CellData.GenericCellField(_change,Ω_ambient,PhysicalDomain() )
+    cf_out = cf_change ⋅cf_ambient
+    uh_out = interpolate(cf_out,RT_ambient)
+
+
     writevtk(Ω_ambient,dir*"/ambient_tangent_$i",
-          cellfields=["f"=>tangent_f(vec),"u_ambient_cf"=>cf_ambient,"uh_ambient"=>uh_ambient,
-          "eh"=>analytic_u_ambient-uh_ambient,
-          "u_analytic_ambient"=>analytic_u_ambient],append=false)
+              cellfields=["f"=>tangent_f(vec),"u_ambient_cf"=>cf_ambient,"uh_ambient"=>uh_ambient,
+              "eh"=>uh_ambient_project-uh_out,
+              "u_analytic_ambient"=>analytic_u_ambient,
+              "projection"=>uh_ambient_project,
+              "out"=>uh_out ],append=false)
 
     ## compute error
-    e = analytic_u_ambient - uh_ambient
+    # e = analytic_u_ambient - uh_ambient
+    e = uh_ambient_project-uh_out
     dΩ = Measure(Ω_ambient,2)
     push!(errs, l2(e,dΩ) )
+
   end
   plot!(n_ref[2:end],errs[2:end],
   lw=4,ms=6,
@@ -156,12 +202,27 @@ end
 plot!(yscale=:log10,framestyle=:box,
   # title = "interpolation error",
   xlabel=L"n",
-  ylabel=L"L^2(u_h - u)"
+  ylabel=latexstring("\$ || \\mathrm{p}_J(u_X) - JJ^\\dagger u_{X,h}) ||_{L^2} \$"),
   )
+
+
+nc = [1,2,4,8,16]  # sqrt num cells per panel
+## compute the convergence rates
+dx =   ( sqrt.( 4*π*r^2 ./ (6*nc.^2) ) ) # average width of cell on sphere
+gg = [ 1e-5dx.^8] # some manipulation to get the plot to look nice
+for i in 1:length(gg)
+  plot!(n_ref[2:end], gg[i][2:end],
+  lw=2,ms=6,
+  c=:black,
+  label="",
+  linestyle=:dot,
+  yscale=:log10)
+end
+
 plot!(show=true,legend=:bottomleft)
 
 plot!(xtickfontsize=12,ytickfontsize=12,
-legendfontsize=12,guidefontsize=18)
+legendfontsize=10,guidefontsize=18)
 
 plot!(ylimits=(1e-15,1e-2))
 savefig(plotsdir()*"/interpolation_error")
