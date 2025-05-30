@@ -24,6 +24,13 @@ include("Fields/PanelRotation.jl")
 include("Fields/Gnomonic.jl")
 include("Fields/Sigma.jl")
 include("Fields/MetricMaps.jl")
+include("Fields/FieldHelpers.jl")
+
+include("FESpaces/FESpaceHelpers.jl")
+
+include("Visualization/VisualizationData.jl")
+
+include("TangentSpace/TangentSpaceHelpers.jl")
 
 include("helpers.jl")
 

@@ -50,6 +50,14 @@ _colors = palette(:tab10)
 manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
 models = get_refined_models(manifold_model,3)
 
+
+## compute the convergence rates
+dx =   ( sqrt.( 4*π*r^2 ./ (6*nc.^2) ) ) # average width of cell on sphere
+gg = [1e-3dx.^2, 5e-6dx.^4, 5e-9dx.^6, 5e-12dx.^8] # some manipulation to get the plot to look nice
+leginf = [latexstring("\$ (\\Delta x)^2 \$"), latexstring("\$ (\\Delta x)^4 \$"),
+latexstring("\$ (\\Delta x)^6 \$"), latexstring("\$ (\\Delta x)^8 \$")]
+
+
 plot()
 # compute and plot errors in surface area
 for i in 1:length(qdegrees)
@@ -66,18 +74,13 @@ for i in 1:length(qdegrees)
   markershape=markers[i],
       label = "q_degree: $degree"
       )
-end
 
-## compute the convergence rates
-dx =   ( sqrt.( 4*π*r^2 ./ (6*nc.^2) ) ) # average width of cell on sphere
-gg = [1e-3dx.^2, 5e-6dx.^4, 5e-9dx.^6, 5e-12dx.^8] # some manipulation to get the plot to look nice
-for i in 1:length(gg)
   plot!(0:length(dx)-1, gg[i],
-  lw=2,ms=6,
-  c=_colors[i],
-  label="",
-  linestyle=:dot,
-  yscale=:log10)
+      lw=2,ms=6,
+      c=_colors[i],
+      label=leginf[i],
+      linestyle=:dot,
+      yscale=:log10)
 end
 plot!(yscale=:log10,framestyle=:box,
 # title = "surface area of cubed sphere",
@@ -86,7 +89,7 @@ ylabel=L"|a_h - 4πr^2|/4πr^2"
 )
 # plot!(xlabel="refinement level",
 #       ylabel=L"|a_h - 4πr^2|/4πr^2",)
-plot!(show=true,legend=:bottomleft)
+plot!(show=true,legend=:bottomleft,legend_column=2,background_color_legend = nothing)
 plot!(xtickfontsize=12,ytickfontsize=12,
-legendfontsize=12,guidefontsize=18)
+legendfontsize=8,guidefontsize=18)
 savefig(plotsdir()*"/surface_area_comparison_error")

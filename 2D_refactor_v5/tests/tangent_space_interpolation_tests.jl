@@ -1,107 +1,9 @@
 using Gridap
-include("../src/initialise.jl")
-include("../src/Visualization/VisualizationData.jl")
-
-################################################################################
-##### analytical function in ambient space
-################################################################################
-function tangent_f(vec_func::Function)
-  function _tangent_f(X)
-    vec = vec_func(X) # VectorValue(-X[2],X[1],0)
-    # vec = VectorValue(X[1]^2,X[1]*X[2],X[3])
-
-    normal_vec = 1/sqrt(X[1]*X[1] + X[2]*X[2] + X[3]*X[3])*VectorValue(X[1],X[2],X[3])
-    normal_comp = (vec⋅normal_vec)*normal_vec
-    tangent_comp = vec - normal_comp
-
-    @assert norm(normal_vec) ≈ 1.0 # check length of normal vector = 1
-    @assert dot(normal_comp, tangent_comp) <= 9.9e-15 # check normal and tangent components are perpendicular
-
-    tangent_comp
-
-  end
-end
-
-################################################################################
-##### Map analytical vector valued function from X,Y,Z -> α,β
-##### 1. Map a point α,β -> X,Y,Z
-##### 2. Compute u(X,Y,Z)
-##### 3. Compute J cooresponding to α,β -> X,Y,Z
-##### 4. Evaluate v(α,β) = pinv(J)⋅u(X,Y,Z)
-## Note, this is a coordinate transform of an analytic function, so do not need to
-## apply the piola transform (I think)
-## Note, the inverse map X,Y,Z -> α,β is ill defined (det(J) = 0). This is why
-## we need to use the (left) pseudo-inverse of the forward map
-################################################################################
-function u_ambient_vector(p::Int,uX::Function)
-  function _u(αβ)
-
-    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
-    inv_cmap = InvGnomonicField() ∘ InvSigmaField(r)  ∘ PanelRotationField(rp1_3D[p])
-
-    XYZ = cmap(αβ)
-
-    Jt = ∇(cmap)
-    J = Operation(transpose)(Jt)
-    Jt_x = Jt(αβ)
-    J_x = J(αβ)
-
-    pinvJ = inv(Jt_x⋅J_x)⋅Jt_x
-
-    pinvJ ⋅ uX(XYZ)
-
-  end
-end
-
-
-
-function u_projection(p::Int,uX::Function)
-  function _u(XYZ)
-    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
-    inv_cmap = InvGnomonicField() ∘ InvSigmaField(r)  ∘ PanelRotationField(rp1_3D[p])
-
-    αβ = inv_cmap(XYZ)
-
-    Jt = ∇(cmap)
-    J = Operation(transpose)(Jt) # 3 x 2
-    pinvJ = Operation(pinv)(J) # 2 x 3
-
-    Jt_x = Jt(αβ)
-    J_x = J(αβ)
-    pinvJ_x = pinvJ(αβ)
-
-    J_x ⋅ pinvJ_x ⋅ uX(XYZ)
-
-  end
-end
-
-
-################################################################################
-##### Interoplate cell-wise array of generic fields
-################################################################################
-function Gridap.FESpaces._cell_vals(fs::SingleFieldFESpace,object::AbstractArray{<:GenericField})
-  println("my cell vals")
-  s = get_fe_dof_basis(fs)
-  trian = get_triangulation(s)
-  f = CellData.GenericCellField(object,trian,PhysicalDomain())
-  s(f)
-end
-
-function Gridap.FESpaces._cell_vals(fs::SingleFieldFESpace,cf_ambient::CellField)
-  println("my cell vals")
-  s = get_fe_dof_basis(fs)
-  s(cf_ambient)
-end
-
-function pinv(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
-  @check D1 !== D2
-  Jt = transpose(J)
-  inv(Jt⋅J)⋅Jt
-end
-
-
 using Plots
 using LaTeXStrings
+
+include("../src/initialise.jl")
+
 # set up plot attributes
 markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross]
 _colors = palette(:tab10)
@@ -116,7 +18,7 @@ vec_func2(X) = VectorValue(-X[1]*X[3],-X[2]*X[3],X[3]*X[3]-r^2)
 vec_func3(X) = VectorValue(X[1]*X[1],X[2]*X[2],X[3]*X[3])
 vec_func4(X) = VectorValue(X[1]^2,X[1]*X[2],X[3])
 
-vec_funs = [vec_func4]#, vec_func2, vec_func3, vec_func4]
+vec_funs = [vec_func1, vec_func2, vec_func3, vec_func4]
 
 legendinf = [L"u_X = (-y,x,0)",L"u_X = (-xz,-yz,z^2-r^2)",
             L"u_X = (x^2,y^2,z^2)", L"u_X = (x^2,xy,z)"]
@@ -147,7 +49,7 @@ for j in 1:length(vec_funs)
 
     ## interpolate mapped analytic function into parametric space
     RT = FESpace(manifold_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
-    cell_field = map(p->GenericField(u_ambient_vector(p,tangent_f(vec))),panel_ids)
+    cell_field = map(p->GenericField(u_parametric(p,tangent_f(vec))),panel_ids)
     uh = interpolate(cell_field,RT)
 
     ## map parametric FEFunction back to ambient space
@@ -214,7 +116,7 @@ for i in 1:length(gg)
   plot!(n_ref[2:end], gg[i][2:end],
   lw=2,ms=6,
   c=:black,
-  label="",
+  label=latexstring("\$ (\\Delta x)^8 \$"),
   linestyle=:dot,
   yscale=:log10)
 end
