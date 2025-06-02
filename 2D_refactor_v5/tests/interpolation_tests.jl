@@ -13,15 +13,28 @@ n_ref = [0,1,2,3,4]
 ### New cubed sphre model: test convergence over series of refined models
 manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
 models = get_refined_models(manifold_model,4)
-vec_func1(X) = VectorValue(-X[2],X[1],0)
-vec_func2(X) = VectorValue(-X[1]*X[3],-X[2]*X[3],X[3]*X[3]-r^2)
-vec_func3(X) = VectorValue(X[1]*X[1],X[2]*X[2],X[3]*X[3])
-vec_func4(X) = VectorValue(X[1]^2,X[1]*X[2],X[3])
+# vec_func1(X) = VectorValue(-X[2],X[1],0)
+# vec_func2(X) = VectorValue(-X[1]*X[3],-X[2]*X[3],X[3]*X[3]-r^2)
+# vec_func3(X) = VectorValue(X[1]*X[1],X[2]*X[2],X[3]*X[3])
+# vec_func4(X) = VectorValue(X[1]^2,X[1]*X[2],X[3])
 
-vec_funs = [vec_func1, vec_func2, vec_func3, vec_func4]
+# vec_funs = [vec_func1, vec_func2, vec_func3, vec_func4]
 
-legendinf = [L"u_X = (-y,x,0)",L"u_X = (-xz,-yz,z^2-r^2)",
-            L"u_X = (x^2,y^2,z^2)", L"u_X = (x^2,xy,z)"]
+# legendinf = [L"u_X = (-y,x,0)",L"u_X = (-xz,-yz,z^2-r^2)",
+            # L"u_X = (x^2,y^2,z^2)", L"u_X = (x^2,xy,z)"]
+
+
+uθϕ1(θϕ) = VectorValue(cos(θϕ[2]),0.0)
+uθϕ2(θϕ) = VectorValue(-sin(θϕ[2]),0.0)
+uθϕ3(θϕ) = VectorValue(cos(θϕ[1])*sin(θϕ[2]),-sin(θϕ[1]))
+uθϕ4(θϕ) = VectorValue(cos(θϕ[1])*cos(θϕ[2]),0.0)
+
+vec_funs = [u_latlon(uθϕ1), u_latlon(uθϕ2), u_latlon(uθϕ3), u_latlon(uθϕ4) ]
+
+legendinf = [latexstring("\$ u_{\\theta} = (\\cos(\\phi),0) \$"),
+             latexstring("\$ u_{\\theta} = (-\\sin(\\phi),0) \$"),
+             latexstring("\$ u_{\\theta} = (\\cos(\\theta)\\sin(\\phi),-\\sin(\\theta)) \$"),
+             latexstring("\$ u_{\\theta} = (\\cos(\\theta)\\cos(\\phi),0.0) \$") ]
 
 plot()
 for j in 1:length(vec_funs)
@@ -127,4 +140,4 @@ plot!(xtickfontsize=12,ytickfontsize=12,
 legendfontsize=10,guidefontsize=18)
 
 plot!(ylimits=(1e-15,1e-2))
-savefig(plotsdir()*"/interpolation_error")
+savefig(plotsdir()*"/interpolation_error_latlon")
