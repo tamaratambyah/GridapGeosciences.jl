@@ -73,6 +73,7 @@ _laph = [[2,2/25]]
 
 test_operators(m,cf,_gradf,cv,_divv,ch,_laph,pts,xs)
 
+
 ### cubic mapping, ϕ(x)= (x,x^3 + x^2 + x + 1)
 metric_func(x) = TensorValue{1}(9*x[1]^4 + 12*x[1]^3 + 10*x[1]^2 + 4*x[1] + 2)
 m = Metric(metric_func,Ω)
@@ -93,17 +94,19 @@ xs = [Point(0.0,0.0),Point(1.0,0.0),Point(0.0,1.0),Point(1.0,1.0)]
 
 f(x) = x[1]^2 + x[1]*x[2] # scalar function
 v(x) = VectorValue(x[1]*x[2],x[2]^2) # vector valued function
+h(x) = x[1]^2 + x[1]*x[2]^2
 cf = CellField(f,Ω)
 cv = CellField(v,Ω)
+ch = CellField(h,Ω)
 
 ### constant mapping, φ(x,y) = (x,y,0)
 metric_func(x) = TensorValue{2,2}(1,0,0,1 )
 m = Metric(metric_func,Ω)
 _gradf = [[VectorValue(0,0),VectorValue(2,1),VectorValue(1,0),VectorValue(3,1)]]
 _divv = [[0,0,3,3]]
+_laph = [[2,4,2,4]]
 
-test_operators(m,cf,_gradf,cv,_divv,pts,xs)
-
+test_operators(m,cf,_gradf,cv,_divv,ch,_laph,pts,xs)
 
 
 ### linear mapping, φ(x,y) = (x,y,x+y)
@@ -111,8 +114,9 @@ metric_func(x) = TensorValue{2,2}(2,1,1,2 )
 m = Metric(metric_func,Ω)
 _gradf = [[VectorValue(0,0),VectorValue(1,0),VectorValue(2/3,-1/3),VectorValue(5/3,-1/3)]]
 _divv = [[0,0,3,3]]
+_laph = [[4/3,8/3,0,4/3]]
 
-test_operators(m,cf,_gradf,cv,_divv,pts,xs)
+test_operators(m,cf,_gradf,cv,_divv,ch,_laph,pts,xs)
 
 
 ### quadratic mapping, φ(x,y) = (x,y,x^2 + y^2)
@@ -120,5 +124,6 @@ metric_func(x) = TensorValue{2,2}(1+4*x[1]^2,4*x[1]*x[2],4*x[1]*x[2],1+4*x[2]^2 
 m = Metric(metric_func,Ω)
 _gradf = [[VectorValue(0,0),VectorValue(2/5,1),VectorValue(1,0),VectorValue(11/9,-7/9)]]
 _divv = [[0,0,19/5,35/9]]
+_laph = [[2,12/25,2,-164/81]]
 
-test_operators(m,cf,_gradf,cv,_divv,pts,xs)
+test_operators(m,cf,_gradf,cv,_divv,ch,_laph,pts,xs)
