@@ -136,7 +136,17 @@ function u_vector_latlon2ambient(uθϕ::Function)
 end
 
 
+"""
+parametric_cf_2_ambient_vector
 
+Map a vector valued cellfield defined on parametric space to a vector valued
+cf defined on ambient space using the Jacobian of the mapping:
+ ϕ(α,β) = R1p ∘ σ ∘ γ(α,β)
+
+1. Change domain to physical domain
+2. Apply J
+3. Apply inverse mapping so that the resulting cellfield takes points in the ambient space
+"""
 
 function parametric_cf_2_ambient_vector(manifold_model,cf_parametric::CellField)
   ambient_model = get_ambient_model(manifold_model)

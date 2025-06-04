@@ -1,49 +1,65 @@
 using Gridap
 include("../src/initialise.jl")
 
-#############
-a = π/4
-u_parametric(x) = (a+x[1])*(a-x[1]) + (a+x[2])*(a-x[2])
-p = 2
-
-######### cubed sphere model
-coarse_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
-model = Adaptivity.refine(coarse_model)
-ref_model = Adaptivity.refine(Adaptivity.refine(model))
-
-manifold_model = ref_model
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
+manifold_model = Adaptivity.refine(manifold_model)
 panel_ids = get_panel_ids(manifold_model)
 
-############# Surface metric and quadrature
-order = 2*(p+1)
-Ω_parametric = Triangulation(manifold_model)
+ambient_model = get_ambient_model(manifold_model)
 
+Ω_parametric = Triangulation(manifold_model)
+Ω_ambient = Triangulation(ambient_model)
+
+pts_parametric = get_cell_points(Ω_parametric)
+pts_ambient = get_cell_points(Ω_ambient)
+
+############# Surface metric and quadrature
+p = 2
+degree = 2*(p+1)
 m = Metric(cubedsphere,Ω_parametric)
-dΩg = Measure(m,Ω_parametric,order)
+dΩg = Measure(m,Ω_parametric,degree)
+dΩ_parametric = Measure(Ω_parametric,degree)
+
+############# Analytic function on parametric space
+
+# cell field on parametric space
+# h(αβ) = αβ[1]*αβ[2]
+# cf_parametric =  CellField(h,Ω_parametric)
+
+function h(p)
+  function _h(αβ)
+    if p == 2 || p == 3 || p == 4
+      return -αβ[1]*αβ[2]
+    else
+      return αβ[1]*αβ[2]
+    end
+  end
+end
+
+cellf = map(p->GenericField(h(p)),panel_ids)
+cf_parametric = CellData.GenericCellField(cellf,Ω_parametric,PhysicalDomain())
+
 
 ############# FE problem
-u_cf = CellField(u_parametric,Ω_parametric)
-f_cf = -1.0*surface_laplacian(u_cf,m)
+rhs = -1.0*surface_laplacian(cf_parametric,m)
 
 V = FESpace(manifold_model, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
-biform(u,v) = ∫(  surface_gradient(v,m) ⋅ surface_gradient(u,m)  )dΩg
-liform(v)   = ∫( v*f_cf )dΩg
+poisson_biform(u,v) = ∫(  surface_gradient(v,m) ⋅ surface_gradient(u,m)  )dΩg
+poisson_liform(v)   = ∫( v*rhs )dΩg
 
-op = AffineFEOperator(biform,liform,U,V)
-ls = LUSolver()
-uh = solve(ls,op)
+op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+uh = solve(LUSolver(),op)
 
-e = uh-u_cf
-l2(e,dΩg)
+l2(uh-cf_parametric,dΩg)
+l2(uh-cf_parametric,dΩ_parametric)
 
-A = get_matrix(op)
-b = get_vector(op)
-
-
-
+########## Map to ambient space to visualise
+ss, uh_ambient_analytic = parametric_cf_2_ambient(manifold_model,degree,cf_parametric)
+ss, uh_ambient = parametric_cf_2_ambient(manifold_model,degree,uh)
 
 # plot in parametric space
-writevtk(Ω_parametric,dir*"/possion_parametric",
-        cellfields=["uh"=>uh,"u"=>u_cf, "e"=>e, "f"=>f_cf],append=false)
+writevtk(Ω_ambient,dir*"/possion_ambient",
+        cellfields=["uh"=>uh_ambient,"u"=>uh_ambient_analytic,
+                  "e"=>uh_ambient-uh_ambient_analytic],append=false)
