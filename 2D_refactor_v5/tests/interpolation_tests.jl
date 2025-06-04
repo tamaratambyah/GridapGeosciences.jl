@@ -29,7 +29,10 @@ uθϕ2(θϕ) = VectorValue(-sin(θϕ[2]),0.0)
 uθϕ3(θϕ) = VectorValue(cos(θϕ[1])*sin(θϕ[2]),-sin(θϕ[1]))
 uθϕ4(θϕ) = VectorValue(cos(θϕ[1])*cos(θϕ[2]),0.0)
 
-vec_funs = [u_latlon(uθϕ1), u_latlon(uθϕ2), u_latlon(uθϕ3), u_latlon(uθϕ4) ]
+vec_funs = [u_vector_latlon2ambient(uθϕ1),
+            u_vector_latlon2ambient(uθϕ2),
+            u_vector_latlon2ambient(uθϕ3),
+            u_vector_latlon2ambient(uθϕ4) ]
 
 legendinf = [latexstring("\$ u_{\\theta} = (\\cos(\\phi),0) \$"),
              latexstring("\$ u_{\\theta} = (-\\sin(\\phi),0) \$"),
@@ -62,12 +65,13 @@ for j in 1:length(vec_funs)
 
     ## interpolate mapped analytic function into parametric space
     RT = FESpace(manifold_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
-    cell_field = map(p->GenericField(u_parametric(p,tangent_f(vec))),panel_ids)
+    cell_field = map(p->GenericField(u_vector_ambient2parametric(p,tangent_f(vec))),panel_ids)
     uh = interpolate(cell_field,RT)
 
     ## map parametric FEFunction back to ambient space
     mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
     inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+
 
     Jt = lazy_map(Broadcasting(gradient),mapping)
     J = lazy_map(Operation(transpose),Jt)

@@ -1,3 +1,12 @@
+"""
+The purpose of this test is to project a vectorfield from θ,ϕ -> α,β on the
+parametric raviart thomas space. Such vectorfields are defined in Williamson1992.
+The resulting parametric vector field is mapped back to ambient space and
+visualised.
+The determinant of the forward and inverse map θ,ϕ -> X,Y,Z is also visualised
+to show that the inverse map is ill defined (det J = 0)
+"""
+
 using Gridap
 include("../src/initialise.jl")
 
@@ -10,26 +19,9 @@ ambient_model = get_ambient_model(manifold_model)
 Ω_parametric = Triangulation(manifold_model)
 Ω_ambient = Triangulation(ambient_model)
 
-function u_latlon(uθϕ::Function)
-  function _u(XYZ)
-    θϕ = InvSigmaField(r)(XYZ)
-
-    Jt = gradient(SigmaField(r)) # 2 x 3
-    J = Operation(transpose)(Jt) # 3 x 2
-
-    J(θϕ) ⋅ uθϕ(θϕ)
-  end
-end
-
-
-function _u_latlon(XYZ) # for a specific latlon func
-    θϕ = InvSigmaField(r)(XYZ)
-
-    Jt = gradient(SigmaField(r)) # 2 x 3
-    J = Operation(transpose)(Jt) # 3 x 2
-
-    J(θϕ) ⋅ VectorValue(cos(θϕ[1]),0.0)
-end
+## map parametric FEFunction back to ambient space
+mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
+inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
 # uθϕ(θϕ) = VectorValue(cos(θϕ[1]),0.0)
 # uθϕ(θϕ) = VectorValue(-sin(θϕ[1]),0.0)
@@ -38,7 +30,7 @@ end
 uθϕ(θϕ) = VectorValue(cos(θϕ[1])*cos(θϕ[2]),0.0)
 
 ### projection machinary
-vvec = u_latlon(uθϕ)
+vvec = u_vector_latlon2ambient(uθϕ)
 
 RT_ambient = FESpace(ambient_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
 analytic_u_ambient = interpolate(tangent_f(vvec),RT_ambient)
@@ -50,13 +42,10 @@ uh_ambient_project = interpolate(project_cell_field,RT_ambient)
 
 ## interpolate mapped analytic function into parametric space
 RT = FESpace(manifold_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
-cell_field = map(p->GenericField(u_parametric(p,tangent_f(vvec))),panel_ids)
+cell_field = map(p->GenericField(u_vector_ambient2parametric(p,tangent_f(vvec))),panel_ids)
 uh = interpolate(cell_field,RT)
 
 ## map parametric FEFunction back to ambient space
-mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
-inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
-
 Jt = lazy_map(Broadcasting(gradient),mapping)
 J = lazy_map(Operation(transpose),Jt)
 pinvJ = lazy_map(Operation(pinv),J)
@@ -87,7 +76,7 @@ writevtk(Ω_ambient,dir*"/ambient_tangent_latlon",
           "out"=>uh_out ],append=false)
 
 dΩ = Measure(Ω_ambient,2)
-l2(uh_ambient_project-uh_out,dΩ)
+l2(uh_ambient_project-uh_out,dΩ) ≈ 1e-6
 l2(analytic_u_ambient-uh_ambient,dΩ)
 
 

@@ -30,7 +30,9 @@ include("FESpaces/FESpaceHelpers.jl")
 
 include("Visualization/VisualizationData.jl")
 
-include("TangentSpace/TangentSpaceHelpers.jl")
+include("ParametricAmbientSpaceMappers/VectorFields.jl")
+include("ParametricAmbientSpaceMappers/ScalarFields.jl")
+
 
 include("helpers.jl")
 

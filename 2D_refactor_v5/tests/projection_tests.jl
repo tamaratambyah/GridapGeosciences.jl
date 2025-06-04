@@ -10,7 +10,8 @@ ambient_model = get_ambient_model(manifold_model)
 Ω_parametric = Triangulation(manifold_model)
 Ω_ambient = Triangulation(ambient_model)
 
-
+mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
+inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
 vec(x) = VectorValue(-x[2],x[1],0.0)
 
@@ -26,13 +27,10 @@ uh_ambient_project = interpolate(project_cell_field,RT_ambient)
 
 ## interpolate mapped analytic function into parametric space
 RT = FESpace(manifold_model,ReferenceFE(raviart_thomas,Float64,1), conformity=:HDiv)
-cell_field = map(p->GenericField(u_parametric(p,tangent_f(vec))),panel_ids)
+cell_field = map(p->GenericField(u_vector_ambient2parametric(p,tangent_f(vec))),panel_ids)
 uh = interpolate(cell_field,RT)
 
 ## map parametric FEFunction back to ambient space
-mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
-inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
-
 Jt = lazy_map(Broadcasting(gradient),mapping)
 J = lazy_map(Operation(transpose),Jt)
 pinvJ = lazy_map(Operation(pinv),J)

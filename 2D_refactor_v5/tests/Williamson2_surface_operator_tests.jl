@@ -14,28 +14,7 @@ ambient_model = get_ambient_model(manifold_model)
 pts_parametric = get_cell_points(Ω_parametric)
 pts_ambient = get_cell_points(Ω_ambient)
 
-## map parametric FEFunction back to ambient space
-mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
-inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
-
-
-biform(u,v,dΩ) = ∫(v*u)dΩ
-liform(v,f,dΩ)   = ∫(v*f)dΩ
-
-################################################################################
-##### Map analytical scalar valued function from θ,ϕ -> α,β
-##### 1. Map a point α,β -> θ,ϕ
-##### 2. Evaluate g(α,β) = f(θ,ϕ)
-################################################################################
-function u_latlon_scalar(p::Int,uθϕ::Function)
-  function _u(αβ)
-    latlon_panel1 = evaluate(GnomonicMap(), αβ)
-    sphere_panel1 = evaluate(Sigma(),latlon_panel1)
-    sphere_panelp = evaluate(PanelRotationMap(r1p_3D[p]), sphere_panel1)
-    latlon_panelp = evaluate(Sigma(),sphere_panelp)
-    uθϕ(latlon_panelp)
-  end
-end
+m = Metric(manifold_model)
 
 function streamfunction(α::Float64)
   function _streamfunction(θϕ)
@@ -44,9 +23,43 @@ function streamfunction(α::Float64)
   end
 end
 
-# cell field on parametric space
-scalar_cf = map(p->GenericField(u_latlon_scalar(p,streamfunction(0.05))),panel_ids)
-cf_parametric = CellData.GenericCellField(scalar_cf,Ω_parametric,PhysicalDomain())
+errs = []
+for (i,α) in enumerate([0.0,0.05,π/2-0.05,π/2])
+
+  # cell field on parametric space
+  scalar_cf = map(p->GenericField(u_scalar_latlon2parametric(p,streamfunction(α))),panel_ids)
+  cf_parametric = CellData.GenericCellField(scalar_cf,Ω_parametric,PhysicalDomain())
+
+  uh_parametric, uh_ambient = parametric_cf_2_ambient(manifold_model,2,cf_parametric)
+
+
+  ##### surface gradient
+  surf_grad = surface_gradient(uh_parametric,m)
+  surf_grad_ambient = parametric_cf_2_ambient_vector(manifold_model,surf_grad)
+
+  dΩ_ambient = Measure(Ω_ambient,2)
+  push!(errs,l2(surf_grad_ambient-gradient(uh_ambient),dΩ_ambient))
+  # l2(surf_grad_ambient-gradient(cf_ambient),dΩ_ambient)
+
+
+  writevtk(Ω_ambient,dir*"/ambient_streamfunc_$i",
+      cellfields=["u"=>uh_ambient,"surf_grad"=>surf_grad_ambient,
+                  # "grad_ambient"=>gradient(cf_ambient),
+                  "grad_ambient"=>gradient(uh_ambient),
+                  "e"=>surf_grad_ambient-gradient(uh_ambient)],append=false)
+
+
+end
+
+
+
+################################################################################
+#### low level test
+################################################################################
+## map parametric FEFunction back to ambient space
+mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
+inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+
 
 # evaluation at quadrature points
 dΩ_parametric = Measure(Ω_parametric,2)
@@ -77,9 +90,7 @@ uh_ambient = solve(LUSolver(),op_ambient)
 
 
 ##### surface gradient
-m = Metric(manifold_model)
 surf_grad = surface_gradient(uh_parametric,m)
-
 _surf_grad = change_domain(surf_grad,ReferenceDomain(),PhysicalDomain())
 
 ## map parametric FEFunction to ambient space
@@ -97,7 +108,7 @@ l2(surf_grad_ambient-gradient(uh_ambient),dΩ_ambient)
 
 
 writevtk(Ω_ambient,dir*"/ambient_streamfunc",
-    cellfields=["u"=>cf_ambient,"surf_grad"=>surf_grad_ambient,
+    cellfields=["u"=>uh_ambient,"surf_grad"=>surf_grad_ambient,
                 # "grad_ambient"=>gradient(cf_ambient),
                 "grad_ambient"=>gradient(uh_ambient),
                 "e"=>surf_grad_ambient-gradient(uh_ambient)],append=false)

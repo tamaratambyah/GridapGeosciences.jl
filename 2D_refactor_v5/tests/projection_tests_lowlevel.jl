@@ -41,7 +41,7 @@ dirichlet_values = zero_dirichlet_values(RT)
 ## get cell vals
 s = get_fe_dof_basis(RT)
 trian = get_triangulation(s)
-cell_field = map(p->GenericField(u_parametric(p,tangent_f)),panel_ids)
+cell_field = map(p->GenericField(u_vector_ambient2parametric(p,tangent_f)),panel_ids)
 f = CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 cell_vals = s(f)
 
