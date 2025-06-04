@@ -34,6 +34,10 @@ function surface_divergence(f::Function,m::Metric)
   end
 end
 
-function surface_laplacian(f::Function,m::Metric)
-  @notimplemented
-end
+# function surface_laplacian(f::Function,m::Metric)
+#   function _laplacian(x)
+#     d(y) = surface_divergence(f,m)
+#     surface_gradient(d,x)
+#   end
+#   # @notimplemented
+# end
