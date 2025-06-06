@@ -232,7 +232,7 @@ struct SigmaMap{A} <: Map
   r::A # sphere radius
 end
 
-Sigma() = SigmaMap(r)
+Sigma() = SigmaMap(RADIUS)
 
 
 """ map 3D point on sphere -> latlon (2D) """

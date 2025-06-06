@@ -25,7 +25,7 @@ Map analytical scalar valued function from X,Y,Z -> α,β
 """
 function u_scalar_ambient2parametric(p::Int,uX::Function)
   function _u(αβ)
-    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
+    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(RADIUS) ∘ GnomonicField()
     XYZ = cmap(αβ)
     uX(XYZ)
   end
@@ -41,7 +41,7 @@ Map analytical scalar valued function from θ,ϕ -> X,Y,Z
 """
 function u_scalar_latlon2ambient(p::Int,uθϕ::Function)
   function _u(XYZ)
-    θϕ = InvSigmaField(r)(XYZ)
+    θϕ = InvSigmaField(RADIUS)(XYZ)
 
     uθϕ(θϕ)
   end
@@ -69,7 +69,7 @@ function parametric_cf_2_ambient(manifold_model,degree::Int,cf_parametric::CellF
   Ω_parametric = Triangulation(manifold_model)
   Ω_ambient = Triangulation(ambient_model)
 
-  inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+  inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(RADIUS) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
   # evaluate at quadrature points
   uh_parametric = L2_scalar_cf_projection(manifold_model,degree,cf_parametric)

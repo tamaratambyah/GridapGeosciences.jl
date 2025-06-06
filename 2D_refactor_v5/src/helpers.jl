@@ -164,7 +164,7 @@ end
 
 function true_area(name::ManifoldName)
   if name == CubedSphere()
-    4*π*r^2
+    4*π*RADIUS^2
   elseif name == Cube()
     6*(2*1.0)^2
   end

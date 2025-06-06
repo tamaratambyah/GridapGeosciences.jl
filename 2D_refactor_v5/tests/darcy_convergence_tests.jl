@@ -39,7 +39,45 @@ dΩg = Measure(m,Ω_parametric,degree)
 darcy_biform((u,p),(v,q)) = ∫( v⋅u + p*q - p*(surface_divergence(v,m)) )dΩg# + q*(surface_divergence(u,m)) )dΩg
 darcy_liform((v,q)) = ∫(  q*0.0 )dΩg
 
-op = AffineFEOperator(darcy_biform,darcy_liform,X,Y)
+
+
+# op = AffineFEOperator(darcy_biform,darcy_liform,X,Y)
+
+### low levels
+assem = SparseMatrixAssembler(X,Y)
+dx = get_trial_fe_basis(X)
+dy = get_fe_basis(Y)
+
+matdata = collect_cell_matrix(X, Y, darcy_biform(dx,dy))
+vecdata = collect_cell_vector(Y,darcy_liform(dy))
+
+b = assemble_vector(assem,vecdata)
+A = assemble_matrix(assem,matdata)
+
+### low level matrix assembly
+w = []
+_r = []
+c = []
+dc = darcy_biform(dx,dy)
+  for strian in get_domains(a)
+    scell_mat = get_contribution(a,strian)
+    cell_mat, trian = move_contributions(scell_mat,strian)
+    @assert ndims(eltype(cell_mat)) == 2
+    cell_mat_c = attach_constraints_cols(trial,cell_mat,trian)
+    cell_mat_rc = attach_constraints_rows(test,cell_mat_c,trian)
+    rows = get_cell_dof_ids(test,trian)
+    cols = get_cell_dof_ids(trial,trian)
+    #push!(w,compress_contributions(cell_mat_rc,trian))
+    #push!(r,compress_ids(rows,trian))
+    #push!(c,compress_ids(cols,trian))
+    push!(w,cell_mat_rc)
+    push!(_r,rows)
+    push!(c,cols)
+  end
+  (w,_r,c)
+
+
+
 xh = solve(LUSolver(),op)
 uh, ph = xh
 

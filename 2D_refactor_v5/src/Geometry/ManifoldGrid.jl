@@ -160,7 +160,7 @@ function construct_ambient_grid(::CubedSphere,cube_grid_3D::Grid{Dc,Dp_amb},pane
 
 
   g =  BumpField(A_bump,B_bump,b_bump)
-  k = map(p-> PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField() ∘ g ∘ PanelRotationField(rp1_3D[p]), panel_ids)
+  k = map(p-> PanelRotationField(r1p_3D[p]) ∘ SigmaField(RADIUS) ∘ GnomonicField() ∘ g ∘ PanelRotationField(rp1_3D[p]), panel_ids)
   ambient_cell_map = lazy_map(∘,k,cmaps)
 
 

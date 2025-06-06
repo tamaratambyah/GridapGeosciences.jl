@@ -10,8 +10,8 @@ ambient_model = get_ambient_model(manifold_model)
 Ω_parametric = Triangulation(manifold_model)
 Ω_ambient = Triangulation(ambient_model)
 
-mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
-inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(RADIUS) ∘ GnomonicField() , panel_ids)
+inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(RADIUS) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
 vec(x) = VectorValue(-x[2],x[1],0.0)
 

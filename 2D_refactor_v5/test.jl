@@ -150,7 +150,7 @@ coords_panel1_3D = lazy_map(Rp1PanelMap3D(), cube_cell_coords_3D, panel_ids)
 coords_panel1_2D = lazy_map(BumpMap(), coords_panel1_3D)
 
 latlon_panel1 = lazy_map(GnomonicMap(), coords_panel1_2D)
-sphere_panel1 = lazy_map(SigmaMap(r),latlon_panel1)
+sphere_panel1 = lazy_map(SigmaMap(RADIUS),latlon_panel1)
 sphere_panelp = lazy_map(R1pPanelMap3D(), sphere_panel1, panel_ids)
 
 

@@ -20,8 +20,8 @@ ambient_model = get_ambient_model(manifold_model)
 Ω_ambient = Triangulation(ambient_model)
 
 ## map parametric FEFunction back to ambient space
-mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
-inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(RADIUS) ∘ GnomonicField() , panel_ids)
+inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(RADIUS) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
 # uθϕ(θϕ) = VectorValue(cos(θϕ[1]),0.0)
 # uθϕ(θϕ) = VectorValue(-sin(θϕ[1]),0.0)
@@ -93,7 +93,7 @@ function Mymeas(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
   end
 end
 
-latlon_mapping = lazy_map(x->SigmaField(r), panel_ids)
+latlon_mapping = lazy_map(x->SigmaField(RADIUS), panel_ids)
 _Jt = lazy_map(Broadcasting(gradient),latlon_mapping)
 _J = lazy_map(Operation(transpose),_Jt)
 dets = lazy_map(Operation(Mymeas),_J)
@@ -101,7 +101,7 @@ dets_mapped = lazy_map(Broadcasting(∘),dets,inv_mapping)
 cf_dets = CellData.GenericCellField(dets_mapped,Ω_ambient,PhysicalDomain() )
 
 
-inv_latlon_mapping = lazy_map(x->InvSigmaField(r), panel_ids)
+inv_latlon_mapping = lazy_map(x->InvSigmaField(RADIUS), panel_ids)
 inv_Jt = lazy_map(Broadcasting(gradient),inv_latlon_mapping)
 inv_J = lazy_map(Operation(transpose),inv_Jt)
 inv_dets = lazy_map(Operation(Mymeas),inv_J)

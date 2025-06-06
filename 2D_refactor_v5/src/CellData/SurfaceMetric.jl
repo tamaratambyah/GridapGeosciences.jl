@@ -90,8 +90,10 @@ end
 
 function factor(x)
   α,β = x
-   r^2/( (1 + (tan(α))^2 + (tan(β))^2 )^2 * (cos(α))^2 * (cos(β))^2 )
+  RADIUS^2/( (1 + (tan(α))^2 + (tan(β))^2 )^2 * (cos(α))^2 * (cos(β))^2 )
 end
+
+
 
 function E(x)
   α,β = x

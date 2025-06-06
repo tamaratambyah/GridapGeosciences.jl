@@ -47,7 +47,7 @@ function coarse_cube_model_3D(a::Real)
   cube_model_3D = _coarse_cube_model_3D(a)
 
   global A_bump, B_bump, b_bump = bump_matrics(a)
-  global r = 1.0*sqrt(3.0)
+  global RADIUS = 1.0*sqrt(3.0)
   return cube_model_3D
 end
 

@@ -54,8 +54,8 @@ map. However, it should be okay to map a single point (hopefully)
 """
 function u_projection(p::Int,uX::Function)
   function _u(XYZ)
-    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
-    inv_cmap = InvGnomonicField() ∘ InvSigmaField(r)  ∘ PanelRotationField(rp1_3D[p])
+    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(RADIUS) ∘ GnomonicField()
+    inv_cmap = InvGnomonicField() ∘ InvSigmaField(RADIUS)  ∘ PanelRotationField(rp1_3D[p])
 
     αβ = inv_cmap(XYZ)
 
@@ -90,7 +90,7 @@ need to use the (left) pseudo-inverse of the forward map
 """
 function u_vector_ambient2parametric(p::Int,uX::Function)
   function _u(αβ)
-    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(r) ∘ GnomonicField()
+    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(RADIUS) ∘ GnomonicField()
 
     XYZ = cmap(αβ)
 
@@ -126,9 +126,9 @@ forward map
 """
 function u_vector_latlon2ambient(uθϕ::Function)
   function _u(XYZ)
-    θϕ = InvSigmaField(r)(XYZ)
+    θϕ = InvSigmaField(RADIUS)(XYZ)
 
-    Jt = gradient(SigmaField(r)) # 2 x 3
+    Jt = gradient(SigmaField(RADIUS)) # 2 x 3
     J = Operation(transpose)(Jt) # 3 x 2
 
     J(θϕ) ⋅ uθϕ(θϕ)
@@ -155,8 +155,8 @@ function parametric_cf_2_ambient_vector(manifold_model,cf_parametric::CellField)
   Ω_parametric = Triangulation(manifold_model)
   Ω_ambient = Triangulation(ambient_model)
 
-  mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(r) ∘ GnomonicField() , panel_ids)
-  inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(r) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+  mapping = map(x-> PanelRotationField(r1p_3D[x]) ∘ SigmaField(RADIUS) ∘ GnomonicField() , panel_ids)
+  inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(RADIUS) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
 
   _cf = change_domain(cf_parametric,ReferenceDomain(),PhysicalDomain())
 
