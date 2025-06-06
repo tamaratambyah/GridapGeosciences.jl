@@ -21,11 +21,6 @@ dΩg = Measure(m,Ω_parametric,degree)
 dΩ_parametric = Measure(Ω_parametric,degree)
 
 ############# Analytic function on parametric space
-
-# cell field on parametric space
-# h(αβ) = αβ[1]*αβ[2]
-# cf_parametric =  CellField(h,Ω_parametric)
-
 function h(p)
   function _h(αβ)
     if p == 2 || p == 3 || p == 4
@@ -38,10 +33,20 @@ end
 
 cellf = map(p->GenericField(h(p)),panel_ids)
 cf_parametric = CellData.GenericCellField(cellf,Ω_parametric,PhysicalDomain())
+rhs = -1.0*surface_laplacian(cf_parametric,m)
+
+
+############# Analytic function on ambient space
+hambient(X) = X[1]*X[2]*X[3]
+
+cellf = map(p->GenericField(u_scalar_ambient2parametric(p,hambient)),panel_ids)
+cf_parametric = CellData.GenericCellField(cellf,Ω_parametric,PhysicalDomain())
+rhs = -1.0*surface_laplacian(cf_parametric,m)
+
 
 
 ############# FE problem
-rhs = -1.0*surface_laplacian(cf_parametric,m)
+
 
 V = FESpace(manifold_model, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)

@@ -166,6 +166,24 @@ function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::VectorValue{2})
   return y
 end
 
+function Gridap.Arrays.return_cache(k::SigmaField,x::SVector{2})
+  y = zero(VectorValue{3,Float64})
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::SigmaField,x::SVector{2})
+  # lat-lon -> 3D point on sphere
+  # latlon = θ, ϕ
+
+  y = cache
+  r = f.r
+  y = VectorValue(r*cos(x[1])*cos(x[2]),
+                  r*sin(x[1])*cos(x[2]),
+                  r*sin(x[2]))
+  return y
+end
+
+
 """
 gradient of σ: θ,ϕ → X_s, Y_s, Z_s  is:
   J = ( -r*sinθ*cosϕ  -r*cosθ*sinϕ
