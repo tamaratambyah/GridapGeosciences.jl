@@ -5,7 +5,7 @@ using LaTeXStrings
 include("../src/initialise.jl")
 
 # set up plot attributes
-markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross]
+markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross, :star4]
 _colors = palette(:tab10)
 n_ref = [0,1,2,3,4]
 
@@ -25,19 +25,26 @@ models = get_refined_models(manifold_model,4)
 
 
 uθϕ1(θϕ) = VectorValue(cos(θϕ[2]),0.0)
-uθϕ2(θϕ) = VectorValue(-sin(θϕ[2]),0.0)
-uθϕ3(θϕ) = VectorValue(cos(θϕ[1])*sin(θϕ[2]),-sin(θϕ[1]))
-uθϕ4(θϕ) = VectorValue(cos(θϕ[1])*cos(θϕ[2]),0.0)
+# uθϕ2(θϕ) = VectorValue(-sin(θϕ[2]),0.0)
 
-vec_funs = [u_vector_latlon2ambient(uθϕ1),
-            u_vector_latlon2ambient(uθϕ2),
-            u_vector_latlon2ambient(uθϕ3),
-            u_vector_latlon2ambient(uθϕ4) ]
+# uθϕ3(θϕ) = VectorValue(0.0,cos(θϕ[2]))
+uθϕ4(θϕ) = VectorValue(0.0,-sin(θϕ[2]))
+uθϕ5(θϕ) = VectorValue(cos(θϕ[1])*cos(θϕ[2]),0.0)
+
+uθϕ6(θϕ) = VectorValue(cos(θϕ[1])*sin(θϕ[2]),cos(θϕ[1])*sin(θϕ[2]))
+uθϕ7(θϕ) = VectorValue(cos(θϕ[1])*sin(θϕ[2]),cos(θϕ[1])*cos(θϕ[2]))
+# _vec_funs = [uθϕ1,uθϕ2,uθϕ3,uθϕ4,uθϕ5,uθϕ6,uθϕ7]
+_vec_funs = [uθϕ1,uθϕ4,uθϕ5,uθϕ6,uθϕ7]
+
+vec_funs = map(x->u_vector_latlon2ambient(x),_vec_funs)
 
 legendinf = [latexstring("\$ u_{\\theta} = (\\cos(\\phi),0) \$"),
-             latexstring("\$ u_{\\theta} = (-\\sin(\\phi),0) \$"),
-             latexstring("\$ u_{\\theta} = (\\cos(\\theta)\\sin(\\phi),-\\sin(\\theta)) \$"),
-             latexstring("\$ u_{\\theta} = (\\cos(\\theta)\\cos(\\phi),0.0) \$") ]
+            #  latexstring("\$ u_{\\theta} = (-\\sin(\\phi),0) \$"),
+            #  latexstring("\$ u_{\\theta} = (0,\\cos(\\phi)) \$"),
+             latexstring("\$ u_{\\theta} = (0.0,-\\sin(\\phi)) \$"),
+             latexstring("\$ u_{\\theta} = (\\cos(\\theta)\\cos(\\phi),0.0) \$"),
+             latexstring("\$ u_{\\theta} = (\\cos(\\theta)\\sin(\\phi),\\cos(\\theta)\\sin(\\phi)) \$"),
+             latexstring("\$ u_{\\theta} = (\\cos(\\theta)\\sin(\\phi),\\cos(\\theta)\\cos(\\phi)) \$"), ]
 
 plot()
 for j in 1:length(vec_funs)
@@ -127,13 +134,15 @@ plot!(yscale=:log10,framestyle=:box,
 
 nc = [1,2,4,8,16]  # sqrt num cells per panel
 ## compute the convergence rates
-dx =   ( sqrt.( 4*π*r^2 ./ (6*nc.^2) ) ) # average width of cell on sphere
-gg = [ 1e-5dx.^8] # some manipulation to get the plot to look nice
+dx =   ( sqrt.( 4*π*RADIUS^2 ./ (6*nc.^2) ) ) # average width of cell on sphere
+gg = [5e-3dx.^6, 1e-5dx.^8] # some manipulation to get the plot to look nice
+convleg = [latexstring("\$ (\\Delta x)^6 \$"),latexstring("\$ (\\Delta x)^8 \$")]
+convc = [:blue,:black]
 for i in 1:length(gg)
   plot!(n_ref[2:end], gg[i][2:end],
   lw=2,ms=6,
-  c=:black,
-  label=latexstring("\$ (\\Delta x)^8 \$"),
+  c=convc[i],
+  label=convleg[i],
   linestyle=:dot,
   yscale=:log10)
 end
@@ -143,5 +152,5 @@ plot!(show=true,legend=:bottomleft)
 plot!(xtickfontsize=12,ytickfontsize=12,
 legendfontsize=10,guidefontsize=18)
 
-plot!(ylimits=(1e-15,1e-2))
+plot!(ylimits=(1e-15,1e-1))
 savefig(plotsdir()*"/interpolation_error_latlon")

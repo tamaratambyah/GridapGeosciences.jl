@@ -25,8 +25,13 @@ Map analytical scalar valued function from X,Y,Z -> α,β
 """
 function u_scalar_ambient2parametric(p::Int,uX::Function)
   function _u(αβ)
-    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(RADIUS) ∘ GnomonicField()
-    XYZ = cmap(αβ)
+    # cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(RADIUS) ∘ GnomonicField()
+    # XYZ = cmap(αβ)
+
+    θϕ = GnomonicField()(αβ)
+    _XYZ = SigmaField(RADIUS)(θϕ)
+    XYZ = PanelRotationField(r1p_3D[p])(_XYZ)
+
     uX(XYZ)
   end
 end

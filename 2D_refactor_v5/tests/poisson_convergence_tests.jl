@@ -44,10 +44,7 @@ cf_parametric = CellData.GenericCellField(cellf,Ω_parametric,PhysicalDomain())
 rhs = -1.0*surface_laplacian(cf_parametric,m)
 
 
-
 ############# FE problem
-
-
 V = FESpace(manifold_model, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
