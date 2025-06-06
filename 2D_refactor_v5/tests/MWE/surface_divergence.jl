@@ -75,8 +75,8 @@ x_trial = get_trial_fe_basis(X)
 y_test = get_fe_basis(Y)
 
 
-biform1((u,p),(v,q)) = ∫( (p*( (1/sq_meas * divergence(sq_meas * v) ) )) *sq_meas )dΩ_parametric
-biform2((u,p),(v,q)) = ∫( (p*( (1/sq_meas * divergence( v) ) )) *sq_meas )dΩ_parametric ## removed product in divergence
+biform1((u,p),(v,q)) = (p*( (1/sq_meas * divergence(sq_meas * v) ) )) *sq_meas
+biform2((u,p),(v,q)) = (p*( (1/sq_meas * divergence( v) ) )) *sq_meas  ## removed product in divergence
 
 ### single fields
 dc1 = ∫(  p_trial * (1/sq_meas * divergence(sq_meas * v_test) )* sq_meas )dΩ_parametric
