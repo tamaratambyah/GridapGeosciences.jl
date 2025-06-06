@@ -36,7 +36,8 @@ m = Metric(cubedsphere,Ω_parametric)
 dΩg = Measure(m,Ω_parametric,degree)
 
 
-darcy_biform((u,p),(v,q)) = ∫( v⋅u + p*q - p*(surface_divergence(v,m)) )dΩg# + q*(surface_divergence(u,m)) )dΩg
+# darcy_biform((u,p),(v,q)) = ∫( v⋅u + p*q - p*(surface_divergence(v,m)) )dΩg# + q*(surface_divergence(u,m)) )dΩg
+darcy_biform((u,p),(v,q)) = ∫( (p*( (1/m.sq_meas * divergence(m.sq_meas * v) ) ))*m.sq_meas )dΩ_parametric# + q*(surface_divergence(u,m)) )dΩg
 darcy_liform((v,q)) = ∫(  q*0.0 )dΩg
 
 
