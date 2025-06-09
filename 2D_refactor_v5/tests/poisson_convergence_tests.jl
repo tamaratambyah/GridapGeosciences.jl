@@ -48,8 +48,8 @@ rhs = -1.0*surface_laplacian(cf_parametric,m)
 V = FESpace(manifold_model, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
-poisson_biform(u,v) = ∫(  surface_gradient(v,m) ⋅ surface_gradient(u,m)  )dΩg
-poisson_liform(v)   = ∫( v*rhs )dΩg
+poisson_biform(u,v) = ∫( surface_gradient(u,m)⋅gradient(v) )dΩg
+poisson_liform(v) =  ∫( (rhs*v) )dΩg
 
 op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 uh = solve(LUSolver(),op)
@@ -65,3 +65,4 @@ ss, uh_ambient = parametric_cf_2_ambient(manifold_model,degree,uh)
 writevtk(Ω_ambient,dir*"/possion_ambient",
         cellfields=["uh"=>uh_ambient,"u"=>uh_ambient_analytic,
                   "e"=>uh_ambient-uh_ambient_analytic],append=false)
+writevtk(manifold_model,dir*"/model",append=false)
