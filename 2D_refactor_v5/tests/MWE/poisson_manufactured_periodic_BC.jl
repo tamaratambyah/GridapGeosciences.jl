@@ -20,9 +20,9 @@ Find that the error blows up to 1e28
 """
 
 using Gridap
-using DrWatson
-dir = datadir("2D_CubedSphereRefactor")
-!isdir(dir) && mkdir(dir)
+# using DrWatson
+# dir = datadir("2D_CubedSphereRefactor")
+# !isdir(dir) && mkdir(dir)
 
 
 #### Analytic solution
