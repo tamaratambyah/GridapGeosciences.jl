@@ -1,4 +1,6 @@
 """
+TO BE REMOVED --- SEE poisson_convergence_periodic.jl INSTEAD
+
 Manufacture solutions for Possion problem on a flat domain with periodic BC.
 This test is a precursor to manufacturing solutions on the sphere.
 

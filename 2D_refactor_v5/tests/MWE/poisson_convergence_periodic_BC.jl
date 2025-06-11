@@ -19,7 +19,7 @@ Examples are:
   u_ex = ( x(0.5-x)     ; 0.0 < x < 0.5
            (x-0.5)(x-1) ; 0.5 < x < 1.0    )
       * this function is periodic and zero-mean
-      * this function is in the FE space (use to manufacture solutions)
+      * this function is in the FE space --> manufactured solutions
 
 To stop the error blowing up, need the enforce zero mean constraint in the FE
 space. This removes the zero eigenvalue which was making the linear system
@@ -28,9 +28,14 @@ Test 2 ways of enforcing zero mean
   1. in the FE space via "FESpace(... ;constraint=zeromean")
   2. algebraically via lagrange multipler
 Find that both methods give the same convergence results (expected)
+  - Only true for 2D zero mean functions
+  - Different behaviour in 1D, and for non-zeromean functions
 Find convergence only for zeromean functions (i.e. trig functions)
-  - Trying to force zero mean to a non zeromean function does not yield good
+  - Trying to force zero mean to a non zeromean polynomial does not yield good
     convergence results.
+  - However, forcing a non zeromean trig function to have zero mean does yield
+    convergence
+  - To better understand this, we are devising 1D tests
 To manufacture solutions in FE space, consider a piecewise polynomial that has
 zero mean (i.e. 'looks like a trig function')
 """
@@ -131,9 +136,10 @@ dx = 1 ./ ns
 
 dd = Dict(
           # "x(1-x)" => ( u0(x) = x[1]*(1-x[1]) ),
-          "cos(2πx)" => ( u1(x) = cos(2*π*x[1])  ),
-          "sin(2πx)" => ( u2(x) =  sin(2*π*x[1]) ),
-          "cos(2πx)cos(2πy)" => ( u3(x) =  cos(2*π*x[1])*cos(2*π*x[2]) )
+           "cos(2πx)+2" => ( u1(x) = cos(2*π*x[1]) + 2 ),
+          # "cos(2πx)" => ( u1(x) = cos(2*π*x[1])  ),
+          # "sin(2πx)" => ( u2(x) =  sin(2*π*x[1]) ),
+          # "cos(2πx)cos(2πy)" => ( u3(x) =  cos(2*π*x[1])*cos(2*π*x[2]) )
  )
 
 
@@ -187,13 +193,18 @@ savefig(plotsdir()*"/poisson_manufactured_periodic")
 
 
 ################# force zero-mean into non zero mean analytic function
-u(x) = x[1]*(1-x[1])
+# u(x) =  x[1]*(1-x[1])
+u(x) = cos(2*π*x[1]) + 2
 
 model = UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(16,16),isperiodic=(true,true)))
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
 u_mean = sum(∫( u )dΩ)
 uex(x) = u(x) - u_mean
+
+writevtk(Ω,dir*"/poisson_manufactured_periodic_BC",
+        cellfields=["u"=>u,"u0"=>uex],append=false)
+
 
 errs = []
 errs_lagrange = []
