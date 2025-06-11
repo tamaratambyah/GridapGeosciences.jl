@@ -41,3 +41,8 @@ end
 #   end
 #   # @notimplemented
 # end
+
+
+surface_gradient(f::Function,x::SVector) = surface_gradient(f,Point(x))
+surface_divergence(f::Function,x::SVector) = surface_divergence(f,Point(x))
+surface_laplacian(f::Function,x::SVector) = surface_laplacian(f,Point(x))

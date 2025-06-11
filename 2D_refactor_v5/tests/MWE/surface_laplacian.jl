@@ -20,6 +20,15 @@ using Gridap.Geometry, Gridap.CellData, Gridap.Fields, Gridap.TensorValues
 using StaticArrays
 
 
+################################################################################
+#### Missing overloads to allow Fields to be taken into autodiff via a function
+################################################################################
+Gridap.Arrays.evaluate(f::Field,x::SVector) = Gridap.Arrays.evaluate(f,Point(x))
+Gridap.Arrays.return_cache(f::Field,x::SVector) = Gridap.Arrays.return_cache(f,Point(x))
+Gridap.Arrays.evaluate!(cache,f::Field,x::SVector) = Gridap.Arrays.evaluate!(cache,f,Point(x))
+
+
+
 """
 SquareShiftField: 2D->2D
 ϕ(x,y) = (x+2,y+2)
@@ -52,16 +61,16 @@ function Gridap.Arrays.evaluate!(cache,f::SquareShiftField,x::VectorValue{2})
   return y
 end
 
-function Gridap.Arrays.return_cache(k::SquareShiftField,x::SVector{2})
-  y = zero(VectorValue{2,Float64})
-  return y
-end
+# function Gridap.Arrays.return_cache(k::SquareShiftField,x::SVector{2})
+#   y = zero(VectorValue{2,Float64})
+#   return y
+# end
 
-function Gridap.Arrays.evaluate!(cache,f::SquareShiftField,x::SVector{2})
-  y = cache
-  y = VectorValue(x[1]+2, x[2]+2)
-  return y
-end
+# function Gridap.Arrays.evaluate!(cache,f::SquareShiftField,x::SVector{2})
+#   y = cache
+#   y = VectorValue(x[1]+2, x[2]+2)
+#   return y
+# end
 
 """
 gradient of the quadratic mapping: (x,y) → (x+2,y+2) is:
@@ -131,16 +140,16 @@ function Gridap.Arrays.evaluate!(cache,f::QuadPlaneField,x::VectorValue{2})
   return y
 end
 
-function Gridap.Arrays.return_cache(k::QuadPlaneField,x::SVector{2})
-  y = zero(VectorValue{3,Float64})
-  return y
-end
+# function Gridap.Arrays.return_cache(k::QuadPlaneField,x::SVector{2})
+#   y = zero(VectorValue{3,Float64})
+#   return y
+# end
 
-function Gridap.Arrays.evaluate!(cache,f::QuadPlaneField,x::SVector{2})
-  y = cache
-  y = VectorValue(x[1], x[2], x[1]^2 + x[2]^2)
-  return y
-end
+# function Gridap.Arrays.evaluate!(cache,f::QuadPlaneField,x::SVector{2})
+#   y = cache
+#   y = VectorValue(x[1], x[2], x[1]^2 + x[2]^2)
+#   return y
+# end
 
 
 
@@ -186,6 +195,7 @@ function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:QuadPlaneField},x::V
   y = TensorValue{2,3}( 1.0,0.0,  0.0,1.0,  2*x[1],2*x[2] )
   return y
 end
+
 
 
 ##### Apply mappings
@@ -244,8 +254,8 @@ cellf = map(p->GenericField(_fparametric_scalar), collect(1:num_cells(model_para
 cf_parametric = CellData.GenericCellField(cellf,Ω_parametric,PhysicalDomain())
 
 ### laplacian is the divergence(gradient)
-_surfgrad = inv_metric ⋅ gradient(cf_parametric) ## FAILS!
+_surfgrad = inv_metric ⋅ gradient(cf_parametric) ## now works!
 _f = sq_meas*_surfgrad
-_surflap = 1/sq_meas * divergence(f_)
+_surflap = 1/sq_meas * divergence(_f)
 
 _surflap(pt)
