@@ -17,17 +17,17 @@ using Gridap.Geometry, Gridap.CellData, Gridap.Fields, Gridap.TensorValues
 ################################################################################
 #### I think the following extra overloads should eventually go to Gridap's core
 #### They are needed to have the product rule working whenever there is the
-#### specific combination of Field and VectorBlock{<:Field} that is triggered below
+#### specific combination of Field and ArrayBlock{<:Field} that is triggered below
 ################################################################################
 function Gridap.Fields.return_value(k::Broadcasting{<:Operation},
-                                    f1::Field,f2::VectorBlock{A},g1::Field,g2::VectorBlock{B}) where {A,B}
+                                    f1::Field,f2::ArrayBlock{A,N},g1::Field,g2::ArrayBlock{B,N}) where {A,B,N}
   @assert length(f2.array) == length(g2.array)
   @assert f2.touched == g2.touched
 
   f2i = Gridap.Fields.testitem(f2)
   g2i = Gridap.Fields.testitem(g2)
   f1f2ig1g2i = Gridap.Fields.return_value(k,f1,f2i,g1,g2i)
-  o = Vector{typeof(f1f2ig1g2i)}(undef,size(f2.array))
+  o = Array{typeof(f1f2ig1g2i),N}(undef,size(f2.array))
   for i in eachindex(f2.array)
     if f2.touched[i]
       o[i] = Gridap.Fields.return_value(k,f1,f2.array[i],g1,g2.array[i])
@@ -37,7 +37,7 @@ function Gridap.Fields.return_value(k::Broadcasting{<:Operation},
 end
 
 function Gridap.Fields.return_cache(k::Broadcasting{<:Operation},
-                                    f1::Field,f2::VectorBlock{A},g1::Field,g2::VectorBlock{B}) where {A,B}
+                                    f1::Field,f2::ArrayBlock{A,N},g1::Field,g2::ArrayBlock{B,N}) where {A,B,N}
   @assert length(f2.array) == length(g2.array)
   @assert f2.touched == g2.touched
 
@@ -47,8 +47,8 @@ function Gridap.Fields.return_cache(k::Broadcasting{<:Operation},
   cf1f2ig1g2i = Gridap.Fields.return_cache(k,f1,f2i,g1,g2i)
   f1f2ig1g2i = Gridap.Fields.evaluate!(cf1f2ig1g2i,k, f1,f2i,g1,g2i)
 
-  l = Vector{typeof(cf1f2ig1g2i)}(undef,size(f2.array))
-  o = Vector{typeof(f1f2ig1g2i)}(undef,size(f2.array))
+  l = Array{typeof(cf1f2ig1g2i),N}(undef,size(f2.array))
+  o = Array{typeof(f1f2ig1g2i),N}(undef,size(f2.array))
   for i in eachindex(f2.array)
     if f2.touched[i]
       l[i] = return_cache(k,f1,f2.array[i],g2,g2.array[i])
@@ -58,7 +58,7 @@ function Gridap.Fields.return_cache(k::Broadcasting{<:Operation},
 end
 
 function Gridap.Fields.evaluate!(cache,k::Broadcasting{<:Operation},
-                                 f1::Field,f2::VectorBlock{A},g1::Field,g2::VectorBlock{B}) where {A,B}
+       f1::Field,f2::ArrayBlock{A,N},g1::Field,g2::ArrayBlock{B,N}) where {A,B,N}
 
   o,l = cache
   @assert o.touched == f2.touched
@@ -158,10 +158,10 @@ biform3((u,p),(v,q)) = ∫((q*( (1/sq_meas * divergence(sq_meas * u) ) )) *sq_me
 biform4((u,p),(v,q)) = ∫((q*( (1/sq_meas * divergence( u) ) )) *sq_meas)dΩ_parametric  ## removed product in divergence
 biform3_scalar(q,u) = ∫(q * (1/sq_meas * divergence(sq_meas * u) )* sq_meas )dΩ_parametric
 
-biform3(x_trial,y_test) ## FAILS!
+biform3(x_trial,y_test) ## works!
 biform4(x_trial,y_test) ## works! -- removed product in divergence
 
-A1=assemble_matrix(biform3,X,Y) # FAILS! -- for multigield
+A1=assemble_matrix(biform3,X,Y) # works! -- for multigield
 A2=assemble_matrix(biform3_scalar,Q,U) ## works! -- for single field
 
 # DEBUG statements (uncomment to use)
