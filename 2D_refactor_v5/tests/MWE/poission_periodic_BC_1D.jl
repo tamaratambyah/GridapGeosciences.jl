@@ -52,12 +52,22 @@ dx = 1 ./ ns
 domain = (0,1)
 
 # polynomial
-u(x) = 6*x[1]*(1-x[1]) # mean = 1.0 ∈ Ω = [0,1]
-lab = "poly"
+# u(x) = 6*x[1]*(1-x[1]) # mean = 1.0 ∈ Ω = [0,1]
+# lab = "poly"
 
 # trig
-u(x) = sin(2*π*x[1]) + 1.0 # mean = 1.0 ∈ Ω = [0,1]
-lab = "trig"
+# u(x) = sin(2*π*x[1]) + 1.0 # mean = 1.0 ∈ Ω = [0,1]
+# lab = "trig"
+
+# piecewise
+function u(x)
+  if x[1] < 0.5
+    return x[1]*(0.5-x[1]) + 1.0
+  else
+    return (x[1]-0.5)*(x[1]-1) + 1.0
+  end
+end
+lab = "pw"
 
 errs = []
 errs_lagrange = []
@@ -71,6 +81,7 @@ end
 plot(ns,errs,lw=3,label="constraint")
 plot!(ns,errs_lagrange,lw=3,c=:red,label="lagrange")
 plot!(yscale=:log10,xscale=:log10,framestyle=:box,legend=true,show=true)
+# plot!(ns,1e-1dx.^6,lw=2,c=:black,ls=:dash,label="dx^6")
 savefig(plotsdir()*"/poisson_periodic_$(lab)_1D")
 
 ## force zero mean
@@ -86,6 +97,8 @@ end
 plot(ns,errs,lw=3,label="constraint")
 plot!(ns,errs_lagrange,lw=3,c=:red,label="lagrange")
 plot!(yscale=:log10,xscale=:log10,framestyle=:box,legend=true,show=true)
+# plot!(ns,dx.^2,lw=2,c=:black,ls=:dash,label="dx^2")
+# plot!(ns,1e-1dx.^6,lw=2,c=:black,ls=:dash,label="dx^6")
 savefig(plotsdir()*"/poisson_periodic_$(lab)_force_1D")
 
 ###############################################################################

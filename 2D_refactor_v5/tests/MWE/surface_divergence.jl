@@ -5,7 +5,10 @@ This mapping has a non-constant metric.
 Want to test the surface_divergence in the term
    ∫( p*surf_div(v) )dΩg
 To avoid unknown sources of error, write the diff operators in the biform out explicitly
-Find the evaluation of the biform no longer fails for multifields
+Find the evaluation of the biform = ∫( trial*surface_div(test) ) no longer fails for multifields
+
+However, observe MatrixBlock error when trying to assemble the transpose term
+i.e. biform =  ∫( test*surface_div(trial) )
 """
 
 using Gridap
@@ -18,9 +21,9 @@ using Gridap.Geometry, Gridap.CellData, Gridap.Fields, Gridap.TensorValues
 ################################################################################
 function Gridap.Fields.return_value(k::Broadcasting{<:Operation},
                                     f1::Field,f2::VectorBlock{A},g1::Field,g2::VectorBlock{B}) where {A,B}
-  @assert length(f2.array) == length(g2.array)                       
+  @assert length(f2.array) == length(g2.array)
   @assert f2.touched == g2.touched
-  
+
   f2i = Gridap.Fields.testitem(f2)
   g2i = Gridap.Fields.testitem(g2)
   f1f2ig1g2i = Gridap.Fields.return_value(k,f1,f2i,g1,g2i)
@@ -35,15 +38,15 @@ end
 
 function Gridap.Fields.return_cache(k::Broadcasting{<:Operation},
                                     f1::Field,f2::VectorBlock{A},g1::Field,g2::VectorBlock{B}) where {A,B}
-  @assert length(f2.array) == length(g2.array)                       
+  @assert length(f2.array) == length(g2.array)
   @assert f2.touched == g2.touched
-  
+
   f2i = Gridap.Fields.testitem(f2)
   g2i = Gridap.Fields.testitem(g2)
 
   cf1f2ig1g2i = Gridap.Fields.return_cache(k,f1,f2i,g1,g2i)
   f1f2ig1g2i = Gridap.Fields.evaluate!(cf1f2ig1g2i,k, f1,f2i,g1,g2i)
-  
+
   l = Vector{typeof(cf1f2ig1g2i)}(undef,size(f2.array))
   o = Vector{typeof(f1f2ig1g2i)}(undef,size(f2.array))
   for i in eachindex(f2.array)
@@ -56,7 +59,7 @@ end
 
 function Gridap.Fields.evaluate!(cache,k::Broadcasting{<:Operation},
                                  f1::Field,f2::VectorBlock{A},g1::Field,g2::VectorBlock{B}) where {A,B}
-  
+
   o,l = cache
   @assert o.touched == f2.touched
   for i in eachindex(f2.array)
@@ -134,7 +137,6 @@ q_test = get_fe_basis(Q)
 x_trial = get_trial_fe_basis(X)
 y_test = get_fe_basis(Y)
 
-
 biform1((u,p),(v,q)) = ∫((p*( (1/sq_meas * divergence(sq_meas * v) ) )) *sq_meas)dΩ_parametric
 biform2((u,p),(v,q)) = ∫((p*( (1/sq_meas * divergence( v) ) )) *sq_meas)dΩ_parametric  ## removed product in divergence
 
@@ -151,9 +153,19 @@ A2=assemble_matrix(biform1_scalar,P,V)
 
 biform2(x_trial,y_test) # works -- removed product in divergence
 
+#### Transpose does not work for multifield -- i.e. ∫( test*surface_div(trial) )
+biform3((u,p),(v,q)) = ∫((q*( (1/sq_meas * divergence(sq_meas * u) ) )) *sq_meas)dΩ_parametric
+biform4((u,p),(v,q)) = ∫((q*( (1/sq_meas * divergence( u) ) )) *sq_meas)dΩ_parametric  ## removed product in divergence
+biform3_scalar(q,u) = ∫(q * (1/sq_meas * divergence(sq_meas * u) )* sq_meas )dΩ_parametric
+
+biform3(x_trial,y_test) ## FAILS!
+biform4(x_trial,y_test) ## works! -- removed product in divergence
+
+A1=assemble_matrix(biform3,X,Y) # FAILS! -- for multigield
+A2=assemble_matrix(biform3_scalar,Q,U) ## works! -- for single field
 
 # DEBUG statements (uncomment to use)
-# v_test_y_test, _ = y_test  
+# v_test_y_test, _ = y_test
 # x_x = map(p->GenericField(x->x[1]), collect(1:num_cells(model_parametric)))
 # gcf = GenericCellField(x_x, Ω_parametric, ReferenceDomain())
 # gradient(gcf)

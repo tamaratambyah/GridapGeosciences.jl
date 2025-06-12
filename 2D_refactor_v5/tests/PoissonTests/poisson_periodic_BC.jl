@@ -5,7 +5,7 @@ This test is a precursor to manufacturing solutions on the sphere.
 Solve Δu = -f on Ω = [0,1]^2 doubly periodic.
 The weak form is:
   ∫ (∇u)⋅(∇v) dΩ = ∫ fv dΩ
-where f = -Δ(u_ex) is the rhs data.
+where f = -Δ(u_ex) is the rhs data, and u_ex is the exact solution.
 
 Since the domain is doubly periodic, there are no boundary integrals in the weak
 form. In addition, consider u_ex as periodic functions on [0,1]^2.
@@ -24,18 +24,22 @@ Examples are:
 To stop the error blowing up, need the enforce zero mean constraint in the FE
 space. This removes the zero eigenvalue which was making the linear system
 singular.
+
 Test 2 ways of enforcing zero mean
-  1. in the FE space via "FESpace(... ;constraint=zeromean")
+  1. in the FE space via "FESpace(... ;constraint=zeromean)"
   2. algebraically via lagrange multipler
+
 Find that both methods give the same convergence results (expected)
   - Only true for 2D zero mean functions
   - Different behaviour in 1D, and for non-zeromean functions
+
 Find convergence only for zeromean functions (i.e. trig functions)
   - Trying to force zero mean to a non zeromean polynomial does not yield good
     convergence results.
   - However, forcing a non zeromean trig function to have zero mean does yield
     convergence
   - To better understand this, we are devising 1D tests
+
 To manufacture solutions in FE space, consider a piecewise polynomial that has
 zero mean (i.e. 'looks like a trig function')
 """
@@ -47,86 +51,9 @@ using DrWatson
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
-function solve_poisson_periodic(domain,n,p,degree,uex)
 
-  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,n,isperiodic=(true,true)))
 
-  Ω = Triangulation(model)
-  dΩ = Measure(Ω,degree)
 
-  ## assess zero mean of analytic function
-  println("Zero mean is: " , sum(∫(uex)dΩ))
-
-  #### FE Problem
-
-  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1,
-                        constraint=:zeromean)
-  U = TrialFESpace(V)
-
-  rhs(x) = -1.0*(laplacian(uex)(x))
-
-  poisson_biform(u,v) = ∫( gradient(u)⋅gradient(v) )dΩ
-  poisson_liform(v) =  ∫( rhs*v )dΩ
-
-  op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
-  uh = solve(LUSolver(),op)
-
-  e = sum(∫((uh-uex)⊙(uh-uex))dΩ)
-
-  println("Errors: ", e)
-  return e
-end
-
-function solve_poisson_periodic_lagrange(domain,n,p,degree,uex)
-
-  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,n,isperiodic=(true,true)))
-
-  Ω = Triangulation(model)
-  dΩ = Measure(Ω,degree)
-
-  ## assess zero mean of analytic function
-  println("Zero mean is: " , sum(∫(uex)dΩ))
-
-  #### FE Problem
-
-  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
-  U = TrialFESpace(V)
-  Λ = ConstantFESpace(model)
-  M = TrialFESpace(Λ)
-  X = MultiFieldFESpace([U,M])
-  Y = MultiFieldFESpace([V,Λ])
-
-  rhs(x) = -1.0*(laplacian(uex)(x))
-
-  poisson_biform((u,μ),(v,λ)) = ∫( gradient(u)⋅gradient(v)  )dΩ  + ∫(v*μ)dΩ + ∫(λ*u)dΩ
-  poisson_liform((v,λ)) = ∫( rhs*v )dΩ + ∫(λ*uex)dΩ
-
-  op = AffineFEOperator(poisson_biform,poisson_liform,X,Y)
-  uh,μh = solve(LUSolver(),op)
-
-  e = sum(∫((uh-uex)⊙(uh-uex))dΩ)
-
-  println("Errors: ", e)
-  return e
-end
-
-function plot_error(ns,errs,leginf;
-    ls=[:solid, :dash, :dot, :dashdot, :dashdotdot],
-    colors = palette(:tab10),
-    markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross] )
-
-  nsims = Int(length(errs)/length(ns))
-  for i in 1:nsims
-    idx1 = 1 + (i-1)*length(ns)
-    idx2 = (i)*length(ns)
-    plot!(ns,
-          errs[idx1:idx2],
-          lw=3,
-          c=colors[i],ls=ls[i], markershape=markers[i],
-          label=leginf[i])
-  end
-
-end
 
 #### Analytic solution with zero mean
 p = 2
