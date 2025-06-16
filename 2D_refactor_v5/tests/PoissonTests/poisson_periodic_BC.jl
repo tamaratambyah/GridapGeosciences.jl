@@ -51,6 +51,7 @@ using DrWatson
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
+include("poisson_helpers.jl")
 
 
 
@@ -63,7 +64,7 @@ dx = 1 ./ ns
 
 dd = Dict(
           # "x(1-x)" => ( u0(x) = x[1]*(1-x[1]) ),
-           "cos(2πx)+2" => ( u1(x) = cos(2*π*x[1]) + 2 ),
+           "cos(2πx)+2" => ( u1(x) = cos(2*π*x[1]) + 1 ),
           # "cos(2πx)" => ( u1(x) = cos(2*π*x[1])  ),
           # "sin(2πx)" => ( u2(x) =  sin(2*π*x[1]) ),
           # "cos(2πx)cos(2πy)" => ( u3(x) =  cos(2*π*x[1])*cos(2*π*x[2]) )
@@ -154,7 +155,7 @@ savefig(plotsdir()*"/poisson_convergence_periodic_poly_force")
 
 
 ################# low level
-# u(x) =  x[1]*(1-x[1]) #cos(2*π*x[1])*cos(2*π*x[2])
+# u(x) =  6*x[1]*(1-x[1]) + 6x[1]^2 #cos(2*π*x[1])*cos(2*π*x[2])
 # _u(x) = u(x) - sum(∫( u )dΩ)
 degree = 2
 p = 2
@@ -165,33 +166,42 @@ function u(x)
     return (x[1]-0.5)*(x[1]-1.0)
   end
 end
-
+# u(x) =  6*x[1]*(1-x[1])
+# u(x) = cos(2*π*x[1])
 
 rhs(x) = -1.0*(laplacian(u)(x))
 
 #### Domain and quadrature
 degree = 2*(p+1)
 
-model = CartesianDiscreteModel((0,1, 0,1), (12,12), isperiodic=(true,true))
+model = CartesianDiscreteModel((0,1), (4,), isperiodic=(true,))
 
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
 
 sum(∫(u)dΩ  )
 
-writevtk(Ω,dir*"/poisson_manufactured_periodic_BC",
-        cellfields=["u"=>u],append=false)
+# writevtk(Ω,dir*"/poisson_manufactured_periodic_BC",
+#         cellfields=["u"=>u],append=false)
 
-## assess zero mean of analytic function
-sum(∫(u)dΩ)
+
 
 #### FE Problem -- no lagrange multiplers
-V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1,constraint=:zeromean)
+V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
 poisson_biform(u,v) = ∫( gradient(u)⋅gradient(v)  )dΩ
 poisson_liform(v) = ∫(  rhs*v )dΩ
 op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+
+A = get_matrix(op)
+b = get_vector(op)
+
+# evals = eigvals(Array(A))
+# println(A*(3*ones(size(b))))
+sum(b)
+
+
 uh = solve(LUSolver(),op)
 
 sum( ∫(uh )dΩ  )
