@@ -29,9 +29,11 @@ radius = 2
 domain = (-π/2,π/2,0,2π)
 partition = (n,n)
 metric_func(x) = TensorValue{2,2}(radius^2 ,0.0, 0.0, radius^2*(cos(x[1]))^2 )
-uex(x) = VectorValue(0.0,x[2]*(2π-x[2]))
-pex(x) = 1.0 +  0.01*(π/2+x[1])*(π/2-x[1])
+# uex(x) = VectorValue(0.0,x[2]*(2π-x[2]))
+# pex(x) = 1.0 +  0.01*(π/2+x[1])*(π/2-x[1])
 
+uex(x) = VectorValue(cos(x[1]),cos(x[2]))
+pex(x) = 1.0 +  0.1*cos(x[1])
 
 
 ##

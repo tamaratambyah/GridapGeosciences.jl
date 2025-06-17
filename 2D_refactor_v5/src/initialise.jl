@@ -19,6 +19,9 @@ include("CellData/SurfaceMetric.jl")
 include("CellData/SurfaceQuadrature.jl")
 
 include("Operators/SurfaceOperators.jl")
+include("Operators/WaveOperator.jl")
+include("Operators/MissingOverloads.jl")
+
 
 include("Fields/Bump.jl")
 include("Fields/PanelRotation.jl")

@@ -1,6 +1,6 @@
 using Gridap
 using Test
-include("../src/initialise.jl")
+include("../../src/initialise.jl")
 
 """
 The theoretical values in _gradf and _divv were computed by hand.
