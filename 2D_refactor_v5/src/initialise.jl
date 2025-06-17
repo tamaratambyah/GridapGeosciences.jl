@@ -16,8 +16,9 @@ include("Adaptivity/panel_ids_from_refinement.jl")
 include("Adaptivity/Refinement.jl")
 
 include("CellData/SurfaceMetric.jl")
-include("CellData/SurfaceOperators.jl")
 include("CellData/SurfaceQuadrature.jl")
+
+include("Operators/SurfaceOperators.jl")
 
 include("Fields/Bump.jl")
 include("Fields/PanelRotation.jl")
