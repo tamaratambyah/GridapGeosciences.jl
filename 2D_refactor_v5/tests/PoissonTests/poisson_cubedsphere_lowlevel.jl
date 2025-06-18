@@ -12,42 +12,188 @@ degree = 2*(p+1)
 ns = [2^i for i = 2:6]
 dx = 1 ./ ns
 
-function uzeroemean(αβ)
-  cos(4*αβ[1])
-  # if αβ[1] < 0.0
-  #   return -αβ[1]*(αβ[1] + π/4)
-  # else
-  #   return αβ[1]*(αβ[1] - π/4)
-  # end
-end
+n = ns[4]
 
-### no metric
-errs = []
-errs_lagrange = []
-for n in collect(ns)
-  e = solve_poisson_periodic((-π/4,π/4, -π/4,π/4),(n,n),p,degree,uzeroemean)
-  eg = solve_poisson_periodic_lagrange((-π/4,π/4, -π/4,π/4),(n,n),p,degree,uzeroemean)
-  push!(errs,e)
-  push!(errs_lagrange,eg)
-end
-
-plot()
-plot_error(ns,errs,["zeromean"];ls=fill(:solid,1))
-plot_error(ns,errs_lagrange,["lagrange"];ls=fill(:dashdotdot,1))
-plot!(xscale=:log10,yscale=:log10,framestyle=:box,
-xlabel="n cells",ylabel="L2(u - u_h)"
-)
-plot!(ns,5e-1dx.^6,lw=2,c=:black,ls=:dash,label="dx^6")
-savefig(plotsdir()*"/poisson_convergence_periodic")
-
-### with metric -- does not converge
-# global A_bump, B_bump, b_bump = bump_matrics(π/4)
 global RADIUS = 1.0*sqrt(3.0)
-errs = []
-errs_lagrange = []
-for n in collect(ns)
-  e = solve_poisson_manifold((-π/4,π/4, -π/4,π/4),(n,n),p,degree,uzeroemean,metric_func(cubedsphere);isperiodic=(true,true))
-  eg = solve_poisson_manifold((-π/4,π/4, -π/4,π/4),(n,n),p,degree,uzeroemean,metric_func(cubedsphere);isperiodic=(true,true))
-  push!(errs,e)
-  push!(errs_lagrange,eg)
+
+
+################################################################################
+#### Analytic parametric space for a single panel
+################################################################################
+
+model = CartesianDiscreteModel((-π/4,π/4, -π/4,π/4), (n,n), isperiodic=(true,true))
+Ω = Triangulation(model)
+m = Metric(cubedsphere,Ω)
+
+dΩ = Measure(Ω, degree)
+dΩg =  Measure(m,Ω,degree)
+
+# function uex(αβ)
+#   if αβ[1] < 0.0
+#     return -αβ[1]*(αβ[1] + π/4)
+#   else
+#     return αβ[1]*(αβ[1] - π/4)
+#   end
+# end
+uex(x) = -(x[1] + π/4  )*(x[1] - π/4)
+
+ucf = CellField(uex,Ω)
+
+# check zero mean
+sum(∫(ucf)dΩ  )
+sum(∫(ucf)dΩg  )
+
+# check compatibility
+sum(∫( surface_laplacian(ucf,m))dΩ  )
+sum(∫( surface_laplacian(ucf,m))dΩg  )
+
+writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex],append=false)
+
+
+V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:L2)
+U = TrialFESpace(V)
+
+T = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,p); conformity=:Hdiv)
+S = TrialFESpace(T)
+
+Λ = ConstantFESpace(model)
+M = TrialFESpace(Λ)
+
+X = MultiFieldFESpace([S,U,M])
+Y = MultiFieldFESpace([T,V,Λ])
+
+_X = MultiFieldFESpace([S,M])
+_Y = MultiFieldFESpace([T,Λ])
+
+#### With metric: Method 4 - mixed form -- with lagrange multiplers
+### Sigma_exact
+# sigma_ex(x) = surface_gradient(uex,m)(x)
+_sigma_ex = surface_gradient(ucf,m)
+
+biformS((s,μ),(t,λ)) = ∫( s⋅t )dΩg + ∫( surface_divergence(s,m)*λ )dΩg  + ∫( surface_divergence(t,m)*μ )dΩg
+liformS((t,λ)) = ∫( _sigma_ex ⋅ t )dΩg
+op = AffineFEOperator(biformS,liformS,_X,_Y)
+sigma_exh,μh = solve(LUSolver(),op)
+
+# biformS(s,t) = ∫( s⋅t )dΩg
+# liformS(t) = ∫( _sigma_ex ⋅ t )dΩg
+# op = AffineFEOperator(biformS,liformS,S,T)
+# sigma_exh = solve(LUSolver(),op)
+
+# writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex,"s"=>sigma_ex,"sh"=>sigma_exh],append=false)
+
+
+### dual form
+_rhs = -1.0*surface_divergence(sigma_exh,m)
+# _rhs = -1.0*surface_divergence(_sigma_ex,m)
+
+biformX((s,u,μ),(t,v,λ)) = (  ∫( s⋅t  )dΩg + ∫( wave_divergence(t,m)*u )dΩ
+                            + ∫( surface_divergence(s,m)*v  )dΩg
+                            + ∫(v*μ)dΩg + ∫(λ*u)dΩg
+                      )
+liformY((t,v,λ)) = ∫( -(_rhs*v) )dΩg  + ∫(λ*ucf)dΩg
+
+op = AffineFEOperator(biformX,liformY,X,Y)
+sh,uh,μh = solve(LUSolver(),op)
+
+#### Compute errors
+e = sum(∫((uh-ucf)⊙(uh-ucf))dΩ)
+eg = sum(∫((uh-ucf)⊙(uh-ucf))dΩg)
+
+writevtk(Ω,dir*"/poisson",cellfields=["u"=>ucf,"uh"=>uh,"eu"=>ucf-uh,
+   ],append=false)
+
+
+inv_metric_func(cubedsphere)(Point(0,0))
+
+sq_meas_func(cubedsphere)(Point(0,0))
+
+
+
+
+
+
+
+
+################################################################################
+#### With cubed sphere mesh
+################################################################################
+
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
+manifold_model = Adaptivity.refine(manifold_model)
+manifold_model = Adaptivity.refine(manifold_model)
+panel_ids = get_panel_ids(manifold_model)
+
+Ω = Triangulation(manifold_model)
+m = Metric(cubedsphere,Ω)
+
+dΩ = Measure(Ω, degree)
+dΩg =  Measure(m,Ω,degree)
+
+function uex_p(p)
+  # println("Panel: $p")
+  function _u(αβ)
+    if αβ[1] < 0.0
+      # println("left ",-αβ[1]*(αβ[1] + π/4))
+      return -αβ[1]*(αβ[1] + π/4)
+    else
+      # println("right", αβ[1]*(αβ[1] - π/4))
+      return αβ[1]*(αβ[1] - π/4)
+    end
+  end
 end
+
+# _panel_ids = panel_ids[panel_ids.==1]
+
+cell_field = map(p->GenericField(uex_p(p)),panel_ids)
+ucf = CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
+
+pts = get_cell_points(Ω )
+ucf(pts)
+
+# check zero mean
+sum(∫(ucf)dΩ  )
+sum(∫(ucf)dΩg  )
+
+# check compatibility
+sum(∫( laplacian(ucf))dΩ  )
+sum(∫( laplacian(ucf))dΩg  )
+
+writevtk(Ω,dir*"/poisson",cellfields=["u"=>ucf],append=false)
+
+################################################################################
+#### FE spaces on parametric space
+################################################################################
+
+V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:L2, constraint=:zeromean)
+U = TrialFESpace(V)
+
+T = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,p); conformity=:Hdiv)
+S = TrialFESpace(T)
+
+X = MultiFieldFESpace([S,U])
+Y = MultiFieldFESpace([T,V])
+
+
+### Sigma_exact
+_sigma_ex = surface_gradient(ucf,m)
+
+writevtk(Ω,dir*"/poisson",cellfields=["ss"=>_sigma_ex],append=false)
+
+### dual form
+_rhs = -1.0*surface_divergence(_sigma_ex,m)
+
+biformX((s,u),(t,v)) = (  ∫( s⋅t  )dΩg + ∫( wave_divergence(t,m)*u )dΩ
+                            + ∫( surface_divergence(s,m)*v  )dΩg
+                      )
+liformY((t,v)) = ∫( -(_rhs*v) )dΩg
+
+
+op = AffineFEOperator(biformX,liformY,X,Y)
+sh,uh = solve(LUSolver(),op)
+
+#### Compute errors
+e = sum(∫((uh-ucf)⊙(uh-ucf))dΩ)
+eg = sum(∫((uh-ucf)⊙(uh-ucf))dΩg)
+
+writevtk(Ω,dir*"/poisson",cellfields=["u"=>ucf,"uh"=>uh,"eu"=>ucf-uh],append=false)

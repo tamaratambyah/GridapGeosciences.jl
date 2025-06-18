@@ -47,6 +47,21 @@ function Metric(metric_func::Function,Ω::Triangulation)
   Metric(metric,sq_meas,inv_metric,metric_func,sq_meas_func,inv_metric_func)
 end
 
+function Metric(::CubedSphere,Ω::Triangulation)
+  println("cubed sphere metric")
+  _metric_func(x) = metric_func(cubedsphere)(x)
+  _sq_meas_func(x) = sq_meas_func(cubedsphere)(x)
+  _inv_metric_func(x) = inv_metric_func(cubedsphere)(x)
+
+  metric = CellField(_metric_func,Ω)
+  sq_meas = CellField(_sq_meas_func,Ω)
+  inv_metric = CellField(_inv_metric_func,Ω)
+  Metric(metric,sq_meas,inv_metric,_metric_func,_sq_meas_func,_inv_metric_func)
+
+
+end
+
+
 function Metric(name::ManifoldName,Ω::Triangulation)
   _metric_func(x) = metric_func(name)(x)
   Metric(_metric_func,Ω)
@@ -79,6 +94,24 @@ g = [E F
 function metric_func(::CubedSphere)
   function _metric_func(x)
     TensorValue{2,2}(E(x),F(x),F(x),G(x))
+  end
+end
+
+function inv_metric_func(::CubedSphere)
+  function _inv_metric_func(x)
+    1/(E(x)*G(x) - F(x)*F(x))*TensorValue{2,2}(G(x),-1.0*F(x),-1.0*F(x),E(x))
+  end
+end
+
+function det(::CubedSphere)
+  function _det(x)
+    E(x)*G(x) - F(x)*F(x)
+  end
+end
+
+function sq_meas_func(::CubedSphere)
+  function _sq_meas_func(x)
+    sqrt( E(x)*G(x) - F(x)*F(x) )
   end
 end
 

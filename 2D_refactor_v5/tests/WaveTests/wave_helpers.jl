@@ -1,9 +1,13 @@
 
-function solve_wave_manifold(domain,partition,p,degree,metric_func,uex,pex)
+function solve_wave_manifold(domain,partition,p,degree,metric_func,uex,pex;name::ManifoldName)
   model = CartesianDiscreteModel(domain, partition,isperiodic=ntuple(x->true,length(partition)))
 
   Ω = Triangulation(model)
   m = Metric(metric_func,Ω)
+  if name == cubedsphere
+    println("cubed sphere!")
+    m = Metric(cubedsphere,Ω)
+  end
 
   dΩ = Measure(Ω, degree)
   dΩg =  Measure(m,Ω,degree)

@@ -57,12 +57,14 @@ dir = datadir("2D_CubedSphereRefactor")
 include("poisson_helpers.jl")
 
 
-#### Analytic functions
 p = 2
 degree = 2*(p+1)
 ns = [2^i for i = 2:6]
 dx = 1 ./ ns
 
+################################################################################
+#### Analytic functions
+################################################################################
 u1(x) = 6*x[1]*(1-x[1])
 u2(x) = cos(2*π*x[1]) + 1
 function u3(x)
@@ -89,7 +91,70 @@ uex_funcs[:u4] = u4
 uex_funcs[:u5] = u5
 
 
+################################################################################
+#### Convergence in 1D
+################################################################################
+method1 = []
+method2 = []
+method3 = []
+method4 = []
+for (key, val) in uex_funcs
+  for n in collect(ns)
+    println(n)
 
+    e1 = solve_poisson_periodic((0,1),(n,),p,degree,val)
+    e2 = solve_poisson_periodic((0,1),(n,),p,degree,val;lagrange=true)
+    e3 = solve_poisson_periodic((0,1),(n,),p,degree,val;lagrange=true,uzeromean=true)
+    # if n != 64
+      e4 = solve_poisson_periodic_dual_form((0,1,),(n,),p,degree,val)
+      push!(method4,e4)
+    # end
+    push!(method1,e1)
+    push!(method2,e2)
+    push!(method3,e3)
+  end
+end
+
+
+leginf = map(x->string(x),collect(keys(uex_funcs)))
+
+# method 1:
+plot()
+plot_error(ns,method1;leginf=leginf,ls=fill(:solid,length(uex_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)")
+savefig(plotsdir()*"/poisson_convergence_periodic_method1_1D")
+
+# method 2:
+plot()
+plot_error(ns,method2;leginf=leginf,ls=fill(:dashdotdot,length(uex_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)")
+savefig(plotsdir()*"/poisson_convergence_periodic_method2_1D")
+
+# method 3:
+plot()
+plot_error(ns,method3;leginf=leginf,ls=fill(:dot,length(uex_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)")
+plot!(ns,1e1dx.^6,lw=2,c=:black,label="dx^6")
+savefig(plotsdir()*"/poisson_convergence_periodic_method3_1D")
+
+# method 4:
+plot()
+plot_error(ns,method4;leginf=leginf,ls=fill(:dash,length(uex_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)")
+plot!(ns,1e1dx.^6,lw=2,c=:black,label="dx^6")
+plot!(ns,5e-6dx.^4,lw=2,c=:blue,label="dx^4")
+savefig(plotsdir()*"/poisson_convergence_periodic_method4_1D")
+
+
+
+
+################################################################################
+#### Convergence in 2D
+################################################################################
 method1 = []
 method2 = []
 method3 = []
@@ -119,14 +184,14 @@ plot()
 plot_error(ns,method1;leginf=leginf,ls=fill(:solid,length(uex_funcs)))
 plot!(xscale=:log10,yscale=:log10,framestyle=:box,
 xlabel="n cells",ylabel="L2(u - uh)")
-savefig(plotsdir()*"/poisson_convergence_periodic_method1")
+savefig(plotsdir()*"/poisson_convergence_periodic_method1_2D")
 
 # method 2:
 plot()
 plot_error(ns,method2;leginf=leginf,ls=fill(:dashdotdot,length(uex_funcs)))
 plot!(xscale=:log10,yscale=:log10,framestyle=:box,
 xlabel="n cells",ylabel="L2(u - uh)")
-savefig(plotsdir()*"/poisson_convergence_periodic_method2")
+savefig(plotsdir()*"/poisson_convergence_periodic_method2_2D")
 
 # method 3:
 plot()
@@ -134,7 +199,7 @@ plot_error(ns,method3;leginf=leginf,ls=fill(:dot,length(uex_funcs)))
 plot!(xscale=:log10,yscale=:log10,framestyle=:box,
 xlabel="n cells",ylabel="L2(u - uh)")
 plot!(ns,1e1dx.^6,lw=2,c=:black,label="dx^6")
-savefig(plotsdir()*"/poisson_convergence_periodic_method3")
+savefig(plotsdir()*"/poisson_convergence_periodic_method3_2D")
 
 # method 4:
 plot()
@@ -143,4 +208,4 @@ plot!(xscale=:log10,yscale=:log10,framestyle=:box,
 xlabel="n cells",ylabel="L2(u - uh)")
 plot!(ns,1e1dx.^6,lw=2,c=:black,label="dx^6")
 plot!(ns,5e-6dx.^4,lw=2,c=:blue,label="dx^4")
-savefig(plotsdir()*"/poisson_convergence_periodic_method4")
+savefig(plotsdir()*"/poisson_convergence_periodic_method4_2D")

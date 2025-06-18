@@ -21,79 +21,60 @@ Consider piecewise u_ex that is periodic, zeromean and in FE space:
 Find that the error is large
 """
 
-
 using Gridap
+using Gridap.Geometry, Gridap.CellData, Gridap.Fields
+using Plots, LaTeXStrings
 include("../../src/initialise.jl")
+include("poisson_helpers.jl")
 
-manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
-manifold_model = Adaptivity.refine(manifold_model)
-panel_ids = get_panel_ids(manifold_model)
 
-ambient_model = get_ambient_model(manifold_model)
-
-Ω_parametric = Triangulation(manifold_model)
-Ω_ambient = Triangulation(ambient_model)
-
-pts_parametric = get_cell_points(Ω_parametric)
-pts_ambient = get_cell_points(Ω_ambient)
-
-############# Surface metric and quadrature
 p = 2
 degree = 2*(p+1)
-m = Metric(cubedsphere,Ω_parametric)
-dΩg = Measure(m,Ω_parametric,degree)
-dΩ_parametric = Measure(Ω_parametric,degree)
+ns = [2^i for i = 2:6]
+dx = 1 ./ ns
 
-############# Analytic function on parametric space
-# function h(p)
-  function h(αβ)
-    # cos(4*αβ[1])
-    if αβ[1] < 0.0
-      return -αβ[1]*(αβ[1] + π/4)
-    else
-      return αβ[1]*(αβ[1] - π/4)
-    end
+################################################################################
+#### Analytic parametric space for a single panel
+################################################################################
+
+global RADIUS = 1.0*sqrt(3.0)
+
+
+function u1(αβ)
+  if αβ[1] < 0.0
+    return -αβ[1]*(αβ[1] + π/4)
+  else
+    return αβ[1]*(αβ[1] - π/4)
   end
-# end
-
-# cellf = map(p->GenericField(h(p)),panel_ids)
-# cf_parametric = CellData.GenericCellField(cellf,Ω_parametric,PhysicalDomain())
-
-cf_parametric = CellField(h,Ω_parametric)
-rhs = -1.0*surface_laplacian(cf_parametric,m)
+end
+u2(x) = -(x[1] + π/4  )*(x[1] - π/4)
+u3(x) = cos(4*x[1])
+# n=4
+# e, eg = solve_poisson_manifold_periodic((-π/4,π/4, -π/4,π/4), (n,n),p,degree,u1,metric_func(cubedsphere);name=cubedsphere)
 
 
-############# Analytic function on ambient space
-# hambient(X) = X[1]*X[2]*X[3]
+uex_funcs = Dict{Symbol,Any}()
+uex_funcs[:u1] = u1
+uex_funcs[:u2] = u2
+uex_funcs[:u3] = u3
 
-# cellf = map(p->GenericField(u_scalar_ambient2parametric(p,hambient)),panel_ids)
-# cf_parametric = CellData.GenericCellField(cellf,Ω_parametric,PhysicalDomain())
-# rhs = -1.0*surface_laplacian(cf_parametric,m)
+errs = []
+errs_g = []
+for (key, val) in uex_funcs
+  for n in ns[1:end-1]
+    e, eg = solve_poisson_manifold_periodic((-π/4,π/4, -π/4,π/4), (n,n),p,degree,val,metric_func(cubedsphere);name=cubedsphere)
+    push!(errs,e)
+    push!(errs_g,eg)
+  end
+end
 
 
-############# FE problem
-V = FESpace(manifold_model, ReferenceFE(lagrangian,Float64,p); conformity=:H1,
-  constraint=:zeromean)
-U = TrialFESpace(V)
+leginf = map(x->string(x),collect(keys(uex_funcs)))
 
-poisson_biform(u,v) = ∫( surface_gradient(u,m)⋅gradient(v) )dΩg
-poisson_liform(v) =  ∫( (rhs*v) )dΩg
-
-op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
-uh = solve(LUSolver(),op)
-
-l2(uh-cf_parametric,dΩg)
-l2(uh-cf_parametric,dΩ_parametric)
-
-########## Map to ambient space to visualise
-ss, uh_ambient_analytic = parametric_cf_2_ambient(manifold_model,degree,cf_parametric)
-ss, uh_ambient = parametric_cf_2_ambient(manifold_model,degree,uh)
-
-# plot in ambient space
-writevtk(Ω_ambient,dir*"/possion_ambient",
-        cellfields=["uh"=>uh_ambient,"u"=>uh_ambient_analytic,
-                  "e"=>uh_ambient-uh_ambient_analytic],append=false)
-writevtk(Ω_parametric,dir*"/possion_parametric",
-        cellfields=["uh"=>uh,"u"=>cf_parametric,
-                  "e"=>uh-cf_parametric],append=false)
-# writevtk(manifold_model,dir*"/model",append=false)
+#
+plot()
+plot_error(ns[1:end-1],errs;leginf=leginf,ls=fill(:solid,length(uex_funcs)))
+plot_error(ns[1:end-1],errs_g;ls=fill(:dash,length(uex_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
+savefig(plotsdir()*"/poisson_cubedsphere_analytic_domain_new")

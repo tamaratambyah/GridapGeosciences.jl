@@ -59,12 +59,15 @@ savefig(plotsdir()*"/wave_convergence_p_2D_trig")
 ###############################################################################
 global RADIUS = 1.0*sqrt(3.0)
 
-n = 16
+n = 32
 p = 2
 degree = 2*(p+1)
 
-uex(x) = VectorValue(0.0,(π/4+x[1])*(π/4-x[1]))
-pex(x) = 1.0 +  0.01*(π/4+x[1])*(π/4-x[1])
+# uex(x) = VectorValue(0.0,(π/4+x[1])*(π/4-x[1]))
+# pex(x) = 1.0 +  0.01*(π/4+x[1])*(π/4-x[1])
+
+uex(x) = VectorValue(0.0,cos(4*x[2]))
+pex(x) = 1.0 +  0.1*cos(4*x[1])
 
 
 ##
@@ -76,11 +79,6 @@ m = Metric(cubedsphere,Ω)
 dΩ = Measure(Ω, degree)
 dΩg =  Measure(m,Ω,degree)
 
-# cellu = map(p->GenericField(uex_p(p)),panel_ids)
-# ucf = CellData.GenericCellField(cellu,Ω,PhysicalDomain())
-
-# cellp = map(p->GenericField(pex_p(p)),panel_ids)
-# pcf = CellData.GenericCellField(cellp,Ω,PhysicalDomain())
 ucf = CellField(uex,Ω)
 pcf = CellField(pex,Ω)
 
@@ -112,13 +110,13 @@ op = AffineFEOperator(wave_biform,wave_liform,X,Y)
 uh, ph = solve(LUSolver(),op)
 
 # Error
-eu =  sum(∫((uh-uex)⊙(uh-uex))dΩ)
-ep = sum(∫((ph-pex)⊙(ph-pex))dΩ)
+eu =  sum(∫((uh-ucf)⊙(uh-ucf))dΩ)
+ep = sum(∫((ph-pcf)⊙(ph-pcf))dΩ)
 
-eu_g =  sum(∫((uh-uex)⊙(uh-uex))dΩg)
-ep_g = sum(∫((ph-pex)⊙(ph-pex))dΩg)
+eu_g =  sum(∫((uh-ucf)⊙(uh-ucf))dΩg)
+ep_g = sum(∫((ph-pcf)⊙(ph-pcf))dΩg)
 
 writevtk(Ω,dir*"/wave_cubed_sphere",
-    cellfields=["u"=>uex,"p"=>pex,
+    cellfields=["u"=>ucf,"p"=>pcf,
                 "uh"=>uh, "ph"=>ph,
-                "eu"=>uh-uex,"ep"=>ph-pex],append=false)
+                "eu"=>uh-ucf,"ep"=>ph-pcf],append=false)

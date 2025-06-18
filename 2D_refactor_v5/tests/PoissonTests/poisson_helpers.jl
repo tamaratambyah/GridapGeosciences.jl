@@ -175,15 +175,21 @@ use lagrange mulitplers to enforce compatibility and zeromean constraints
 Note, only works in 1D (i.e. circle)
 - in 2D (for sphere), the error blows up due to pole signularity
 """
-function solve_poisson_manifold_periodic(domain,partition,p,degree,u,metric_func)
+function solve_poisson_manifold_periodic(domain,partition,p,degree,u,metric_func;name::ManifoldName)
 
   d = length(partition)
-  @assert d < 2 "Must be 1D!"
-
+  if d > 1
+    @assert name==cubedsphere "Must be 1D!"
+  end
 
   model = CartesianDiscreteModel(domain, partition, isperiodic=ntuple(x->true,d))
   Ω = Triangulation(model)
   m = Metric(metric_func,Ω)
+
+  if name == cubedsphere
+    println("cubed sphere!")
+    m = Metric(cubedsphere,Ω)
+  end
 
   dΩ = Measure(Ω,degree)
   dΩg =  Measure(m,Ω,degree)

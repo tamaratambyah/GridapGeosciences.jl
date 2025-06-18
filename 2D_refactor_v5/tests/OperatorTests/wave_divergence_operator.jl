@@ -135,3 +135,25 @@ metric_func(x) = TensorValue{2,2}(1+4*x[1]^2,4*x[1]*x[2],4*x[1]*x[2],1+4*x[2]^2 
 m = Metric(metric_func,Ω)
 @test divRHS(pt) ≈  wave_divergence(τ,m)(pt)
 @test divRHS(pt) ≈  wave_divergence(τcf,m)(pt)
+
+
+################################################################################
+#### Test for cubed sphere
+################################################################################
+model = CartesianDiscreteModel((-π/4,π/4, -π/4,π/4), (8,8),isperiodic=(true,true))
+Ω = Triangulation(model)
+
+# pt = Point(-π/4,π/4)
+pt = Point(π/4,π/4)
+# pt = Point(π/4,-π/4)
+
+τ(x) = VectorValue(x[1]^2*x[2],x[2] + x[1]^3*x[2]^3)
+τcf = CellField(τ,Ω)
+m = Metric(cubedsphere,Ω)
+
+sqrtg(x) = sq_meas_func(cubedsphere)(x)
+Ginv(x) = inv_metric_func(cubedsphere)(x)
+
+@test divLHS(pt) ≈ divRHS(pt)
+@test divRHS(pt) ≈  wave_divergence(τ,m)(pt)
+@test divRHS(pt) ≈  wave_divergence(τcf,m)(pt)
