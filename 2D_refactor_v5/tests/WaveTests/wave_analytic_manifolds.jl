@@ -20,16 +20,16 @@ where
 
 Consider various mappings:
   1D interval -> 2D circle
-    * φ(x) = (r sin(x), r cos(x))
+    * φ(x)  = (r sin(x), r cos(x))
     * x ∈ Ω = [0, 2π] periodic
-    * u_ex = x(2π - x)
-    * p_ex = 1 + 0.01x(2π-x)
+    * u_ex  = x(2π - x)
+    * p_ex  = 1 + 0.01x(2π-x)
 
   2D rectangle -> 3D sphere
-    * φ(u,v) = (r cos(u) cos(v), r cos(u) sin(v), r sin(u)  )
+    * φ(u,v)  = (r cos(u) cos(v), r cos(u) sin(v), r sin(u)  )
     * u,v ∈ Ω = [-π/2, π/2] × [0, 2π] doubly periodic
-    * u_ex = (0, v(2π - v))
-    * p_ex = 1 + 0.01(π/2 + u)(π/2 - u)
+    * u_ex    = (0, v(2π - v))
+    * p_ex    = 1 + 0.01(π/2 + u)(π/2 - u)
 """
 
 using Gridap, Gridap.Geometry

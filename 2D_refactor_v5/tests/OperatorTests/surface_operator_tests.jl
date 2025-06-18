@@ -1,11 +1,25 @@
+"""
+Test the surface gradient, surface divergence, and surface laplacian operators
+
+The theoretical values in _gradf and _divv were computed by hand.
+See cubed_sphere_refactor, section 8 notes
+
+Consider various mappings:
+  1D interval -> polynomial: Ω = [0,1]
+    * linear: φ(x) = (x,2x)
+    * quad:   ϕ(x) = (x,x^2)
+    * cubic:  ϕ(x) = (x,x^3 + x^2 + x + 1)
+
+  2D square -> 3D plane: Ω = [0,1]^2
+    * const:  φ(x,y) = (x,y,0)
+    * linear: φ(x,y) = (x,y,x+y)
+    * quad:   φ(x,y) = (x,y,x^2 + y^2)
+"""
+
 using Gridap
 using Test
 include("../../src/initialise.jl")
 
-"""
-The theoretical values in _gradf and _divv were computed by hand.
-See cubed_sphere_refactor, section 8 notes
-"""
 
 function test_operators(m::Metric,
   cf::CellField,_gradf::AbstractArray,

@@ -17,8 +17,8 @@ where
 Consider various mappings:
   1D interval -> polynomial: Ω = [0,1]; u_ex = x(1-x)
     * linear: φ(x) = (x,2x)
-    * quad:   ϕ(x)= (x,x^2)
-    * cubic:  ϕ(x)= (x,x^3 + x^2 + x + 1)
+    * quad:   ϕ(x) = (x,x^2)
+    * cubic:  ϕ(x) = (x,x^3 + x^2 + x + 1)
 
   2D square -> 3D plane: Ω = [0,1]^2; u_ex =  x(1-x) + y(1-y)
     * const:  φ(x,y) = (x,y,0)
