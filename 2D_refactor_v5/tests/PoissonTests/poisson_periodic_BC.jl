@@ -102,7 +102,7 @@ for (key, val) in uex_funcs
     e2 = solve_poisson_periodic((0,1,0,1),(n,n),p,degree,val;lagrange=true)
     e3 = solve_poisson_periodic((0,1,0,1),(n,n),p,degree,val;lagrange=true,uzeromean=true)
     # if n != 64
-      e4 = solve_poisson_dual_form((0,1,0,1),(n,n),p,degree,val)
+      e4 = solve_poisson_periodic_dual_form((0,1,0,1),(n,n),p,degree,val)
       push!(method4,e4)
     # end
     push!(method1,e1)

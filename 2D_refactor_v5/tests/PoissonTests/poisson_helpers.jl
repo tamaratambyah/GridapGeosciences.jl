@@ -67,7 +67,7 @@ This method uses lagrange mulitplers to
   1. enforce the compatibility condition ∫ Δuex = 0
   2. enforce the zero means condition ∫ uex = ∫ u = 0
 """
-function solve_poisson_dual_form(domain,partition,p,degree,uex)
+function solve_poisson_periodic_dual_form(domain,partition,p,degree,uex)
 
   model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,partition,isperiodic=ntuple(x->true,length(partition))))
 
@@ -122,10 +122,13 @@ end
 
 """
 solve on manifold using surface diff operators
-"""
-function solve_poisson_manifold(domain,n,p,degree,u,metric_func;isperiodic=ntuple(i->false,length(n)))
 
-  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,n,isperiodic=isperiodic))
+Note this method is NOT applicable to doubly periodic parametric domains
+- if parametric domain is doubly periodic, use solve_poisson_manifold_periodic()
+"""
+function solve_poisson_manifold(domain,partition,p,degree,u,metric_func;isperiodic=ntuple(i->false,length(partition)))
+
+  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,partition,isperiodic=isperiodic))
 
   Ω = Triangulation(model)
   m = Metric(metric_func,Ω)
@@ -163,6 +166,81 @@ function solve_poisson_manifold(domain,n,p,degree,u,metric_func;isperiodic=ntupl
 
   println("Errors: ", e, "; ", eg)
   return e, eg
+end
+
+"""
+solve on manifold with doubly periodic parametric domain
+use lagrange mulitplers to enforce compatibility and zeromean constraints
+
+Note, only works in 1D (i.e. circle)
+- in 2D (for sphere), the error blows up due to pole signularity
+"""
+function solve_poisson_manifold_periodic(domain,partition,p,degree,u,metric_func)
+
+  d = length(partition)
+  @assert d < 2 "Must be 1D!"
+
+
+  model = CartesianDiscreteModel(domain, partition, isperiodic=ntuple(x->true,d))
+  Ω = Triangulation(model)
+  m = Metric(metric_func,Ω)
+
+  dΩ = Measure(Ω,degree)
+  dΩg =  Measure(m,Ω,degree)
+
+  # check zero mean
+  println("Zero mean: ", sum(∫(u)dΩ) )
+
+  # check compatibility
+  ucf = CellField(u,Ω)
+  println("Compatibility: ", sum(∫( surface_laplacian(ucf,m))dΩ) )
+
+
+
+  ################################################################################
+  #### Method 4
+  #### Mixed form -- with lagrange multiplers
+  ################################################################################
+  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:L2)
+  U = TrialFESpace(V)
+
+  T = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,p); conformity=:Hdiv)
+  S = TrialFESpace(T)
+
+  Λ = ConstantFESpace(model)
+  M = TrialFESpace(Λ)
+
+  X = MultiFieldFESpace([S,U,M])
+  Y = MultiFieldFESpace([T,V,Λ])
+
+  ### Sigma_exact
+  sigma_ex(x) = surface_gradient(u,m)(x)
+  _X = MultiFieldFESpace([S,M])
+  _Y = MultiFieldFESpace([T,Λ])
+
+  biformS((s,μ),(t,λ)) = ∫( s⋅t )dΩg + ∫( surface_divergence(s,m)*λ )dΩg  + ∫( surface_divergence(t,m)*μ )dΩg
+  liformS((t,λ)) = ∫( sigma_ex ⋅ t )dΩg
+  op = AffineFEOperator(biformS,liformS,_X,_Y)
+  sigma_exh,μh = solve(LUSolver(),op)
+
+  ### dual form
+  _rhs = -1.0*surface_divergence(sigma_exh,m)
+
+  biformX((s,u,μ),(t,v,λ)) = (  ∫( s⋅t  )dΩg + ∫( wave_divergence(t,m)*u )dΩ
+                              + ∫( surface_divergence(s,m)*v  )dΩg
+                              + ∫(v*μ)dΩg + ∫(λ*u)dΩg
+                        )
+  liformY((t,v,λ)) = ∫( -(_rhs*v) )dΩg  + ∫(λ*u)dΩg
+
+  op = AffineFEOperator(biformX,liformY,X,Y)
+  sh,uh,μh = solve(LUSolver(),op)
+
+  #### Compute errors
+  e = sum(∫((uh-u)⊙(uh-u))dΩ)
+  eg = sum(∫((uh-u)⊙(uh-u))dΩg)
+
+  return e, eg
+
 end
 
 
