@@ -1,41 +1,141 @@
 using Gridap, Gridap.Geometry
-using Plots
+using Plots,LaTeXStrings
 using LinearAlgebra
 using DrWatson
 using Test
+
+include("../analytic_metrics.jl")
 include("../../../src/initialise.jl")
+include("../poisson_helpers.jl")
+
+
+function helmholtz_periodic(domain,partition,p,degree,uex)
+
+  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,partition,isperiodic=ntuple(x->true,length(partition))))
+
+  Ω = Triangulation(model)
+  dΩ = Measure(Ω,degree)
+
+  ucf = CellField(uex,Ω)
+  compat = ( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
+  println("Compatibility: ", compat)
+
+  rhs = (ucf + laplacian(ucf))
+
+    ### FE problem -- single field
+  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
+  U = TrialFESpace(V)
+
+
+  poisson_biform(u,v) = ∫(u*v)dΩ -  ∫( gradient(u)⋅gradient(v)  )dΩ
+  poisson_liform(v) = ∫(  rhs*v )dΩ
+
+  op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+  uh = solve(LUSolver(),op)
+
+  return sum(∫((uh-uex)⊙(uh-uex))dΩ)
+end
+
+function helmholtz_dual_periodic(domain,partition,p,degree,uex)
+
+  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,partition,isperiodic=ntuple(x->true,length(partition))))
+
+  Ω = Triangulation(model)
+  dΩ = Measure(Ω,degree)
+
+  ucf = CellField(uex,Ω)
+  compat = ( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
+  println("Compatibility: ", compat)
+
+  rhs = (ucf + laplacian(ucf))
+
+  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:L2)
+  U = TrialFESpace(V)
+
+  T = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,p); conformity=:Hdiv)
+  S = TrialFESpace(T)
+
+  X = MultiFieldFESpace([S,U])
+  Y = MultiFieldFESpace([T,V])
+
+  biformX((s,u),(t,v)) = (  ∫( s⋅t)dΩ + ∫( divergence(t)*u )dΩ
+                          + ∫( u*v )dΩ   + ∫( divergence(s)*v  )dΩ
+                        )
+  liformY((t,v)) = ∫( rhs*v )dΩ
+
+  op = AffineFEOperator(biformX,liformY,X,Y)
+  sh,uh = solve(LUSolver(),op)
+
+
+  return sum(∫((uh-uex)⊙(uh-uex))dΩ)
+end
 
 p = 2
 degree = 2*(p+1)
+ns = [2^i for i = 2:6]
+dx = 1 ./ ns
 
-function uex(x)
+#### compatible analytic functions
+function u1(x)
   if x[1] < 0.5
-    return x[1]*(0.5-x[1]) # + x[1]*(1-x[1])
+    return x[1]*(0.5-x[1])
   else
-    return (x[1]-0.5)*(x[1]-1) #+ x[1]*(1-x[1])
+    return (x[1]-0.5)*(x[1]-1)
   end
 end
 
+u2(x) = cos(2*π*x[1])
 
+uex_funcs = Dict{Symbol,Any}()
+uex_funcs[:u1] = u1
+uex_funcs[:u2] = u2
+
+errs = []
+errs_dual = []
+for (key, val) in uex_funcs
+  for n in ns
+    e = helmholtz_periodic((0,1,0,1),(n,n),p,degree,val)
+    e_d = helmholtz_dual_periodic((0,1,0,1),(n,n),p,degree,val)
+    push!(errs,e)
+    push!(errs_dual,e_d)
+  end
+end
+
+leginf = map(x->string(x),collect(keys(uex_funcs)))
+
+plot()
+plot_error(ns,errs;leginf=leginf,ls=fill(:solid,length(uex_funcs)))
+plot_error(ns,errs_dual;ls=fill(:dash,length(uex_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
+plot!(ns,1e1dx.^6,lw=2,c=:black,label="dx^6")
+savefig(plotsdir()*"/helmholtz_convergence")
+
+
+
+################################################################################
+################################################################################
 model = CartesianDiscreteModel((0,1,0,1), (8,8), isperiodic=(true,true))
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
 
+####### Primial form
+uex = cos(2*π*x[1])
 
 ucf = CellField(uex,Ω)
 # check compatibility
--1.0*( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
+( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
 
 writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex],append=false)
 
 
-rhs = -1.0*(ucf + laplacian(ucf))
+rhs = (ucf + laplacian(ucf))
 
 #### FE Problem -- no lagrange multiplers
 V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
-poisson_biform(u,v) = ∫(-u*v)dΩ +  ∫( gradient(u)⋅gradient(v)  )dΩ
+poisson_biform(u,v) = ∫(u*v)dΩ -  ∫( gradient(u)⋅gradient(v)  )dΩ
 poisson_liform(v) = ∫(  rhs*v )dΩ
 op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 
@@ -47,7 +147,7 @@ sum(A*(3*ones(size(b))))
 sum(b)
 
 uh = solve(LUSolver(),op)
-sum( ∫(uh )dΩ  )
+# sum( ∫(uh )dΩ  )
 
 #### Compute errors
 e = uh-uex
@@ -60,52 +160,40 @@ writevtk(Ω,dir*"/poisson",
 
 
 
-################################################################################
-#### Method 4
-#### Mixed form -- with lagrange multiplers
-################################################################################
-uex(x) = x[1]*(1-x[1])
+#### Mixed form
+# uex = cos(2*π*x[1])
+function uex(x)
+  if x[1] < 0.5
+    return x[1]*(0.5-x[1])
+  else
+    return (x[1]-0.5)*(x[1]-1)
+  end
+end
 
 ucf = CellField(uex,Ω)
 # check compatibility
--1.0*( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
+( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
 
-# dual form -- with periodicity, force zero mean
+# dual form
 V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:L2)
 U = TrialFESpace(V)
 
 T = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,p); conformity=:Hdiv)
 S = TrialFESpace(T)
 
-Λ = ConstantFESpace(model)
-M = TrialFESpace(Λ)
-
-X = MultiFieldFESpace([S,U,M])
-Y = MultiFieldFESpace([T,V,Λ])
-
-### Sigma_exact
-sigma_ex(x) = gradient(ucf)(x)
-
-_X = MultiFieldFESpace([S,M])
-_Y = MultiFieldFESpace([T,Λ])
-
-biformS((s,μ),(t,λ)) = ∫( s⋅t )dΩ + ∫( divergence(s)*λ )dΩ  + ∫( divergence(t)*μ )dΩ
-liformS((t,λ)) = ∫( sigma_ex ⋅ t )dΩ
-op = AffineFEOperator(biformS,liformS,_X,_Y)
-sigma_exh,μh = solve(LUSolver(),op)
+X = MultiFieldFESpace([S,U])
+Y = MultiFieldFESpace([T,V])
 
 
-### dual form
-_rhs = -1.0*(ucf + laplacian(ucf))
+_rhs = (ucf + laplacian(ucf))
 
-biformX((s,u,μ),(t,v,λ)) = ( ∫( u*v )dΩ  + ∫( s⋅t + divergence(t)*u )dΩ
-                            + ∫( divergence(s)*v  )dΩ
-                            + ∫(v*μ)dΩ + ∫(λ*u)dΩ
+biformX((s,u),(t,v)) = (  ∫( s⋅t)dΩ + ∫( divergence(t)*u )dΩ
+                        + ∫( u*v )dΩ   + ∫( divergence(s)*v  )dΩ
                       )
-liformY((t,v,λ)) = ∫( -(_rhs*v) )dΩ  + ∫(λ*uex)dΩ
+liformY((t,v)) = ∫( _rhs*v )dΩ
 
 op = AffineFEOperator(biformX,liformY,X,Y)
-sh,uh,μh = solve(LUSolver(),op)
+sh,uh = solve(LUSolver(),op)
 
 e = uh-uex
 sum(∫(e⊙e)dΩ)
