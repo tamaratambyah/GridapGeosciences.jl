@@ -8,11 +8,11 @@ include("poisson_helpers.jl")
 
 #### Analytic solution with zero mean
 p = 2
-degree = 2*(p+1)
+degree = 20#2*(p+1)
 ns = [2^i for i = 2:6]
 dx = 1 ./ ns
 
-n = ns[4]
+n = ns[3]
 
 global RADIUS = 1.0*sqrt(3.0)
 
@@ -28,28 +28,100 @@ m = Metric(cubedsphere,Ω)
 dΩ = Measure(Ω, degree)
 dΩg =  Measure(m,Ω,degree)
 
-# function uex(αβ)
-#   if αβ[1] < 0.0
-#     return -αβ[1]*(αβ[1] + π/4)
-#   else
-#     return αβ[1]*(αβ[1] - π/4)
-#   end
-# end
-uex(x) = -(x[1] + π/4  )*(x[1] - π/4)
+function uex(x)
+  if x[2] < 0.0
+    return -x[2]*(x[2] + π/4)
+  else
+    return x[2]*(x[2] - π/4)
+  end
+
+end
+
+# uex(x) = (x[2]+π/4)*(x[2] - π/4)*(x[1]+π/4)*(x[1]-π/4)
+writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex],append=false)
 
 ucf = CellField(uex,Ω)
 
-# check zero mean
-sum(∫(ucf)dΩ  )
-sum(∫(ucf)dΩg  )
+# # check zero mean
+# sum(∫(ucf)dΩ  )
+# sum(∫(ucf)dΩg  )
 
-# check compatibility
-sum(∫( surface_laplacian(ucf,m))dΩ  )
-sum(∫( surface_laplacian(ucf,m))dΩg  )
-
-writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex],append=false)
+# # check compatibility
+# sum(∫( surface_laplacian(ucf,m))dΩ  )
+# sum(∫( surface_laplacian(ucf,m))dΩg  )
 
 
+# ## zero mean in FE space
+# _rhs = ucf + -1.0*surface_laplacian(ucf,m)
+# sum(∫(_rhs )dΩg)
+# sum(∫(_rhs )dΩ)
+
+# V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
+# U = TrialFESpace(V)
+
+# Λ = ConstantFESpace(model)
+# M = TrialFESpace(Λ)
+
+# X = MultiFieldFESpace([U,M])
+# Y = MultiFieldFESpace([V,Λ])
+
+
+
+# poisson_biform(u,v) = ∫(u*v)dΩg + ∫( surface_gradient(u,m)⋅gradient(v) )dΩg
+# poisson_liform(v) =  ∫( (_rhs*v) )dΩg
+
+# op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+# A = get_matrix(op)
+# b = get_vector(op)
+# eigvals(Array(A))
+# _vec = A*ones(size(b))
+# norm(A*ones(size(b)))
+# sum(b)
+
+# uh = solve(LUSolver(),op)
+
+
+# e = l2(uh-ucf,dΩ)
+# eg = l2(uh-ucf,dΩg)
+
+# # poisson_biform((u,μ),(v,λ)) = ∫( u*v )dΩg + ∫( surface_gradient(u,m)⋅gradient(v) )dΩg   + ∫(v*μ)dΩg + ∫(λ*u)dΩg
+# # poisson_liform((v,λ)) =  ∫( (_rhs*v) )dΩg
+# # op = AffineFEOperator(poisson_biform,poisson_liform,X,Y)
+# # uh,μh = solve(LUSolver(),op)
+
+
+
+# b = get_vector(op)
+# A = get_matrix(op)
+# using LinearAlgebra
+# eigvals(Array(A))
+# _vec = A*ones(size(b))
+# norm(A*ones(size(b)))
+# sum(b)
+
+
+# # eigvecs(Array(A))
+
+# # labels = get_face_labeling(model)
+# # add_tag_from_tags!(labels,"bb",[7])
+
+# # Γ = BoundaryTriangulation(model,tags=["boundary"])
+# # get_cell_dof_ids(V,Γ)
+
+# # sum(b)
+# # println("Compatibility: ", sum(b))
+
+
+# e = l2(uh-ucf,dΩ)
+# eg = l2(uh-ucf,dΩg)
+
+
+# writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex,"uh"=>uh,"e"=>uex-uh],append=false)
+
+# 1;
+# # writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex],append=false)
+
+p=4
 V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:L2)
 U = TrialFESpace(V)
 
@@ -67,7 +139,6 @@ _Y = MultiFieldFESpace([T,Λ])
 
 #### With metric: Method 4 - mixed form -- with lagrange multiplers
 ### Sigma_exact
-# sigma_ex(x) = surface_gradient(uex,m)(x)
 _sigma_ex = surface_gradient(ucf,m)
 
 biformS((s,μ),(t,λ)) = ∫( s⋅t )dΩg + ∫( surface_divergence(s,m)*λ )dΩg  + ∫( surface_divergence(t,m)*μ )dΩg
@@ -84,8 +155,8 @@ sigma_exh,μh = solve(LUSolver(),op)
 
 
 ### dual form
-_rhs = -1.0*surface_divergence(sigma_exh,m)
-# _rhs = -1.0*surface_divergence(_sigma_ex,m)
+# _rhs = -1.0*surface_divergence(sigma_exh,m)
+_rhs = -1.0*surface_divergence(_sigma_ex,m)
 
 biformX((s,u,μ),(t,v,λ)) = (  ∫( s⋅t  )dΩg + ∫( wave_divergence(t,m)*u )dΩ
                             + ∫( surface_divergence(s,m)*v  )dΩg
@@ -102,14 +173,6 @@ eg = sum(∫((uh-ucf)⊙(uh-ucf))dΩg)
 
 writevtk(Ω,dir*"/poisson",cellfields=["u"=>ucf,"uh"=>uh,"eu"=>ucf-uh,
    ],append=false)
-
-
-inv_metric_func(cubedsphere)(Point(0,0))
-
-sq_meas_func(cubedsphere)(Point(0,0))
-
-
-
 
 
 
