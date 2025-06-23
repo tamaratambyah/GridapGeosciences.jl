@@ -21,7 +21,7 @@ global RADIUS = 1.0*sqrt(3.0)
 #### Analytic parametric space for a single panel
 ################################################################################
 
-model = CartesianDiscreteModel((-π/4,π/4, -π/4,π/4), (n,n), isperiodic=(true,true))
+model = CartesianDiscreteModel((-π/4,π/4, -π/4,π/4), (n,n))
 Ω = Triangulation(model)
 m = Metric(cubedsphere,Ω)
 
