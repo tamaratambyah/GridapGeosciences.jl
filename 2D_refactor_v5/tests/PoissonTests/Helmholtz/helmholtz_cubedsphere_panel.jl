@@ -58,8 +58,16 @@ end
 
 
 
-u1(x) = cos(4*x[1])*sin(4*x[2])
-function u2(x)
+function u1(x)
+  if x[2] < 0.0
+    return -x[2]*(x[2] + π/4)
+  else
+    return x[2]*(x[2] - π/4)
+  end
+
+end
+u2(x) = cos(4*x[1])*sin(4*x[2])
+function u3(x)
   θϕ = GnomonicField()(x)
   return cos(θϕ[1])*sin(θϕ[2])
 end
@@ -68,7 +76,7 @@ end
 uex_funcs = Dict{Symbol,Any}()
 uex_funcs[:u1] = u1
 uex_funcs[:u2] = u2
-
+uex_funcs[:u3] = u3
 
 errs = []
 errs_g = []
