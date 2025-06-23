@@ -3,9 +3,8 @@ using Plots, LaTeXStrings
 using LinearAlgebra
 using DrWatson
 
-include("../../src/initialise.jl")
-include("wave_helpers.jl")
-include("../PoissonTests/poisson_helpers.jl")
+include("../../../src/initialise.jl")
+include("../pde_helpers.jl")
 
 
 
@@ -59,25 +58,31 @@ savefig(plotsdir()*"/wave_convergence_p_2D_trig")
 ###############################################################################
 global RADIUS = 1.0*sqrt(3.0)
 
-n = 32
+n = 16
 p = 2
 degree = 2*(p+1)
 
-# uex(x) = VectorValue(0.0,(π/4+x[1])*(π/4-x[1]))
-# pex(x) = 1.0 +  0.01*(π/4+x[1])*(π/4-x[1])
+uex(x) = VectorValue(0.0,(π/4+x[1])*(π/4-x[1]))
+pex(x) = 1.0 +  0.01*(π/4+x[1])*(π/4-x[1])
 
-uex(x) = VectorValue(0.0,cos(4*x[2]))
-pex(x) = 1.0 +  0.1*cos(4*x[1])
+# uex(x) = VectorValue(0.0,cos(4*x[2]))
+# pex(x) = 1.0 +  0.1*cos(4*x[1])
 
 
 ##
-model = CartesianDiscreteModel((-π/4,π/4, -π/4,π/4),(n,n), isperiodic=(true,true) )
+model = CartesianDiscreteModel((-π/4,π/4, -π/4,π/4),(n,n) )
 
 Ω = Triangulation(model)
 m = Metric(cubedsphere,Ω)
 
+
 dΩ = Measure(Ω, degree)
 dΩg =  Measure(m,Ω,degree)
+
+Γ = BoundaryTriangulation(model)
+dΓ = Measure(Γ,degree)
+dΓg = Measure(m,Γ,degree)
+n_Γ = get_normal_vector(Γ)
 
 ucf = CellField(uex,Ω)
 pcf = CellField(pex,Ω)
@@ -98,13 +103,19 @@ P = TrialFESpace(Q)
 X = MultiFieldFESpace([U,P])
 Y = MultiFieldFESpace([V,Q])
 
+# p_trial = get_trial_fe_basis(P)
+# v_test = get_fe_basis(V)
+# liform(v) = ∫( pcf*(m.inv_metric⋅v)⋅n_Γ )dΓg
+# liform(v_test)
+
+
 # Weak formulation for u
 wave_biform((u,p),(v,q)) = ( ∫( u⋅v )dΩg
                    + ∫( -1.0*p*(wave_divergence(v,m))   )dΩ
                   + ∫( p*q )dΩg
                   + ∫( (surface_divergence(u,m))*q )dΩg
                   )
-wave_liform((v,q)) = ∫( u0⋅v + p0*q  )dΩg
+wave_liform((v,q)) = ∫( u0⋅v + p0*q  )dΩg -  ∫( pcf*(m.inv_metric⋅v)⋅n_Γ )dΓg
 
 op = AffineFEOperator(wave_biform,wave_liform,X,Y)
 uh, ph = solve(LUSolver(),op)
@@ -120,3 +131,24 @@ writevtk(Ω,dir*"/wave_cubed_sphere",
     cellfields=["u"=>ucf,"p"=>pcf,
                 "uh"=>uh, "ph"=>ph,
                 "eu"=>uh-ucf,"ep"=>ph-pcf],append=false)
+
+
+# split: u equation only
+wave_biform(u,v) = ( ∫( u⋅v )dΩg
+                  )
+wave_liform(v) = ∫( u0⋅v )dΩg + ∫( pcf*(wave_divergence(v,m))   )dΩ -  ∫( pcf*(m.inv_metric⋅v)⋅n_Γ )dΓg
+
+op = AffineFEOperator(wave_biform,wave_liform,U,V)
+uh = solve(LUSolver(),op)
+eu =  sum(∫((uh-ucf)⊙(uh-ucf))dΩ)
+eu_g =  sum(∫((uh-ucf)⊙(uh-ucf))dΩg)
+
+# split: p equation only
+wave_biform(p,q) = (  ∫( p*q )dΩg
+                  )
+wave_liform(q) = ∫( p0*q  )dΩg  - ∫( (surface_divergence(ucf,m))*q )dΩg
+op = AffineFEOperator(wave_biform,wave_liform,P,Q)
+ph = solve(LUSolver(),op)
+
+ep = sum(∫((ph-pcf)⊙(ph-pcf))dΩ)
+ep_g = sum(∫((ph-pcf)⊙(ph-pcf))dΩg)

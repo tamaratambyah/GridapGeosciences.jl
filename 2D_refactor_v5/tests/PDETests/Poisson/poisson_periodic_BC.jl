@@ -54,7 +54,7 @@ using DrWatson
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
-include("../poisson_helpers.jl")
+include("../pde_helpers.jl")
 
 
 p = 2

@@ -6,7 +6,7 @@ using Test
 
 include("../analytic_metrics.jl")
 include("../../../src/initialise.jl")
-include("../poisson_helpers.jl")
+include("../pde_helpers.jl")
 
 function helmholtz_manifold_periodic(manifold,n,p,degree,uex)
   _metric_func = metrics[manifold]

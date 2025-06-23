@@ -5,7 +5,7 @@ using DrWatson
 using Test
 
 include("../../../src/initialise.jl")
-include("../poisson_helpers.jl")
+include("../pde_helpers.jl")
 
 
 p = 2
@@ -167,3 +167,64 @@ sum(b)
 e = l2(uh-ucf,dΩ)
 eg = l2(uh-ucf,dΩg)
 writevtk(Ω,dir*"/poisson",cellfields=["u"=>ucf,"uh"=>uh,"e"=>ucf-uh],append=false)
+
+
+################################################################################
+#### Full cubed sphere
+################################################################################
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
+manifold_model = Adaptivity.refine(manifold_model)
+p = 2
+degree = 10
+
+
+Ω = Triangulation(manifold_model)
+Γ = BoundaryTriangulation(manifold_model)
+writevtk(Γ,dir*"/CS",append=false)
+
+
+m = Metric(cubedsphere,Ω)
+
+dΩ = Measure(Ω, degree)
+dΩg =  Measure(m,Ω,degree)
+
+# dΓ = Measure(Γ,degree)
+# dΓg = Measure(m,Γ,degree)
+# n_Γ = get_normal_vector(Γ)
+
+
+function uex(x)
+  if x[1] < 0.0
+    return -x[1]*(x[1] + π/4)
+  else
+    return x[1]*(x[1] - π/4)
+  end
+
+end
+
+
+ucf = CellField(uex,Ω)
+
+# check zero mean and compatibility
+sum(∫(ucf)dΩ  ), sum(∫( surface_laplacian(ucf,m))dΩ  )
+sum(∫(ucf)dΩg  ), sum(∫( surface_laplacian(ucf,m))dΩg  )
+
+
+rhs = -1.0*surface_laplacian(ucf,m)
+# h = surface_gradient(ucf,m)⋅n_Γ
+
+
+## zero mean in FE space
+V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
+U = TrialFESpace(V)
+
+poisson_biform(u,v) = ∫(u*v)dΩg -  ∫( surface_gradient(u,m)⋅gradient(v)  )dΩg
+poisson_liform(v) = ∫(  rhs*v )dΩg #- ∫( v*h )dΓg
+op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+
+uh = solve(LUSolver(),op)
+
+
+e = l2(uh-ucf,dΩ)
+eg = l2(uh-ucf,dΩg)
+writevtk(Ω,dir*"/poisson",cellfields=["u"=>uex,"uh"=>uh,"e"=>uex-uh],append=false)

@@ -2,7 +2,7 @@ using Gridap
 using Plots, LaTeXStrings
 using DrWatson
 
-include("../../src/initialise.jl")
+include("../../../src/initialise.jl")
 
 # u(x) = VectorValue(cos(2*π*x[1]),cos(2*π*x[2]))
 # h(x) = 1.0 + cos(2*π*x[1])*cos(2*π*x[2])

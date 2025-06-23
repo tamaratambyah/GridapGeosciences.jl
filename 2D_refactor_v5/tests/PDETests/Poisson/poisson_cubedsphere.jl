@@ -26,7 +26,7 @@ using Gridap
 using Gridap.Geometry, Gridap.CellData, Gridap.Fields
 using Plots, LaTeXStrings
 include("../../../src/initialise.jl")
-include("../poisson_helpers.jl")
+include("../pde_helpers.jl")
 
 
 p = 2

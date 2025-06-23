@@ -29,7 +29,7 @@ using DrWatson
 using Test
 
 include("../../../src/initialise.jl")
-include("../poisson_helpers.jl")
+include("../pde_helpers.jl")
 
 
 

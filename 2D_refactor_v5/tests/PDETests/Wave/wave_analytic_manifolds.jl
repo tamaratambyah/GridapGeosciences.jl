@@ -37,9 +37,9 @@ using Plots, LaTeXStrings
 using LinearAlgebra
 using DrWatson
 
-include("../../src/initialise.jl")
-include("wave_helpers.jl")
-include("../PoissonTests/poisson_helpers.jl")
+include("../../../src/initialise.jl")
+
+include("../pde_helpers.jl")
 
 
 
