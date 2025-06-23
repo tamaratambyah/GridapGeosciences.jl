@@ -40,7 +40,7 @@ using DrWatson
 include("../../../src/initialise.jl")
 
 include("../pde_helpers.jl")
-
+include("../analytic_metrics.jl")
 
 
 p = 2
@@ -64,12 +64,11 @@ errs_ug = []
 errs_p = []
 errs_pg = []
 
-for r in collect(radii)
-  metric_func(x) = TensorValue{1}(r^2)
+for _r in collect(radii)
+  global r = _r
   for n in collect(ns)
     println(n)
-
-    eu,ep,eu_g,ep_g = solve_wave_manifold((0,2π),(n, ),p,degree,metric_func,uex,pex)
+    eu,ep,eu_g,ep_g = solve_wave_manifold(:circle,n,p,degree,uex,pex)
 
     push!(errs_u,eu)
     push!(errs_ug,eu_g)
@@ -109,12 +108,11 @@ errs_u = []
 errs_ug = []
 errs_p = []
 errs_pg = []
-for r in collect(radii)
-  metric_func(x) = TensorValue{2,2}(r^2 ,0.0, 0.0, r^2*(cos(x[1]))^2 )
+for _r in collect(radii)
+  global r = _r
   for n in collect(ns)
     println(n)
-
-    eu,ep,eu_g,ep_g = solve_wave_manifold((-π/2,π/2, 0,2π),(n,n),p,degree,metric_func,uex,pex)
+    eu,ep,eu_g,ep_g = solve_wave_manifold(:sphere,n,p,degree,uex,pex)
 
     push!(errs_u,eu)
     push!(errs_ug,eu_g)

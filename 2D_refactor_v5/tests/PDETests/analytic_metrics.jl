@@ -13,17 +13,22 @@ Consider various mappings:
   2D square -> cylinder: Ω = [0,2π] × [0,1]
     * 1 periodic boundary in parametric space
 
-  2D square -> sphere: Ω = [-π/2, π/2 ] × [0,2π]
+  2D square -> sphere: Ω = [0,2π] × [-π/2,π/2]
     * 2 periodic boundaries, requires zeromean constraint and function
+    * σ(u,v) = ( cos(u)cos(v), cos(v)sin(u), sin(v) ), u ∈ [0,2π], v ∈ [-π/2,π/2]
 """
 
 using Gridap
+
+################################################################################
+#### Metrics
+################################################################################
 
 metrics =  Dict{Symbol,Any}()
 
 
 circle(x) = TensorValue{1}(r^2)
-sphere(x) = TensorValue{2,2}(r^2, 0.0, 0.0, r^2*(cos(x[1]))^2 )
+sphere(x) = TensorValue{2,2}(r^2*(cos(x[2]))^2, 0.0, 0.0, r^2 )
 
 
 linear_1D(x) = TensorValue{1}(4)
@@ -52,9 +57,40 @@ metrics[:sphere] = sphere
 metrics_1D = [:linear1D,:quad1D,:cubic1D]
 metrics_2D = [:const2D,:linear2D,:quad2D]
 
+################################################################################
+#### Charts / maps from parametric -> ambient space
+################################################################################
+
+map_linear_1D(x) = VectorValue(x[1],2*x[1])
+map_quad_1D(x) = VectorValue(x[1],x[1]^2)
+map_cubic_1D(x) = VectorValue(x[1],x[1]^3+x[1]^2+x[1]+1)
+
+map_const_2D(x) = VectorValue(x[1],x[2],0.0)
+map_linear_2D(x) = VectorValue(x[1],x[2],x[1]+x[2])
+map_quad_2D(x) = VectorValue(x[1],x[2],x[1]^2+x[2]^2)
+
+map_circle(x) = VectorValue(r*sin(x[1]),r*cos(x[1]))
+map_cylinder(x) = VectorValue(r*sin(x[1]),r*cos(x[1]),x[2])
+map_sphere(x) = VectorValue(r*cos(x[1])*cos(x[2]),r*sin(x[1])*cos(x[2]),r*sin(x[2]) )
+
+charts =  Dict{Symbol,Any}()
+
+charts[:linear1D] = map_linear_1D
+charts[:quad1D] = map_quad_1D
+charts[:cubic1D] = map_cubic_1D
+charts[:circle] = map_circle
+charts[:const2D] = map_const_2D
+charts[:linear2D] = map_linear_2D
+charts[:quad2D] = map_quad_2D
+charts[:cylinder] = map_const_2D
+charts[:sphere] = map_sphere
+
+################################################################################
+#### Domains in parametric space
+################################################################################
 
 domains =  Dict{Symbol,Any}()
 domains[:d1] = (0,1)
 domains[:d2] = (0,1,0,1)
 domains[:circle] = (0,2*π)
-domains[:sphere] = (-π/2,π/2, 0,2*π )
+domains[:sphere] = (0,2*π, -π/2,π/2)

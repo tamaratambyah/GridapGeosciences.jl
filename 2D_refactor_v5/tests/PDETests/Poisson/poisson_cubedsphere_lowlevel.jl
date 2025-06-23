@@ -87,8 +87,8 @@ manifold_model = Adaptivity.refine(manifold_model)
 
 
 Ω = Triangulation(manifold_model)
-Γ = BoundaryTriangulation(manifold_model)
-writevtk(Γ,dir*"/CS",append=false)
+# Γ = BoundaryTriangulation(manifold_model)
+# writevtk(Γ,dir*"/CS",append=false)
 
 
 m = Metric(cubedsphere,Ω)
@@ -96,11 +96,11 @@ m = Metric(cubedsphere,Ω)
 dΩ = Measure(Ω, degree)
 dΩg =  Measure(m,Ω,degree)
 
-dΓ = Measure(Γ,degree)
-dΓg = Measure(m,Γ,degree)
-n_Γ = get_normal_vector(Γ)
+# dΓ = Measure(Γ,degree)
+# dΓg = Measure(m,Γ,degree)
+# n_Γ = get_normal_vector(Γ)
 
-pts = get_cell_points(Γ)
+# pts = get_cell_points(Γ)
 
 
 function uex(x)
@@ -121,17 +121,24 @@ sum(∫(ucf)dΩg  ), sum(∫( surface_laplacian(ucf,m))dΩg  )
 
 
 _rhs = -1.0*surface_laplacian(ucf,m)
-h = surface_gradient(ucf,m)⋅n_Γ
+# h = surface_gradient(ucf,m)⋅n_Γ
 
 
 ## zero mean in FE space
-V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1, constraint=:zeromean)
+V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
 poisson_biform(u,v) =  ∫( surface_gradient(u,m)⋅gradient(v) )dΩg
 poisson_liform(v) =  ∫( (_rhs*v) )dΩg #+ ∫( v*h )dΓg
 
 op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+
+A = get_matrix(op)
+using LinearAlgebra
+eigvals(Array(A))
+b = get_vector(op)
+A*ones(size(b))
+
 uh = solve(LUSolver(),op)
 
 

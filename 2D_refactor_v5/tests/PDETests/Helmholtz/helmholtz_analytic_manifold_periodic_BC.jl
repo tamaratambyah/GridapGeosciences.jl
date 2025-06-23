@@ -53,10 +53,11 @@ degree = 2*(p+1)
 ns = [2^i for i = 2:6]
 dx = 1 ./ ns
 
+radii = [0.1, 0.5, 1.0, 2.0, 4.0]
+
 r = 2
 
-## on a manifold: circle
-manifold =:circle
+## analytic functions
 
 u1(x) = cos(x[1])
 function u2(x)
@@ -72,6 +73,8 @@ uex_funcs = Dict{Symbol,Any}()
 uex_funcs[:u1] = u1
 uex_funcs[:u2] = u2
 
+## on a manifold: circle
+manifold =:circle
 
 errs = []
 errs_g = []
@@ -97,17 +100,6 @@ savefig(plotsdir()*"/circle_convergence")
 
 ### sphere
 manifold =:sphere
-u1(x) = cos(x[2])
-function u3(x)
-  if x[1] < 0
-    return -x[1]*(π/2+x[1])
-  else
-    return x[1]*(x[1] - π/2)
-  end
-end
-uex_funcs = Dict{Symbol,Any}()
-uex_funcs[:u1] = u1
-uex_funcs[:u2] = u3
 
 errs = []
 errs_g = []

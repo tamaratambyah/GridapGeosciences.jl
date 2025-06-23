@@ -257,15 +257,17 @@ Solve
    ∫ u⋅v dΩg - ∫ p* wave_div() dΩ = ∫ vfᵤ dΩg
   ∫ pq dΩg + ∫ q* surf_div(u) dΩg = ∫ vfₚ dΩg
 """
-function solve_wave_manifold(domain,partition,p,degree,metric_func,uex,pex;name::ManifoldName)
-  model = CartesianDiscreteModel(domain, partition,isperiodic=ntuple(x->true,length(partition)))
+function solve_wave_manifold(manifold,n,p,degree,uex,pex)
+  _metric_func = metrics[manifold]
+  domain = domains[manifold]
+
+  d = Int(length(domain)/2)
+
+  model = CartesianDiscreteModel(domain, ntuple(x->n,d),isperiodic=ntuple(x->true,d))
 
   Ω = Triangulation(model)
-  m = Metric(metric_func,Ω)
-  if name == cubedsphere
-    println("cubed sphere!")
-    m = Metric(cubedsphere,Ω)
-  end
+  m = Metric(_metric_func,Ω)
+
 
   dΩ = Measure(Ω, degree)
   dΩg =  Measure(m,Ω,degree)
