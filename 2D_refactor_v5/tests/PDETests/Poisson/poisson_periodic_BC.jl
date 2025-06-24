@@ -55,6 +55,7 @@ dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
 include("../pde_helpers.jl")
+include("PoissonSolvers.jl")
 
 
 p = 2

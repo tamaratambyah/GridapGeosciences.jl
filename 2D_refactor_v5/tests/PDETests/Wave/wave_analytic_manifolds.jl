@@ -41,7 +41,7 @@ include("../../../src/initialise.jl")
 
 include("../pde_helpers.jl")
 include("../analytic_metrics.jl")
-
+include("WaveSolvers.jl")
 
 p = 2
 degree = 2*(p+1)

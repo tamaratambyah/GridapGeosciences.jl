@@ -1,10 +1,6 @@
 """
 Manufacture solutions for Possion problem on doubly periodic parametric spaces
-associated to a manifold (i.e. cirlce)
-  - This work is only applicable in 1D to the circle with
-    ϕ(x)=(r sin(x), r cos(x)) for x ∈ Ω = [0,2π] doubly periodic.
-  - In 2D for a sphere, the standard chart is not an atalas, and the inverse of
-    the metric is not well defined.
+associated to a manifold (i.e. cirlce/sphere)
 
 Solve Δu = -f on Ω, where
   - Δ is the Laplace-Beltrami operator,
@@ -30,19 +26,19 @@ using Test
 
 include("../../../src/initialise.jl")
 include("../pde_helpers.jl")
-
+include("PoissonSolvers.jl")
+include("../analytic_metrics.jl")
 
 
 p = 2
 degree = 2*(p+1)
 ns = [2^i for i = 2:6]
-dx = 1 ./ ns
 
 
-### 1D circle of radius r
 r = 2
-
-metric_func(x) = TensorValue{1}(r^2)
+################################################################################
+#### 1D circle of radius r
+################################################################################
 
 u1(x) = x[1]*(2*π - x[1])
 u2(x) = cos(x[1]) + 1
@@ -75,7 +71,7 @@ errs = []
 errs_g = []
 for (key, val) in uex_funcs
   for n in ns
-    e, eg = solve_poisson_manifold_periodic((0,2π),(n,),p,degree,val,metric_func)
+    e, eg = solve_poisson_manifold_periodic(:circle,n,p,degree,val)
     push!(errs,e)
     push!(errs_g,eg)
   end
@@ -84,11 +80,38 @@ end
 leginf = map(x->string(x),collect(keys(uex_funcs)))
 
 # 1D circle
+dx = (2π ./ ns )
 plot()
 plot_error(ns,errs;leginf=leginf,ls=fill(:solid,length(uex_funcs)))
 plot_error(ns,errs_g;ls=fill(:dash,length(uex_funcs)))
 plot!(xscale=:log10,yscale=:log10,framestyle=:box,
 xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
-plot!(ns,1e2dx.^4,lw=2,c=:blue,label="dx^4")
-plot!(ns,1e1dx.^6,lw=2,c=:black,label="dx^6")
+plot!(ns,dx.^4,lw=2,c=:blue,label="dx^4")
+plot!(ns,1e-6dx.^6,lw=2,c=:black,label="dx^6")
 savefig(plotsdir()*"/poisson_convergence_circle_r$(Int(r))")
+
+
+################################################################################
+#### circle of radius r
+################################################################################
+errs = []
+errs_g = []
+for (key, val) in uex_periodic_funcs
+  for n in ns
+    e, eg = solve_poisson_manifold_periodic(:circle,n,p,degree,val)
+    push!(errs,e)
+    push!(errs_g,eg)
+  end
+end
+
+leginf = map(x->string(x),collect(keys(uex_periodic_funcs)))
+
+dx = (2π ./ ns ) .* (π ./ ns)
+plot()
+plot_error(ns,errs;leginf=leginf,ls=fill(:solid,length(uex_periodic_funcs)))
+plot_error(ns,errs_g;ls=fill(:dash,length(uex_periodic_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
+plot!(ns,1e-2dx.^3,lw=2,c=:black,label="dx^3")
+# savefig(plotsdir()*"/poisson_convergence_sphere_r$(Int(r))")
+savefig(plotsdir()*"/poisson_convergence_sphere_r05")

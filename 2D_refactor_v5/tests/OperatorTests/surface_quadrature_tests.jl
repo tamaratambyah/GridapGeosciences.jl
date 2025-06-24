@@ -2,7 +2,7 @@ using Gridap
 using Plots
 using LaTeXStrings
 
-include("../src/initialise.jl")
+include("../../src/initialise.jl")
 
 
 function area_test(manifold_model,order::Int)

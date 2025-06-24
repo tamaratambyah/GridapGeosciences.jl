@@ -54,8 +54,9 @@ metrics[:quad2D] = quad_2D
 metrics[:cylinder] = const_2D
 metrics[:sphere] = sphere
 
-metrics_1D = [:linear1D,:quad1D,:cubic1D]
-metrics_2D = [:const2D,:linear2D,:quad2D]
+manifolds_1D = [:linear1D,:quad1D,:cubic1D]
+manifolds_2D = [:const2D,:linear2D,:quad2D]
+manifolds_periodic = [:circle,:sphere]
 
 ################################################################################
 #### Charts / maps from parametric -> ambient space
@@ -90,7 +91,33 @@ charts[:sphere] = map_sphere
 ################################################################################
 
 domains =  Dict{Symbol,Any}()
-domains[:d1] = (0,1)
-domains[:d2] = (0,1,0,1)
+domains[:linear1D] = (0,1)
+domains[:quad1D] = (0,1)
+domains[:cubic1D] = (0,1)
 domains[:circle] = (0,2*π)
+
+domains[:const2D] = (0,1,0,1)
+domains[:linear2D] = (0,1,0,1)
+domains[:quad2D] = (0,1,0,1)
+domains[:cylinder] = (0,2*π,0,1.0)
+
 domains[:sphere] = (0,2*π, -π/2,π/2)
+
+
+################################################################################
+#### Analytic functions periodic on [0,2π] that have
+#### ∫ u = ∫ Δu = 0
+################################################################################
+
+u1_periodic(x) = cos(x[1])
+function u2_periodic(x)
+  if x[1] < π
+    return x[1]*(π-x[1])
+  else
+    return (x[1]-π)*(x[1]-2*π)
+  end
+end
+
+uex_periodic_funcs = Dict{Symbol,Any}()
+uex_periodic_funcs[:u1] = u1_periodic
+uex_periodic_funcs[:u2] = u2_periodic

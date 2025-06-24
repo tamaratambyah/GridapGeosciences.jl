@@ -4,76 +4,13 @@ using LinearAlgebra
 using DrWatson
 using Test
 
-include("../analytic_metrics.jl")
-include("../../../src/initialise.jl")
 include("../pde_helpers.jl")
-
-
-function helmholtz_periodic(domain,partition,p,degree,uex)
-
-  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,partition,isperiodic=ntuple(x->true,length(partition))))
-
-  Ω = Triangulation(model)
-  dΩ = Measure(Ω,degree)
-
-  ucf = CellField(uex,Ω)
-  compat = ( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
-  println("Compatibility: ", compat)
-
-  rhs = (ucf + laplacian(ucf))
-
-    ### FE problem -- single field
-  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
-  U = TrialFESpace(V)
-
-
-  poisson_biform(u,v) = ∫(u*v)dΩ -  ∫( gradient(u)⋅gradient(v)  )dΩ
-  poisson_liform(v) = ∫(  rhs*v )dΩ
-
-  op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
-  uh = solve(LUSolver(),op)
-
-  return sum(∫((uh-uex)⊙(uh-uex))dΩ)
-end
-
-function helmholtz_dual_periodic(domain,partition,p,degree,uex)
-
-  model = UnstructuredDiscreteModel(CartesianDiscreteModel(domain,partition,isperiodic=ntuple(x->true,length(partition))))
-
-  Ω = Triangulation(model)
-  dΩ = Measure(Ω,degree)
-
-  ucf = CellField(uex,Ω)
-  compat = ( sum( ∫( ucf)dΩ) + sum(∫( laplacian(ucf))dΩ  ) )
-  println("Compatibility: ", compat)
-
-  rhs = (ucf + laplacian(ucf))
-
-  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:L2)
-  U = TrialFESpace(V)
-
-  T = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,p); conformity=:Hdiv)
-  S = TrialFESpace(T)
-
-  X = MultiFieldFESpace([S,U])
-  Y = MultiFieldFESpace([T,V])
-
-  biformX((s,u),(t,v)) = (  ∫( s⋅t)dΩ + ∫( divergence(t)*u )dΩ
-                          + ∫( u*v )dΩ   + ∫( divergence(s)*v  )dΩ
-                        )
-  liformY((t,v)) = ∫( rhs*v )dΩ
-
-  op = AffineFEOperator(biformX,liformY,X,Y)
-  sh,uh = solve(LUSolver(),op)
-
-
-  return sum(∫((uh-uex)⊙(uh-uex))dΩ)
-end
+include("HelmholtzSolvers.jl")
 
 p = 2
 degree = 2*(p+1)
 ns = [2^i for i = 2:6]
-dx = 1 ./ ns
+
 
 #### compatible analytic functions
 function u1(x)
@@ -102,13 +39,14 @@ for (key, val) in uex_funcs
 end
 
 leginf = map(x->string(x),collect(keys(uex_funcs)))
+dx = 1 ./ (ns.^2)
 
 plot()
 plot_error(ns,errs;leginf=leginf,ls=fill(:solid,length(uex_funcs)))
 plot_error(ns,errs_dual;ls=fill(:dash,length(uex_funcs)))
 plot!(xscale=:log10,yscale=:log10,framestyle=:box,
 xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
-plot!(ns,1e1dx.^6,lw=2,c=:black,label="dx^6")
+plot!(ns,1e1dx.^3,lw=2,c=:black,label="dx^3")
 savefig(plotsdir()*"/helmholtz_convergence")
 
 

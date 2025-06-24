@@ -39,7 +39,8 @@ using Gridap.Geometry, Gridap.CellData, Gridap.Fields
 using Plots, LaTeXStrings
 include("../../../src/initialise.jl")
 include("../pde_helpers.jl")
-
+include("../analytic_metrics.jl")
+include("PoissonSolvers.jl")
 
 p = 2
 degree = 2*(p+1)
@@ -49,19 +50,10 @@ dx = 1 ./ ns
 ################################################################################
 #### 1D tests
 ################################################################################
-domain = (0,1)
+
 # u(x) = x[1]*(1-x[1])
 u(x) = cos(x[1])
 uambient(x) = cos(x[1])*sin(x[2]) + 2*x[1]^2
-
-# dictionary of metric, uambient(geomap)
-dd_1D = Dict("linear" => ( l(r) = x -> if (r) TensorValue{1}(4)
-                                    else uambient(VectorValue(x[1],2*x[1])) end ),
-          "quad" => ( q(r) = x -> if (r) TensorValue{1}(4*x[1]^2 + 1)
-                                  else uambient(VectorValue(x[1],x[1]^2)) end ),
-          "cubic" => ( c(r) = x -> if (r) TensorValue{1}(9*x[1]^4 + 12*x[1]^3 + 10*x[1]^2 + 4*x[1] + 2)
-                                  else uambient( VectorValue(x[1],x[1]^3+x[1]^2+x[1]+1)) end )
- )
 
 # compute errors:
 errs = []
@@ -69,29 +61,41 @@ errs_g = []
 
 amb_errs = []
 amb_errs_g = []
-for (key, val) in dd_1D
+
+for name in manifolds_1D
   for n in collect(ns)
+
     # exact solution from parametric space
-    e, eg = solve_poisson_manifold(domain,(n),p,degree,u,val(true))
+    e,eg = solve_poisson_manifold(name,n,p,degree,u)
     push!(errs,e)
     push!(errs_g,eg)
 
     # exact solution from ambient space
-    amb_e, amb_eg = solve_poisson_manifold(domain,(n),p,degree,(val(false)),val(true))
+    amb_e, amb_eg = solve_poisson_manifold(name,n,p,degree,x->uambient(charts[name](x)))
     push!(amb_errs,amb_e)
     push!(amb_errs_g,amb_eg)
-
   end
 end
 
+leginf = map(x->string(x),collect(manifolds_1D))
+
 # convergence plot - exact solution in parametric space
-plot_convergence(ns,errs,errs_g,collect(keys(dd_1D)))
-# savefig(plotsdir()*"/poisson_parametric_manufactured_1D")
+plot()
+plot_error(ns,errs;leginf=leginf)
+plot_error(ns,errs_g)
+plot!(yscale=:log10,framestyle=:box,
+  xscale=:log10,xlabel="n cells",ylabel=L"L2(u_{ex} - u_h)"
+  )
 plot!(ns,1e-4dx.^6,lw=2,c=:black,ls=:dash,label="dx^6")
 savefig(plotsdir()*"/poisson_parametric_convergence_1D")
 
 # convergence plot - exact solution in ambient space
-plot_convergence(ns,amb_errs,amb_errs_g,collect(keys(dd_1D)))
+plot()
+plot_error(ns,amb_errs;leginf=leginf)
+plot_error(ns,amb_errs_g)
+plot!(yscale=:log10,framestyle=:box,
+  xscale=:log10,xlabel="n cells",ylabel=L"L2(u_{ex} - u_h)"
+  )
 plot!(ns,1e-4dx.^6,lw=2,c=:black,ls=:dash,label="dx^6")
 savefig(plotsdir()*"/poisson_ambient_convergence_1D")
 
@@ -99,47 +103,53 @@ savefig(plotsdir()*"/poisson_ambient_convergence_1D")
 ################################################################################
 #### 2D tests
 ################################################################################
-domain = (0,1,0,1)
+
 # u(x) = x[1]*(1-x[1]) + x[2]*(1-x[2])
 u(x) = cos(x[1])*sin(x[2])
 uambient(x) = cos(x[1])*sin(x[2])*x[3]
 
-
-dd_2D = Dict(
-# "const" => ( cc(r) = x -> if (r) TensorValue{2,2}(1,0,0,1 )
-                                    # else uambient(VectorValue(x[1],x[2],0.0)) end ),
-          "linear" => ( ll(r) = x -> if (r) TensorValue{2,2}(2,1,1,2 )
-                                    else uambient(VectorValue(x[1],x[2],x[1]+x[2])) end ),
-          "quad" => ( qq(r) = x -> if (r) TensorValue{2,2}(1+4*x[1]^2,4*x[1]*x[2],4*x[1]*x[2],1+4*x[2]^2 )
-                                  else uambient(VectorValue(x[1],x[2],x[1]^2+x[2]^2)) end )
- )
 
 # compute errors:
 errs = []
 errs_g = []
 amb_errs = []
 amb_errs_g = []
-for (key, val) in dd_2D
+for name in [:linear2D,:quad2D]#manifolds_2D
   for n in collect(ns)
-    e, eg = solve_poisson_manifold(domain,(n,n),p,degree,u,val(true))
+
+    # exact solution from parametric space
+    e,eg = solve_poisson_manifold(name,n,p,degree,u)
     push!(errs,e)
     push!(errs_g,eg)
 
-    amb_e, amb_eg = solve_poisson_manifold(domain,(n,n),p,degree,(val(false)),val(true))
+    # exact solution from ambient space
+    amb_e, amb_eg = solve_poisson_manifold(name,n,p,degree,x->uambient(charts[name](x)))
     push!(amb_errs,amb_e)
     push!(amb_errs_g,amb_eg)
   end
 end
 
+leginf = map(x->string(x),collect([:linear2D,:quad2D]))
+
 # convergence plot - exact solution in parametric space
-plot_convergence(ns,errs,errs_g,collect(keys(dd_2D)))
+plot()
+plot_error(ns,errs;leginf=leginf)
+plot_error(ns,errs_g)
+plot!(yscale=:log10,framestyle=:box,
+  xscale=:log10,xlabel="n cells",ylabel=L"L2(u_{ex} - u_h)"
+)
 # savefig(plotsdir()*"/poisson_parametric_manufactured_2D")
 plot!(ns,1e-4dx.^6,lw=2,c=:black,ls=:dash,label="dx^6")
 savefig(plotsdir()*"/poisson_parametric_convergence_2D")
 
 
 # convergence plot - exact solution in ambient space
-plot_convergence(ns,amb_errs,amb_errs_g,collect(keys(dd_2D)))
+plot()
+plot_error(ns,amb_errs;leginf=leginf)
+plot_error(ns,amb_errs_g)
+plot!(yscale=:log10,framestyle=:box,
+  xscale=:log10,xlabel="n cells",ylabel=L"L2(u_{ex} - u_h)"
+  )
 plot!(ns,1e-4dx.^6,lw=2,c=:black,ls=:dash,label="dx^6")
 savefig(plotsdir()*"/poisson_ambient_convergence_2D")
 
@@ -148,58 +158,25 @@ savefig(plotsdir()*"/poisson_ambient_convergence_2D")
 ################################################################################
 # u(x) = x[2]*(1-x[2])
 u(x) = cos(x[1])
-domain = (0,2*π,0,1.0)
-metric_func(x) = TensorValue{2,2}(1,0.0,0.0,1.0)
 
 errs = []
 errs_g = []
 for n in collect(ns)
-  e, eg = solve_poisson_manifold(domain,(n,n),p,degree,u,metric_func;isperiodic=(true,false))
+  e, eg =  solve_poisson_manifold(:cylinder,n,p,degree,u)
   push!(errs,e)
   push!(errs_g,eg)
 end
 
-plot_convergence(ns,errs,errs_g,["cylinder"])
+plot()
+plot_error(ns,errs)
+plot_error(ns,errs_g)
+plot!(yscale=:log10,framestyle=:box,
+  xscale=:log10,xlabel="n cells",ylabel=L"L2(u_{ex} - u_h)"
+)
 # savefig(plotsdir()*"/poisson_parametric_manufactured_2D_cylinder")
 dx = (2π ./ ns ) .* (1 ./ ns)
 plot!(ns,5e-3dx.^3,lw=2,c=:black,ls=:dash,label=latexstring("\$ (\\Delta x)^3 \$"))
 savefig(plotsdir()*"/poisson_parametric_convergence_2D_cylinder")
-
-
-
-################################################################################
-#### Sphere tests
-################################################################################
-function u_zeromean(x)
-  if x[1] < 0
-    return x[1]*(x[1]+π/2)
-  else
-    return  x[1]*(π/2-x[1])
-  end
-end
-
-# u_zeromean(x) = cos(x[2])
-# u_zeromean(x) = cos(2*x[1])
-
-domain = (-π/2,π/2, 0,2*π )
-metric_func(x) = TensorValue{2,2}(1,0.0,0.0,(cos(x[1]))^2 )
-
-errs = []
-errs_g = []
-for n in collect(ns)
-  e, eg = solve_poisson_manifold(domain,(n,n),p,degree,u_zeromean,metric_func;isperiodic=(true,true))
-  push!(errs,e)
-  push!(errs_g,eg)
-end
-
-plot_convergence(ns,errs,errs_g,["sphere"])
-# savefig(plotsdir()*"/poisson_parametric_manufactured_2D_sphere")
-dx = (2π ./ ns ) .* (π ./ ns)
-plot!(ns,5e-3dx.^3,lw=2,c=:black,ls=:dash,label=latexstring("\$ (\\Delta x)^3 \$"))
-savefig(plotsdir()*"/poisson_parametric_convergence_2D_sphere")
-
-
-
 
 
 
