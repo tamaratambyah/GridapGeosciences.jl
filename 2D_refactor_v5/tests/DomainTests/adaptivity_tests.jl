@@ -1,5 +1,5 @@
 using Gridap
-include("../src/initialise.jl")
+include("../../src/initialise.jl")
 
 
 # manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(1),cube)

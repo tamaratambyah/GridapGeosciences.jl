@@ -1,5 +1,5 @@
 using Gridap
-include("../src/initialise.jl")
+include("../../src/initialise.jl")
 
 """
 Cube sphere model tests

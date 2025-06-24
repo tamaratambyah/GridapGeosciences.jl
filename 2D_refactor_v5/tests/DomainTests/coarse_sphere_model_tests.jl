@@ -1,5 +1,5 @@
 using Gridap
-include("../src/initialise.jl")
+include("../../src/initialise.jl")
 
 sphere_manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
 num_point_dims(sphere_manifold_model)

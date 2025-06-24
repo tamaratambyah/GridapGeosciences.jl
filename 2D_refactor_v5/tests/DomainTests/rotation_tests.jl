@@ -1,5 +1,5 @@
 using Gridap
-include("../src/initialise.jl")
+include("../../src/initialise.jl")
 
 """
 Test rotation of panels in 2D and 3D for the coarsest model with 1 cell per panel
