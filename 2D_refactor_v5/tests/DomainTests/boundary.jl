@@ -32,37 +32,36 @@ reffes = LagrangianRefFE(Float64,QUAD,1)
 cell_reffes=[reffes]
 
 topo = UnstructuredGridTopology(nodes_3d,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
+
+
+function Gridap.Geometry.compute_isboundary_face(g::GridTopology,d::Integer)
+  D = num_cell_dims(g)
+  nfaces = num_faces(g,d)
+
+  if d == D-1
+    println("if")
+    # Geometry._compute_isboundary_facet!(g)
+    return fill(true,nfaces)
+  else
+    println("else")
+    # Geometry._compute_isboundary_face!(g,d)
+    return fill(false,nfaces)
+  end
+end
+get_isboundary_face(topo,0)
+
 _labels = FaceLabeling(topo)
-
-nfaces = [num_faces(topo,d) for d in 0:num_cell_dims(topo)]
-labels = FaceLabeling(nfaces)
-
-points = map(x->Int32(x),collect(1:8))
-edges = map(x->Int32(x),collect(9:20))
-cells = map(x->Int32(x),collect(21:26))
-d_to_dface_to_entity = labels.d_to_dface_to_entity
-d_to_dface_to_entity[1].= points
-d_to_dface_to_entity[2].= edges
-d_to_dface_to_entity[3].= cells
-
-
-tag_to_entities = labels.tag_to_entities
-
-ee = map(x->[Int32(x)],collect(1:25))
-eee = map(x->Int32(x),collect(1:25))
-push!(ee,eee)
-tag_to_name = labels.tag_to_name
-labels_new = FaceLabeling(d_to_dface_to_entity,ee,tag_to_name)
 
 cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_3d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 
-cube_model_3D = UnstructuredDiscreteModel(cube_grid,topo,labels_new)
+cube_model_3D = UnstructuredDiscreteModel(cube_grid,topo,_labels)
+
+cube_model_3D = Gridap.Adaptivity.refine(cube_model_3D)
+
 
 Ω = Triangulation(cube_model_3D)
-Γ = BoundaryTriangulation(cube_model_3D)
+Γ = BoundaryTriangulation(cube_model_3D;tags="boundary")
+writevtk(Γ,dir*"/CS",append=false)
 writevtk(cube_model_3D,dir*"/CS",append=false)
 
-
-
-_model = CartesianDiscreteModel((0,1,0,1,0,1),(1,1,1))
-ll=get_face_labeling(_model)
+Measure(Γ,2)

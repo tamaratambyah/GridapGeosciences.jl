@@ -72,6 +72,7 @@ end
 """
 solve helmholtz equation on doubly periodic, parametric domain  domain.
 Consider uex that fullfil compatibility and zeromean constraints
+-- note the stiffness matrix in this method is non-symmetric
 """
 function helmholtz_manifold_periodic(manifold,n,p,degree,uex)
   _metric_func = metrics[manifold]
@@ -99,6 +100,57 @@ function helmholtz_manifold_periodic(manifold,n,p,degree,uex)
   U = TrialFESpace(V)
 
   poisson_biform(u,v) = ∫(u*v)dΩg -  ∫( surface_gradient(u,m)⋅gradient(v)  )dΩg
+  poisson_liform(v) = ∫(  rhs*v )dΩg
+  op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+
+  uh = solve(LUSolver(),op)
+
+  #### Compute errors
+  e = l2(uh-ucf,dΩ)
+  eg = l2(uh-ucf,dΩg)
+  return e,eg
+
+end
+
+"""
+solve helmholtz equation on doubly periodic, parametric domain  domain.
+Consider uex that fullfil compatibility and zeromean constraints
+-- note the stiffness matrix in this method is symmetric
+"""
+function helmholtz_manifold_periodic_symmetricK(manifold,n,p,degree,uex)
+  _metric_func = metrics[manifold]
+  domain = domains[manifold]
+
+  d = Int(length(domain)/2)
+
+  model = CartesianDiscreteModel(domain, ntuple(x->n,d), isperiodic=ntuple(x->true,d))
+  Ω = Triangulation(model)
+  m = Metric(_metric_func,Ω)
+
+  dΩ = Measure(Ω,degree)
+  dΩg =  Measure(m,Ω,degree)
+
+
+  ucf = CellField(uex,Ω)
+  # check compatibility
+  compat = sum( ∫(ucf)dΩ + ∫( surface_laplacian(ucf,m))dΩ  )
+  println("Compatibility: ", compat)
+
+  rhs = ucf + 1.0*(surface_laplacian(ucf,m))
+
+  #### FE Problem -- no lagrange multiplers
+  V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
+  U = TrialFESpace(V)
+
+  J = Jcharts[manifold]
+  stiffness(u,v) =    ∫( (J ⋅ ((m.inv_metric⋅ gradient(v)) ) ⋅( J⋅(m.inv_metric⋅ gradient(u))) )   )dΩg
+
+  ### check symmetry of stiffness matrix
+  K = assemble_matrix(stiffness,U,V)
+  println("Symmetric stiffness: ", issymmetric(Array(K)))
+
+  ### bi/li form
+  poisson_biform(u,v) = ∫(u*v)dΩg -  stiffness(u,v)
   poisson_liform(v) = ∫(  rhs*v )dΩg
   op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 

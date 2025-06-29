@@ -40,8 +40,6 @@ linear_2D(x) = TensorValue{2,2}(2.0, 1.0, 1.0, 2.0 )
 quad_2D(x) = TensorValue{2,2}(1+4*x[1]^2, 4*x[1]*x[2], 4*x[1]*x[2], 1+4*x[2]^2 )
 
 
-
-
 metrics[:linear1D] = linear_1D
 metrics[:quad1D] = quad_1D
 metrics[:cubic1D] = cubic_1D
@@ -58,6 +56,14 @@ manifolds_1D = [:linear1D,:quad1D,:cubic1D]
 manifolds_2D = [:const2D,:linear2D,:quad2D]
 manifolds_periodic = [:circle,:sphere]
 
+
+
+Dcircle(x) = TensorValue{2,1}(r*sin(x[1]),r*cos(x[1]))
+Dsphere(x) = TensorValue{3,2}(-r*sin(x[1])*cos(x[2]),r*cos(x[2])*cos(x[1]),0,
+                        -r*cos(x[1])*sin(x[2]),-r*sin(x[2])*sin(x[1]),r*cos(x[2]) )
+Jcharts =  Dict{Symbol,Any}()
+Jcharts[:circle] = Dcircle
+Jcharts[:sphere] = Dsphere
 ################################################################################
 #### Charts / maps from parametric -> ambient space
 ################################################################################

@@ -80,10 +80,21 @@ end
 function Metric(model::AdaptedDiscreteModel)
   manifold_name = get_manifold_name(model)
 
-  _metric_func(x) = metric_func(manifold_name)(x)
+  # _metric_func(x) = metric_func(manifold_name)(x)
   Ω = Triangulation(model)
 
-  Metric(_metric_func,Ω)
+
+  println("adapted cubed sphere metric")
+  _metric_func(x) = metric_func(cubedsphere)(x)
+  _sq_meas_func(x) = sq_meas_func(cubedsphere)(x)
+  _inv_metric_func(x) = inv_metric_func(cubedsphere)(x)
+
+  metric = CellField(_metric_func,Ω)
+  sq_meas = CellField(_sq_meas_func,Ω)
+  inv_metric = CellField(_inv_metric_func,Ω)
+
+
+  Metric(metric,sq_meas,inv_metric,_metric_func,_sq_meas_func,_inv_metric_func)
 end
 
 """

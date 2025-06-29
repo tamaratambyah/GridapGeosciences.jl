@@ -8,7 +8,7 @@ cf_ambient
 """
 
 using Gridap
-include("../src/initialise.jl")
+include("../../src/initialise.jl")
 
 manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
 manifold_model = Adaptivity.refine(manifold_model)

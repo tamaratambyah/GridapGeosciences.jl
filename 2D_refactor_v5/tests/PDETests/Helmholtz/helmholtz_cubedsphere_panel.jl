@@ -11,7 +11,8 @@ include("../pde_helpers.jl")
 p = 2
 degree = 20
 ns = [2^i for i = 2:6]
-dx = 1 ./ ns
+dx =   ( sqrt.( 4*π*RADIUS^2 ./ (6*ns.^2) ) )
+
 
 global RADIUS = 1.0*sqrt(3.0)
 
@@ -71,12 +72,17 @@ function u3(x)
   θϕ = GnomonicField()(x)
   return cos(θϕ[1])*sin(θϕ[2])
 end
-
+function u4(x)
+  θϕ = GnomonicField()(x)
+  X = SigmaField(RADIUS)(θϕ)
+  return X[1]*X[2]*X[3]
+end
 
 uex_funcs = Dict{Symbol,Any}()
 uex_funcs[:u1] = u1
 uex_funcs[:u2] = u2
 uex_funcs[:u3] = u3
+# uex_funcs[:u4] = u4
 
 errs = []
 errs_g = []
@@ -98,6 +104,23 @@ xlabel="n cells",ylabel="L2(u - uh)",legend=:topright)
 plot!(ns,1e-1dx.^6,lw=2,c=:black,label="dx^6")
 savefig(plotsdir()*"/cubedsphere_panel_convergence")
 
+# consider u4 separately as p=3 FE space
+errs = []
+errs_g = []
+p = 3
+degree = 2*(p+1)
+for n in ns
+  e, eg = helmholtz_cubedsphere_panel(n,p,degree,u4)
+  push!(errs,e)
+  push!(errs_g,eg)
+end
+plot()
+plot_error(ns,errs;leginf=["u4"],ls=fill(:solid,length(1)))
+plot_error(ns,errs_g;ls=fill(:dash,length(1)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)",legend=:topright)
+plot!(ns,1e-1dx.^6,lw=2,c=:black,label="dx^6")
+savefig(plotsdir()*"/cubedsphere_panel_convergence_u4")
 
 ##############################################################################
 ##############l low level
@@ -132,7 +155,7 @@ function u_scalar_latlon2parametric(p::Int,uθϕ::Function)
 end
 
 # uex(x) = cos(4*x[1])*sin(4*x[2])
-# ucf = CellField(uex,Ω)
+ucf = CellField(u4,Ω)
 
 cell_field = map(p->GenericField(u_scalar_latlon2parametric(p,uθϕ)),panel_ids)
 ucf = CellData.GenericCellField(cell_field,Ω,PhysicalDomain())

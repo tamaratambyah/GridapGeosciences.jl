@@ -23,6 +23,7 @@ using LinearAlgebra
 using DrWatson
 using Test
 
+
 include("../analytic_metrics.jl")
 include("../../../src/initialise.jl")
 include("../pde_helpers.jl")
@@ -39,11 +40,17 @@ r = 2
 ## on a manifold: circle
 errs = []
 errs_g = []
+
+errs_K = []
+errs_gK = []
 for (key, val) in uex_periodic_funcs
   for n in ns
     e, eg = helmholtz_manifold_periodic(:circle,n,p,degree,val)
+    eK, egK = helmholtz_manifold_periodic_symmetricK(:circle,n,p,degree,val)
     push!(errs,e)
     push!(errs_g,eg)
+    push!(errs_K,eK)
+    push!(errs_gK,egK)
   end
 end
 
@@ -57,16 +64,29 @@ xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
 plot!(ns,1e-1dx.^6,lw=2,c=:black,label="dx^6")
 savefig(plotsdir()*"/circle_convergence")
 
+plot()
+plot_error(ns,errs_K;leginf=leginf,ls=fill(:solid,length(uex_periodic_funcs)))
+plot_error(ns,errs_gK;ls=fill(:dash,length(uex_periodic_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
+plot!(ns,1e-1dx.^6,lw=2,c=:black,label="dx^6")
+savefig(plotsdir()*"/circle_convergence_symmetricK")
 
 
 ### sphere
 errs = []
 errs_g = []
+
+errs_K = []
+errs_gK = []
 for (key, val) in uex_periodic_funcs
   for n in ns
     e, eg = helmholtz_manifold_periodic(:sphere,n,p,degree,val)
+    eK, egK = helmholtz_manifold_periodic_symmetricK(:circle,n,p,degree,val)
     push!(errs,e)
     push!(errs_g,eg)
+    push!(errs_K,eK)
+    push!(errs_gK,egK)
   end
 end
 
@@ -80,9 +100,30 @@ xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
 plot!(ns,1e-1dx.^3,lw=2,c=:black,label="dx^3")
 savefig(plotsdir()*"/sphere_convergence")
 
+plot()
+plot_error(ns,errs_K;leginf=leginf,ls=fill(:solid,length(uex_periodic_funcs)))
+plot_error(ns,errs_gK;ls=fill(:dash,length(uex_periodic_funcs)))
+plot!(xscale=:log10,yscale=:log10,framestyle=:box,
+xlabel="n cells",ylabel="L2(u - uh)",legend=:bottomright)
+plot!(ns,1e-1dx.^6,lw=2,c=:black,label="dx^6")
+savefig(plotsdir()*"/sphere_convergence_symmetricK")
+
+
+
+
 ################################################################################
 ##### low level
 ################################################################################
+n = 4
+# uex(x) = cos(x[1])
+function uex(x)
+  if x[1] < π
+    return x[1]*(π-x[1])
+  else
+    return (x[1]-π)*(x[1]-2*π)
+  end
+end
+manifold=:sphere
 _metric_func = metrics[manifold]
 domain = domains[manifold]
 
@@ -98,6 +139,8 @@ dΩg =  Measure(m,Ω,degree)
 
 
 ucf = CellField(uex,Ω)
+
+
 # check compatibility
 sum( ∫(ucf)dΩ + ∫( surface_laplacian(ucf,m))dΩ  )
 
@@ -110,7 +153,20 @@ _rhs = ucf + 1.0*(surface_laplacian(ucf,m))
 V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
 U = TrialFESpace(V)
 
-poisson_biform(u,v) = ∫(u*v)dΩg -  ∫( surface_gradient(u,m)⋅gradient(v)  )dΩg
+D(x) = TensorValue{3,2}(-r*sin(x[1])*cos(x[2]),r*cos(x[2])*cos(x[1]),0,
+                        -r*cos(x[1])*sin(x[2]),-r*sin(x[2])*sin(x[1]),r*cos(x[2]) )
+
+stiffnes(u,v) =    ∫( (D ⋅ ((m.inv_metric⋅ gradient(v)) ) ⋅( D⋅(m.inv_metric⋅ gradient(u))) )   )dΩg
+K = assemble_matrix(stiffnes,U,V)
+issymmetric(Array(K))
+
+stiffness2(u,v) =  ∫( surface_gradient(v,m)⋅gradient(u)  )dΩg
+K2 = assemble_matrix(stiffness2,U,V)
+issymmetric(Array(K2))
+Array(K) == Array(K2)
+
+
+poisson_biform(u,v) = ∫(u*v)dΩg - stiffnes(u,v)#   ∫( surface_gradient(u,m)⋅gradient(v)  )dΩg
 poisson_liform(v) = ∫(  _rhs*v )dΩg
 op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 

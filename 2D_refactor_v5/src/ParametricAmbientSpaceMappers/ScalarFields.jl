@@ -7,10 +7,10 @@ Map analytical scalar valued function from θ,ϕ -> α,β
 """
 function u_scalar_latlon2parametric(p::Int,uθϕ::Function)
   function _u(αβ)
-    latlon_panel1 = evaluate(GnomonicMap(), αβ)
-    sphere_panel1 = evaluate(Sigma(),latlon_panel1)
-    sphere_panelp = evaluate(PanelRotationMap(r1p_3D[p]), sphere_panel1)
-    latlon_panelp = evaluate(Sigma(),sphere_panelp)
+    latlon_panel1 = GnomonicField()(αβ)
+    sphere_panel1 = SigmaField(RADIUS)(latlon_panel1)
+    sphere_panelp = PanelRotationField(r1p_3D[p])(sphere_panel1)
+    latlon_panelp = InvSigmaField(RADIUS)(sphere_panelp)
     uθϕ(latlon_panelp)
   end
 end
@@ -37,6 +37,17 @@ function u_scalar_ambient2parametric(p::Int,uX::Function)
 end
 
 
+function u_scalar_parametric2ambient(p::Int,uαβ::Function)
+  function _u(XYZ)
+    _XYZ =  PanelRotationField(rp1_3D[p])(XYZ)
+    θϕ = InvSigmaField(RADIUS)(_XYZ)
+    αβ = InvGnomonicField()(θϕ)
+
+    uαβ(αβ)
+  end
+end
+
+
 """
 u_scalar_latlon2ambient
 
@@ -52,6 +63,22 @@ function u_scalar_latlon2ambient(p::Int,uθϕ::Function)
   end
 end
 
+
+function parametric_cf_2_ambient(manifold_model,cf_parametric::CellField)
+  ambient_model = get_ambient_model(manifold_model)
+  panel_ids = get_panel_ids(manifold_model)
+
+  Ω_ambient = Triangulation(ambient_model)
+
+  inv_mapping = map(x-> InvGnomonicField() ∘ InvSigmaField(RADIUS) ∘ PanelRotationField(rp1_3D[x]), panel_ids)
+
+  _cf  = change_domain(cf_parametric,ReferenceDomain(),PhysicalDomain())
+
+  cf_mapped = lazy_map(Broadcasting(∘),get_data(_cf),inv_mapping)
+  cf_ambient = CellData.GenericCellField(cf_mapped,Ω_ambient,PhysicalDomain() )
+
+ return cf_ambient
+end
 
 biform(u,v,dΩ) = ∫(v*u)dΩ
 liform(v,f,dΩ)   = ∫(v*f)dΩ

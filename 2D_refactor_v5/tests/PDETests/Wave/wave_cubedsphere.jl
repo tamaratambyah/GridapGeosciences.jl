@@ -1,154 +1,180 @@
-using Gridap, Gridap.Geometry
-using Plots, LaTeXStrings
-using LinearAlgebra
 using DrWatson
-
+using Gridap
+using Gridap.Geometry, Gridap.CellData, Gridap.Fields
+using Plots
 include("../../../src/initialise.jl")
-include("../pde_helpers.jl")
+
+function pθϕ_scalar(θϕ)
+  θ,ϕ = θϕ
+  1 - (sin(ϕ))^2
+end
+
+function uθϕ_vector(θϕ)
+  θ,ϕ = θϕ
+  VectorValue(cos(ϕ),0.0)
+end
+
+function uX_vector(X)
+  VectorValue(X[1],0.0,0.0)
+end
+
+manifold_model = ManifoldDiscreteModel(coarse_cube_model_3D(π/4),cubedsphere)
+manifold_model = Adaptivity.refine(manifold_model)
+panel_ids = get_panel_ids(manifold_model)
+
+p_fe = 1
+degree = 2*(p_fe+1)
+
+################################################################################
+##### ambient space
+################################################################################
+ambient_model = get_ambient_model(manifold_model)
+Ω_amb = Triangulation(ambient_model)
+dΩ_amb = Measure(Ω_amb,degree)
+
+cell_field = map(p->GenericField(u_scalar_latlon2ambient(p,pθϕ_scalar)),panel_ids)
+pcf_ambient = CellData.GenericCellField(cell_field,Ω_amb,PhysicalDomain())
+
+# cell_field = map(p->GenericField(u_vector_latlon2ambient(uθϕ_vector)),panel_ids)
+# ucf_ambient = CellData.GenericCellField(cell_field,Ω_amb,PhysicalDomain())
+ucf_ambient = CellField(uX_vector,Ω_amb)
+
+writevtk(Ω_amb,dir*"/wave_ambient",cellfields=["u"=>ucf_ambient,"p"=>pcf_ambient],append=false)
 
 
+function u_vector_latlon2parametric(p::Int,uθϕ::Function)
+  function _u(αβ)
+    function uX(XYZ)
+      θϕ = InvSigmaField(RADIUS)(XYZ)
 
-p = 2
-degree = 2*(p+1)
-ns = [2^i for i = 2:6]
-dx = 1 ./ ns
+      Jt = gradient(SigmaField(RADIUS)) # 2 x 3
+      J = Operation(transpose)(Jt) # 3 x 2
 
-global RADIUS = 1.0*sqrt(3.0)
+      J(θϕ) ⋅ uθϕ(θϕ)
+    end
 
-uex(x) = VectorValue(0.0,(π/4+x[1])*(π/4-x[1]))
-pex(x) = 1.0 +  0.01*(π/4+x[1])*(π/4-x[1])
+    cmap = PanelRotationField(r1p_3D[p]) ∘ SigmaField(RADIUS) ∘ GnomonicField()
 
+    XYZ = cmap(αβ)
+    θϕ = InvSigmaField(RADIUS)(XYZ)
 
-errs_u = []
-errs_ug = []
-errs_p = []
-errs_pg = []
+    Jt = ∇(cmap)
+    J = Operation(transpose)(Jt) # 3 x 2
+    pinvJ = Operation(pinv)(J) # 2 x 3
 
-for n in collect(ns)
-  println(n)
+    Jt_x = Jt(αβ)
+    J_x = J(αβ)
+    pinvJ_x = pinvJ(αβ)
 
-  eu,ep,eu_g,ep_g = solve_wave_manifold((-π/4,π/4, -π/4,π/4),(n,n),p,degree,metric_func(cubedsphere),uex,pex)
-  println("Errors: $eu, $ep, $eu_g, $ep_g")
-  push!(errs_u,eu)
-  push!(errs_ug,eu_g)
-  push!(errs_p,ep)
-  push!(errs_pg,ep_g)
+    # (2x3) (3x1) = (2x1) ∈ α,β
+    return pinvJ_x ⋅ uX(XYZ)
+  end
 end
 
 
-leginf = map(x->"r = $x",collect(radii))
 
-plot()
-plot_error(ns,errs_u;leginf=leginf,ls=fill(:solid,length(leginf)))
-plot_error(ns,errs_ug;ls=fill(:dash,length(leginf)))
-plot!(xscale=:log10,yscale=:log10,framestyle=:box,
-xlabel="n cells",ylabel="L2(u - uh)")
-plot!(ns,1e2dx.^8,lw=2,c=:black,label="dx^8")
-savefig(plotsdir()*"/wave_convergence_u_2D_trig")
-
-plot()
-plot_error(ns,errs_p;leginf=leginf,ls=fill(:solid,length(leginf)))
-plot_error(ns,errs_pg;ls=fill(:dash,length(leginf)))
-plot!(xscale=:log10,yscale=:log10,framestyle=:box,
-xlabel="n cells",ylabel="L2(p - ph)")
-plot!(ns,dx.^6,lw=2,c=:black,label="dx^6")
-savefig(plotsdir()*"/wave_convergence_p_2D_trig")
-
-
-###############################################################################
-global RADIUS = 1.0*sqrt(3.0)
-
-n = 16
-p = 2
-degree = 2*(p+1)
-
-uex(x) = VectorValue(0.0,(π/4+x[1])*(π/4-x[1]))
-pex(x) = 1.0 +  0.01*(π/4+x[1])*(π/4-x[1])
-
-# uex(x) = VectorValue(0.0,cos(4*x[2]))
-# pex(x) = 1.0 +  0.1*cos(4*x[1])
-
-
-##
-model = CartesianDiscreteModel((-π/4,π/4, -π/4,π/4),(n,n) )
-
-Ω = Triangulation(model)
+################################################################################
+##### parametric space
+################################################################################
+####### check compatibility in parametric space
+Ω = Triangulation(manifold_model)
 m = Metric(cubedsphere,Ω)
 
-
-dΩ = Measure(Ω, degree)
+dΩ = Measure(Ω,degree)
 dΩg =  Measure(m,Ω,degree)
 
-Γ = BoundaryTriangulation(model)
-dΓ = Measure(Γ,degree)
-dΓg = Measure(m,Γ,degree)
-n_Γ = get_normal_vector(Γ)
+cell_field = map(p->GenericField(u_scalar_latlon2parametric(p,pθϕ_scalar)),panel_ids)
+pcf = CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
 
-ucf = CellField(uex,Ω)
-pcf = CellField(pex,Ω)
+# cell_field = map(p->GenericField(u_vector_latlon2parametric(p,uθϕ_vector)),panel_ids)
+cell_field = map(p->GenericField(u_vector_ambient2parametric(p,uX_vector)),panel_ids)
+ucf = CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
 
-writevtk(Ω,dir*"/wave_cubed_sphere",cellfields=["u"=>ucf,"p"=>pcf],append=false)
+for pid in collect(1:6)
+  mask = (panel_ids.== pid)
+  Ωp = Triangulation(manifold_model,mask)
+
+  up = change_domain(ucf,Ωp,DomainStyle(ucf))
+  pp = change_domain(pcf,Ωp,DomainStyle(pcf))
+
+  writevtk(Ωp,dir*"/wave_p$(pid)",cellfields=["u"=>up,"p"=>pp],append=false)
+end
 
 
 u0 = ucf + surface_gradient(pcf,m)
 p0 = pcf + surface_divergence(ucf,m)
 
 ### FE problem
-V = TestFESpace(model,ReferenceFE(raviart_thomas,Float64,p),conformity=:HDiv)
+V = TestFESpace(Ω,ReferenceFE(raviart_thomas,Float64,p_fe),conformity=:HDiv)
 U = TrialFESpace(V)
 
-Q = TestFESpace(model,ReferenceFE(lagrangian,Float64,p),conformity=:L2)
+Q = TestFESpace(Ω,ReferenceFE(lagrangian,Float64,p_fe),conformity=:L2)
 P = TrialFESpace(Q)
 
 X = MultiFieldFESpace([U,P])
 Y = MultiFieldFESpace([V,Q])
 
-# p_trial = get_trial_fe_basis(P)
-# v_test = get_fe_basis(V)
-# liform(v) = ∫( pcf*(m.inv_metric⋅v)⋅n_Γ )dΓg
-# liform(v_test)
+biform1(u,v) = ( ∫( u⋅v )dΩg )
+biform2(p,q) = ∫( p*q )dΩg
+biform3(p,v) =  ∫( -1.0*p*(wave_divergence(v,m))   )dΩ
+biform4(u,q) =∫( (surface_divergence(u,m))*q )dΩg
+
+A1 = assemble_matrix(biform1,U,V)
+A2 = assemble_matrix(biform2,P,Q)
+A3 = assemble_matrix(biform3,P,V)
+A4 = assemble_matrix(biform4,U,Q)
+
+liform1(v) = ∫( u0⋅v )dΩg
+liform2(q) = ∫(  p0*q  )dΩg
+b1 = assemble_vector(liform1,V)
+b2 = assemble_vector(liform2,Q)
+b = assemble_vector(wave_liform,Y)
 
 
-# Weak formulation for u
+wave_biform1((u,p),(v,q)) = ( ∫( u⋅v )dΩg   + ∫( -1.0*p*(wave_divergence(v,m))   )dΩ
+                    + ∫( p*q )dΩg + ∫( (surface_divergence(u,m))*q )dΩg
+                    )
+A = assemble_matrix(wave_biform1,X,Y)
+x = A\b
+xh = FEFunction(X,x)
+uh,ph = xh
+
 wave_biform((u,p),(v,q)) = ( ∫( u⋅v )dΩg
-                   + ∫( -1.0*p*(wave_divergence(v,m))   )dΩ
-                  + ∫( p*q )dΩg
-                  + ∫( (surface_divergence(u,m))*q )dΩg
-                  )
-wave_liform((v,q)) = ∫( u0⋅v + p0*q  )dΩg -  ∫( pcf*(m.inv_metric⋅v)⋅n_Γ )dΓg
+                    + ∫( -1.0*p*(wave_divergence(v,m))   )dΩ
+                    + ∫( p*q )dΩg
+                    + ∫( (surface_divergence(u,m))*q )dΩg
+                    )
+wave_liform((v,q)) = ∫( u0⋅v + p0*q  )dΩg
 
 op = AffineFEOperator(wave_biform,wave_liform,X,Y)
 uh, ph = solve(LUSolver(),op)
 
-# Error
+
+for pid in collect(1:6)
+  mask = (panel_ids.== pid)
+  Ωp = Triangulation(manifold_model,mask)
+
+  up = change_domain(ucf,Ωp,DomainStyle(ucf))
+  pp = change_domain(pcf,Ωp,DomainStyle(pcf))
+
+  uhp = change_domain(uh,Ωp,DomainStyle(uh))
+  php = change_domain(ph,Ωp,DomainStyle(ph))
+  writevtk(Ωp,dir*"/wave_uhp$(pid)",cellfields=["u"=>up,"uh"=>uhp,"p"=>pp,"ph"=>php],append=false)
+end
+
+## map parametric FEFunction back to ambient space
+uh_ambient = parametric_cf_2_ambient_vector(manifold_model,uh.cell_field)
+ph_ambient = parametric_cf_2_ambient(manifold_model,ph.cell_field)
+
+#### Compute errors
 eu =  sum(∫((uh-ucf)⊙(uh-ucf))dΩ)
 ep = sum(∫((ph-pcf)⊙(ph-pcf))dΩ)
 
 eu_g =  sum(∫((uh-ucf)⊙(uh-ucf))dΩg)
 ep_g = sum(∫((ph-pcf)⊙(ph-pcf))dΩg)
 
-writevtk(Ω,dir*"/wave_cubed_sphere",
-    cellfields=["u"=>ucf,"p"=>pcf,
-                "uh"=>uh, "ph"=>ph,
-                "eu"=>uh-ucf,"ep"=>ph-pcf],append=false)
-
-
-# split: u equation only
-wave_biform(u,v) = ( ∫( u⋅v )dΩg
-                  )
-wave_liform(v) = ∫( u0⋅v )dΩg + ∫( pcf*(wave_divergence(v,m))   )dΩ -  ∫( pcf*(m.inv_metric⋅v)⋅n_Γ )dΓg
-
-op = AffineFEOperator(wave_biform,wave_liform,U,V)
-uh = solve(LUSolver(),op)
-eu =  sum(∫((uh-ucf)⊙(uh-ucf))dΩ)
-eu_g =  sum(∫((uh-ucf)⊙(uh-ucf))dΩg)
-
-# split: p equation only
-wave_biform(p,q) = (  ∫( p*q )dΩg
-                  )
-wave_liform(q) = ∫( p0*q  )dΩg  - ∫( (surface_divergence(ucf,m))*q )dΩg
-op = AffineFEOperator(wave_biform,wave_liform,P,Q)
-ph = solve(LUSolver(),op)
-
-ep = sum(∫((ph-pcf)⊙(ph-pcf))dΩ)
-ep_g = sum(∫((ph-pcf)⊙(ph-pcf))dΩg)
+eu_amb = l2(uh_ambient-ucf_ambient,dΩ_amb)
+ep_amb = l2(ph_ambient-ucf_ambient,dΩ_amb)
+writevtk(Ω_amb,dir*"/wave_ambient",cellfields=["u"=>ucf_ambient,"p"=>pcf_ambient,
+"uh"=>uh_ambient,"ph"=>ph_ambient,
+"eu"=>ucf_ambient-uh_ambient,"ep"=>pcf_ambient-ph_ambient],append=false)
