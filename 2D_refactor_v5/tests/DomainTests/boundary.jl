@@ -34,34 +34,46 @@ cell_reffes=[reffes]
 topo = UnstructuredGridTopology(nodes_3d,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
 
 
-function Gridap.Geometry.compute_isboundary_face(g::GridTopology,d::Integer)
-  D = num_cell_dims(g)
-  nfaces = num_faces(g,d)
+# function Gridap.Geometry.compute_isboundary_face(g::GridTopology,d::Integer)
+#   D = num_cell_dims(g)
+#   nfaces = num_faces(g,d)
 
-  if d == D-1
-    println("if")
-    # Geometry._compute_isboundary_facet!(g)
-    return fill(true,nfaces)
-  else
-    println("else")
-    # Geometry._compute_isboundary_face!(g,d)
-    return fill(false,nfaces)
-  end
-end
-get_isboundary_face(topo,0)
+#   if d == D-1
+#     println("if")
+#     # Geometry._compute_isboundary_facet!(g)
+#     return fill(true,nfaces)
+#   else
+#     println("else")
+#     # Geometry._compute_isboundary_face!(g,d)
+#     return fill(false,nfaces)
+#   end
+# end
+d_to_num_dfaces = [ num_faces(topo,d) for d in 0:num_dims(topo)]
+labels = FaceLabeling(d_to_num_dfaces)
 
-_labels = FaceLabeling(topo)
+get_isboundary_face(topo,2)
+
+get_face_entity(labels,0) .= get_isboundary_face(topo,0) .+ 1
+get_face_entity(labels,1) .= get_isboundary_face(topo,1) .+ 2
+get_face_entity(labels,2) .= get_isboundary_face(topo,2) .+ 1
+
+add_tag!(labels,"interior",[1,])
+add_tag!(labels,"boundary",[2,])
+add_tag_from_tags!(labels,"all",["interior","boundary"])
+labels
+
+
 
 cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_3d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 
-cube_model_3D = UnstructuredDiscreteModel(cube_grid,topo,_labels)
+cube_model_3D = UnstructuredDiscreteModel(cube_grid,topo,labels)
 
 cube_model_3D = Gridap.Adaptivity.refine(cube_model_3D)
 
 
 Ω = Triangulation(cube_model_3D)
 Γ = BoundaryTriangulation(cube_model_3D;tags="boundary")
-writevtk(Γ,dir*"/CS",append=false)
+writevtk(Ω,dir*"/CS",append=false)
 writevtk(cube_model_3D,dir*"/CS",append=false)
 
 Measure(Γ,2)

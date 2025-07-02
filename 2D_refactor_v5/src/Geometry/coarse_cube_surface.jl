@@ -68,12 +68,26 @@ function coarse_cube_surface_3D(a::Real)
   cell_reffes=[reffes]
 
   topo = UnstructuredGridTopology(nodes_3d,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
-  face_labels = FaceLabeling(topo)
+
+  d_to_num_dfaces = [ num_faces(topo,d) for d in 0:num_dims(topo)]
+  labels = FaceLabeling(d_to_num_dfaces)
+
+  get_face_entity(labels,0) .= get_isboundary_face(topo,0) .+ 1
+  get_face_entity(labels,1) .= get_isboundary_face(topo,1) .+ 2
+  get_face_entity(labels,2) .= get_isboundary_face(topo,2) .+ 1
+
+  add_tag!(labels,"interior",[1,])
+  add_tag!(labels,"boundary",[2,])
+  add_tag_from_tags!(labels,"all",["interior","boundary"])
+  # labels
+
+
+  # face_labels = FaceLabeling(topo)
 
   cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_3d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 
   panel_ids = collect(1:6)
-  return cube_grid,topo,face_labels,panel_ids
+  return cube_grid,topo,labels,panel_ids
 end
 
 
@@ -106,6 +120,9 @@ function cube_surface_2D(cube_grid_3D::Grid{Dc,Dp},panel_ids::Vector{Int}) where
   topo_2D = UnstructuredGridTopology(nodes_2D,
       get_cell_node_ids(cube_grid_3D),get_cell_type(cube_grid_3D),polytopes,Gridap.Geometry.NonOriented())
   face_labels_2D = FaceLabeling(topo_2D)
+
+
+
   cube_grid_2D = Gridap.Geometry.UnstructuredGrid(nodes_2D,
         get_cell_node_ids(cube_grid_3D),get_reffes(cube_grid_3D),get_cell_type(cube_grid_3D),Gridap.Geometry.NonOriented())
 

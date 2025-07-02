@@ -39,6 +39,14 @@ function Jpanel1(x)
   )
 end
 
+function JTpanel1(x)
+  TensorValue{2,3}( dXdalpha(x), dXdbeta(x),
+                    dYdalpha(x), dYdbeta(x),
+                    dZdalpha(x), dZdbeta(x)
+  )
+end
+
+
 function Jpanel2(x)
   TensorValue{3,2}( -1.0*dZdalpha(x), dYdalpha(x), dXdalpha(x),
                     -1.0*dZdbeta(x), dYdbeta(x), dXdbeta(x)
@@ -69,10 +77,46 @@ function Jpanel6(x)
   )
 end
 
-Jp(p) = x -> r1p_3D[p]⋅Jpanel1(x)
+##################################################################################
+### Panel 2
+function Jfactor2(x)
+  α,β = x
+  RADIUS/( (1 + (tan(α))^2 + (cot(β))^2 )^(3/2) )
+end
 
-Jp(2)(Point(1,1)) == Jpanel2(Point(1,1))
-Jp(3)(Point(1,1)) == Jpanel3(Point(1,1))
-Jp(4)(Point(1,1)) == Jpanel4(Point(1,1))
-Jp(5)(Point(1,1)) == Jpanel5(Point(1,1))
-Jp(6)(Point(1,1)) == Jpanel6(Point(1,1))
+function dXdalpha2(x)
+  α,β = x
+  Jfactor2(x)* ( -1.0*tan(α)*(sec(α))^2 )
+end
+
+function dXdbeta2(x)
+  α,β = x
+  Jfactor2(x)* ( cot(β)*(csc(β))^2 )
+end
+
+function dYdalpha2(x)
+  α,β = x
+  Jfactor2(x)* ( (sec(α))^2*(csc(β))^2 )
+end
+
+function dYdbeta2(x)
+  α,β = x
+  Jfactor2(x)* ( tan(α)*cot(β)*(csc(β))^2 )
+end
+
+function dZdalpha2(x)
+  α,β = x
+  Jfactor2(x)* ( tan(α)*cot(β)*(sec(α))^2 )
+end
+
+function dZdbeta2(x)
+  α,β = x
+  Jfactor2(x)* ( (sec(α))^2*(csc(β))^2 )
+end
+
+
+function Jpanel2_new(x)
+  TensorValue{3,2}( -1.0*dZdalpha2(x), dYdalpha2(x), dXdalpha2(x),
+                    -1.0*dZdbeta2(x), dYdbeta2(x), dXdbeta2(x)
+  )
+end

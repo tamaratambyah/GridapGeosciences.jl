@@ -2,9 +2,18 @@ function surface_gradient(a::CellField,m::Metric)
   m.inv_metric⋅ gradient(a)
 end
 
+function surface_gradient(a::CellField,inv_metric::CellField)
+  inv_metric⋅ gradient(a)
+end
+
 function surface_divergence(v::CellField,m::Metric)
   f = m.sq_meas*v
   1/m.sq_meas * divergence(f)
+end
+
+function surface_divergence(v::CellField,sq_meas::CellField)
+  f = sq_meas*v
+  1/sq_meas * ( sq_meas* divergence(v) + gradient(sq_meas) ⋅v   )
 end
 
 function surface_laplacian(f::CellField,m::Metric)
@@ -12,6 +21,13 @@ function surface_laplacian(f::CellField,m::Metric)
   surface_divergence(g,m)
 end
 
+function surface_laplacian(f::CellField,Ginv::CellField,sqmeas::CellField)
+  v = gradient(f)
+  1/sqmeas * ( sqmeas* ( divergence(Ginv)⋅v + Operation(tr)( ( Ginv⋅ gradient(v) ))   )
+  + gradient(sqmeas) ⋅v   )
+
+
+end
 
 ## auto diff
 function surface_gradient(f::Number,m::Metric)

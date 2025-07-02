@@ -17,6 +17,7 @@ include("Adaptivity/Refinement.jl")
 
 include("CellData/SurfaceMetric.jl")
 include("CellData/SurfaceQuadrature.jl")
+include("CellData/CubedSphereJacobians.jl")
 
 include("Operators/SurfaceOperators.jl")
 include("Operators/WaveOperator.jl")
