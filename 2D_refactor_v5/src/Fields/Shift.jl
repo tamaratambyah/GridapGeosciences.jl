@@ -1,6 +1,6 @@
 
 struct ShiftField{A}  <: Field
-  p::A
+  shifts::A
 end
 
 """
@@ -20,13 +20,9 @@ end
 function Gridap.Arrays.evaluate!(cache,f::ShiftField,
   cellx::AbstractArray{<:VectorValue{2}} )
   y = cache
-  panel_id = f.p
-  if panel_id == 1
+  v = f.shifts
+  map!(x -> x + v, y, cellx)
 
-    map!(x -> x, y, cellx)
-  else
-    map!(x -> x - VectorValue(0,π/2), y, cellx)
-  end
 
   return y
 end
@@ -39,13 +35,11 @@ function Gridap.Arrays.return_cache(f::ShiftField,x::VectorValue{2})
 end
 
 function Gridap.Arrays.evaluate!(cache,f::ShiftField,x::VectorValue{2})
-  panel_id = f.p
+  v = f.shifts
   y = cache
-  if panel_id == 1
-    y = x
-  else
-   y = x - VectorValue(0,π/2)
-  end
+
+  y = x + v
+
   return y
 end
 
