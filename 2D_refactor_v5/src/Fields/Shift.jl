@@ -133,8 +133,9 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InversionField},
   return c
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InversionField},
+function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:InversionField},
   cellx::AbstractArray{<:VectorValue{2}})
+  cache, = c
   setsize!(cache,size(cellx))
   y = cache.array
   P =  f.object.P

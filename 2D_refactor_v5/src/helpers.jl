@@ -96,6 +96,29 @@ function get_panel_1_nodes_from_coords(grid::Grid{Dc,Dp},
   # nodes = similar(coords_array, VectorValue{D,T}, num_nodes(grid))
   nodes = zeros(VectorValue{D,T}, num_nodes(grid))
   cell_node_ids = get_cell_node_ids(grid)
+  get_panel_1_nodes_from_coords!(nodes,
+  coords_array,panel_ids,cell_node_ids)
+end
+
+function get_panel_1_nodes_from_coords(topo::GridTopology{Dc,Dp},
+  coords_array::AbstractArray,
+  panel_ids::Vector{Int}) where {Dc,Dp}
+
+  T = eltype(first(testitem(coords_array)))
+  D = length(first(testitem(coords_array)))
+
+  # nodes = similar(coords_array, VectorValue{D,T}, num_nodes(grid))
+  nodes = zeros(VectorValue{D,T},  num_faces(topo,0))
+  cell_node_ids =  get_faces(topo,Dc,0)
+
+  get_panel_1_nodes_from_coords!(nodes,
+  coords_array,panel_ids,cell_node_ids)
+
+end
+
+function get_panel_1_nodes_from_coords!(nodes,
+  coords_array::AbstractArray,
+  panel_ids::Vector{Int},cell_node_ids)
 
   cache = array_cache(coords_array)
 
