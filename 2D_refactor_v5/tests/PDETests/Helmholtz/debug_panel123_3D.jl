@@ -11,19 +11,22 @@ include("../../../src/initialise.jl")
 P1 = one(TensorValue{2,2,Float64})
 P2 = TensorValue{2,2,Float64}(1,0.0,0.0,-1)
 P3 = TensorValue{2,2,Float64}(-1,0.0,0.0,1)
-
-Ps = [P1;P2;P3]
-Psinv = [P1;P2;P3]
+P6 = TensorValue{2,2,Float64}(0, -1.0, 1.0, 0.0)
+Ps = [P1;P2;P3;P6]
+Psinv = [P1;P2;P3;P6]
 
 A = [-1 0 0
       0 -1 0
       0 0 1]
-Rs = [rp1_3D[1];rp1_3D[1];TensorValue(A)]
-
+B = [0 -1 0
+    -1 0 0
+    0 0 -1]
+Rs = [rp1_3D[1];rp1_3D[1];TensorValue(A);TensorValue(B)]
+_Rs = [rp1_3D[1];rp1_3D[2];rp1_3D[3];rp1_3D[6]]
 RADIUS = sqrt(3)
 
 function coarse_panels_13_3D(a::Real)
-  npanels = 3
+  npanels = 2
 
   topo_nodes = a.* [
     Point(1.0, -1.0, -1.0)  # node 1
@@ -32,11 +35,12 @@ function coarse_panels_13_3D(a::Real)
     Point(1.0, 1.0, 1.0)    # node 4
     Point(-1.0, -1.0, 1.0)  # node 5
     Point(-1.0, 1.0, 1.0)   # node 6
-    Point(-1.0, 1.0, -1.0)  # node 7
+    # Point(-1.0, 1.0, -1.0)  # node 7
+    # Point(-1.0, -1.0, -1.0) # node 8
   ]
 
   ## CCAM panel ordering
-  vertex_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6  ]
+  vertex_data = [ 1,2,3,4, 3,4,5,6]#, 2,7,4,6 ,1,3,8,5  ]
   # vertex_data = [ 1,2,3,4, 3,4,5,6  ]
 
   ptr = generate_ptr(npanels)
@@ -68,11 +72,12 @@ function coarse_panels_13_3D(a::Real)
     Point(1.0, 1.0, 1.0)    # node 4
     Point(-1.0, -1.0, 1.0)  # node 5
     Point(-1.0, 1.0, 1.0)   # node 6
-    Point(-1.0, 1.0, -1.0)  # node 7
+    # Point(-1.0, 1.0, -1.0)  # node 7
+    # Point(-1.0, -1.0, -1.0) # node 8
   ]
 
   ## CCAM panel ordering
-  grid_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6  ]
+  grid_data = [ 1,2,3,4, 3,4,5,6]#, 2,7,4,6 ,1,3,8,5  ]
   # grid_data = [ 1,2,3,4, 3,4,5,6  ] # reorient + rotated
 
   ptr = generate_ptr(npanels)
@@ -101,7 +106,7 @@ cmaps = get_cell_map(grid)
 
 
 # k = lazy_map(p->   ShiftField(shifts[p]) ∘ InversionField(Ps[p]) , panel_ids)
-k = lazy_map(p->  InversionField(Ps[p]) ∘ BumpField(A_bump,B_bump,b_bump) ∘ PanelRotationField(rp1_3D[p]), panel_ids)
+k = lazy_map(p->  InversionField(Ps[p]) ∘ BumpField(A_bump,B_bump,b_bump) ∘ PanelRotationField(_Rs[p]), panel_ids)
 _cmaps = lazy_map(∘,k,cmaps)
 evaluate(cmaps[8],Point(0,0))
  evaluate(_cmaps[5],Point(0,0))
