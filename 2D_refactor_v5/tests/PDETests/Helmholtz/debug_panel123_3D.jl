@@ -16,18 +16,19 @@ RADIUS = sqrt(3)
 P1 = one(TensorValue{2,2,Float64})
 P2 = TensorValue{2,2,Float64}(1,0.0,0.0,-1)
 P3 = TensorValue{2,2,Float64}(-1,0,0,1)
+P4 = TensorValue{2,2,Float64}(0,1,-1,0)
 P5 = TensorValue{2,2,Float64}(0,1,1,0)
 P6 = TensorValue{2,2,Float64}(0,1,1,0)
 
-Rs_p1 = [rp1_3D[1];rp1_3D[2];rp1_3D[3];rp1_3D[5];rp1_3D[6]]
-Rs_1p = [r1p_3D[1];r1p_3D[2];r1p_3D[3];r1p_3D[5];r1p_3D[6]]
-Ps = [P1;P2;P3;P5;P6]
-Psinv = [P1;inv(P2);inv(P3);inv(P5);inv(P6)]
+Rs_p1 = [rp1_3D[1];rp1_3D[2];rp1_3D[3];rp1_3D[4];rp1_3D[5];rp1_3D[6]]
+Rs_1p = [r1p_3D[1];r1p_3D[2];r1p_3D[3];rp1_3D[4];r1p_3D[5];r1p_3D[6]]
+Ps = [P1;P2;P3;P4;P5;P6]
+Psinv = [P1;inv(P2);inv(P3);inv(P4);inv(P5);inv(P6)]
 
 
 
 function coarse_panels_13_3D(a::Real)
-  npanels = 5
+  npanels = 6
 
   topo_nodes = a.* [
     Point(1.0, -1.0, -1.0)  # node 1
@@ -41,7 +42,7 @@ function coarse_panels_13_3D(a::Real)
   ]
 
   ## CCAM panel ordering
-  vertex_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 1,8,2,7, 1,3,8,5  ]
+  vertex_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5  ]
   # vertex_data = [ 1,2,3,4, 3,4,5,6  ]
 
   ptr = generate_ptr(npanels)
@@ -78,7 +79,7 @@ function coarse_panels_13_3D(a::Real)
   ]
 
   ## CCAM panel ordering
-  grid_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 1,8,2,7, 1,3,8,5  ]
+  grid_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5  ]
   # grid_data = [ 1,2,3,4, 3,4,5,6  ] # reorient + rotated
 
   ptr = generate_ptr(npanels)
@@ -181,10 +182,11 @@ uh = solve(LUSolver(),op)
 
 e = l2(uh-ucf,dΩ)
 
-writevtk(Ω,dir*"/test_u",cellfields=["u"=>ucf,"uh"=>uh,"e"=>ucf-uh,],append=false)
+Ωp4 = Triangulation(model,panel_ids.==4)
+writevtk(Ωp4,dir*"/test_u",cellfields=["u"=>ucf,"uh"=>uh,"e"=>ucf-uh,],append=false)
 
 ######## map to proper parametric space
- _Ω = Triangulation(_model)
+_Ω = Triangulation(_model)
 _pts = get_cell_points(_Ω)
 
 _cf  = change_domain(uh.cell_field,ReferenceDomain(),PhysicalDomain())
