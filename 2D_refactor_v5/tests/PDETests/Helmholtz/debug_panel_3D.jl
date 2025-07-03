@@ -21,9 +21,9 @@ P5 = TensorValue{2,2,Float64}(0,1,1,0)
 P6 = TensorValue{2,2,Float64}(0,1,1,0)
 
 Rs_p1 = [rp1_3D[1];rp1_3D[2];rp1_3D[3];rp1_3D[4];rp1_3D[5];rp1_3D[6]]
-Rs_1p = [r1p_3D[1];r1p_3D[2];r1p_3D[3];rp1_3D[4];r1p_3D[5];r1p_3D[6]]
+Rs_1p = map(x->inv(x),Rs_p1) #[r1p_3D[1];r1p_3D[2];r1p_3D[3];r1p_3D[4];r1p_3D[5];r1p_3D[6]]
 Ps = [P1;P2;P3;P4;P5;P6]
-Psinv = [P1;inv(P2);inv(P3);inv(P4);inv(P5);inv(P6)]
+Psinv = map(x->inv(x),Ps) #[P1;inv(P2);inv(P3);inv(P5);inv(P6)]
 
 
 
@@ -43,7 +43,7 @@ function coarse_panels_13_3D(a::Real)
 
   ## CCAM panel ordering
   vertex_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5  ]
-  # vertex_data = [ 1,2,3,4, 3,4,5,6  ]
+  # vertex_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6,  1,8,2,7, 1,3,8,5  ]
 
   ptr = generate_ptr(npanels)
   cell_vertices = Table(vertex_data,ptr)
@@ -80,7 +80,7 @@ function coarse_panels_13_3D(a::Real)
 
   ## CCAM panel ordering
   grid_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5  ]
-  # grid_data = [ 1,2,3,4, 3,4,5,6  ] # reorient + rotated
+  # grid_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 1,8,2,7, 1,3,8,5  ]
 
   ptr = generate_ptr(npanels)
   cell_node_ids = Table(grid_data,ptr)
@@ -126,18 +126,16 @@ writevtk(model,dir*"/panel13",append=false)
 
 ######### FE
 Ω = Triangulation(model)
-# Γ = BoundaryTriangulation(model;tags="boundary")
-# nΓ = get_normal_vector(Γ)
 writevtk(Ω,dir*"/test",append=false)
 
 dΩ = Measure(Ω,10)
-# dΓ = Measure(Γ,10)
 
-V = TestFESpace(model, ReferenceFE(lagrangian,Float64,3); conformity=:H1)
+
+V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,3); conformity=:H1)
 U = TrialFESpace(V)
 
 uX_scalar(x) = x[1]*x[2]*x[3]
-
+uθϕ_scalar(x) =  cos(x[1])*sin(x[2])
 function u_scalar_ambient2parametric2(p::Int,uX::Function)
   function _u(αβ)
     _αβ =  InversionField(Psinv[p])(αβ)
@@ -145,10 +143,13 @@ function u_scalar_ambient2parametric2(p::Int,uX::Function)
     _XYZ = SigmaField(RADIUS)(θϕ)
     XYZ = PanelRotationField(Rs_1p[p])(_XYZ)
     uX(XYZ)
+    # θϕp = InvSigmaField(RADIUS)(XYZ)
+    # uX(θϕp)
   end
 end
 
 cell_field = map(p->GenericField(u_scalar_ambient2parametric2(p,uX_scalar)),panel_ids)
+# cell_field = map(p->GenericField(u_scalar_ambient2parametric2(p,uθϕ_scalar)),panel_ids[panel_ids.==1])
 ucf = CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
 writevtk(Ω,dir*"/test_u",cellfields=["u"=>ucf],append=false)
 
@@ -174,30 +175,36 @@ helmholtz_liform(v) = force(v) #- bound(v)
 
 op = AffineFEOperator(helmholtz_biform,helmholtz_liform,U,V)
 
-# A = assemble_matrix(mass,U,V)
-# println(diag(Array(A)))
-# b = assemble_vector(force,V)
+A = assemble_matrix(mass,U,V)
+println(diag(Array(A)))
+b = assemble_vector(force,V)
 
 uh = solve(LUSolver(),op)
 
 e = l2(uh-ucf,dΩ)
 
-Ωp4 = Triangulation(model,panel_ids.==4)
-writevtk(Ωp4,dir*"/test_u",cellfields=["u"=>ucf,"uh"=>uh,"e"=>ucf-uh,],append=false)
+# Ωp = Triangulation(model,panel_ids.==4)
+writevtk(Ω,dir*"/test_u",cellfields=["u"=>ucf,"uh"=>uh,"e"=>ucf-uh,],append=false)
 
 ######## map to proper parametric space
+
+inv_mapping = lazy_map(p->  InversionField(Ps[p]) ∘ BumpField(A_bump,B_bump,b_bump) ∘ PanelRotationField(Rs_p1[p]), panel_ids)
 _Ω = Triangulation(_model)
 _pts = get_cell_points(_Ω)
 
 _cf  = change_domain(uh.cell_field,ReferenceDomain(),PhysicalDomain())
-cf_mapped = lazy_map(Broadcasting(∘),get_data(_cf),k)
+cf_mapped = lazy_map(Broadcasting(∘),get_data(_cf),inv_mapping)
 uh_mapped = CellData.GenericCellField(cf_mapped,_Ω,PhysicalDomain() )
-uh_mapped(_pts)
+# uh_mapped(_pts)
 
-_cf_mapped = lazy_map(Broadcasting(∘),get_data(ucf),k)
+_cf_mapped = lazy_map(Broadcasting(∘),get_data(ucf),inv_mapping)
 ucf_mapped = CellData.GenericCellField(_cf_mapped,_Ω,PhysicalDomain() )
 
-ucf_mapped(_pts)
+# ucf_mapped(_pts)
 
-writevtk(Triangulation(_model),dir*"/test_u_mapped",
+_Ωp = Triangulation(_model,panel_ids.!=4)
+writevtk(_Ωp,dir*"/test_u_mapped",
 cellfields=["u"=>ucf_mapped,"uh"=>uh_mapped,"e"=>ucf_mapped-uh_mapped],append=false)
+
+# writevtk(_Ω,dir*"/test_u_mapped",
+# cellfields=["u"=>ucf_mapped],append=false)

@@ -1,6 +1,7 @@
 """
 build panel 1 by hand
 """
+
 using DrWatson
 using Gridap
 using Gridap.Arrays, Gridap.ReferenceFEs, Gridap.Geometry, Gridap.FESpaces
@@ -65,7 +66,6 @@ panel_ids = get_panel_ids(cube_model_3D)
 
 #### make 2D surface
 cube_grid_3D = get_grid(cube_model_3D)
-
 cmaps_3D = get_cell_map(cube_grid_3D)
 
 k = lazy_map(p->  BumpField(A_bump,B_bump,b_bump) ∘ PanelRotationField(rp1_3D[p]), panel_ids)
@@ -88,13 +88,11 @@ cube_grid_2D = Gridap.Geometry.UnstructuredGrid(nodes_2D,
 cube_model_2D = UnstructuredDiscreteModel(cube_grid_2D,topo_2D,face_labels_2D)
 writevtk(cube_model_2D,dir*"/panel",append=false)
 
-evaluate(parametric_cell_map[1],Point(0,0))
 
-
-function uαβ_scalar(αβ)
-    return αβ[1]*αβ[2]
+function uθϕ(αβ)
+    θϕ = GnomonicField()(αβ)
+    cos(θϕ[1])*sin(θϕ[2])
 end
-
 
 
 ##### FE problem
@@ -105,38 +103,36 @@ m = Metric(cubedsphere,Ω)
 mΓ = Metric(cubedsphere,Γ)
 
 dΓ = Measure(Γ,10)
-n_Γ = get_normal_vector(Γ)
+nΓ = get_normal_vector(Γ)
 
 dΩ = Measure(Ω,10)
 
-ucf = CellField(uαβ_scalar,Ω)
+ucf = CellField(uθϕ,Ω)
 lap_ucf = surface_laplacian(ucf,m)
 rhs = ucf + lap_ucf
+sum(∫(rhs)dΩ)
 
 V = TestFESpace(cube_model_2D, ReferenceFE(lagrangian,Float64,2); conformity=:H1)
 U = TrialFESpace(V)
 
-Jp(p) = x -> r1p_3D[p]⋅Jpanel1(x)
-_Jcf = map(p->GenericField(Jp(p)),panel_ids)
-Jcf = CellData.GenericCellField(_Jcf,Ω,PhysicalDomain())
-Gcf = (Operation(transpose)(Jcf)) ⋅ Jcf
-invG = Operation(inv)(Gcf)
-measG = Operation((meas))(Gcf)
-sqrtmeasG = Operation(sqrt)(measG)
+M = CellField(metric1,Ω)
+invM = CellField(invmetric1,Ω)
+sqrtM = CellField(sqrtmet1,Ω)
 
-mass(u,v) = ∫( (u*v)* (sqrtmeasG) )dΩ
-stiffnes(u,v) = ∫( (Jcf ⋅(invG ⋅ ∇(v)))⋅ (Jcf ⋅invG ⋅ ∇(u) ) *(sqrtmeasG))dΩ
-bound(v) = ∫( (v*(invG⋅ ∇(ucf))⋅n_Γ )*(sqrtmeasG) )dΓ
+mass(u,v) = ∫( (u*v)*sqrtM )dΩ
+stiffnes(u,v) = ∫( (∇(v)⋅ (invM⋅ ∇(u) )) *sqrtM)dΩ
+bound(v) = ∫( (((invM ⋅∇(ucf))⋅(nΓ)*v)*sqrtM ) )dΓ
+force(v) = ∫(  (rhs*v)*sqrtM )dΩ
+
+bb = assemble_vector(bound,V)
 
 helmholtz_biform(u,v) = mass(u,v) - stiffnes(u,v)
-helmholtz_liform(v) = ∫(  (rhs*v) * (sqrtmeasG) )dΩ - bound(v)
+helmholtz_liform(v) = force(v) #- bound(v)
 
 op = AffineFEOperator(helmholtz_biform,helmholtz_liform,U,V)
 
 uh = solve(LUSolver(),op)
 
-# (uh-ucf)(pts)
 e = l2(uh-ucf,dΩ)
-
 
 writevtk(Ω,dir*"/poisson_panel",cellfields=["u"=>ucf,"uh"=>uh,"e"=>ucf-uh],append=false)

@@ -56,8 +56,9 @@ uX_scalar(x) = x[1]*x[2]*x[3]
 function u_scalar_ambient2parametric2(p::Int,uX::Function)
   function _u(αβ)
     θϕ = GnomonicField()(αβ)
-    _XYZ = SigmaField(RADIUS)(θϕ)
-    uX(_XYZ)
+    # _XYZ = SigmaField(RADIUS)(θϕ)
+    # uX(_XYZ)
+    cos(θϕ[1])*sin(θϕ[2])
   end
 end
 
@@ -70,7 +71,7 @@ M = CellField(metric1,Ω)
 invM = CellField(invmetric1,Ω)
 sqrtM = CellField(sqrtmet1,Ω)
 
-mNew =  Metric(M,sqrtM,invM,met,sqrtmet,invmet)
+mNew =  Metric(M,sqrtM,invM,metric1,sqrtmet1,invmetric1)
 
 lapucf = surface_laplacian(ucf,mNew) #1/sqrtM * divergence( sqrtM*( invM ⋅ gradient(ucf) ) )
 
@@ -119,8 +120,8 @@ function _u_scalar_ambient2parametric2(p::Int,uX::Function)
   end
 end
 
-_rot_cf = map(p->GenericField(_u_scalar_ambient2parametric2(p,uX_scalar)),panel_ids)
-rot_ucf = CellData.GenericCellField(_rot_cf,_Ω,PhysicalDomain())
+# _rot_cf = map(p->GenericField(_u_scalar_ambient2parametric2(p,uX_scalar)),panel_ids)
+# rot_ucf = CellData.GenericCellField(_rot_cf,_Ω,PhysicalDomain())
 
 writevtk(Triangulation(_model),dir*"/test_u_mapped",
-cellfields=["u"=>ucf_mapped,"uh"=>uh_mapped,"e"=>ucf_mapped-uh_mapped,"urot"=>rot_ucf,"eu"=>ucf_mapped-rot_ucf],append=false)
+cellfields=["u"=>ucf_mapped,"uh"=>uh_mapped,"e"=>ucf_mapped-uh_mapped],append=false)
