@@ -8,25 +8,26 @@ using FillArrays
 
 include("../../../src/initialise.jl")
 
-P1 = one(TensorValue{2,2,Float64})
-P2 = TensorValue{2,2,Float64}(1,0.0,0.0,-1)
-P3 = TensorValue{2,2,Float64}(-1,0.0,0.0,1)
-P6 = TensorValue{2,2,Float64}(0, -1.0, 1.0, 0.0)
-Ps = [P1;P2;P3;P6]
-Psinv = [P1;P2;P3;P6]
 
-A = [-1 0 0
-      0 -1 0
-      0 0 1]
-B = [0 -1 0
-    -1 0 0
-    0 0 -1]
-Rs = [rp1_3D[1];rp1_3D[1];TensorValue(A);TensorValue(B)]
-_Rs = [rp1_3D[1];rp1_3D[2];rp1_3D[3];rp1_3D[6]]
+
 RADIUS = sqrt(3)
 
+
+P1 = one(TensorValue{2,2,Float64})
+P2 = TensorValue{2,2,Float64}(1,0.0,0.0,-1)
+P3 = TensorValue{2,2,Float64}(-1,0,0,1)
+P5 = TensorValue{2,2,Float64}(0,1,1,0)
+P6 = TensorValue{2,2,Float64}(0,1,1,0)
+
+Rs_p1 = [rp1_3D[1];rp1_3D[2];rp1_3D[3];rp1_3D[5];rp1_3D[6]]
+Rs_1p = [r1p_3D[1];r1p_3D[2];r1p_3D[3];r1p_3D[5];r1p_3D[6]]
+Ps = [P1;P2;P3;P5;P6]
+Psinv = [P1;inv(P2);inv(P3);inv(P5);inv(P6)]
+
+
+
 function coarse_panels_13_3D(a::Real)
-  npanels = 2
+  npanels = 5
 
   topo_nodes = a.* [
     Point(1.0, -1.0, -1.0)  # node 1
@@ -35,12 +36,12 @@ function coarse_panels_13_3D(a::Real)
     Point(1.0, 1.0, 1.0)    # node 4
     Point(-1.0, -1.0, 1.0)  # node 5
     Point(-1.0, 1.0, 1.0)   # node 6
-    # Point(-1.0, 1.0, -1.0)  # node 7
-    # Point(-1.0, -1.0, -1.0) # node 8
+    Point(-1.0, 1.0, -1.0)  # node 7
+    Point(-1.0, -1.0, -1.0) # node 8
   ]
 
   ## CCAM panel ordering
-  vertex_data = [ 1,2,3,4, 3,4,5,6]#, 2,7,4,6 ,1,3,8,5  ]
+  vertex_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 1,8,2,7, 1,3,8,5  ]
   # vertex_data = [ 1,2,3,4, 3,4,5,6  ]
 
   ptr = generate_ptr(npanels)
@@ -72,12 +73,12 @@ function coarse_panels_13_3D(a::Real)
     Point(1.0, 1.0, 1.0)    # node 4
     Point(-1.0, -1.0, 1.0)  # node 5
     Point(-1.0, 1.0, 1.0)   # node 6
-    # Point(-1.0, 1.0, -1.0)  # node 7
-    # Point(-1.0, -1.0, -1.0) # node 8
+    Point(-1.0, 1.0, -1.0)  # node 7
+    Point(-1.0, -1.0, -1.0) # node 8
   ]
 
   ## CCAM panel ordering
-  grid_data = [ 1,2,3,4, 3,4,5,6]#, 2,7,4,6 ,1,3,8,5  ]
+  grid_data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 1,8,2,7, 1,3,8,5  ]
   # grid_data = [ 1,2,3,4, 3,4,5,6  ] # reorient + rotated
 
   ptr = generate_ptr(npanels)
@@ -100,16 +101,14 @@ writevtk(_model,dir*"/panel13",append=false)
 
 panel_ids = get_panel_ids(_model)
 
+### make parametric grid
 grid = get_grid(_model)
 topo = get_grid_topology(_model)
 cmaps = get_cell_map(grid)
 
 
-# k = lazy_map(p->   ShiftField(shifts[p]) ∘ InversionField(Ps[p]) , panel_ids)
-k = lazy_map(p->  InversionField(Ps[p]) ∘ BumpField(A_bump,B_bump,b_bump) ∘ PanelRotationField(_Rs[p]), panel_ids)
+k = lazy_map(p->  InversionField(Ps[p]) ∘ BumpField(A_bump,B_bump,b_bump) ∘ PanelRotationField(Rs_p1[p]), panel_ids)
 _cmaps = lazy_map(∘,k,cmaps)
-evaluate(cmaps[8],Point(0,0))
- evaluate(_cmaps[5],Point(0,0))
 
 cell_coords = lazy_map(evaluate,_cmaps,get_cell_ref_coordinates(grid))
 nodes = get_panel_1_nodes_from_coords(grid,cell_coords,panel_ids)
@@ -118,22 +117,20 @@ _grid = UnstructuredGrid(nodes,get_cell_node_ids(grid),get_reffes(grid),get_cell
   OrientationStyle(grid),nothing,_cmaps)
 
 nodes_topo = get_panel_1_nodes_from_coords(topo,cell_coords,panel_ids)
-_topo = UnstructuredGridTopology(nodes,get_faces(topo,2,0),get_cell_type(topo),polytopes,Gridap.Geometry.NonOriented())
+_topo = UnstructuredGridTopology(nodes,get_faces(topo,2,0),get_cell_type(topo),get_polytopes(topo),Gridap.Geometry.NonOriented())
 
 model = UnstructuredDiscreteModel(_grid,_topo,FaceLabeling(_topo))
 
-
 writevtk(model,dir*"/panel13",append=false)
-
 
 ######### FE
 Ω = Triangulation(model)
-Γ = BoundaryTriangulation(model;tags="boundary")
-nΓ = get_normal_vector(Γ)
+# Γ = BoundaryTriangulation(model;tags="boundary")
+# nΓ = get_normal_vector(Γ)
 writevtk(Ω,dir*"/test",append=false)
 
 dΩ = Measure(Ω,10)
-dΓ = Measure(Γ,10)
+# dΓ = Measure(Γ,10)
 
 V = TestFESpace(model, ReferenceFE(lagrangian,Float64,3); conformity=:H1)
 U = TrialFESpace(V)
@@ -142,9 +139,10 @@ uX_scalar(x) = x[1]*x[2]*x[3]
 
 function u_scalar_ambient2parametric2(p::Int,uX::Function)
   function _u(αβ)
-    θϕ = GnomonicField()(αβ)
+    _αβ =  InversionField(Psinv[p])(αβ)
+    θϕ = GnomonicField()(_αβ)
     _XYZ = SigmaField(RADIUS)(θϕ)
-    XYZ = PanelRotationField(Rs[p])(_XYZ)
+    XYZ = PanelRotationField(Rs_1p[p])(_XYZ)
     uX(XYZ)
   end
 end
@@ -186,17 +184,15 @@ e = l2(uh-ucf,dΩ)
 writevtk(Ω,dir*"/test_u",cellfields=["u"=>ucf,"uh"=>uh,"e"=>ucf-uh,],append=false)
 
 ######## map to proper parametric space
-invMapping = map(p-> InversionField(Psinv[p]) ∘ BumpField(A_bump,B_bump,b_bump) ∘   PanelRotationField(rp1_3D[p]) , panel_ids)
-
-_Ω = Triangulation(_model)
+ _Ω = Triangulation(_model)
 _pts = get_cell_points(_Ω)
 
 _cf  = change_domain(uh.cell_field,ReferenceDomain(),PhysicalDomain())
-cf_mapped = lazy_map(Broadcasting(∘),get_data(_cf),invMapping)
+cf_mapped = lazy_map(Broadcasting(∘),get_data(_cf),k)
 uh_mapped = CellData.GenericCellField(cf_mapped,_Ω,PhysicalDomain() )
 uh_mapped(_pts)
 
-_cf_mapped = lazy_map(Broadcasting(∘),get_data(ucf),invMapping)
+_cf_mapped = lazy_map(Broadcasting(∘),get_data(ucf),k)
 ucf_mapped = CellData.GenericCellField(_cf_mapped,_Ω,PhysicalDomain() )
 
 ucf_mapped(_pts)
