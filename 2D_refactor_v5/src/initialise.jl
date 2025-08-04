@@ -30,6 +30,7 @@ include("Fields/Gnomonic.jl")
 include("Fields/Sigma.jl")
 include("Fields/MetricMaps.jl")
 include("Fields/FieldHelpers.jl")
+include("Fields/Panel2Sphere.jl")
 
 include("FESpaces/FESpaceHelpers.jl")
 

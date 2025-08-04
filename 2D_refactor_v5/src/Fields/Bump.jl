@@ -82,8 +82,9 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:BumpField},
   return c
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:BumpField},
+function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:BumpField},
   cellx::AbstractArray{<:VectorValue{3}})
+  cache, = c
   setsize!(cache,size(cellx))
   y = cache.array
   AT = transpose(f.object.A_bump)

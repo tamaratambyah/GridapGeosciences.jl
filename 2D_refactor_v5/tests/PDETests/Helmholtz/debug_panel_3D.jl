@@ -8,7 +8,11 @@ using FillArrays
 
 include("../../../src/initialise.jl")
 
+pt1 = Point(π/8,π/4)
+Jpanel1(pt1)
 
+pt2 = Point(π/8,-π/4)
+Jpanel2(pt2)
 
 RADIUS = sqrt(3)
 

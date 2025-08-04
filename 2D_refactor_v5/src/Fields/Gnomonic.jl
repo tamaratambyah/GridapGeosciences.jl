@@ -75,7 +75,7 @@ gradient of γ: (α,β) → (θ,ϕ) is:
   J = [ 1 0
         F G ]
 where
-F = tan(α)*sec(α)*tan(β)/ρ^2
+F = -tan(α)*sec(α)*tan(β)/ρ^2
 G = (sec(β))^2 sec(α)/ρ^2
 ρ^2 = 1 + (tanα)^2 + (tanβ)^2
 

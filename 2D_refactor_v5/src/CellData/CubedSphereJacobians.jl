@@ -1,6 +1,7 @@
 function Jfactor(x)
   α,β = x
   RADIUS/( (1 + (tan(α))^2 + (tan(β))^2 )^(3/2) )
+  1.0
 end
 
 function dXdalpha(x)

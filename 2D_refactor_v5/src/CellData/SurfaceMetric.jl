@@ -180,10 +180,10 @@ function G2(x)
 end
 
 
-metric1(x) = TensorValue{2,2}(E(x),F(x),F(x),G(x))
-invmetric1(x) = 1/(E(x)*G(x) - F(x)*F(x))*TensorValue{2,2}(G(x),-1.0*F(x),-1.0*F(x),E(x))
-sqrtmet1(x) = sqrt(E(x)*G(x) - F(x)*F(x) )
+# metric1(x) = TensorValue{2,2}(E(x),F(x),F(x),G(x))
+# invmetric1(x) = 1/(E(x)*G(x) - F(x)*F(x))*TensorValue{2,2}(G(x),-1.0*F(x),-1.0*F(x),E(x))
+# sqrtmet1(x) = sqrt(E(x)*G(x) - F(x)*F(x) )
 
-metric2(x) = TensorValue{2,2}(E2(x),F2(x),F2(x),G2(x))
-invmetric2(x) = 1/(E2(x)*G2(x) - F2(x)*F2(x))*TensorValue{2,2}(G2(x),-1.0*F2(x),-1.0*F2(x),E2(x))
-sqrtmet2(x) = sqrt(E2(x)*G2(x) - F2(x)*F2(x) )
+# metric2(x) = TensorValue{2,2}(E2(x),F2(x),F2(x),G2(x))
+# invmetric2(x) = 1/(E2(x)*G2(x) - F2(x)*F2(x))*TensorValue{2,2}(G2(x),-1.0*F2(x),-1.0*F2(x),E2(x))
+# sqrtmet2(x) = sqrt(E2(x)*G2(x) - F2(x)*F2(x) )
