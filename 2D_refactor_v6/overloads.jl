@@ -1,5 +1,6 @@
 using Gridap
 using Gridap.Geometry, Gridap.CellData, Gridap.Fields, Gridap.TensorValues
+using StaticArrays
 
 ################################################################################
 #### I think the following extra overloads should eventually go to Gridap's core
@@ -59,3 +60,10 @@ end
 ################################################################################
 #### End of extra overloads
 ################################################################################
+
+################################################################################
+#### Missing overloads to allow Fields to be taken into autodiff via a function
+################################################################################
+Gridap.Arrays.evaluate(f::Field,x::SVector) = Gridap.Arrays.evaluate(f,Point(x))
+Gridap.Arrays.return_cache(f::Field,x::SVector) = Gridap.Arrays.return_cache(f,Point(x))
+Gridap.Arrays.evaluate!(cache,f::Field,x::SVector) = Gridap.Arrays.evaluate!(cache,f,Point(x))

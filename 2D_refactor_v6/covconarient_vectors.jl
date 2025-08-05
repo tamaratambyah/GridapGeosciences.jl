@@ -1,5 +1,16 @@
 using Gridap
+using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.ReferenceFEs
+using Gridap.Adaptivity
+using LinearAlgebra
 global RADIUS = 1.0
+
+function cube_to_alphabeta(XYZ)
+  α,β = -10.0,-10.0
+  if p == 1
+  elseif p == 3
+  end
+  return Point(α,β)
+end
 
 function forward_map(αβ,p)
   α,β = αβ
@@ -9,12 +20,20 @@ function forward_map(αβ,p)
 
   if p == 1
     X = 1/rho
-    Y = X* tan(α)
+    Y = X * tan(α)
     Z = X * tan(β)
   elseif p == 3
     Y = 1/rho
-    X = -Y* tan(α)
+    X = -Y * tan(α)
     Z = Y * tan(β)
+  elseif p == 4
+    X = -1/rho
+    Y = -X * tan(β)
+    Z = -X * tan(α)
+  elseif p == 6
+    Y = -1/rho
+    X = Y * tan(β)
+    Z = -Y * tan(α)
   end
   XYZ = RADIUS*Point(X,Y,Z)
   return XYZ
@@ -46,6 +65,20 @@ function forward_jacobian(αβ,p)
     dXdb = -1.0*( ddb*tan(α) )
     dZda = dda*tan(β)
     dZdb = ddb*tan(β) + factor*(sec(β))^2
+  elseif p == 4
+    dXda = -dda
+    dXdb = -ddb
+    dYda = -( -dda*tan(β) )
+    dYdb = -( -ddb*tan(β) + -factor*(sec(β))^2 )
+    dZda = -( -dda*tan(α) + -factor*(sec(α))^2 )
+    dZdb = -( -ddb*tan(α) )
+  elseif p == 6
+    dYda = -dda
+    dYdb = -ddb
+    dXda = -dda*tan(β)
+    dXdb = -ddb*tan(β) + -factor*(sec(β))^2
+    dZda = -( -dda*tan(α) + -factor*(sec(α))^2 )
+    dZdb = -( -ddb*tan(α) )
   end
 
   cov_basis_1 = RADIUS*Point(dXda,dYda,dZda)
@@ -104,6 +137,12 @@ function inverse_map(XYZ,p)
   elseif p == 3
     α = atan(-X,Y)
     β = atan(Z,Y)
+  elseif p == 4
+    α = atan(-Z,X)
+    β = atan(-Y,X)
+  elseif p == 6
+    α = atan(-Z,Y)
+    β = atan(X,Y)
   end
 
   αβ = Point(α,β)
@@ -131,6 +170,20 @@ function inverse_jacobian(XYZ,p)
     dbdX = 0.0
     dbdY = -1.0*Z/( Z^2 + Y^2)
     dbdZ = Y / (Z^2 + Y^2)
+  elseif p == 4
+    dadX = Z / (X^2 + Z^2)
+    dadY = 0.0
+    dadZ = -1.0*X / (X^2 + Z^2)
+    dbdX = Y / (X^2 + Y^2)
+    dbdY = -1.0*X/( X^2 + Y^2)
+    dbdZ = 0.0
+  elseif p == 6
+    dadX = 0.0
+    dadY = Z / (Y^2 + Z^2)
+    dadZ = -1.0*Y / (Y^2 + Z^2)
+    dbdX = Y / (X^2 + Y^2)
+    dbdY = -1.0*X/( X^2 + Y^2)
+    dbdZ = 0.0
   end
 
   contra_basis_1 = Point(dadX,dadY,dadZ)
@@ -180,7 +233,7 @@ end
 
 
 
-p = 3
+p = 1
 αβ = Point(-π/4,π/4)
 
 XYZ = forward_map(αβ,p)
@@ -190,7 +243,7 @@ cov_v1,cov_v2 = forward_jacobian(αβ,p)
 con_v1,con_v2 = inverse_jacobian(XYZ,p)
 
 
-## mapping of tangent vector. At node 4
+######## mapping of tangent vector. At node 4
 vec = Point(-2.0,1.0,1.0)
 
 # panel 1:
@@ -199,7 +252,6 @@ p = 1
 cov_to_phys(vec,αβ,p)
 contra_to_phys(vec,αβ,p)
 
-
 # panel 3:
 p = 3
 αβ = Point(-π/4,π/4)
@@ -207,17 +259,47 @@ cov_to_phys(vec,αβ,p)
 
 contra_to_phys(vec,αβ,p)
 
+######## mapping of tangent vector. At node 3
+vec = Point(1.0,2.0,1.0)
 
-## metric
-g,ginv,detg  = metric(αβ,p)
+# panel 1:
+p = 1
+αβ = Point(-π/4,π/4)
+cov_to_phys(vec,αβ,p)
+contra_to_phys(vec,αβ,p)
+
+# panel 6:
+p = 6
+αβ = Point(π/4,-π/4)
+cov_to_phys(vec,αβ,p)
+contra_to_phys(vec,αβ,p)
+
+
+######## mapping of tangent vector. At node 5
+vec = Point(1.0,1.0,2.0)
+
+# panel 4:
+p = 4
+αβ = Point(π/4,-π/4)
+cov_to_phys(vec,αβ,p)
+contra_to_phys(vec,αβ,p)
+
+# panel 6:
+p = 6
+αβ = Point(π/4,π/4)
+cov_to_phys(vec,αβ,p)
+contra_to_phys(vec,αβ,p)
 
 ###############################################################################
 u(X) = X[1]*X[2]*X[3]
 
+################################################################################
+##### Single panel: 1, 3
+################################################################################
 ## force the panel number below
 function uex(αβ)
- XYZ = forward_map(αβ,3)
- u(XYZ)
+  XYZ = forward_map(αβ,3)
+  u(XYZ)
 end
 
 function panel1_meas_metric(αβ)
@@ -228,9 +310,6 @@ function panel1_inv_metric(αβ)
   inv_metric(αβ,3)
 end
 
-################################################################################
-##### Single only
-################################################################################
 single_panel_model = CartesianDiscreteModel(( -π/4,π/4,-π/4,π/4),(20,20))
 
 p = 2
@@ -260,6 +339,77 @@ op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 
 uh = solve(LUSolver(),op)
 
+
+l2(e,dΩ) = sum(∫( e⋅e )dΩ)
+e =  l2(uh-ucf,dΩ)
+
+
+
+################################################################################
+##### Single panel: 4, 6
+################################################################################
+single_panel_model = UnstructuredDiscreteModel( CartesianDiscreteModel(( -π/4,π/4,-π/4,π/4),(20,20)) )
+grid = get_grid(single_panel_model)
+cmaps = get_cell_map(grid)
+nodes = Geometry.get_node_coordinates(grid)
+
+A = [0 1
+    1 0]
+
+swap = fill(SwapField(TensorValue(A)),length(cmaps))
+new_cmaps = lazy_map(∘,swap,cmaps)
+
+evaluate(cmaps[2],Point(0,0))
+evaluate(new_cmaps[2],Point(0,0))
+
+new_cell_coords = lazy_map(evaluate,new_cmaps,get_cell_ref_coordinates(grid))./1
+new_nodes = map(x->Point(x[2],x[1]),nodes)
+new_grid = Geometry.UnstructuredGrid(new_nodes,get_cell_node_ids(grid),get_reffes(grid),get_cell_type(grid),OrientationStyle(grid),
+                    nothing,new_cmaps)
+
+
+new_single_panel_model = UnstructuredDiscreteModel(new_grid,get_grid_topology(single_panel_model),get_face_labeling(single_panel_model))
+
+## force the panel number below
+function uex(αβ)
+  XYZ = forward_map(αβ,6)
+  u(XYZ)
+end
+
+function panel1_meas_metric(αβ)
+  meas_metric(αβ,6)
+end
+
+function panel1_inv_metric(αβ)
+  inv_metric(αβ,6)
+end
+
+
+p = 2
+degree = 4*p
+
+Ω = Triangulation(new_single_panel_model)
+dΩ = Measure(Ω,degree)
+pts = get_cell_points(Ω)
+
+ucf = CellField(uex,Ω)
+meas_metric_cf = CellField(panel1_meas_metric,Ω)
+inv_metric_cf = CellField(panel1_inv_metric,Ω)
+
+surflap = 1/meas_metric_cf * divergence( meas_metric_cf *( inv_metric_cf ⋅(gradient(ucf)) ) )
+
+sum(∫( ucf*meas_metric_cf + surflap*meas_metric_cf  )dΩ)
+
+rhs = ucf + surflap
+
+V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p); conformity=:H1)
+U = TrialFESpace(V)
+
+poisson_biform(u,v) = ∫(u*v*meas_metric_cf)dΩ -  ∫( ( ∇(v)⋅ (inv_metric_cf⋅ ∇(u))  )*meas_metric_cf )dΩ
+poisson_liform(v) = ∫(  (rhs*v)*meas_metric_cf )dΩ
+op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+
+uh = solve(LUSolver(),op)
 
 l2(e,dΩ) = sum(∫( e⋅e )dΩ)
 e =  l2(uh-ucf,dΩ)
