@@ -4,6 +4,10 @@ using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.Ref
 using Gridap.Adaptivity
 using LinearAlgebra
 
+include("swapField.jl")
+include("overloads.jl")
+include("panel_ids_from_refinement.jl")
+
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
 
@@ -17,9 +21,9 @@ function generate_ptr(n)
   ptr
 end
 
-# panels 1, 2, 3, 4, 6
+# panels 1, 2, 3, 4, 5, 6
 function coarse_cube_surface_3D(a::Real)
-  npanels = 5
+  npanels = 6
 
   nodes_3d = a.* [
     Point(1.0, -1.0, -1.0)  # node 1
@@ -33,7 +37,8 @@ function coarse_cube_surface_3D(a::Real)
   ]
 
   ## CCAM panel ordering
-  data = [ 1,2,3,4, 3,4,5,6, 2,7,4,6, 8,5,7,6, 1,3,8,5 ]
+  data = [ 1,2,3,4, 5,6,3,4, 7,2,6,4, 7,8,6,5, 1,2,8,7,  1,8,3,5 ]
+  # data =  [ 1,2,3,4,  5,6,3,4,  7,8,6,5, 1,2,8,7,  ]
 
   ptr = generate_ptr(npanels)
   cell_node_ids = Table(data,ptr)
@@ -43,10 +48,10 @@ function coarse_cube_surface_3D(a::Real)
   reffes = LagrangianRefFE(Float64,QUAD,1)
   cell_reffes=[reffes]
 
-  topo = UnstructuredGridTopology(nodes_3d,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
+  topo = UnstructuredGridTopology(nodes_3d,cell_node_ids,cell_type,polytopes,Gridap.Geometry.Oriented())
   labels = FaceLabeling(topo)
 
-  cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_3d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
+  cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_3d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.Oriented())
 
   panel_ids = collect(1:6)
   return cube_grid,topo,labels,panel_ids
@@ -60,8 +65,12 @@ cube_model = Gridap.Adaptivity.refine(cube_model)
 # cube_model = Gridap.Adaptivity.refine(cube_model)
 # cube_model = Gridap.Adaptivity.refine(cube_model)
 
-## make panel grid
+# n = Int(num_cells(cube_model)/4)
+# panel_ids = vcat(fill(1,n),fill(2,n),fill(4,n),fill(5,n))
 panel_ids = get_panel_ids(cube_model)
+
+
+## make panel grid
 cube_grid = get_grid(cube_model)
 cube_topo = get_grid_topology(cube_model)
 
@@ -74,11 +83,13 @@ A2 = [0 1 0
       1 0 0]
 A3 = [1 0 0
       0 0 1]
-A4 = [0 0 1
-      0 -1 0]
-A6 = [0 0 1
+A4 = [0 -1 0
+      0 0 1]
+A5 = [0 1 0
       -1 0 0]
-As = [A1,A2,A3,A4,A6]
+A6 = [-1 0 0
+      0 0 1]
+As = [A1,A2,A3,A4,A5,A6]
 
 swap = lazy_map(p->SwapField(TensorValue(As[p])),panel_ids)
 
@@ -96,29 +107,27 @@ new_topo = UnstructuredGridTopology(new_nodes,get_cell_node_ids(cube_grid),get_c
 new_labels = FaceLabeling(new_topo)
 panel_model = UnstructuredDiscreteModel(new_grid,new_topo,new_labels)
 
-n = Int(num_cells(cube_model)/5)
-panel_ids = vcat(fill(1,n),fill(2,n),fill(3,n),fill(4,n),fill(6,n))
+
 
 ################################################################################
 ##### Single panel: 1
 ################################################################################
-u(X) = X[1]*X[2]*X[3]
+u(X) = X[1]*X[2]#*X[3]
 
 function cartesian_to_latlon(XYZ)
   X,Y,Z = XYZ
-  θ = rem2pi(atan(Y,X), RoundNearest)
-  ϕ = atan(Z,sqrt(X^2 + Y^2))
+  θ = atan(Y,X)
+  ϕ = asin(Z/RADIUS)#atan(Z,sqrt(X^2 + Y^2))
   Point(θ,ϕ)
 end
 uθϕ(θϕ) = sin(θϕ[2])
 
-## force the panel number below
+
 function uex(p)
   function _uex(αβ)
     XYZ = forward_map(αβ,p)
     θϕ = cartesian_to_latlon(XYZ)
-    u(XYZ)
-    # uθϕ(θϕ)
+    uθϕ(θϕ)
   end
 end
 
@@ -140,12 +149,12 @@ function panel_inv_metric(p)
   end
 end
 
-function CellData.get_cell_points(trian::Triangulation)
-  cell_ref_coords = get_cell_ref_coordinates(trian)
-  cmaps = get_cell_map(trian)
-  cell_phys_coords = lazy_map(evaluate,cmaps,cell_ref_coords)
-  CellPoint(cell_ref_coords,cell_phys_coords,trian,ReferenceDomain())
-end
+# function CellData.get_cell_points(trian::Triangulation)
+#   cell_ref_coords = get_cell_ref_coordinates(trian)
+#   cmaps = get_cell_map(trian)
+#   cell_phys_coords = lazy_map(evaluate,cmaps,cell_ref_coords)
+#   CellPoint(cell_ref_coords,cell_phys_coords,trian,ReferenceDomain())
+# end
 
 
 p_fe = 2
@@ -159,21 +168,17 @@ quad_pts = get_cell_points(dΩ)
 cell_field = map(p->GenericField(uex(p)),panel_ids)
 ucf =  CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
 
-ucf(quad_pts)
-ucf(pts)
-
 cell_field = map(p->GenericField(panel_meas_metric(p)),panel_ids)
 meas_metric_cf =  CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
 
 meas_metric_cf(pts)
+
 
 cell_field = map(p->GenericField(panel_inv_metric(p)),panel_ids)
 inv_metric_cf = CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
 
 cell_field = map(p->GenericField(panel_metric(p)),panel_ids)
 metric_cf = CellData.GenericCellField(cell_field,Ω,PhysicalDomain())
-metric_cf(pts)[2]
-metric_cf(pts)[5]
 
 surflap = 1/meas_metric_cf * divergence( meas_metric_cf *( inv_metric_cf ⋅ gradient(ucf) ) )
 
@@ -186,15 +191,19 @@ rhs = ucf + surflap
 V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
 U = TrialFESpace(V)
 
+l2_biform(u,v) = ∫(u*v*meas_metric_cf)dΩ
+l2_liform(v) = ∫(  (ucf*v)*meas_metric_cf )dΩ
+op = AffineFEOperator(l2_biform,l2_liform,U,V)
+uh_l2 = solve(LUSolver(),op)
+
 poisson_biform(u,v) = ∫(u*v*meas_metric_cf)dΩ -  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_metric_cf )dΩ
+# poisson_biform(u,v) = ∫(u*v*meas_metric_cf)dΩ -  ∫((  (J_cf⋅gradient(v))⋅ (J_cf⋅gradient(u)) )*meas_metric_cf )dΩ
 poisson_liform(v) = ∫(  (rhs*v)*meas_metric_cf )dΩ
 op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
-
 uh = solve(LUSolver(),op)
 
 l2(e,dΩ) = sum(∫( e⋅e )dΩ)
 e =  l2(uh-ucf,dΩ)
-
 
 for pid in collect(1:6)
   mask = panel_ids.==pid
