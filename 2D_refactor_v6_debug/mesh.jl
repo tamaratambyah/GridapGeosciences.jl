@@ -36,11 +36,11 @@ function coarse_cube_surface_3D(a::Real,npanels)
     Point(-1.0, -1.0, 1.0)  # node 5
     Point(-1.0, 1.0, 1.0)   # node 6
     Point(-1.0, 1.0, -1.0)  # node 7
-    # Point(-1.0, -1.0, -1.0) # node 8
+    Point(-1.0, -1.0, -1.0) # node 8
   ]
 
   ## CCAM panel ordering
-  data = [ 1,2,3,4, 3,4,5,6,  2,7,4,6 ]
+  data = [ 1,2,3,4, 3,4,5,6,  2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5 ]
 
   ptr = generate_ptr(npanels)
   cell_node_ids = Table(data,ptr)
@@ -55,22 +55,23 @@ function coarse_cube_surface_3D(a::Real,npanels)
 
   cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_3d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 
-  panel_ids = collect(1:6)
+  panel_ids = collect(1:npanels)
   return cube_grid,topo,labels,panel_ids
 end
 
 
-npanels = 3
-cube_grid,topo,labels,panel_ids = coarse_cube_surface_3D(π/4,npanels)
+npanels = 6
+cube_grid,topo,labels, = coarse_cube_surface_3D(π/4,npanels)
 cube_model = UnstructuredDiscreteModel(cube_grid,topo,labels)
 
+cube_model = Gridap.Adaptivity.refine(cube_model)
 cube_model = Gridap.Adaptivity.refine(cube_model)
 
 writevtk(Triangulation(cube_model),dir*"/cube_mode",append=false)
 
 
 n = Int(num_cells(cube_model)/npanels)
-panel_ids = vcat(fill(1,n),fill(2,n),fill(3,n))
+panel_ids = vcat(fill(1,n),fill(2,n),fill(3,n),fill(4,n),fill(5,n),fill(6,n))
 
 ################################################################################
 ## make panel grid
@@ -95,11 +96,6 @@ new_topo = UnstructuredGridTopology(new_nodes,get_cell_node_ids(cube_grid),get_c
 new_labels = FaceLabeling(new_topo)
 panel_model = UnstructuredDiscreteModel(new_grid,new_topo,new_labels)
 
-for p in collect(1:3)
-  mask = panel_ids.==p
-  Ωp = Triangulation(panel_model,mask)
-  writevtk(Ωp,dir*"/panel$(p)_model",append=false)
-end
 ################################################################################
 ## make ambient grid
 function get_nodes_from_coords(grid::Grid{Dc,Dp},

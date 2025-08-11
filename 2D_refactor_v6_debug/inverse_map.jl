@@ -10,6 +10,15 @@ function inverse_map(XYZ,p)
   elseif p == 3
     α = -atan(X,Y)
     β = atan(Z,Y)
+  elseif p == 4
+    α = atan(Z,-X)
+    β = -atan(-Y,-X)
+  elseif p == 5
+    α = -atan(X,-Z)
+    β = atan(Y,-Z)
+  elseif p == 6
+    α = atan(Z,-Y)
+    β = -atan(X,-Y)
   end
   Point(α,β)
 
@@ -47,6 +56,27 @@ function inverse_jacobian(XYZ,p)
     dbdX = 0.0
     dbdY = -Z/(Y^2 + Z^2)
     dbdZ = Y/(Y^2 + Z^2)
+  elseif p == 4
+    dadX = Z/(Z^2 + X^2)
+    dadY = 0.0
+    dadZ = -X/(Z^2 + X^2)
+    dbdX = Y/(X^2 + Y^2)
+    dbdY = -X/(X^2 + Y^2)
+    dbdZ = 0.0
+  elseif p == 5
+    dadX = Z/(X^2 + Z^2)
+    dadY = 0.0
+    dadZ = -X/(X^2 + Z^2)
+    dbdX = 0.0
+    dbdY = -Z/(Y^2 + Z^2)
+    dbdZ = Y/(Y^2 + Z^2)
+  elseif p == 6
+    dadX = 0.0
+    dadY = Z/(Y^2 + Z^2)
+    dadZ = -Y/(Y^2 + Z^2)
+    dbdX = Y/(X^2 + Y^2)
+    dbdY = -X/(X^2 + Y^2)
+    dbdZ = 0.0
   end
 
   ## J = [dadX dadY dadX
