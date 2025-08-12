@@ -47,25 +47,58 @@ sqrtg(αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
 analytic_metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
 analytic_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/detg(αβ),-F(αβ)/detg(αβ),-F(αβ)/detg(αβ),E(αβ)/detg(αβ))
 
+## f = XYZ
+# function f(p)
+#   function _f(αβ)
+#     α,β = αβ
+#     if p == 1 || p == 5 || p == 6
+#       return RADIUS^3/rho3(αβ)*tan(α)*tan(β)
+#     else
+#       return -RADIUS^3/rho3(αβ)*tan(α)*tan(β)
+#     end
+#   end
+# end
 
+### f = sin(ϕ) = Z
+# function f(p)
+#   function _f(αβ)
+#     α,β = αβ
+#     if p == 1
+#       return 1/rho(αβ)*tan(β)
+#     elseif p == 2
+#       return 1/rho(αβ)
+#     elseif p == 3
+#       return 1/rho(αβ)*tan(β)
+#     elseif p == 4
+#       return 1/rho(αβ)*tan(α)
+#     elseif p == 5
+#       return -1/rho(αβ)
+#     elseif p == 6
+#       return 1/rho(αβ)*tan(α)
+#     end
+#   end
+# end
+
+### f = cos(ϕ) = cos(Z)
 function f(p)
   function _f(αβ)
     α,β = αβ
     if p == 1
-      return 1/rho(αβ)*tan(β)
+      return cos(1/rho(αβ)*tan(β))
     elseif p == 2
-      return 1/rho(αβ)
+      return cos(1/rho(αβ))
     elseif p == 3
-      return 1/rho(αβ)*tan(β)
+      return cos(1/rho(αβ)*tan(β))
     elseif p == 4
-      return 1/rho(αβ)*tan(α)
+      return cos(1/rho(αβ)*tan(α))
     elseif p == 5
-      return -1/rho(αβ)
+      return cos(-1/rho(αβ))
     elseif p == 6
-      return 1/rho(αβ)*tan(α)
+      return cos(1/rho(αβ)*tan(α))
     end
   end
 end
+
 dfda(p) = αβ -> (gradient(f(p))(αβ))[1]
 dfdb(p) = αβ -> (gradient(f(p))(αβ))[2]
 
@@ -82,6 +115,10 @@ w(p) = αβ -> VectorValue(w1(p)(αβ),w2(p)(αβ))
 surflap(p) = αβ -> 1/sqrtg(αβ)*(divergence(w(p))(αβ))
 
 rhs_func(p) = αβ -> f(p)(αβ) + surflap(p)(αβ)
+
+Ω_panel = Triangulation(panel_model)
+Ω_sphere = Triangulation(ambient_model)
+
 
 cell_field = map(p->GenericField(f(p)),panel_ids)
 f_cf =  CellData.GenericCellField(cell_field,Ω_panel,PhysicalDomain())

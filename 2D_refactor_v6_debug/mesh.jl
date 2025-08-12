@@ -13,7 +13,7 @@ global RADIUS = 1.0
 include("forward_map.jl")
 include("inverse_map.jl")
 include("MatMultField.jl")
-
+include("../2D_refactor_v6/panel_ids_from_refinement.jl")
 
 function generate_ptr(n)
   nvertices = 4
@@ -71,7 +71,7 @@ writevtk(Triangulation(cube_model),dir*"/cube_mode",append=false)
 
 
 n = Int(num_cells(cube_model)/npanels)
-panel_ids = vcat(fill(1,n),fill(2,n),fill(3,n),fill(4,n),fill(5,n),fill(6,n))
+panel_ids = get_panel_ids(cube_model)
 
 ################################################################################
 ## make panel grid
