@@ -50,17 +50,17 @@ end
 
 function dXda(αβ)
   α,β = αβ
-  - tan(α)*(sec(α))^2 / ( rho3(αβ)  )
+  RADIUS*( - tan(α)*(sec(α))^2 / ( rho3(αβ) ) )
 end
 
 function dXdb(αβ)
   α,β = αβ
-  - tan(β)*(sec(β))^2 /(  rho3(αβ)  )
+  RADIUS*( - tan(β)*(sec(β))^2 /(  rho3(αβ)  ) )
 end
 
 function dYda(αβ)
   α,β = αβ
-  dXda(αβ)*tan(α) + 1/rho(αβ)*(sec(α))^2
+  dXda(αβ)*tan(α) + RADIUS/rho(αβ)*(sec(α))^2
 end
 
 function dYdb(αβ)
@@ -75,7 +75,7 @@ end
 
 function dZdb(αβ)
   α,β = αβ
-  dXdb(αβ)*tan(β) + 1/rho(αβ)*(sec(β))^2
+  dXdb(αβ)*tan(β) + RADIUS/rho(αβ)*(sec(β))^2
 end
 
 E(αβ) = dXda(αβ)*dXda(αβ) + dYda(αβ)*dYda(αβ) + dZda(αβ)*dZda(αβ)

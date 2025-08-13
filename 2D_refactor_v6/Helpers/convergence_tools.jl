@@ -52,7 +52,7 @@ function plot_convergence(errs,ns,dxs,slope;kwargs...)
   plot!(yscale=:log10,framestyle=:box,
   xscale=:log10,xlabel="n cells",ylabel="L2(u - uh)"
   )
-  plot_error(ns,dxs.^slope*errs[1];leginf=["dx^$r"],ls=[:dash],markers = [:none])
+  plot_error(ns,dxs.^slope*errs[2];leginf=["dx^$r"],colors=kwargs[:colors],ls=[:dash],markers = [:none])
 end
 
 

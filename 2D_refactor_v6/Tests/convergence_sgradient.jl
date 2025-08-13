@@ -49,7 +49,7 @@ function sgrad_convergence_test(analytic_funcs,n_ref_lvls)
     plot()
     for p_fe in [1,2,3]
       errs,ns,dxs,slope = convergence_test(sgrad_errors,n_ref_lvls,val,p_fe)
-      plot_convergence(errs,ns,dxs,slope;leginf=["p=$(p_fe)_con","p=$(p_fe)_cov"])
+      plot_convergence(errs,ns,dxs,slope;leginf=["p=$(p_fe)_con","p=$(p_fe)_cov"],colors=palette(:tab10))
     end
     savefig(plotsdir()*"/sgrad_convergence_func_$(key)")
   end
