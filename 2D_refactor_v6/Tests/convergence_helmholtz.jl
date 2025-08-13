@@ -49,3 +49,23 @@ analytic_funcs[:XYZ] = f_XYZ
 n_ref_lvls = 4
 
 helmholtz_convergence_test(analytic_funcs,n_ref_lvls)
+
+#### mapped functions
+mapped_funcs = Dict{Symbol,Any}()
+mapped_funcs[:sin] = panel_to_latlon(fθϕ)
+mapped_funcs[:XYZ] = panel_to_cartesian(fX)
+
+n_ref_lvls = 4
+helmholtz_convergence_test(mapped_funcs,n_ref_lvls)
+
+
+
+#### Williamson 2
+williamson_funcs = Dict{Symbol,Any}()
+williamson_funcs[:z1] = panel_to_latlon(fWilliamson(0))
+williamson_funcs[:z2] = panel_to_latlon(fWilliamson(0.05))
+williamson_funcs[:z3] = panel_to_cartesian(fWilliamson(π/2-0.05))
+williamson_funcs[:z4] = panel_to_cartesian(fWilliamson(π/2))
+
+n_ref_lvls = 4
+helmholtz_convergence_test(williamson_funcs,n_ref_lvls)

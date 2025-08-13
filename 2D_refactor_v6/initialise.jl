@@ -27,11 +27,12 @@ include("Geometry/ambient_model.jl")
 
 include("Helpers/helpers.jl")
 include("Helpers/convergence_tools.jl")
+include("Helpers/overloads.jl")
 
 include("Visualisation/writevtk.jl")
 
 include("analytical_functions.jl")
-
+include("coordinate_mappings.jl")
 
 
 cube_model = coarse_cube_model(π/4,6)

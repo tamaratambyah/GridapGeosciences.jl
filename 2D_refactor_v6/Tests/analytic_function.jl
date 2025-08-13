@@ -6,7 +6,9 @@ cube_model = Gridap.Adaptivity.refine(cube_model)
 panel_model = parametric_model(cube_model)
 
 
-f = f_XYZ
+# f = f_XYZ
+# f = panel_to_cartesian(fX)
+f = panel_to_latlon(fWilliamson(0.05))
 
 ################################################################################
 #### On panel
@@ -51,13 +53,13 @@ l2(e_cov,dΩ)
 
 
 #### plotting
-panel_cfs = [f_uh,grad_covarient,grad_contravarient,e_u,e_con,e_cov,slap_panel_cf]
+panel_cfs = [f_panel_cf,grad_covarient,grad_contravarient,e_u,e_con,e_cov,slap_panel_cf]
 labels = ["u","sg_cov","sg_con","e_u","e_con","e_cov","slap"]
 writevtk_panel(panel_model,panel_cfs,labels)
 writevtk_ambient(panel_model,panel_cfs,labels)
 
 ### solve the helmholtz problem
-e, uh, f_panel_cf = helmholtz_solver(panel_model,2,f)
+e, uh, f_panel_cf = helmholtz_solver(panel_model,f,2)
 panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
 labels = ["u","uh","eu"]
 writevtk_ambient(panel_model,panel_cfs,labels)

@@ -14,19 +14,14 @@ function f_sin(p)
   end
 end
 
-function rho(αβ)
-  α,β = αβ
-  sqrt(1 + (tan(α))^2 + (tan(β))^2 )
-end
+### f = sin(ϕ)
+fθϕ(θϕ) = sin(θϕ[2])
 
-function rho3(αβ)
-  α,β = αβ
-  ( sqrt(1 + (tan(α))^2 + (tan(β))^2 ) )^3
-end
+### f = streamfunction
+fWilliamson(ζ) = θϕ -> - sin(θϕ[2])*cos(ζ) + cos(θϕ[1])*cos(θϕ[2])*sin(ζ)
 
 
-
-## f = XYZ
+### f = XYZ
 function f_XYZ(p)
   function _f(αβ)
     α,β = αβ
@@ -38,10 +33,21 @@ function f_XYZ(p)
   end
 end
 
+fX(XYZ::VectorValue{3}) = XYZ[1]*XYZ[2]*XYZ[3]
 
 ################################################################################
 #### analytic functions relating to metric, surflap
 ################################################################################
+function rho(αβ)
+  α,β = αβ
+  sqrt(1 + (tan(α))^2 + (tan(β))^2 )
+end
+
+function rho3(αβ)
+  α,β = αβ
+  ( sqrt(1 + (tan(α))^2 + (tan(β))^2 ) )^3
+end
+
 function dXda(αβ)
   α,β = αβ
   - tan(α)*(sec(α))^2 / ( rho3(αβ)  )
@@ -80,3 +86,17 @@ detg(αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
 sqrtg(αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
 analytic_metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
 analytic_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/detg(αβ),-F(αβ)/detg(αβ),-F(αβ)/detg(αβ),E(αβ)/detg(αβ))
+
+
+
+### to compute surflap
+dfda(f::Function,p::Int) = αβ -> (gradient(f(p))(αβ))[1]
+dfdb(f::Function,p::Int) = αβ -> (gradient(f(p))(αβ))[2]
+
+w1(f::Function,p::Int) = αβ -> 1/sqrtg(αβ) * G(αβ)*dfda(f,p)(αβ) - 1/sqrtg(αβ)*F(αβ)*dfdb(f,p)(αβ)
+w2(f::Function,p::Int) = αβ -> -1/sqrtg(αβ) * F(αβ)*dfda(f,p)(αβ) + 1/sqrtg(αβ)*E(αβ)*dfdb(f,p)(αβ)
+
+w(f::Function,p::Int) = αβ -> VectorValue(w1(f,p)(αβ),w2(f,p)(αβ))
+
+surflap(f::Function,p::Int) = αβ -> 1/sqrtg(αβ)*(divergence(w(f,p))(αβ))
+surflap(f::Function) = p -> surflap(f,p)
