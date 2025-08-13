@@ -93,7 +93,18 @@ function forward_jacobian(αβ,p)
 
 end
 
+## returns 3x2 jacobians
+forward_jacobian(p) = αβ -> forward_jacobian(αβ,p)
+covarient_basis(p) = αβ -> forward_jacobian(αβ,p) #
 
+function inv_metric(p)
+  function _inv_metric(αβ)
+    inv( transpose(forward_jacobian(αβ,p)) ⋅ forward_jacobian(αβ,p) )
+  end
+end
+
+################################################################################
+################################################################################
 struct ForwardMap{A}  <: Field
   p::A
 end
