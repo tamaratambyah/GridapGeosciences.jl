@@ -1,3 +1,8 @@
+function ambient_model(panel_model::ParametricDiscreteModel)
+  panel_ids = get_panel_ids(panel_model)
+  ambient_model(panel_model,panel_ids)
+end
+
 function ambient_model(panel_model,panel_ids)
   Dc = num_cell_dims(panel_model)
   Dp = num_point_dims(panel_model)

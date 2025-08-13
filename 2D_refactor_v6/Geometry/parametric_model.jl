@@ -26,7 +26,21 @@ function parametric_model(cube_model)
                       nothing,panel_cmaps)
   panel_topo = UnstructuredGridTopology(panel_nodes,get_cell_node_ids(cube_grid),get_cell_type(cube_topo),get_polytopes(cube_topo),OrientationStyle(cube_topo))
   panel_labels = FaceLabeling(panel_topo)
-  panel_model = UnstructuredDiscreteModel(panel_grid,panel_topo,panel_labels)
 
-  return panel_model,panel_ids
+  panel_model = ParametricDiscreteModel(panel_grid,panel_topo,panel_labels,panel_ids)
+
+  return panel_model
 end
+
+
+struct ParametricDiscreteModel{Dc,Dp,Tp,B} <: DiscreteModel{Dc,Dp}
+  grid::UnstructuredGrid{Dc,Dp,Tp,B}
+  grid_topology::UnstructuredGridTopology{Dc,Dp,Tp,B}
+  face_labeling::FaceLabeling
+  panel_ids::AbstractArray{Int}
+end
+
+Geometry.get_grid(model::ParametricDiscreteModel) = model.grid
+Geometry.get_grid_topology(model::ParametricDiscreteModel) = model.grid_topology
+Geometry.get_face_labeling(model::ParametricDiscreteModel) = model.face_labeling
+get_panel_ids(model::ParametricDiscreteModel) = model.panel_ids
