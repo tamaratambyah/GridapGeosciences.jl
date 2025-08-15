@@ -1,4 +1,3 @@
-
 ## panel -> XYZ
 X_p1(αβ) = RADIUS/rho(αβ)
 Y_p1(αβ) = RADIUS/rho(αβ)*tan(αβ[1])
