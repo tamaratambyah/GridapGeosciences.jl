@@ -40,6 +40,16 @@ function ambient_model(panel_model,panel_ids)
 end
 
 
+function get_nodes_from_coords(topo::UnstructuredGridTopology{Dc,Dp},
+  coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}}) where {Dc,Dp,D,T}
+
+  cell_node_ids = get_faces(topo,Dc,0)
+  nodes = similar(coords_array, VectorValue{D,T}, num_vertices(topo))
+
+  get_nodes_from_coords!(nodes,cell_node_ids,coords_array)
+
+  return nodes
+end
 
 function get_nodes_from_coords(grid::Grid{Dc,Dp},
   coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}}) where {Dc,Dp,D,T}

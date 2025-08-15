@@ -19,6 +19,7 @@ include("CellData/CellFields.jl")
 include("Fields/ForwardMap.jl")
 include("Fields/InverseMap.jl")
 include("Fields/MatMultField.jl")
+include("Fields/AffineField.jl")
 
 include("Geometry/cube_surface.jl")
 include("Geometry/panel_matrices.jl")
@@ -29,23 +30,8 @@ include("Helpers/helpers.jl")
 include("Helpers/convergence_tools.jl")
 include("Helpers/overloads.jl")
 
-include("Visualisation/Vtk.jl")
+# include("Visualisation/Vtk.jl")
 include("Visualisation/helpers.jl")
 
 include("analytical_functions.jl")
 include("coordinate_mappings.jl")
-
-
-cube_model = coarse_cube_model(π/4,6)
-cube_model = Gridap.Adaptivity.refine(cube_model)
-writevtk(Triangulation(cube_model),dir*"/cube_model",append=false)
-
-panel_model,panel_ids = parametric_model(cube_model)
-
-sphere_model = ambient_model(panel_model,panel_ids)
-writevtk(Triangulation(sphere_model),dir*"/ambient_model",append=false)
-
-
-
-panel_model = parametric_model(cube_model)
-sphere_model = ambient_model(panel_model)

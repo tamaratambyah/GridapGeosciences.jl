@@ -4,7 +4,6 @@ cube_model = Gridap.Adaptivity.refine(cube_model)
 cube_model = Gridap.Adaptivity.refine(cube_model)
 
 panel_model = parametric_model(cube_model)
-sphere_model = ambient_model(panel_model)
 
 f = f_sin
 # f = panel_to_cartesian(fX)

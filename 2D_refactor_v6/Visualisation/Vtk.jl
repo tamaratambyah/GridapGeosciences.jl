@@ -7,7 +7,7 @@ If no geo_map is provided, then evaluate the identity.
 Need to dispatch through writevtk/createvtk to create_vtk_file
 """
 
-function writevtk(args...;geo_map=identity,
+function Gridap.Visualization.writevtk(args...;geo_map=identity,
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...)
   map(Gridap.Visualization.visualization_data(args...;kwargs...)) do visdata
     write_vtk_file(
@@ -20,12 +20,12 @@ end
 
 """
 """
-function createvtk(args...;geo_map=identity,
+function Gridap.Visualization.createvtk(args...;geo_map=identity,
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...)
   v = Gridap.Visualization.visualization_data(args...;kwargs...)
   @notimplementedif length(v) != 1
   visdata = first(v)
-  create_vtk_file(
+  Gridap.Visualization.create_vtk_file(
     geo_map,
     visdata.grid,visdata.filebase,celldata=visdata.celldata,nodaldata=visdata.nodaldata,
     geo_map=geo_map,
@@ -33,12 +33,12 @@ function createvtk(args...;geo_map=identity,
   )
 end
 
-function write_vtk_file(
+function Gridap.Visualization.write_vtk_file(
   trian::Grid, filebase; celldata=Dict(), nodaldata=Dict(),
   geo_map=identity,
   compress=false, append=true, ascii=false, vtkversion=:default
 )
-  vtkfile = create_vtk_file(
+  vtkfile = Gridap.Visualization.create_vtk_file(
     trian, filebase, celldata=celldata, nodaldata=nodaldata,
     geo_map=geo_map,
     compress=compress, append=append, ascii=ascii, vtkversion=vtkversion
@@ -46,7 +46,7 @@ function write_vtk_file(
   outfiles = Gridap.Visualization.vtk_save(vtkfile)
 end
 
-function create_vtk_file(
+function Gridap.Visualization.create_vtk_file(
   trian::Grid, filebase; celldata=Dict(), nodaldata=Dict(),
   geo_map=identity,
   compress=false, append=true, ascii=false, vtkversion=:default
@@ -57,7 +57,7 @@ function create_vtk_file(
   if typeof(geo_map) <: AbstractArray
     cellx_geo_map = geo_map
   else
-    cellx_geo_map = fill(identity,num_cells(trian))
+    cellx_geo_map = fill(GenericField(identity),num_cells(trian))
   end
 
   points = _vtkpoints(trian,cellx_geo_map) ## map the points of vtk using geo_map
