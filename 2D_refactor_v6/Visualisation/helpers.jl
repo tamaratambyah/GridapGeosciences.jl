@@ -1,3 +1,7 @@
+"""
+This is no longer required because we now trick vtk into plotting on mapped nodes.
+However, I will this here just in case
+"""
 function writevtk_ambient(panel_model::ParametricDiscreteModel,
   panel_cfs::AbstractArray{<:CellField},labels::AbstractArray{<:String} )
 
