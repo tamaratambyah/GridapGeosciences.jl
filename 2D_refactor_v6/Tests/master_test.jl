@@ -6,9 +6,9 @@ cube_model = Gridap.Adaptivity.refine(cube_model)
 panel_model = parametric_model(cube_model)
 sphere_model = ambient_model(panel_model)
 
-# f = f_sin
+f = f_sin
 # f = panel_to_cartesian(fX)
-f = panel_to_latlon(fWilliamson(π/2))
+# f = panel_to_latlon(fWilliamson(π/2))
 
 ################################################################################
 #### On panel
@@ -53,10 +53,21 @@ l2(e_cov,dΩ)
 
 
 #### plotting
+# prepare cell_geo_map for vtk_points
+cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+# cell_geo_map = lazy_map(p -> Cartesian2SphereicalMap()∘ MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+
+# prepare cell fields
 panel_cfs = [f_panel_cf,grad_covarient_uh,grad_contravarient_uh,e_u,e_con,e_cov,slap_panel_cf]
 labels = ["u","sg_cov","sg_con","e_u","e_con","e_cov","slap"]
-writevtk_panel(panel_model,panel_cfs,labels)
-writevtk_ambient(panel_model,panel_cfs,labels)
+cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+
+writevtk(Ω_panel,dir*"/panel_model",cellfields=cellfields,append=false)
+writevtk(Ω_panel,dir*"/ambient_model",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+
+# ### older methods that apply the inverse map
+# writevtk_panel(panel_model,panel_cfs,labels)
+# writevtk_ambient(panel_model,panel_cfs,labels)
 
 ### solve the helmholtz problem
 e, uh, f_panel_cf = helmholtz_solver(panel_model,f,2)

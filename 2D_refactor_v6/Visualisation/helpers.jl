@@ -46,5 +46,4 @@ function writevtk_panel(panel_model,
             append=false)
   end
 
-
 end

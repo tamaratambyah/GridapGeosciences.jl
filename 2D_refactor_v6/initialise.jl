@@ -1,7 +1,7 @@
 using DrWatson
 using Gridap
 using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.ReferenceFEs
-using Gridap.Adaptivity, Gridap.Helpers
+using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using LinearAlgebra
 using Plots, LaTeXStrings
 
@@ -29,7 +29,8 @@ include("Helpers/helpers.jl")
 include("Helpers/convergence_tools.jl")
 include("Helpers/overloads.jl")
 
-include("Visualisation/writevtk.jl")
+include("Visualisation/Vtk.jl")
+include("Visualisation/helpers.jl")
 
 include("analytical_functions.jl")
 include("coordinate_mappings.jl")
