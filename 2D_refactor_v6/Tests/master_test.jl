@@ -7,8 +7,8 @@ panel_model = parametric_model(cube_model)
 
 
 # f = f_XYZ
-# f = panel_to_cartesian(fX)
-f = panel_to_latlon(fWilliamson(0.05))
+f = panel_to_cartesian(fX)
+# f = panel_to_latlon(fWilliamson(0.05))
 
 ################################################################################
 #### On panel
@@ -20,7 +20,7 @@ panel_ids = get_panel_ids(panel_model)
 f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
 covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 contravarient_basis_cf = panelwise_cellfield(contravariant_basis,Ω_panel,panel_ids)
-inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+inv_metric_cf = CellField(analytic_inv_metric,Ω_panel)
 slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
 
 
@@ -53,7 +53,7 @@ l2(e_cov,dΩ)
 
 
 #### plotting
-panel_cfs = [f_panel_cf,grad_covarient,grad_contravarient,e_u,e_con,e_cov,slap_panel_cf]
+panel_cfs = [f_panel_cf,grad_covarient_uh,grad_contravarient_uh,e_u,e_con,e_cov,slap_panel_cf]
 labels = ["u","sg_cov","sg_con","e_u","e_con","e_cov","slap"]
 writevtk_panel(panel_model,panel_cfs,labels)
 writevtk_ambient(panel_model,panel_cfs,labels)

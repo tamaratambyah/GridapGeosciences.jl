@@ -97,92 +97,94 @@ end
 forward_jacobian(p) = αβ -> forward_jacobian(αβ,p)
 covarient_basis(p) = αβ -> forward_jacobian(αβ,p) #
 
-function inv_metric(p)
-  function _inv_metric(αβ)
-    inv( transpose(forward_jacobian(αβ,p)) ⋅ forward_jacobian(αβ,p) )
-  end
-end
 
 ################################################################################
 ################################################################################
-struct ForwardMap{A}  <: Field
-  p::A
+struct ForwardMapPanel1  <: Field
 end
 
+"""
+The forward map goes 2D -> 3D.
+  X = RADIUS/sqrt(1 + (tan(α))^2 + (tan(β))^2  )
+  Y = RADIUS/sqrt(1 + (tan(α))^2 + (tan(β))^2  ) * tan(α)
+  Z = RADIUS/sqrt(1 + (tan(α))^2 + (tan(β))^2  ) * tan(β)
+"""
 
-function Gridap.Arrays.return_cache(f::ForwardMap,cellx::AbstractArray{<:VectorValue{2}})
-  p = f.p
-  x = first(cellx)
-  T = typeof(forward_map(x,p))
-  y = similar(cellx,T)
+function Gridap.Arrays.return_cache(f::ForwardMapPanel1,cellx::AbstractArray{<:VectorValue{2}})
+  y = similar(cellx,VectorValue{3,Float64})
   return y
 end
 
 
-function Gridap.Arrays.evaluate!(cache,f::ForwardMap,cellx::AbstractArray{<:VectorValue{2}} )
+function Gridap.Arrays.evaluate!(cache,f::ForwardMapPanel1,cellx::AbstractArray{<:VectorValue{2}} )
 
   y = cache
 
-
-  p = f.p
-
-  map!(x -> forward_map(x,p), y, cellx)
+  map!(x-> Point(RADIUS/(sqrt(1 + (tan(x[1]))^2 + (tan(x[2]))^2 )),
+                 RADIUS/(sqrt(1 + (tan(x[1]))^2 + (tan(x[2]))^2 )) * tan(x[1]),
+                 RADIUS/(sqrt(1 + (tan(x[1]))^2 + (tan(x[2]))^2 )) * tan(x[2])  ),
+      y, cellx  )
 
   return y
 end
 
 
-function Gridap.Arrays.return_cache(f::ForwardMap,x::VectorValue{2})
-  p = f.p
-
-  T = typeof(forward_map(x,p))
-  y = zero(T)
+function Gridap.Arrays.return_cache(f::ForwardMapPanel1,x::VectorValue{2})
+  y = zero(VectorValue{3,Float64})
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::ForwardMap,x::VectorValue{2})
+function Gridap.Arrays.evaluate!(cache,f::ForwardMapPanel1,x::VectorValue{2})
   y = cache
-
-  p = f.p
-  y = forward_map(x,p)
+  y = Point(RADIUS/(sqrt(1 + (tan(x[1]))^2 + (tan(x[2]))^2 )),
+            RADIUS/(sqrt(1 + (tan(x[1]))^2 + (tan(x[2]))^2 )) * tan(x[1]),
+            RADIUS/(sqrt(1 + (tan(x[1]))^2 + (tan(x[2]))^2 )) * tan(x[2])  )
 
   return y
 end
 
-### gradient is just the coefficient matrix
-# Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
-function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:ForwardMap},
+"""
+The jacobian is 3 x 2
+  J = [dXda dXdb
+       dYda dYdb
+       dZda dZdb  ]
+As a TensorValue data = (dXda,dYda,dZda,   dXdb, dYdb, dZdb)
+
+Gridap convention dictates we return the transpose (https://github.com/gridap/Gridap.jl/issues/822)
+
+The transpose is 2 x 3
+  JT = [dXda dYda dZda
+        dXdb dYdb dZdb  ]
+As a TensorValue data = (dXda,dXdb,  dYda,dYdb,  dZda,dZdb)
+"""
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:ForwardMapPanel1},
   cellx::AbstractArray{<:VectorValue{2}})
-
-  p = f.object.p
-  x = first(cellx)
-  T = typeof(transpose(forward_jacobian(x,p)))
-
-  y = similar(cellx,T)
+  y = similar(cellx,TensorValue{2,3,Float64})
   c = CachedArray(y)
   return c
 end
 
-function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:ForwardMap},
+function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:ForwardMapPanel1},
   cellx::AbstractArray{<:VectorValue{2}})
   cache, = c
   setsize!(cache,size(cellx))
 
   y = cache
-  p = f.object.p
-  map!(x -> transpose(forward_jacobian(x,p)), y, cellx)
+  map!(x-> TensorValue{2,3}( dXda(x),dXdb(x),  dYda(x),dYdb(x),  dZda(x),dZdb(x) ),
+      y, cellx  )
   return y
 
 end
 
 
-function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:ForwardMap},x::VectorValue{2})
-  transpose( forward_jacobian(x,p) )
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:ForwardMapPanel1},x::VectorValue{2})
+  zero(TensorValue{2,3,Float64})
 end
 
-function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:ForwardMap},x::VectorValue{2})
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:ForwardMapPanel1},x::VectorValue{2})
   y = cache
-  p = f.object.p
-  y = transpose(forward_jacobian(x,p))
+
+  y = TensorValue{2,3}( dXda(x),dXdb(x),  dYda(x),dYdb(x),  dZda(x),dZdb(x) )
+
   return y
 end

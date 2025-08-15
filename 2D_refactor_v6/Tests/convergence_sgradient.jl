@@ -6,7 +6,7 @@ function sgrad(panel_model::ParametricDiscreteModel,func::Function,p_fe::Int)
   f_panel_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
   contravarient_basis_cf = panelwise_cellfield(contravariant_basis,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  inv_metric_cf = CellField(analytic_inv_metric,Ω_panel)
 
   ### analytic gradient -- need to define new function to trigger automatric differentiation
   gradf(p) = αβ -> gradient(func(p))(αβ)

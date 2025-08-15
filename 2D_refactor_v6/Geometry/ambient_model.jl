@@ -13,9 +13,9 @@ function ambient_model(panel_model,panel_ids)
   panel_topo = get_grid_topology(panel_model)
   ref_points = get_cell_ref_coordinates(panel_grid)
 
-  ## map the panels to the ambient domain by applying the forward map
+  ## map the panels to the ambient domain by applying the panel 1 forward map, and then rotation
   cmaps = get_cell_map(panel_grid)
-  panel_to_ambient_map = lazy_map(p->ForwardMap(p), panel_ids)
+  panel_to_ambient_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
   ambient_maps = lazy_map(∘,panel_to_ambient_map,cmaps)
 
 
