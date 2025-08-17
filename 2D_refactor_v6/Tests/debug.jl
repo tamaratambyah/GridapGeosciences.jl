@@ -61,6 +61,8 @@ glue = Adaptivity.blocked_refinement_glue(rrules)
 ref_model = UnstructuredDiscreteModel(ref_cube_grid,topo,FaceLabeling(topo))
 acube_model =  AdaptedDiscreteModel(ref_model,cube_model,glue)
 
+writevtk(ref_cube_grid,dir*"/cube_grid",append=false)
+
 writevtk(acube_model,dir*"/cube_model",append=false)
 
 
