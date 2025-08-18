@@ -1,6 +1,10 @@
-function parametric_model(cube_model)
-  Dc = num_cell_dims(cube_model)
-  Dp = num_point_dims(cube_model)
+function coarse_parametric_model(;a=π/4,npanels=6)
+  cube_model = coarse_cube_model(a,npanels)
+  panel_model = parametric_model(cube_model)
+  return panel_model
+end
+
+function parametric_model(cube_model::UnstructuredDiscreteModel{Dc,Dp}) where {Dc,Dp}
 
   @check Dp == Dc+1
 
@@ -44,3 +48,5 @@ Geometry.get_grid(model::ParametricDiscreteModel) = model.grid
 Geometry.get_grid_topology(model::ParametricDiscreteModel) = model.grid_topology
 Geometry.get_face_labeling(model::ParametricDiscreteModel) = model.face_labeling
 get_panel_ids(model::ParametricDiscreteModel) = model.panel_ids
+
+Geometry.get_cell_map(model::ParametricDiscreteModel) = model.grid.cell_map

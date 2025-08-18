@@ -1,4 +1,5 @@
-function helmholtz_solver(panel_model::ParametricDiscreteModel,f::Function,p_fe::Int)
+
+function helmholtz_solver(panel_model,f::Function,p_fe::Int,return_vtk=false)
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*p_fe+1)
@@ -19,21 +20,31 @@ function helmholtz_solver(panel_model::ParametricDiscreteModel,f::Function,p_fe:
   uh = solve(LUSolver(),op)
 
   e = l2(f_panel_cf-uh,dΩ)
+
+  if return_vtk
+    lvl = nref(nc(panel_model))
+    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
+    labels = ["u","uh","eu"]
+    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$lvl",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  end
+
   return e, uh, f_panel_cf
 end
 
 
-function helmholtz_errors(panel_model::ParametricDiscreteModel,func::Function,p_fe::Int)
-  e,  = helmholtz_solver(panel_model,func,p_fe)
+function helmholtz_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
+  e,  = helmholtz_solver(panel_model,func,p_fe,return_vtk)
   return e,false
 end
 
-function helmholtz_convergence_test(analytic_funcs,n_ref_lvls)
+function helmholtz_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)
 
   for (key, val) in analytic_funcs
     plot()
     for p_fe in [1,2,3]
-      errs,ns,dxs,slope = convergence_test(helmholtz_errors,n_ref_lvls,val,p_fe)
+      errs,ns,dxs,slope = convergence_test(helmholtz_errors,n_ref_lvls,val,p_fe,return_vtk)
       plot_convergence(errs,ns,dxs,slope;leginf=["p=$p_fe"],colors=[palette(:tab10)[p_fe]])
     end
     savefig(plotsdir()*"/helmholtz_convergence_func_$(key)")
@@ -48,7 +59,7 @@ analytic_funcs[:XYZ] = f_XYZ
 
 n_ref_lvls = 4
 
-helmholtz_convergence_test(analytic_funcs,n_ref_lvls)
+helmholtz_convergence_test(analytic_funcs,n_ref_lvls,false)
 
 #### mapped functions
 mapped_funcs = Dict{Symbol,Any}()

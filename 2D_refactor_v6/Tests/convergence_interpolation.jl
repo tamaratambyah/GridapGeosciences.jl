@@ -1,5 +1,5 @@
 ### convergence tests
-function interpolation(panel_model::ParametricDiscreteModel,func::Function,p_fe::Int)
+function interpolation(panel_model,func::Function,p_fe::Int)
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
@@ -17,7 +17,7 @@ function interpolation(panel_model::ParametricDiscreteModel,func::Function,p_fe:
 end
 
 
-function interpolation_errors(panel_model::ParametricDiscreteModel,func::Function,p_fe::Int)
+function interpolation_errors(panel_model,func::Function,p_fe::Int)
 
   f_panel_cf, f_uh = interpolation(panel_model,func,p_fe)
 

@@ -1,17 +1,19 @@
-
+"""
+get_refined_models
+returns an array of refined models where
+  models[1] == most refined model
+  models[end] == coarsest model
+"""
 function get_refined_models(n_ref_lvls::Int)
-  cube_model = coarse_cube_model(π/4,6)
-  panel_model = parametric_model(cube_model)
 
-  panel_models = []
+  panel_model = coarse_parametric_model()
+  panel_models = Vector{DiscreteModel}(undef,n_ref_lvls)
 
-  for n in 1:n_ref_lvls
-    cube_model = Gridap.Adaptivity.refine(cube_model)
-    panel_model = parametric_model(cube_model)
-
-    push!(panel_models,panel_model)
-
+  for n in n_ref_lvls:-1:1
+    panel_model = Gridap.Adaptivity.refine(panel_model)
+    panel_models[n] = panel_model
   end
+
   panel_models
 end
 
@@ -52,15 +54,15 @@ function plot_convergence(errs,ns,dxs,slope;kwargs...)
   plot!(yscale=:log10,framestyle=:box,
   xscale=:log10,xlabel="n cells",ylabel="L2(u - uh)"
   )
-  plot_error(ns,dxs.^slope*errs[2];leginf=["dx^$r"],colors=kwargs[:colors],ls=[:dash],markers = [:none])
+  plot_error(ns,dxs.^slope*errs[1];leginf=["dx^$r"],colors=kwargs[:colors],ls=[:dash],markers = [:none])
 end
 
 
 
 ## nc = num cells per panel
-nc(panel_model::ParametricDiscreteModel) = num_cells(panel_model)/6
+nc(panel_model) = num_cells(panel_model)/6
 dx(nc) = sqrt( 4*π*RADIUS^2 / (6*sqrt(nc)^2) )
-
+nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
 function convergence_rate(dxs,errors)
   x = log10.(dxs)

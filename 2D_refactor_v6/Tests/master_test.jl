@@ -1,9 +1,7 @@
 ## make models
-cube_model = coarse_cube_model(π/4,6)
-cube_model = Gridap.Adaptivity.refine(cube_model)
-cube_model = Gridap.Adaptivity.refine(cube_model)
-
-panel_model = parametric_model(cube_model)
+panel_model = coarse_parametric_model()
+panel_model = Gridap.Adaptivity.refine(panel_model)
+panel_model = Gridap.Adaptivity.refine(panel_model)
 
 f = f_sin
 # f = panel_to_cartesian(fX)
@@ -72,4 +70,5 @@ writevtk(Ω_panel,dir*"/ambient_model",cellfields=cellfields,append=false,geo_ma
 e, uh, f_panel_cf = helmholtz_solver(panel_model,f,2)
 panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
 labels = ["u","uh","eu"]
-writevtk_ambient(panel_model,panel_cfs,labels)
+cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+writevtk(Ω_panel,dir*"/ambient_model",cellfields=cellfields,append=false,geo_map=cell_geo_map)

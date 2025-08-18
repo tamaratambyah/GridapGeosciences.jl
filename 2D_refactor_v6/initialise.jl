@@ -12,8 +12,6 @@ dir = datadir("2D_CubedSphereRefactor")
 
 global RADIUS = 1.0
 
-include("Adaptivity/panel_ids_from_refinement.jl")
-
 include("CellData/CellFields.jl")
 
 include("Fields/ForwardMap.jl")
@@ -26,11 +24,14 @@ include("Geometry/panel_matrices.jl")
 include("Geometry/parametric_model.jl")
 include("Geometry/ambient_model.jl")
 
+include("Adaptivity/panel_ids_from_refinement.jl")
+include("Adaptivity/Refinement.jl")
+
 include("Helpers/helpers.jl")
 include("Helpers/convergence_tools.jl")
 include("Helpers/overloads.jl")
 
-# include("Visualisation/Vtk.jl")
+include("Visualisation/Vtk.jl")
 include("Visualisation/helpers.jl")
 
 include("analytical_functions.jl")

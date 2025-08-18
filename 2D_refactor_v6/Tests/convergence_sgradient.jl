@@ -1,4 +1,4 @@
-function sgrad(panel_model::ParametricDiscreteModel,func::Function,p_fe::Int)
+function sgrad(panel_model,func::Function,p_fe::Int)
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
@@ -29,7 +29,7 @@ function sgrad(panel_model::ParametricDiscreteModel,func::Function,p_fe::Int)
 end
 
 
-function sgrad_errors(panel_model::ParametricDiscreteModel,func::Function,p_fe::Int)
+function sgrad_errors(panel_model,func::Function,p_fe::Int)
 
   grad_covarient, grad_contravarient, grad_covarient_uh,grad_contravarient_uh = sgrad(panel_model,func,p_fe)
 

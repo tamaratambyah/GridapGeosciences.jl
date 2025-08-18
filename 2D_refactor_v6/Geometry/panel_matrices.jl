@@ -1,4 +1,4 @@
-function cube_to_αβ(p)
+function cube_to_αβ(p::Int)
   if p == 1
     A = [0 1 0
         0 0 1]
@@ -23,7 +23,7 @@ function cube_to_αβ(p)
 
 end
 
-function cube_face_values(p;a=π/4)
+function cube_face_values(p::Int;a::Float64=π/4)
   if p == 1 # X = 1 panel (front)
     b = VectorValue(1.0, 0.0, 0.0)
   elseif p == 2 # Z = 1 panel (top)
@@ -42,7 +42,7 @@ function cube_face_values(p;a=π/4)
 
 end
 
-function rotation_mats(p)
+function rotation_mats(p::Int)
   if p == 1
     A = [1 0 0
          0 1 0
@@ -72,7 +72,7 @@ function rotation_mats(p)
 end
 
 R1p = map(p->rotation_mats(p),collect(1:6))
-A_cube2panel = map(p->cube_to_αβ(p),collect(1:6))
 
-A_panel2cube = map(p->transpose(p),A_cube2panel)
+A_cube2panel = map(p->cube_to_αβ(p),collect(1:6))
+A_panel2cube = map(A->transpose(A),A_cube2panel)
 b_panel2cube = map(p->cube_face_values(p),collect(1:6))
