@@ -81,7 +81,7 @@ function forward_jacobian(αβ,p)
     dZda = -(-drho_da*tan(α) + -1/rho*(sec(α))^2  )
     dZdb = -(-drho_db*tan(α) )
     dXda = -drho_da*tan(β)
-    dXdb = -drho_da*tan(β) + -1/rho*(sec(β))^2
+    dXdb = -drho_db*tan(β) + -1/rho*(sec(β))^2
   end
 
   ## J = [dXda dXdb
@@ -95,8 +95,70 @@ end
 
 ## returns 3x2 jacobians
 forward_jacobian(p) = αβ -> forward_jacobian(αβ,p)
-covarient_basis(p) = αβ -> forward_jacobian(αβ,p) #
+covarient_basis(p) = αβ -> forward_jacobian(αβ,p)
 
+
+function forward_pinv_jacobian(αβ,p)
+
+  α,β = αβ
+  rho = sqrt(1 + (tan(α))^2 + (tan(β))^2 )
+  drho_da = - tan(α)*(sec(α))^2 / ( rho^3 )
+  drho_db = - tan(β)*(sec(β))^2 / ( rho^3 )
+
+  if p == 1
+    dXda = drho_da
+    dXdb = drho_db
+    dYda = drho_da*tan(α) + 1/rho*(sec(α))^2
+    dYdb = drho_db*tan(α)
+    dZda = drho_da*tan(β)
+    dZdb = drho_db*tan(β) + 1/rho*(sec(β))^2
+  elseif p == 2
+    dXda = -( drho_da*tan(β) )
+    dXdb = -( drho_db*tan(β) + 1/rho*(sec(β))^2 )
+    dYda = drho_da*tan(α) + 1/rho*(sec(α))^2
+    dYdb = drho_db*tan(α)
+    dZda = drho_da
+    dZdb = drho_db
+  elseif p == 3
+    dXda = -( drho_da*tan(α) + 1/rho*(sec(α))^2  )
+    dXdb = -( drho_db*tan(α) )
+    dYda = drho_da
+    dYdb = drho_db
+    dZda = drho_da*tan(β)
+    dZdb = drho_db*tan(β) + 1/rho*(sec(β))^2
+  elseif p == 4
+    dXda = -drho_da
+    dXdb = -drho_db
+    dYda = -(-drho_da*tan(β) )
+    dYdb = -(-drho_db*tan(β) + -1/rho*(sec(β))^2 )
+    dZda = -(-drho_da*tan(α) + -1/rho*(sec(α))^2  )
+    dZdb = -(-drho_db*tan(α) )
+  elseif p == 5
+    dXda = -drho_da*tan(α) + -1/rho*(sec(α))^2
+    dXdb = -drho_db*tan(α)
+    dYda = -(-drho_da*tan(β))
+    dYdb = -(-drho_db*tan(β) + -1/rho*(sec(β))^2 )
+    dZda = -drho_da
+    dZdb = -drho_db
+  elseif p == 6
+    dYda = -drho_da
+    dYdb = -drho_db
+    dZda = -(-drho_da*tan(α) + -1/rho*(sec(α))^2  )
+    dZdb = -(-drho_db*tan(α) )
+    dXda = -drho_da*tan(β)
+    dXdb = -drho_db*tan(β) + -1/rho*(sec(β))^2
+  end
+
+  ## J = [dXda dXdb
+  ##      dYda dYdb
+  ##      dZda dZdb  ]
+  ## As a TensorValue data = (dXda,dYda,dZda, dXdb, dYdb, dZdb)
+
+  J = RADIUS*TensorValue{3,2}(dXda,dYda,dZda, dXdb,dYdb,dZdb)
+  Jt = RADIUS*TensorValue{2,3}(dXda,dXdb, dYda,dYdb, dZda,dZdb)
+  inv(Jt⋅J)⋅Jt
+  # analytic_inv_metric(αβ) ⋅ Jt
+end
 
 ################################################################################
 ################################################################################

@@ -3,7 +3,7 @@ The ambient model is no longer required.
 This is because we now trick vtk into plotting on mapped nodes.
 However, I will this here just inc ase
 """
-function ambient_model(panel_model::ParametricDiscreteModel)
+function ambient_model(panel_model)
   panel_ids = get_panel_ids(panel_model)
   ambient_model(panel_model,panel_ids)
 end

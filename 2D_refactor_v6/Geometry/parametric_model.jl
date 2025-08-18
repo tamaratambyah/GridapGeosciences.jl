@@ -4,7 +4,9 @@ function coarse_parametric_model(;a=π/4,npanels=6)
   return panel_model
 end
 
-function parametric_model(cube_model::UnstructuredDiscreteModel{Dc,Dp}) where {Dc,Dp}
+function parametric_model(cube_model)
+  Dc = num_cell_dims(cube_model)
+  Dp = num_point_dims(cube_model)
 
   @check Dp == Dc+1
 

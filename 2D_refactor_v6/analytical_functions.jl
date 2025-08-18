@@ -87,7 +87,7 @@ sqrtg(αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
 analytic_metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
 analytic_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/detg(αβ),-F(αβ)/detg(αβ),-F(αβ)/detg(αβ),E(αβ)/detg(αβ))
 
-
+analytic_J1(αβ) = RADIUS*TensorValue{3,2}(dXda(αβ),dYda(αβ),dZda(αβ), dXdb(αβ),dYdb(αβ),dZdb(αβ))
 
 ### to compute surflap in components
 # dfda(f::Function,p::Int) = αβ -> (gradient(f(p))(αβ))[1]

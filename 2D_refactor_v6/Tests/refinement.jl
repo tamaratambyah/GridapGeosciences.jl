@@ -27,7 +27,7 @@ for model in panel_models
   lvl = nref(nc(model))
   panel_ids = get_panel_ids(model)
   cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
-  writevtk(Triangulation(model),dir*"/ambient_grid_ref_lvl$(n)",append=false,geo_map=cell_geo_map)
+  writevtk(Triangulation(model),dir*"/ambient_grid_ref_lvl$(lvl)",append=false,geo_map=cell_geo_map)
 end
 
 

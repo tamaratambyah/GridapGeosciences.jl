@@ -2,7 +2,7 @@
 This is no longer required because we now trick vtk into plotting on mapped nodes.
 However, I will this here just in case
 """
-function writevtk_ambient(panel_model::ParametricDiscreteModel,
+function writevtk_ambient(panel_model,
   panel_cfs::AbstractArray{<:CellField},labels::AbstractArray{<:String} )
 
   sphere_model = ambient_model(panel_model)
