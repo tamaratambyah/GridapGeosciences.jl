@@ -36,3 +36,4 @@ include("Visualisation/helpers.jl")
 
 include("analytical_functions.jl")
 include("coordinate_mappings.jl")
+include("vector_projection_analytic_functions.jl")
