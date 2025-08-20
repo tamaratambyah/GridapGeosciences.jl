@@ -115,3 +115,6 @@ surfdiv(vec::Function) = p -> surfdiv(vec,p)
 ##### to compute contra sgrad analytically
 contr_gradf(f::Function,p::Int) = αβ -> analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ)
 contr_gradf(f::Function) = p -> contr_gradf(f,p)
+
+sgrad(f::Function,p::Int) =  αβ -> forward_jacobian(αβ,p) ⋅ (analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ))
+sgrad(f::Function) = p -> sgrad(f,p)
