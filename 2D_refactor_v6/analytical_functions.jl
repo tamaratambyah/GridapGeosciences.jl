@@ -104,3 +104,14 @@ W(f,p) = αβ ->  sqrtg(αβ)*( analytic_inv_metric(αβ) ⋅ gradient(f(p))(α�
 surflap(f::Function,p::Int) = αβ -> 1/sqrtg(αβ) * ( divergence(W(f,p))(αβ) )
 
 surflap(f::Function) = p -> surflap(f,p)
+
+
+### to compute surface divergence analytically
+_sdiv(vec::Function,p) = αβ ->  sqrtg(αβ)*( vec(p)(αβ))
+surfdiv(vec::Function,p::Int) = αβ -> 1/sqrtg(αβ) * ( divergence(_sdiv(vec,p))(αβ) )
+surfdiv(vec::Function) = p -> surfdiv(vec,p)
+
+
+##### to compute contra sgrad analytically
+contr_gradf(f::Function,p::Int) = αβ -> analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ)
+contr_gradf(f::Function) = p -> contr_gradf(f,p)
