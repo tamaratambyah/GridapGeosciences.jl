@@ -66,7 +66,7 @@ nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
 function convergence_rate(dxs,errors)
   x = log10.(dxs)
-  y = log10.(errors)
+  y = log10.(abs.(errors))
   linreg = hcat(fill!(similar(x), 1), x) \ y
   linreg[2]
 end
