@@ -35,6 +35,19 @@ end
 
 ############# multigrid
 using GridapSolvers
+using GridapDistributed, PartitionedArrays
+
+model0 = coarse_parametric_model()
+model1 = Adaptivity.refine(model0)
+model2 = Adaptivity.refine(model1)
+models = [model2,model1]
+mh = GridapSolvers.MultilevelTools.ModelHierarchy(models)
+
+
+th = Triangulation(mh)
+
+
+
 function ModelHierarchy(models::Vector{<:DiscreteModel})
   nlevs = length(models)
   @check all(map(i -> isa(models[i],AdaptedDiscreteModel),1:nlevs-1)) "Hierarchy models are not adapted models."
@@ -55,5 +68,3 @@ end
 
 using MPI, PartitionedArrays, GridapDistributed
 import GridapSolvers.MultilevelTools: ModelHierarchyLevel, HierarchicalArray
-mh = ModelHierarchy(panel_models)
-th = Triangulation(mh)

@@ -26,7 +26,6 @@ function Gridap.Visualization.createvtk(args...;geo_map=nothing,
   @notimplementedif length(v) != 1
   visdata = first(v)
   Gridap.Visualization.create_vtk_file(
-    geo_map,
     visdata.grid,visdata.filebase,celldata=visdata.celldata,nodaldata=visdata.nodaldata,
     geo_map=geo_map,
     compress=compress, append=append, ascii=ascii, vtkversion=vtkversion
