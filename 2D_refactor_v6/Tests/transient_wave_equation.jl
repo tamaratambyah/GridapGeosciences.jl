@@ -1,9 +1,10 @@
 
-dir = datadir("Transient_wave")
+dir = datadir("Transient_wave_refined")
 !isdir(dir) && mkdir(dir)
 !isdir(plotsdir()) && mkdir(plotsdir())
 
 panel_model = coarse_parametric_model()
+panel_model = Gridap.Adaptivity.refine(panel_model)
 panel_model = Gridap.Adaptivity.refine(panel_model)
 panel_model = Gridap.Adaptivity.refine(panel_model)
 
