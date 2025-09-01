@@ -90,6 +90,10 @@ analytic_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/detg(αβ),-F(αβ)/detg(�
 
 analytic_J1(αβ) = RADIUS*TensorValue{3,2}(dXda(αβ),dYda(αβ),dZda(αβ), dXdb(αβ),dYdb(αβ),dZdb(αβ))
 
+## A = [g12 g22; -g11 -g21] = [F G; -E - F]
+## as a TensorValue, (F,-E,G,-F)
+analytic_perp_matrix(αβ) = TensorValue{2,2}( F(αβ), -E(αβ), G(αβ), -F(αβ) )
+
 ### to compute surflap in components
 # dfda(f::Function,p::Int) = αβ -> (gradient(f(p))(αβ))[1]
 # dfdb(f::Function,p::Int) = αβ -> (gradient(f(p))(αβ))[2]
