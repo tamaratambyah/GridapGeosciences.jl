@@ -1,19 +1,74 @@
+
+
 panel_model = coarse_parametric_model()
-# panel_model = Gridap.Adaptivity.refine(panel_model)
-
-panel_ids = get_panel_ids(panel_model)
+panel_model = Adaptivity.refine(panel_model)
 
 
 
+amodel = panel_model
+
+model = get_model(amodel)
+# model = panel_model
 
 
+panel_ids = get_panel_ids(model)
+topo = get_grid_topology(amodel)
 
-topo = get_grid_topology(panel_model)
+Dc = num_cell_dims(model)
+d = Dc - 1
+get_faces(topo,Dc,1)
 
-D = 2
-get_faces(topo,D,0)
-get_faces(topo,D,1)
-get_faces(topo,D,2)
+cmaps = get_cell_map(get_grid(model))
+
+face_to_mask = collect(Bool, .!get_isboundary_face(topo,Dc-1))
+
+# arbitary boundary triangulation to get F2Fglue
+# Note, F2Fglue only on reference cell, so okay to use junk nodes
+_btrian = BoundaryTriangulation(model,face_to_mask)
+F2Fglue = Geometry.get_glue(_btrian,Val(2),Val(2))
+
+face_2_cell = F2Fglue.tface_to_mface
+
+ref_face_2_ref_cell_map = F2Fglue.tface_to_mface_map
+cfmaps = map(f-> cmaps[f],face_2_cell)
+
+fmaps = lazy_map(∘, cfmaps,ref_face_2_ref_cell_map)
+
+pts = get_cell_ref_coordinates(trian)
+
+trian_coords = lazy_map(evaluate,fmaps,pts)
+
+
+node_coordinates = collect1d(get_node_coordinates(model))
+cell_to_nodes = Table(get_face_nodes(model,d))
+cell_to_type = collect1d(get_face_type(model,d))
+reffes = get_reffaces(ReferenceFE{d},model)
+
+bgface_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,OrientationStyle(cell_grid),
+            nothing,fmaps)
+
+face_to_bgface =  findall(face_to_mask)
+bgface_to_lcell = fill(1,num_facets(model))
+
+face_grid = view(bgface_grid,face_to_bgface)
+cell_grid = get_grid(model)
+glue = Geometry.FaceToCellGlue(topo,cell_grid,face_grid,face_to_bgface,bgface_to_lcell)
+trian = BodyFittedTriangulation(model,face_grid,face_to_bgface)
+
+bound_trian = BoundaryTriangulation(trian,glue)
+
+
+atrian = Adaptivity.AdaptedTriangulation(bound_trian,amodel)
+
+Geometry.get_glue(btrian::BoundaryTriangulation) = btrian.glue
+Geometry.get_glue(btrian::AdaptedTriangulation) = atrian.trian.glue
+
+glue = get_glue(atrian)
+face_2_cell = glue.face_to_cell
+face_panel_ids = panel_ids[face_2_cell]
+face_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), face_panel_ids)
+
+writevtk(bound_trian,dir*"/ambient_model_skeleton",append=false,geo_map=face_geo_map)
 
 
 
@@ -23,66 +78,5 @@ get_faces(topo,D,2)
 n_Λ = get_normal_vector(Λ_panel)
 pts = get_cell_points(Λ_panel)
 
-visdata, = visualization_data(Λ_panel,dir*"/ambient_model_skeleton")
+visdata, = visualization_data(bound_trian,dir*"/ambient_model_skeleton")
 get_cell_coordinates(visdata.grid)
-
-
-skeleton_panel_ids = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5]
-skeleton_cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skeleton_panel_ids)
-
-
-skel_ref_points = get_cell_ref_coordinates(Λ_panel)
-skel_edges =  lazy_map(evaluate,skeleton_cell_geo_map,)
-
-
-writevtk(Λ_panel,dir*"/ambient_model_skeleton",append=false,geo_map=skeleton_cell_geo_map)
-
-jacobian_cf = panelwise_cellfield(forward_jacobian,Λ_panel,panel_ids)
-
-physical_normals = jacobian_cf.minus ⋅ n_Λ.minus
-
-writevtk(Λ_panel,dir*"/ambient_model_skeleton",cellfields=["nplus"=>physical_normals],append=false)
-
-
-topo = get_grid_topology(panel_model)
-D = num_cell_dims(panel_model)
-face_to_mask = collect(Bool, .!get_isboundary_face(topo,D-1))
-
-
-
-
-########## test 2D model
-nodes  =   [
-    Point(0.0, 0.0)  # node 1
-    Point(1.0, 0.0)   # node 2
-    Point(0.0, 1.0)   # node 3
-    Point(1.0, 1.0)    # node 4
-    Point(2.0, 0.0)  # node 5
-    Point(2.0, 1.0)   # node 6
-
-  ]
-
-  ## CCAM panel ordering
-  data = [ 1,2,3,4, 2,5,4,6 ]
-
-  ptr = generate_ptr(2)
-  cell_node_ids = Table(data,ptr)
-
-  polytopes = fill(QUAD,2)
-  cell_type = fill(1,2)
-  reffes = LagrangianRefFE(Float64,QUAD,1)
-  cell_reffes=[reffes]
-
-  topo = UnstructuredGridTopology(nodes,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
-  labels = FaceLabeling(topo)
-
-  cube_grid = Gridap.Geometry.UnstructuredGrid(nodes,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
-
-model = UnstructuredDiscreteModel(cube_grid,topo,labels)
-Λ = SkeletonTriangulation(model)
-writevtk(Λ,dir*"/cube",append=false)
-
-
-topo = get_grid_topology(model)
-D = num_cell_dims(model)
-face_to_mask = collect(Bool, .!get_isboundary_face(topo,D-1))
