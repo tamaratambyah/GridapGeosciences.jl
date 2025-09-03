@@ -64,7 +64,7 @@ end
 
 function mixed_helmholtz_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
   e_u,e_s,e_gradu  = mixed_helmholtz_solver(panel_model,func,p_fe,return_vtk)
-  return e_u,e_gradu
+  return e_u,e_gradu,false
 end
 
 function mixed_helmholtz_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)

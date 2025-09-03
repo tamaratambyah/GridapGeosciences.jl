@@ -75,7 +75,7 @@ end
 
 function vector_perp_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
   e  = vector_perp(panel_model,func,p_fe,return_vtk)
-  return e,false
+  return e,false,false
 end
 
 function vector_perp_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)

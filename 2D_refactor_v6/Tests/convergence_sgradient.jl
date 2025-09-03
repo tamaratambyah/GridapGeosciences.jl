@@ -40,7 +40,7 @@ function sgrad_errors(panel_model,func::Function,p_fe::Int)
   e1 = l2(e_con,dΩ)
   e2 = l2(e_cov,dΩ)
 
-  return e1,e2
+  return e1,e2,false
 end
 
 function sgrad_convergence_test(analytic_funcs,n_ref_lvls)

@@ -63,17 +63,16 @@ end
 
 function wave_errors(panel_model,h::Function,vX::Function,p_fe::Int,return_vtk=false)
   e_u,e_p  = wave_solver(panel_model,h,vX,p_fe,return_vtk)
-  return e_u,e_p
+  return e_u,e_p,false
 end
 
 function williamson2_convergence_test(n_ref_lvls,return_vtk=false,args...)
 
-  for (i,ζ) in enumerate([π/2])
+  for (i,ζ) in enumerate([0.0])
     plot()
 
-    h = panel_to_latlon(hWilliamson(ζ,args...))
-    vecX = vec_cartesian_to_latlon(vWilliamson(ζ,args...))
-    vX = panel_to_cartesian(tangent_vec(vecX))
+    h = panel_to_cartesian(h₀(ζ))
+    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
 
     for p_fe in [1]
       errs,ns,dxs,slope = convergence_test(wave_errors,n_ref_lvls,h,vX,p_fe,return_vtk)
@@ -87,11 +86,6 @@ function williamson2_convergence_test(n_ref_lvls,return_vtk=false,args...)
 
 end
 
-
-vWilliamson(ζ,u0,ω) = θϕ -> - u0*VectorValue( cos(θϕ[2])*cos(ζ) + cos(θϕ[1])*sin(θϕ[2])*sin(ζ),
-                                      -sin(θϕ[1])*sin(ζ) )
-
-hWilliamson(ζ,u0,ω) = θϕ -> 1 - (ω*u0 + 0.5*u0^2)*( -cos(θϕ[1])*cos(θϕ[2])*sin(ζ) +  sin(θϕ[2])*cos(ζ) )^2
 
 ω = 1e-5
 u0 = 0.1

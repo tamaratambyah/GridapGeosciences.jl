@@ -15,7 +15,7 @@ function surface_area(panel_model::ParametricDiscreteModel,degree::Int)
   computed_area = sum( ∫( 1.0*meas_cf )dΩ )
 
   e = abs(computed_area-extact_area)/extact_area
-  return e,false
+  return e,false,false
 end
 
 function surface_area_convergence_test(n_ref_lvls)

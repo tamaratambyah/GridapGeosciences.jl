@@ -65,3 +65,21 @@ function q₀(xyz) ### do not use
 
   top/bottom
 end
+
+
+a_e = 6.37e6
+g = 9.8
+ω = 7.29e-5
+T = 12*24*3600
+H_0 = 2.94e4/g
+u_0 = 2*π*a_e/T
+
+L = a_e
+τ = sqrt(a_e/g)
+
+_a = 1.0
+_g = 1.0
+_ω = ω*τ
+_H_0 = H_0/L
+_T = T/τ
+_u0 = 2*π*_a/_T

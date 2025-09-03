@@ -88,9 +88,9 @@ function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Fun
 end
 
 
-function linear_shallow_water_errors(panel_model,h::Function,vX::Function,f::Function,p_fe::Int,return_vtk=false)
-  e_u,e_p,e_geo_balance  = linear_shallow_water_solver(panel_model,h,vX,f,p_fe,return_vtk)
-  return e_u,e_p
+function linear_shallow_water_errors(panel_model,h::Function,vX::Function,f::Function,p_fe::Int,return_vtk=false,check_geo_balance=false)
+  e_u,e_p,e_geo_balance  = linear_shallow_water_solver(panel_model,h,vX,f,p_fe,return_vtk,check_geo_balance)
+  return e_u,e_p,false
 end
 
 function linear_shallow_water_convergence_test(n_ref_lvls,h,vX,f,return_vtk=false)
@@ -108,13 +108,12 @@ end
 
 function williamson2_convergence_test(n_ref_lvls,return_vtk=false,args...)
 
-  for (i,ζ) in enumerate([0.0, π/2])
+  for (i,ζ) in enumerate([π/2])
     plot()
 
-    h = panel_to_latlon(hWilliamson(ζ,args...))
-    vecX = vec_cartesian_to_latlon(vWilliamson(ζ,args...))
-    vX = panel_to_cartesian(tangent_vec(vecX))
-    f = panel_to_latlon(fWilliamson(ζ,args...))
+    h = panel_to_cartesian(h₀(ζ))
+    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+    f = panel_to_cartesian(f₀(ζ))
 
     for p_fe in [1]
       errs,ns,dxs,slope = convergence_test(linear_shallow_water_errors,n_ref_lvls,h,vX,f,p_fe,return_vtk,true)

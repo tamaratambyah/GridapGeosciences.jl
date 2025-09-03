@@ -76,7 +76,7 @@ function mass_conservation_errors(panel_model,func::Function,p_fe::Int,return_vt
 
   s_div, s_div0, = mass_conservation(panel_model,vec_contra_cf,p_fe,return_vtk )
   println("initial divergence: $s_div0")
-  return abs(s_div),false
+  return abs(s_div),false,false
 end
 
 function mass_conservation_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false,scalar_field=false)

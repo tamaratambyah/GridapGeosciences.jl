@@ -39,7 +39,7 @@ end
 
 function laplace_beltrami_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
   e,  = laplace_beltrami_solver(panel_model,func,p_fe,return_vtk)
-  return e,false
+  return e,false,false
 end
 
 function laplace_beltrami_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)
