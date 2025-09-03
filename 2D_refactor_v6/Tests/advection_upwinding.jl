@@ -69,9 +69,40 @@ writevtk(Ω,dir*"/flat_test" * ".vtu", cellfields=["uh"=>uh,"u"=>u0,"eu"=>uh-u0,
 ################################################################################
 ### MANIFOLD TEST
 ################################################################################
+
+## jacobian tests
+## at node 4
+p = 1
+αβ = Point(π/4,π/4)
+transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
+
+p = 2
+αβ = Point(π/4,-π/4)
+transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
+
+p = 3
+αβ = Point(-π/4,π/4)
+transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
+
+
+## at node 3
+p = 1
+αβ = Point(-π/4,π/4)
+transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
+
+p = 2
+αβ = Point(-π/4,-π/4)
+transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
+
+p = 6
+αβ = Point(π/4,-π/4)
+transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
+
+
+
 panel_model = coarse_parametric_model()
 panel_model = Gridap.Adaptivity.refine(panel_model)
-panel_model = Gridap.Adaptivity.refine(panel_model)
+# panel_model = Gridap.Adaptivity.refine(panel_model)
 
 p_fe = 1
 degree = 2*(p_fe + 1)
@@ -82,6 +113,23 @@ dΩ = Measure(Ω_panel,degree)
 Λ = SkeletonTriangulation(panel_model)
 dΛ = Measure(Λ,degree)
 n_Λ = get_normal_vector(Λ)
+
+skeleton_panel_ids = [panel_ids;panel_ids]
+skeleton_cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skeleton_panel_ids)
+writevtk(Λ,dir*"/ambient_model_skeleton",append=false,geo_map=skeleton_cell_geo_map)
+
+# _visdata, = visualization_data(Ω_panel,dir*"/ambient_model_skeleton")
+# get_cell_coordinates(_visdata.grid)
+
+visdata, = visualization_data(Λ,dir*"/ambient_model_skeleton")
+get_cell_coordinates(visdata.grid)
+
+
+model = UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(2,2)))
+Λ = SkeletonTriangulation(model)
+visdata, = visualization_data(Λ,dir*"/ambient_model_skeleton")
+get_cell_coordinates(visdata.grid)
+
 
 
 vecX(XYZ) = VectorValue(-XYZ[2],XYZ[3],0.0)

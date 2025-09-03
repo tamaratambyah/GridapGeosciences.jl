@@ -20,19 +20,21 @@ end
 function h_convergence_test(f,models,fargs...)
   errs = Float64[]
   errs_g = []
+  errs_f = []
 
   for model in models
-    e,eg = f(model,fargs...)
+    e,eg,ef = f(model,fargs...)
     push!(errs,e)
     push!(errs_g,eg)
+    push!(errs_f,ef)
   end
 
-  errs, errs_g
+  errs, errs_g, errs_f
 end
 
 function convergence_test(f,n_ref_lvls,fargs...)
   models  = get_refined_models(n_ref_lvls)
-  errs, errs_g = h_convergence_test(f,models,fargs...)
+  errs, errs_g, errs_f = h_convergence_test(f,models,fargs...)
 
   ns = map(x->nc(x),models)
   dxs = map(x->dx(nc(x)),models)
@@ -40,8 +42,10 @@ function convergence_test(f,n_ref_lvls,fargs...)
 
   if typeof(errs_g[1]) == Bool
     return errs,ns,dxs,slope
-  else
+  elseif typeof(errs_f[1]) == Bool
     return [errs;errs_g],ns,dxs,slope
+  else
+    return [errs;errs_g;errs_f],ns,dxs,slope
   end
 
 
