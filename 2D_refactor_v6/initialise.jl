@@ -4,6 +4,7 @@ using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.Ref
 using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using LinearAlgebra
 using Plots, LaTeXStrings
+using FillArrays
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
