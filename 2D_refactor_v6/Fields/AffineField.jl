@@ -45,7 +45,7 @@ function Gridap.Arrays.evaluate!(cache,f::MyAffineField,x::VectorValue{D}) where
   y = cache
 
   A = f.matrix
-
+  b = f.vector
   y = A .⋅ x .+ b
 
   return y
