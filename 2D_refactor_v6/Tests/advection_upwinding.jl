@@ -26,15 +26,19 @@ dΩ = Measure(Ω, degree)
 dΛ = Measure(Λ,degree)
 n_Λ = get_normal_vector(Λ)
 
-W = TestFESpace(model,
+_W = TestFESpace(model,
   ReferenceFE(lagrangian, Float64, p),
   conformity=:L2)
-R = TrialFESpace(W)
+R = TrialFESpace(_W)
 
 V = TestFESpace(model,
                 ReferenceFE(raviart_thomas,Float64,p),
                 conformity=:Hdiv)
 U = TrialFESpace(V)
+
+β_cf = CellField(β,Λ)
+pts = get_cell_points(Λ)
+(β_cf.plus ⋅ n_Λ.plus)(pts)
 
 # project velocity onto Hdiv
 F = interpolate(β,U)
@@ -70,65 +74,36 @@ writevtk(Ω,dir*"/flat_test" * ".vtu", cellfields=["uh"=>uh,"u"=>u0,"eu"=>uh-u0,
 ### MANIFOLD TEST
 ################################################################################
 
-## jacobian tests
-## at node 4
-p = 1
-αβ = Point(π/4,π/4)
-transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
-
-p = 2
-αβ = Point(π/4,-π/4)
-transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
-
-p = 3
-αβ = Point(-π/4,π/4)
-transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
-
-
-## at node 3
-p = 1
-αβ = Point(-π/4,π/4)
-transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
-
-p = 2
-αβ = Point(-π/4,-π/4)
-transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
-
-p = 6
-αβ = Point(π/4,-π/4)
-transpose(forward_jacobian(αβ,p)) ⋅forward_jacobian(αβ,p)
-
-
-
 panel_model = coarse_parametric_model()
 panel_model = Gridap.Adaptivity.refine(panel_model)
 # panel_model = Gridap.Adaptivity.refine(panel_model)
 
+panel_ids = get_panel_ids(panel_model)
+
 p_fe = 1
 degree = 2*(p_fe + 1)
 Ω_panel = Triangulation(panel_model)
-panel_ids = get_panel_ids(panel_model)
 dΩ = Measure(Ω_panel,degree)
 
 Λ = SkeletonTriangulation(panel_model)
 dΛ = Measure(Λ,degree)
 n_Λ = get_normal_vector(Λ)
+pts = get_cell_points(Λ)
 
-skeleton_panel_ids = [panel_ids;panel_ids]
-skeleton_cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skeleton_panel_ids)
-writevtk(Λ,dir*"/ambient_model_skeleton",append=false,geo_map=skeleton_cell_geo_map)
-
-# _visdata, = visualization_data(Ω_panel,dir*"/ambient_model_skeleton")
-# get_cell_coordinates(_visdata.grid)
-
-visdata, = visualization_data(Λ,dir*"/ambient_model_skeleton")
-get_cell_coordinates(visdata.grid)
+_sqrtg_cf = CellField(sqrtg,Λ)
+sqrtg_cf = change_domain(_sqrtg_cf,PhysicalDomain(),ReferenceDomain())
 
 
-model = UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(2,2)))
-Λ = SkeletonTriangulation(model)
-visdata, = visualization_data(Λ,dir*"/ambient_model_skeleton")
-get_cell_coordinates(visdata.grid)
+panel_cfs = [sqrtg_cf.plus, sqrtg_cf.minus, sqrtg_cf.minus-sqrtg_cf.plus]
+labels = ["g_plus", "g_minus", "diff"]
+cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+
+skel_panel_ids = get_panel_ids(Λ)
+skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
+writevtk(Λ,dir*"/advection",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+
+
+
 
 
 
@@ -143,7 +118,6 @@ _vX = panel_to_cartesian(h0v)
 _rhs(p) = αβ -> φ(p)(αβ) + surfdiv(contra_v(_vX))(p)(αβ)
 
 
-
 v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
 p_cf = panelwise_cellfield(φ,Ω_panel,panel_ids)
 rhs_cf = panelwise_cellfield(_rhs,Ω_panel,panel_ids)
@@ -155,7 +129,7 @@ cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_
 labels = ["rhs","p","v","_rhs", "er"]
 panel_cfs = [rhs_cf,p_cf,v_contr_cf,_rhs_cf, rhs_cf-_rhs_cf]
 cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Ω_panel,dir*"/solT_0" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+writevtk(Ω_panel,dir*"/advection", cellfields=cellfields,append=false,geo_map=cell_geo_map)
 
 
 Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
@@ -164,23 +138,69 @@ P = TrialFESpace(Q)
 V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
 U = TrialFESpace(V)
 
-
 # vel = interpolate(v_contr_cf,U)
-vel = v_contr_cf
-meas_cf = CellField(sqrtg,Ω_panel)
-_meas_cf = CellField(sqrtg,Λ)
-function my_sign(Fn)
+
+_vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+vel = interpolate(_vel,U)
+upwind = (vel⋅ n_Λ).plus
+upwind(pts)
+
+# v_skel = panelwise_cellfield(contra_v(vX),Λ.trian.plus,skel_panel_ids.plus)
+# v_skel = interpolate(_v_skel.plus,U)
+# _upwind = v_skel.plus ⋅ n_Λ.plus
+# _upwind(pts)
+
+# (upwind - _upwind)(pts)
+
+# upwind(pts)./1
+
+cdata = get_data(upwind)
+_cdata = lazy_map(Broadcasting(Operation(_my_sign)),cdata)
+upwind_sign = GenericCellField(Fields.MemoArray(_cdata),Λ,ReferenceDomain())
+upwind_sign(pts)./1
+# upwind_sign = Operation(my_sign)(upwind)
+# upwind(pts)
+# upwind_sign(pts)
+
+function _my_sign(Fn)
   c = 0.5
-  if Fn[1] < 0.0
-    c = -0.5
+  if Fn < eps()
+    return 0.0
+  elseif Fn < 0.0
+    return  -0.5
   end
   return c
 end
 
-a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
-a_s(u,v) = ∫( (mean(vel*u)⋅jump(v*n_Λ ))*_meas_cf +  ((my_sign∘( ((vel)⋅n_Λ).plus )*( ((vel)⋅n_Λ).plus ) )*jump(u*n_Λ )⋅jump(v*n_Λ ))*_meas_cf   )dΛ
-a(u,v) =  a_Ω(u,v) + a_s(u,v)
 
+function my_upwind(a::SkeletonPair)
+  Fn = a.plus
+  c = Operation(my_sign)(Fn)
+
+  return c * Fn
+end
+
+function my_mean( Bu_n::SkeletonPair, sqrtg_cf::CellField)
+  plus  = ( Bu_n.plus)*sqrtg_cf.plus
+  minus = ( Bu_n.minus)*sqrtg_cf.plus
+  0.5*( plus - minus  )
+end
+
+meas_cf = CellField(sqrtg,Ω_panel)
+a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
+A1 = assemble_matrix(a_Ω,P,Q)
+
+
+a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ, sqrtg_cf)*jump(v)   )dΛ
+A2 = assemble_matrix(a_s1,P,Q)
+
+
+# a_s2(u,v) = ∫(  my_upwind(vel⋅n_Λ)*jump(u)*jump(v)*sqrtg_cf.plus   )dΛ
+a_s2(u,v) = ∫(  (upwind*upwind_sign)*jump(u)*jump(v)*sqrtg_cf.plus   )dΛ
+A3 = assemble_matrix(a_s2,P,Q)
+
+
+a(u,v) =  a_Ω(u,v) + a_s1(u,v) + a_s2(u,v)
 l(v) = ∫( (rhs_cf*v)*meas_cf )dΩ
 
 op = AffineFEOperator(a,l,P,Q)
@@ -192,44 +212,4 @@ cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_
 labels = ["ph","p0","ep"]
 panel_cfs = [ph,p_cf,ph-p_cf]
 cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Ω_panel,dir*"/solT_0" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-
-
-
-
-### Transient
-
-_mass(t,p,q) = mass(p,q)
-_res(t,p,q) =  res(p,q)
-jac(t,p,dp,q) = res(dp,q)
-jac_t(t,p,dtp,q) = mass(dtp,q)
-# opT = TransientSemilinearFEOperator(_mass, _res, P, Q, constant_mass=true)
-opT = TransientSemilinearFEOperator(_mass,_res, (jac, jac_t), P, Q, constant_mass=true)
-
-t0, tF = 0.0, 2*π
-CFL = 0.1
-_dt = dx(nc(panel_model))*CFL/p_fe
-dt = 0.001
-
-# solve with SSP RK 3
-solver = RungeKutta(LUSolver(), LUSolver(), dt, :EXRK_SSP_3_3)
-solT = solve(solver, opT, t0, tF, ph0)
-
-## iterate solution
-cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
-labels = ["ph","v"]
-panel_cfs = [ph0,vel]
-cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Ω_panel,dir*"/solT_0" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-
-
-
-for (t, ph) in solT
-  println(t)
-  panel_cfs = [ph]
-  cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-  writevtk(Ω_panel,dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-end
-
-
-make_pvd(dir,"solT",1)
+writevtk(Ω_panel,dir*"/advection", cellfields=cellfields,append=false,geo_map=cell_geo_map)

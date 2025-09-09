@@ -1,4 +1,5 @@
 function panelwise_cellfield(f::Function,trian::Triangulation,panel_ids::AbstractArray{Int})
+  @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
   cell_field = map(p->GenericField(f(p)),panel_ids)
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end
@@ -10,8 +11,8 @@ function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids:
 end
 
 function panelwise_cellfield(f::Function,trian::Triangulation,skel_panel_ids::SkeletonPair{<:AbstractArray{Int}})
-  plus = panelwise_cellfield(f, trian.plus, skel_panel_ids.plus)
-  minus = panelwise_cellfield(f, trian.minus, skel_panel_ids.minus)
+  plus = panelwise_cellfield(f, trian, skel_panel_ids.plus)
+  minus = panelwise_cellfield(f, trian, skel_panel_ids.minus)
   SkeletonPair(plus,minus)
 end
 

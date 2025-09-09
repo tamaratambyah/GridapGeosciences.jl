@@ -26,6 +26,9 @@ n_mapped = pushforward_normal(trian)
 trian = SkeletonTriangulation(panel_model)
 pts = get_cell_points(trian)
 
+# regular 2D normal in chart
+n_2D = get_normal_vector(trian)
+
 # get face normals in 3D
 cell_vectors = Geometry.get_facet_normal(trian,cell_geo_map)
 n_3D = get_normal_vector(trian,cell_vectors)
@@ -38,8 +41,10 @@ n_mapped = pushforward_normal(trian)
 @test sum(n_mapped.minus(pts) .≈ n_3D.minus(pts)) == num_facets(panel_model)
 
 ## plot normals on skeleton
-panel_cfs = [n_3D.plus, n_3D.minus]
-labels = ["n_plus", "n_minus"]
+panel_cfs = [n_3D.plus, n_3D.minus, n_3D.minus+n_3D.plus,
+             n_2D.plus, n_2D.minus, n_2D.minus+n_2D.plus]
+labels = ["amb_n_plus", "amb_n_minus", "amb_n_total",
+          "chart_n_plus", "chart_n_minus", "chart_n_total"]
 cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
 skel_panel_ids = get_panel_ids(trian)
