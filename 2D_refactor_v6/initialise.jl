@@ -24,6 +24,7 @@ include("Geometry/cube_surface.jl")
 include("Geometry/panel_matrices.jl")
 include("Geometry/parametric_model.jl")
 include("Geometry/ambient_model.jl")
+include("Geometry/BoundaryTriangulations.jl")
 
 include("Adaptivity/panel_ids_from_refinement.jl")
 include("Adaptivity/Refinement.jl")
