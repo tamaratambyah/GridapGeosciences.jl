@@ -40,9 +40,14 @@ U = TrialFESpace(V)
 pts = get_cell_points(Λ)
 (β_cf.plus ⋅ n_Λ.plus)(pts)
 
+
+
 # project velocity onto Hdiv
-F = interpolate(β,U)
+_F = interpolate(β,U)
 rhs_cf = CellField(rhs,Ω)
+
+writevtk(Λ,dir*"/flat_test.vtu", cellfields=["plus"=>abs( (_F⋅n_Λ).plus),"minus"=>abs((_F⋅n_Λ).minus)],append=false)
+
 
 function my_sign(Fn)
   c = 0.5
@@ -142,8 +147,17 @@ U = TrialFESpace(V)
 
 _vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
 vel = interpolate(_vel,U)
-upwind = (vel⋅ n_Λ).plus
+upwind = abs((vel⋅ n_Λ).plus)
 upwind(pts)
+
+cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+labels = ["upwind_plus","upwind_minus","upwind_diff"]
+panel_cfs = [abs((vel⋅ n_Λ).plus),abs((vel⋅ n_Λ).minus),abs((vel⋅ n_Λ).minus)-abs((vel⋅ n_Λ).plus)]
+cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+writevtk(Λ,dir*"/advection", cellfields=cellfields,append=false,geo_map=skel_geo_map)
+
+
+
 
 # v_skel = panelwise_cellfield(contra_v(vX),Λ.trian.plus,skel_panel_ids.plus)
 # v_skel = interpolate(_v_skel.plus,U)
@@ -154,10 +168,10 @@ upwind(pts)
 
 # upwind(pts)./1
 
-cdata = get_data(upwind)
-_cdata = lazy_map(Operation(_my_sign),cdata)
-upwind_sign = GenericCellField(_cdata,Λ,ReferenceDomain())
-upwind_sign(pts)./1
+# cdata = get_data(upwind)
+# _cdata = lazy_map(Operation(_my_sign),cdata)
+# upwind_sign = GenericCellField(_cdata,Λ,ReferenceDomain())
+# upwind_sign(pts)./1
 # upwind_sign = Operation(my_sign)(upwind)
 # upwind(pts)
 # upwind_sign(pts)
@@ -181,23 +195,23 @@ function my_upwind(a::SkeletonPair)
 end
 
 function my_mean( Bu_n::SkeletonPair, sqrtg_cf::CellField)
-  plus  = ( Bu_n.plus)*sqrtg_cf.plus
-  minus = ( Bu_n.minus)*sqrtg_cf.plus
+  plus  = ( Bu_n.plus)#*sqrtg_cf.plus
+  minus = ( Bu_n.minus)#*sqrtg_cf.minus
   0.5*( plus - minus  )
 end
 
 meas_cf = CellField(sqrtg,Ω_panel)
 a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
-A1 = assemble_matrix(a_Ω,P,Q)
+# A1 = assemble_matrix(a_Ω,P,Q)
 
 
-a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ, sqrtg_cf)*jump(v)   )dΛ
-A2 = assemble_matrix(a_s1,P,Q)
+a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ, sqrtg_cf)*jump(v)*meas_cf   )dΛ
+# A2 = assemble_matrix(a_s1,P,Q)
 
-
+upwind = abs((vel⋅ n_Λ).plus)
 # a_s2(u,v) = ∫(  my_upwind(vel⋅n_Λ)*jump(u)*jump(v)*sqrtg_cf.plus   )dΛ
-a_s2(u,v) = ∫(  (upwind*upwind_sign)*jump(u)*jump(v)*sqrtg_cf.plus   )dΛ
-A3 = assemble_matrix(a_s2,P,Q)
+a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
+# A3 = assemble_matrix(a_s2,P,Q)
 
 
 a(u,v) =  a_Ω(u,v) + a_s1(u,v) + a_s2(u,v)
