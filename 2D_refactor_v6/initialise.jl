@@ -5,6 +5,7 @@ using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using LinearAlgebra
 using Plots, LaTeXStrings
 using FillArrays
+using Test
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)
@@ -25,6 +26,8 @@ include("Geometry/panel_matrices.jl")
 include("Geometry/parametric_model.jl")
 include("Geometry/ambient_model.jl")
 include("Geometry/BoundaryTriangulations.jl")
+include("Geometry/SkeletonTriangulations.jl")
+include("Geometry/AdaptedTriangulations.jl")
 
 include("Adaptivity/panel_ids_from_refinement.jl")
 include("Adaptivity/Refinement.jl")

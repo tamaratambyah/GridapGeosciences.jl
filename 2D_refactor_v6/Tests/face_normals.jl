@@ -1,0 +1,47 @@
+
+panel_model = coarse_parametric_model()
+panel_model = Adaptivity.refine(panel_model)
+
+
+panel_ids = get_panel_ids(panel_model)
+cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+
+################################################################################
+## Boundary trian
+trian = BoundaryTriangulation(panel_model,1)
+pts = get_cell_points(trian)
+
+# get face normals in 3D
+cell_vectors = Geometry.get_facet_normal(trian,cell_geo_map)
+n_3D = get_normal_vector(trian,cell_vectors)
+
+# push forward 2D chart normals to ambient space
+n_mapped = pushforward_normal(trian)
+
+# test equality
+@test sum(n_mapped(pts) .≈ n_3D(pts)) == num_facets(panel_model)
+
+################################################################################
+### skeleton trian
+trian = SkeletonTriangulation(panel_model)
+pts = get_cell_points(trian)
+
+# get face normals in 3D
+cell_vectors = Geometry.get_facet_normal(trian,cell_geo_map)
+n_3D = get_normal_vector(trian,cell_vectors)
+
+# push forward 2D chart normals to ambient space
+n_mapped = pushforward_normal(trian)
+
+# test equality
+@test sum(n_mapped.plus(pts) .≈ n_3D.plus(pts)) == num_facets(panel_model)
+@test sum(n_mapped.minus(pts) .≈ n_3D.minus(pts)) == num_facets(panel_model)
+
+## plot normals on skeleton
+panel_cfs = [n_3D.plus, n_3D.minus]
+labels = ["n_plus", "n_minus"]
+cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+
+skel_panel_ids = get_panel_ids(trian)
+skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
+writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
