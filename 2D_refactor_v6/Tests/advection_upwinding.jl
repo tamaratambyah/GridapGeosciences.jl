@@ -155,8 +155,8 @@ upwind(pts)
 # upwind(pts)./1
 
 cdata = get_data(upwind)
-_cdata = lazy_map(Broadcasting(Operation(_my_sign)),cdata)
-upwind_sign = GenericCellField(Fields.MemoArray(_cdata),Λ,ReferenceDomain())
+_cdata = lazy_map(Operation(_my_sign),cdata)
+upwind_sign = GenericCellField(_cdata,Λ,ReferenceDomain())
 upwind_sign(pts)./1
 # upwind_sign = Operation(my_sign)(upwind)
 # upwind(pts)
