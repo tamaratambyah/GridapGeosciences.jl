@@ -58,6 +58,7 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
   a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ, sqrtg_cf)*jump(v)*meas_cf   )dΛ
+  # a_s1(u,v) = ∫( mean((vel*u))*jump(v*n_Λ)*meas_cf   )dΛ
 
   upwind = abs((vel⋅ n_Λ).plus)
   a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ

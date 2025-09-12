@@ -103,48 +103,6 @@ function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::
   # e_u = l2( ( uh-u_contra_h  )*meas_cf,dΩ  )
   e_u = l2( (u_proj_h - uh_proj)*meas_cf,dΩ) # error in physical velocity u
 
-
-  # maps = get_cell_map(get_grid(panel_model))
-  # ref_pts = get_cell_ref_coordinates(get_grid(panel_model))
-  # cell_pts = lazy_map(evaluate,maps,ref_pts)./1
-  # bad = Int[]
-
-  # for (idx,cell) in enumerate(cell_pts)
-  #   if panel_ids[idx] == 2 || panel_ids[idx] == 5
-  #     push!(bad,idx)
-  #     # for pts in cell
-  #     #   if pts == Point(0.0,0.0)
-  #     #     push!(bad,idx)
-  #     #   end
-  #     # end
-  #   end
-  # end
-
-
-  # dc = ∫( (u_proj_h - uh_proj)⋅(u_proj_h - uh_proj)*meas_cf  )dΩ
-
-  # e_u = 0.0
-  # for (key,val) in dc.dict
-  #   for i = 1:length(val)
-  #     if i ∉ bad
-  #       # println(i)
-  #       e_u = e_u + val[i]
-  #     end
-  #   end
-  # end
-
-  # e_q = 0.0
-
-  # dc = ∫( ( q_h - qh)*meas_cf)dΩ
-  # for (key,val) in dc.dict
-  #   for i = 1:length(val)
-  #     if i ∉ bad
-  #       # println(i)
-  #       e_q = e_q + val[i]
-  #     end
-  #   end
-  # end
-
   if return_vtk
     lvl = nref(nc(panel_model))
     cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)

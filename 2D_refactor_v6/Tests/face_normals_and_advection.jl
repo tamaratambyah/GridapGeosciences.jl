@@ -36,7 +36,7 @@ cell_vectors = Geometry.get_facet_normal(trian,cell_geo_map)
 n_3D = get_normal_vector(trian,cell_vectors)
 
 # push forward 2D chart normals to ambient space
-n_mapped = pushforward_normal(trian)
+n_mapped, = pushforward_normal(trian)
 
 # test equality
 @test sum(n_mapped.plus(pts) .≈ n_3D.plus(pts)) == num_facets(panel_model)
@@ -56,19 +56,57 @@ writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,
 ################################################################################
 ## Advection tests
 ################################################################################
-### check sqrt(g) is continuous across skeleton
+### check sqrt(g), g, g^-1, J is continuous across skeleton
 Λ = SkeletonTriangulation(panel_model)
+skel_panel_ids = get_panel_ids(Λ)
+
 skel_meas_cf = CellField(sqrtg,Λ)
+_inv_metric_cf = CellField(analytic_inv_metric,Λ)
+inv_metric_cf = change_domain(_inv_metric_cf,PhysicalDomain(),ReferenceDomain())
+
+inv_metric_cf.plus(pts) - inv_metric_cf.minus(pts)
+
+
+metric_cf = CellField(analytic_metric,Λ)
+_jacobian_cf = panelwise_cellfield(forward_jacobian,Λ,skel_panel_ids)
+jacobian_cf_plus = change_domain(jacobian_cf.plus,PhysicalDomain(),ReferenceDomain())
+jacobian_cf_minus = change_domain(jacobian_cf.minus,PhysicalDomain(),ReferenceDomain())
+jacobian_cf_plus(pts) - jacobian_cf_minus(pts)
+
 pts = get_cell_points(Λ)
+
+n_chart = get_normal_vector(Λ)
+
+plus = jacobian_cf_plus ⋅ inv_metric_cf.plus ⋅n_chart.plus
+minus = jacobian_cf_minus ⋅ inv_metric_cf.minus ⋅n_chart.minus
+plus(pts) + minus(pts)
+
+n_mapped, J_cf = pushforward_normal(Λ)
+
+J_cf.plus(pts) - J_cf.minus(pts)
+
+ _n_mapped = J_cf.plus ⋅ (inv_metric_cf.plus  ⋅ n_chart.plus )
+ff = Operation(sqrt)(  n_chart.plus   ⋅ (inv_metric_cf.plus ⋅ n_chart.plus )  )
+n_plus = _n_mapped/ff
+
+_n_mapped = J_cf.minus ⋅ (inv_metric_cf.minus  ⋅ n_chart.minus )
+ff = Operation(sqrt)(  n_chart.minus   ⋅ (inv_metric_cf.minus ⋅ n_chart.minus )  )
+n_minus = _n_mapped/ff
+
+n_plus(pts) + n_minus(pts)
+
 
 # test equality of plus and minus side
 @test sum(skel_meas_cf.minus(pts) .≈ skel_meas_cf.plus(pts)) == num_facets(panel_model)
+@test sum(inv_metric_cf.plus(pts) .≈ inv_metric_cf.minus(pts)) == num_facets(panel_model)
+@test sum(metric_cf.plus(pts) .≈ metric_cf.minus(pts)) == num_facets(panel_model)
+@test sum(jacobian_cf.minus(pts) .≈ jacobian_cf.plus(pts)) == num_facets(panel_model)
 
 panel_cfs = [skel_meas_cf.plus, skel_meas_cf.minus, skel_meas_cf.minus-skel_meas_cf.plus]
 labels = ["g_plus", "g_minus", "diff"]
 cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
-skel_panel_ids = get_panel_ids(Λ)
+
 skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
 writevtk(Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
 

@@ -44,3 +44,11 @@ include("analytical_functions.jl")
 include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
 include("Williamson_functions.jl")
+
+
+
+include("ODEs/DAE.jl")
+include("ODEs/ODEOperators.jl")
+include("ODEs/ODEOpsFromTFEOps.jl")
+include("ODEs/RungeKuttaEX.jl")
+include("ODEs/StageOperators.jl")

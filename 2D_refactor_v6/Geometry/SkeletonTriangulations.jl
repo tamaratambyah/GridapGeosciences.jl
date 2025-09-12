@@ -12,7 +12,7 @@ function Geometry.get_facet_normal(trian::SkeletonTriangulation,cell_geo_map::Ab
 end
 
 function pushforward_normal(trian::SkeletonTriangulation)
-  plus = pushforward_normal(trian.plus)
-  minus = pushforward_normal(trian.minus)
-  SkeletonPair(plus,minus)
+  plus, J_plus = pushforward_normal(trian.plus)
+  minus, J_minus = pushforward_normal(trian.minus)
+  SkeletonPair(plus,minus), SkeletonPair(J_plus,J_minus)
 end

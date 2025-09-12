@@ -182,5 +182,5 @@ function pushforward_normal(trian::BoundaryTriangulation)
   ff = Operation(sqrt)(  n_2_2D   ⋅ (inv_cf⋅ n_2_2D )  )
   n_mapped = _n_mapped/ff
 
-  return n_mapped
+  return n_mapped, J_cf
 end
