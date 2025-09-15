@@ -255,7 +255,7 @@ end
 
 #### Specific solve for DAENonlinearOperator
 # want to recompute Jacobian everytime solve! is called, and solve with linear solver
-function solve!(x::AbstractVector,
+function Gridap.Algebra.solve!(x::AbstractVector,
                 ls::LinearSolver,
                 op::DAENonlinearOperator,
                 cache::Nothing)
@@ -275,7 +275,7 @@ function solve!(x::AbstractVector,
   LinearSolverCache(A,b,ns)
 end
 
-function solve!(x::AbstractVector,
+function Gridap.Algebra.solve!(x::AbstractVector,
                 ls::LinearSolver,
                 op::DAENonlinearOperator,
                 cache)
@@ -299,11 +299,11 @@ function solve!(x::AbstractVector,
 end
 
 # include a wrapper incase user wants to use a nonlinear solver
-function solve!(x::AbstractVector,nls::NLSolver,op::DAENonlinearOperator,cache::Nothing)
+function Gridap.Algebra.solve!(x::AbstractVector,nls::NLSolver,op::DAENonlinearOperator,cache::Nothing)
   Gridap.Algebra.solve!(x,nls,op,cache)
 end
 
-function solve!(
+function Gridap.Algebra.solve!(
   x::AbstractVector,nls::NLSolver,op::DAENonlinearOperator,cache::NLSolversCache)
   # println("my DAE non linear solver")
   Gridap.Algebra.solve!(x,nls,op,cache)

@@ -74,47 +74,34 @@ x = allocate_in_domain(AX)
 
 # vorticity solve
 function compute_vorticity!(q,bH1,AH1,nsH1,assembH1,assemAH1,xh,H,R,ls)
-  # fill!(AH1,0.0)
-  # fill!(bH1,0.0)
-  fill!(q,0.0)
-
-  # aq(q,w) = biformq(xh,q,w)
-  # bq(w) = liformq(xh,w)
-
   assemble_matrix!(aq(xh),AH1,assemAH1,H,R)
+  numerical_setup!(nsH1,AH1) # redo numerical set up
+
   assemble_vector!(bq(xh),bH1,assembH1,R)
   axpby!(1,qconst,1,bH1)  # add the constant term
 
-  numerical_setup!(nsH1,AH1) # redo numerical set up
-
-
+  fill!(q,0.0)
   solve!(q,nsH1,bH1)
   return FEFunction(H,q)
 end
 
 
-
 # mass flux solve
 function compute_mass_flux!(_F,bHdiv,AHdiv,nsHdiv,assemHdiv,xh,U,V)
-  # fill!(bHdiv,0.0)
-  fill!(_F,0.0)
   assemble_vector!(bF(xh),bHdiv,assemHdiv,V)
 
+  fill!(_F,0.0)
   solve!(_F,nsHdiv,bHdiv)
   return FEFunction(U,_F)
 end
 
 
-
-
 # Bernoulli potential
 function compute_bernoulli!(Φ,bL2,AL2,nsL2,assemL2,xh,P,Q)
-  # fill!(bL2,0.0)
-  fill!(Φ,0.0)
   assemble_vector!(bΦ(xh),bL2,assemL2,Q)
   axpby!(1,Φconst,1,bL2) # add the constant term
 
-
+  fill!(Φ,0.0)
   solve!(Φ,nsL2,bL2)
   return FEFunction(P,Φ)
 end
@@ -125,9 +112,7 @@ function stage1!(x,bX,AX,bXn,nsX,assemX,xn,F,Φ,q,X,Y)
   # b1(y) = massX(xn,y) + dt*resX(xn,F,Φ,q,y)
   b1(y) =  dt*resX(xn,F,Φ,q,y)
   assemble_vector!(b1,bX,assemX,Y)
-
-  axpby!(1.0,bXn,1.0,bX)
-
+  axpby!(1.0,bXn,1.0,bX) ## add xn
 
   fill!(x,0.0)
   solve!(x,nsX,bX)
@@ -140,8 +125,7 @@ function stage2!(x,bX,AX,bXn,nsX,assemX,xn,x1,F,Φ,q,X,Y)
   # b2(y) = 0.75*massX(xn,y) + 0.25*( massX(x1,y) + dt*resX(x1,F,Φ,q,y) )
   b2(y) =  massX(x1,y) + dt*resX(x1,F,Φ,q,y)
   assemble_vector!(b2,bX,assemX,Y)
-
-  axpby!(0.75,bXn,0.25,bX)
+  axpby!(0.75,bXn,0.25,bX) ## add xn
 
   fill!(x,0.0)
   solve!(x,nsX,bX)
@@ -150,12 +134,10 @@ end
 
 
 function stage3!(x,bX,AX,bXn,nsX,assemX,xn,x2,F,Φ,q,X,Y)
-  # fill!(bX,0.0)
   # b3(y) = (1/3)*massX(xn,y) + (2/3)*( massX(x2,y) + dt*resX(x2,F,Φ,q,y) )
   b3(y) =  massX(x2,y) + dt*resX(x2,F,Φ,q,y)
   assemble_vector!(b3,bX,assemX,Y)
-
-  axpby!((1/3),bXn,(2/3),bX)
+  axpby!((1/3),bXn,(2/3),bX) ## add xn
 
   fill!(x,0.0)
   solve!(x,nsX,bX)
@@ -196,15 +178,14 @@ cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
 writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
 
+N = ceil(_tF/dt)+1
 
-for nsteps in collect(1:1000)
+t1 = time()
+for nsteps in collect(1:N)
   t = nsteps*dt
   println(t)
 
   # stage 1
-  # qh = compute_vorticity!(q,bH1,AH1,nsH1,assembH1,assemAH1,xh0,H,R,ls)
-  # Fh = compute_mass_flux!(_F,bHdiv,AHdiv,nsHdiv,assemHdiv,xh0,U,V)
-  # Φh = compute_bernoulli!(Φ,bL2,AL2,nsL2,assemL2,xh0,P,Q)
   xh1 = stage1!(x,bX,AX,bXn,nsX,assemX,xh0,Fh,Φh,qh,X_prog,Y_prog)
 
   # stage 2
@@ -224,8 +205,7 @@ for nsteps in collect(1:1000)
   Fh = compute_mass_flux!(_F,bHdiv,AHdiv,nsHdiv,assemHdiv,xh3,U,V)
   Φh = compute_bernoulli!(Φ,bL2,AL2,nsL2,assemL2,xh3,P,Q)
 
-  # println("casimirs")
-
+  # casimirs
   ens = sum(∫( (qh*qh*xh3[2])*meas_cf  )dΩ)
   energy = sum(∫( (0.5*xh3[2]*( xh3[1] ⋅(metric_cf⋅xh3[1])) + 0.5*gravity*xh3[2]*xh3[2] )*meas_cf )dΩ)
   mass = sum( ∫( xh3[2]*meas_cf )dΩ  )
@@ -251,6 +231,10 @@ for nsteps in collect(1:1000)
 
 end
 
+elapsed_time = time() - t1
+println("Elapsed time: ", elapsed_time, " seconds")
+
+
 make_pvd(dir,"solT",1)
 
 
@@ -263,12 +247,14 @@ Enst_rel = abs.(Enstropys.-Enstropys[1])./Enstropys[1]
 plot()
 plot!(ts[2:end],ms_rel[2:end],lw=3,label="mass")
 plot!(yaxis=:log,xlabel="t",ylabel=L"|x_t-x_0|/x_0")
+savefig(plotsdir()*"/sw_transient_mass")
 
 plot()
 plot!(ts[2:end],Es_rel[2:end],lw=3,label="energy")
 plot!(yaxis=:log,xlabel="t",ylabel=L"|x_t-x_0|/x_0")
-# savefig(plotsdir()*"/wave_transient_conservation")
+savefig(plotsdir()*"/sw_transient_energy")
 
 plot()
 plot!(ts[2:end],Enst_rel[2:end],lw=3,label="enstropy")
 plot!(yaxis=:log,xlabel="t",ylabel=L"|x_t-x_0|/x_0")
+savefig(plotsdir()*"/sw_transient_enstropy")

@@ -1,4 +1,3 @@
-
 panel_model = coarse_parametric_model()
 panel_model = Gridap.Adaptivity.refine(panel_model)
 panel_model = Gridap.Adaptivity.refine(panel_model)
@@ -106,7 +105,7 @@ ode_solver = RungeKutta(ls,ls,dt,:EXRK_SSP_3_3)
 
 solT  = solve(ode_solver,opDAE,t0,tF,xh0)
 
-dir = datadir("Transient_shallow_water_W5_long")
+dir = datadir("Transient_shallow_water_W5_long_test")
 !isdir(dir) && mkdir(dir)
 labels = ["uh","ph","bt","h"]
 panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],b_cf,h_cf]
@@ -117,6 +116,21 @@ writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=
 
 it = iterate(solT)
 
+_res_y((q,F,Φ),(w,v,ψ))  = res_y(0.0,(xh0,(q,F,Φ)),(w,v,ψ))
+_jac_y((q,F,Φ),(dq,dF,dΦ),(w,v,ψ)) = jac_y(0.0,(xh0,(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ))
+_opFE = FEOperator(_res_y,_jac_y,X_diag,Y_diag)
+nls = NLSolver(LUSolver(),show_trace=false,method=:newton)
+qh,Fh,Φh = solve(nls,_opFE)
+
+
+ens0 = sum(∫( (qh*qh*xh0[2])*meas_cf  )dΩ)
+energy0 = sum(∫( (0.5*xh0[2]*( xh0[1] ⋅(metric_cf⋅xh0[1])) + 0.5*gravity*xh0[2]*xh0[2] )*meas_cf )dΩ)
+mass0 = sum( ∫( xh0[2]*meas_cf )dΩ  )
+push!(Enstropys,ens0)
+push!(Energys,energy0)
+push!(Masss,mass0)
+
+t1 = time()
 while !isnothing(it)
   data, state = it
   t, xh = data
@@ -129,12 +143,23 @@ while !isnothing(it)
   vort = qh*ph - cor_cf
   println(t)
 
+  ens = sum(∫( (qh*qh*xh[2])*meas_cf  )dΩ)
+  energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
+  mass = sum( ∫( xh[2]*meas_cf )dΩ  )
+
+  push!(Enstropys,ens)
+  push!(Energys,energy)
+  push!(Masss,mass)
+
+
   panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort]
   cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort"],panel_cfs)
   writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
 
   it = iterate(solT, state)
 end
+elapsed_time = time() - t1
+println("Elapsed time: ", elapsed_time, " seconds")
 
 make_pvd(dir,"solT",1)
 
