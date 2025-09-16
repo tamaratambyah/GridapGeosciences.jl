@@ -6,15 +6,15 @@ end
 
 
 
-function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids::SkeletonPair{<:AbstractArray{Int}})
-  panelwise_cellfield(f,atrian.trian,panel_ids)
-end
+# function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids::SkeletonPair{<:AbstractArray{Int}})
+#   panelwise_cellfield(f,atrian.trian,panel_ids)
+# end
 
-function panelwise_cellfield(f::Function,trian::Triangulation,skel_panel_ids::SkeletonPair{<:AbstractArray{Int}})
-  plus = panelwise_cellfield(f, trian, skel_panel_ids.plus)
-  minus = panelwise_cellfield(f, trian, skel_panel_ids.minus)
-  SkeletonPair(plus,minus)
-end
+# function panelwise_cellfield(f::Function,trian::Triangulation,skel_panel_ids::SkeletonPair{<:AbstractArray{Int}})
+#   plus = panelwise_cellfield(f, trian, skel_panel_ids.plus)
+#   minus = panelwise_cellfield(f, trian, skel_panel_ids.minus)
+#   SkeletonPair(plus,minus)
+# end
 
 
 function ambient_cellfield(panel_cf::CellField,ambient_trian::Triangulation,panel_ids::AbstractArray{Int})

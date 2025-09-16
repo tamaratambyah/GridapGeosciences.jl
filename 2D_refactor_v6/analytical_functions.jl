@@ -84,9 +84,14 @@ G(αβ) = dXdb(αβ)*dXdb(αβ) + dYdb(αβ)*dYdb(αβ) + dZdb(αβ)*dZdb(αβ)
 
 detg(αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
 sqrtg(αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
+_sqrtg(p::Int) = αβ -> sqrtg(αβ)
+
 grad_meas(αβ) = gradient(sqrtg)(αβ)
+
 analytic_metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
+
 analytic_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/detg(αβ),-F(αβ)/detg(αβ),-F(αβ)/detg(αβ),E(αβ)/detg(αβ))
+_analytic_inv_metric(p::Int) = αβ -> analytic_inv_metric(αβ)
 
 analytic_J1(αβ) = RADIUS*TensorValue{3,2}(dXda(αβ),dYda(αβ),dZda(αβ), dXdb(αβ),dYdb(αβ),dZdb(αβ))
 

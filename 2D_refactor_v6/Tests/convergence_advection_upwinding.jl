@@ -63,6 +63,9 @@ p_fe = 1
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
   # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ, sqrtg_cf)*jump(v)*meas_cf   )dΛ
+
+  skel_cf = panelwise_cellfield(forward_jacobian,Λ)
+  ginv_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
   a_s1(u,v) = ∫( _my_mean(skel_cf,vel,u)⋅my_jump(skel_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
   function _my_mean(j::SkeletonPair,vel::CellField,u::CellField)
     0.5*( (j.plus⋅vel.plus)*u.plus + (j.minus⋅vel.minus)*u.minus )
