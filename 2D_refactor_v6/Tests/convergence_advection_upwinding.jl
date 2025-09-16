@@ -11,23 +11,30 @@ u = panel_to_cartesian(u0)
 uvX = panel_to_cartesian(u0vecX)
 
 
-function my_mean( Bu_n::SkeletonPair, sqrtg_cf::CellField)
-  plus  = ( Bu_n.plus)#*sqrtg_cf.plus
-  minus = ( Bu_n.minus)#*sqrtg_cf.minus
+function my_mean( Bu_n::SkeletonPair)
+  plus  = ( Bu_n.plus)
+  minus = ( Bu_n.minus)
   0.5*( plus - minus  )
 end
 
+function _my_mean(j::SkeletonPair,vel::CellField,u::CellField)
+  0.5*( (j.plus⋅vel.plus)*u.plus + (j.minus⋅vel.minus)*u.minus )
+end
 
-panel_model = coarse_parametric_model()
-panel_model = Gridap.Adaptivity.refine(panel_model)
+function my_jump(j::SkeletonPair,ginv::SkeletonPair,n::SkeletonPair,u::CellField)
+  u.plus*(j.plus⋅(ginv.plus⋅n.plus) ) + u.minus*(j.minus⋅(ginv.minus⋅n.minus) )
+end
+
+# panel_model = coarse_parametric_model()
+# panel_model = Gridap.Adaptivity.refine(panel_model)
 # panel_model = Gridap.Adaptivity.refine(panel_model)
 
-p_fe = 1
+# p_fe = 1
 
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-# function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,p_fe::Int,return_vtk=false)
+function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,p_fe::Int,return_vtk=false)
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
 
@@ -57,23 +64,16 @@ p_fe = 1
   vel = interpolate(v_contr_cf,U)
 
   meas_cf = CellField(sqrtg,Ω_panel)
-  sqrtg_cf = CellField(sqrtg,Λ)
 
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
-  # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ, sqrtg_cf)*jump(v)*meas_cf   )dΛ
+  # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
 
-  skel_cf = panelwise_cellfield(forward_jacobian,Λ)
+  jac_cf = panelwise_cellfield(forward_jacobian,Λ)
   ginv_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
-  a_s1(u,v) = ∫( _my_mean(skel_cf,vel,u)⋅my_jump(skel_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
-  function _my_mean(j::SkeletonPair,vel::CellField,u::CellField)
-    0.5*( (j.plus⋅vel.plus)*u.plus + (j.minus⋅vel.minus)*u.minus )
-  end
+  a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
 
-  function my_jump(j::SkeletonPair,ginv::SkeletonPair,n::SkeletonPair,u::CellField)
-    u.plus*(j.plus⋅(ginv.plus⋅n.plus) ) + u.minus*(j.minus⋅(ginv.minus⋅n.minus) )
-  end
 
   upwind = abs((vel⋅ n_Λ).plus)
   # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
@@ -87,34 +87,34 @@ p_fe = 1
   biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)
   liform_advection(q) = ∫( (rhs_cf*q)*meas_cf )dΩ
 
-  b = assemble_vector(liform_advection,Q)
+  # b = assemble_vector(liform_advection,Q)
 
-  A1 = assemble_matrix(a_Ω,P,Q)
-  A2 = assemble_matrix(a_s1,P,Q)
-  A3 = assemble_matrix(a_s2,P,Q)
-  A = A1 + A2 + A3
+  # A1 = assemble_matrix(a_Ω,P,Q)
+  # A2 = assemble_matrix(a_s1,P,Q)
+  # A3 = assemble_matrix(a_s2,P,Q)
+  # A = A1 + A2 + A3
 
-  x = allocate_in_domain(A)
-  fill!(x,0.0)
-  ns = numerical_setup(symbolic_setup(LUSolver(),A),A)
-  solve!(x,ns,b)
-  uh = FEFunction(P,x)
+  # x = allocate_in_domain(A)
+  # fill!(x,0.0)
+  # ns = numerical_setup(symbolic_setup(LUSolver(),A),A)
+  # solve!(x,ns,b)
+  # uh = FEFunction(P,x)
 
-  # op = AffineFEOperator(biform_advection,liform_advection,P,Q)
-  # uh = solve(LUSolver(),op)
+  op = AffineFEOperator(biform_advection,liform_advection,P,Q)
+  uh = solve(LUSolver(),op)
 
   eu = l2((uh-u_cf)*meas_cf,dΩ)
 
-  # if return_vtk
+  if return_vtk
     lvl = nref(nc(panel_model))
     cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-  # end
+  end
   return eu
-# end
+end
 
 function advection_dg_errors(panel_model,args...)
   e_u  = advection_dg_solver(panel_model,args...)
