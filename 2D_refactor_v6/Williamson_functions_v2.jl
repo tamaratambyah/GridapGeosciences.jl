@@ -82,6 +82,9 @@ function topography(xyz)
   end
   b
 end
+function _topography(xyz)
+  0.0
+end
 
 
 a_e = 6.37e6 # m
@@ -91,7 +94,7 @@ T = 12*24*3600 #s
 H_0 = 2.94e4/g #m
 u_0 = 20 #2*π*a_e/T #m/s
 b_0 = 2000.0 #m
-TF = 5*(3600*24)
+TF = 1*(3600*24)
 
 L = a_e
 _τ = 1/ω#sqrt(a_e/g)

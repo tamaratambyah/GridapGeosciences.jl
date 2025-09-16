@@ -2,10 +2,12 @@ using DrWatson
 using Gridap
 using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.ReferenceFEs
 using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
+using Gridap.Algebra, Gridap.FESpaces
 using LinearAlgebra
 using Plots, LaTeXStrings
 using FillArrays
 using Test
+using JLD2
 
 dir = datadir("2D_CubedSphereRefactor")
 !isdir(dir) && mkdir(dir)

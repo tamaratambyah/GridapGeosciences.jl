@@ -139,17 +139,6 @@ function williamson2_convergence_test(n_ref_lvls,return_vtk=false,args...)
 
     plot()
 
-    # h = panel_to_latlon(hWilliamson(ζ,args...))
-    # vecX = vec_cartesian_to_latlon(vWilliamson(ζ,args...))
-    # vX = panel_to_cartesian(tangent_vec(vecX))
-    # f = panel_to_latlon(fWilliamson(ζ,args...))
-
-    # h = panel_to_latlon(_hWilliamson(ζ))
-    # vecX = vec_cartesian_to_latlon(_vWilliamson(ζ))
-    # vX = panel_to_cartesian(tangent_vec(vecX))
-    # f = panel_to_latlon(_fWilliamson(ζ))
-    # q = panel_to_latlon(_qWilliamson(ζ))
-
     h = panel_to_cartesian(h₀(ζ))
     vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
     f = panel_to_cartesian(f₀(ζ))
@@ -170,7 +159,5 @@ end
 
 
 ## Williamson2 convergence test
-u0,ω, grav, H0 = 40/(6e6), 1e-5, 10, 3e3
-u0,ω, grav, H0 = 0.1, 1e-5, 1.0, 1.0
 n_ref_lvls = 4
-williamson2_convergence_test(n_ref_lvls,true,u0,ω,grav,H0)
+williamson2_convergence_test(n_ref_lvls,true)

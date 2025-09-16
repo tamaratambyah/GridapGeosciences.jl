@@ -69,8 +69,8 @@ inv_metric_cf.plus(pts) - inv_metric_cf.minus(pts)
 
 metric_cf = CellField(analytic_metric,Λ)
 _jacobian_cf = panelwise_cellfield(forward_jacobian,Λ,skel_panel_ids)
-jacobian_cf_plus = change_domain(jacobian_cf.plus,PhysicalDomain(),ReferenceDomain())
-jacobian_cf_minus = change_domain(jacobian_cf.minus,PhysicalDomain(),ReferenceDomain())
+jacobian_cf_plus = change_domain(_jacobian_cf.plus,PhysicalDomain(),ReferenceDomain())
+jacobian_cf_minus = change_domain(_jacobian_cf.minus,PhysicalDomain(),ReferenceDomain())
 jacobian_cf_plus(pts) - jacobian_cf_minus(pts)
 
 pts = get_cell_points(Λ)

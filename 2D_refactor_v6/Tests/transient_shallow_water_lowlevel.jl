@@ -144,7 +144,7 @@ function stage3!(x,bX,AX,bXn,nsX,assemX,xn,x2,F,Φ,q,X,Y)
   return FEFunction(X,x)
 end
 
-dir = datadir("Transient_test")
+dir = datadir("Transient_W5_lowlevel")
 !isdir(dir) && mkdir(dir)
 
 xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
@@ -178,7 +178,7 @@ cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
 writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
 
-N = ceil(_tF/dt)+1
+N = Int(ceil(_tF/dt)+1)
 
 t1 = time()
 for nsteps in collect(1:N)
@@ -236,7 +236,9 @@ println("Elapsed time: ", elapsed_time, " seconds")
 
 
 make_pvd(dir,"solT",1)
-
+dxx =dx(nc(panel_model))
+output = @strdict Masss Energys Enstropys dt CFL dxx elapsed_time
+safesave(datadir(dir, ("tsw_entropy.jld2")), output)
 
 ts = dt*collect(0:length(Masss)-1)
 
