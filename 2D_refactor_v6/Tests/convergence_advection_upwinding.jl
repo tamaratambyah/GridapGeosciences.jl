@@ -168,13 +168,12 @@ function transient_advection_dg(panel_model,u::Function,vX::Function,p_fe::Int,C
   uh0 = interpolate(u_cf, P(0.0))
 
   meas_cf = CellField(sqrtg,Ω_panel)
-  sqrtg_cf = CellField(sqrtg,Λ)
 
   ## weak form
   a_mass(t,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
 
   a_Ω(u,v) =   ∫( -(u*(∇(v)⋅vel) )*meas_cf )dΩ
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ, sqrtg_cf)*jump(v)*meas_cf   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
 
   upwind = abs((vel⋅ n_Λ).plus)/2
   a_s2(u,v) = ∫(  upwind*jump(u)*jump(v)*meas_cf   )dΛ

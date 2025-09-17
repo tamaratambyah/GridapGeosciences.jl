@@ -5,6 +5,13 @@ function xyz2θϕr(x)
   VectorValue(θ,ϕ,r)
 end
 
+function θϕ2xyz(θϕ)
+  θ,ϕ = θϕ
+  x = cos(θ)*cos(ϕ)
+  y = sin(θ)*cos(ϕ)
+  z = sin(ϕ)
+  VectorValue(x,y,z)
+end
 
 function spherical_to_cartesian_matrix(θϕr)
   θ,ϕ,r = θϕr
