@@ -184,3 +184,17 @@ function pushforward_normal(trian::BoundaryTriangulation)
 
   return n_mapped, J_cf
 end
+
+
+"""
+pullback of the area form
+returns |Jg^{-1} ̂n|
+"""
+##
+function pullback_area_form(trian::BoundaryTriangulation)
+  inv_metric_cf = panelwise_cellfield(_analytic_inv_metric,trian)
+  jac_cf = panelwise_cellfield(forward_jacobian,trian)
+  n_Λ = get_normal_vector(trian)
+
+  Operation(norm)(jac_cf⋅(inv_metric_cf ⋅n_Λ) )
+end

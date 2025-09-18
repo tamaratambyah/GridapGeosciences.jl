@@ -16,3 +16,10 @@ function pushforward_normal(trian::SkeletonTriangulation)
   minus, J_minus = pushforward_normal(trian.minus)
   SkeletonPair(plus,minus), SkeletonPair(J_plus,J_minus)
 end
+
+
+function pullback_area_form(trian::SkeletonTriangulation)
+  plus = pullback_area_form(trian.plus)
+  minus = pullback_area_form(trian.minus)
+  SkeletonPair(plus,minus)
+end

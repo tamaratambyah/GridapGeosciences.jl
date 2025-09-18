@@ -56,24 +56,33 @@ writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,
 ################################################################################
 ## Advection tests
 ################################################################################
-### check sqrt(g) is continuous across skeleton, show g, g^-1, J not continuous
+### check sqrt(g) is continuous across skeleton
+### show g, g^-1, J not continuous
+### check |Jg^-1 n| - pullback of area form
 Λ = SkeletonTriangulation(panel_model)
 pts = get_cell_points(Λ)
+n_Λ = get_normal_vector(Λ)
 meas_cf = panelwise_cellfield(_sqrtg,Λ)
 inv_metric_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
 jac_cf = panelwise_cellfield(forward_jacobian,Λ)
+area_form_cf = pullback_area_form(Λ)
 
 
 # test equality of plus and minus side of sqrt(g)
 @test sum(meas_cf.minus(pts) .≈ meas_cf.plus(pts)) == num_facets(panel_model)
+
+# test equality of plus and minus side of |Jg^-1 n|
+@test sum(area_form_cf.plus(pts) .≈ area_form_cf.minus(pts)) == num_facets(panel_model)
 
 # test inequality of plus and minus side for g^-1 and J
 @test sum(inv_metric_cf.plus(pts) .≈ inv_metric_cf.minus(pts)) ≠ num_facets(panel_model)
 @test sum(jac_cf.minus(pts) .≈ jac_cf.plus(pts)) ≠ num_facets(panel_model)
 
 panel_cfs = [meas_cf.plus, meas_cf.minus, meas_cf.minus-meas_cf.plus,
-            jac_cf.plus, jac_cf.minus, jac_cf.minus-jac_cf.plus]
-labels = ["g_plus", "g_minus", "g_diff", "jac_plus", "jac_minus", "jac_diff"]
+            jac_cf.plus, jac_cf.minus, jac_cf.minus-jac_cf.plus,
+            area_form_cf.plus, area_form_cf.minus, area_form_cf.plus-area_form_cf.minus]
+labels = ["g_plus", "g_minus", "g_diff", "jac_plus", "jac_minus", "jac_diff",
+          "a_plus", "a_minus", "a_diff"]
 cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
 skel_panel_ids = get_panel_ids(Λ)

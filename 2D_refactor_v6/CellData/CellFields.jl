@@ -12,7 +12,7 @@ function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation)
 end
 
 function panelwise_cellfield(cf::CellField,atrian::AdaptedTriangulation)
-  GenericCellField(get_data(cf),atrian,ReferenceDomain())
+  GenericCellField(get_data(cf),atrian,DomainStyle(cf))
 end
 
 function panelwise_cellfield(cf::SkeletonPair,atrian::AdaptedTriangulation)
