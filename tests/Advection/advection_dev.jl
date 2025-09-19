@@ -1,4 +1,14 @@
-include("../src/Lauritzen_functions.jl")
+#### Linear advection equation
+#### solve with SUPG as per Brooks & Hughes 1982 paper
+#### Replicate tests in Lauritzen2012 paper with time dependent velocity
+
+using DrWatson
+using Gridap
+using GridapGeosciences
+using Plots, LaTeXStrings
+
+
+include("Lauritzen_functions.jl")
 
 dir = datadir("Transient_advection_test_supg")
 !isdir(dir) && mkdir(dir)
@@ -9,9 +19,6 @@ panel_model = Gridap.Adaptivity.refine(panel_model)
 p_fe = 1
 CFL = 0.1
 
-
-# depth = panel_to_cartesian(cosine_bell)
-# vX(t) = panel_to_cartesian(tangent_vec(nondivergent_velocity(t)))
 
 u0(XYZ) = cosine_bell(XYZ)
 u = panel_to_cartesian(u0)

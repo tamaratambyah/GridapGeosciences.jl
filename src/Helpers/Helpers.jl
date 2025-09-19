@@ -12,7 +12,6 @@ import ..RADIUS
 
 include("forward_map.jl")
 include("inverse_map.jl")
-include("convergence_tools.jl")
 # include("Helpers/overloads.jl")
 include("analytical_functions.jl")
 include("coordinate_mappings.jl")
@@ -20,10 +19,6 @@ include("vector_projection_analytic_functions.jl")
 
 export forward_map, forward_jacobian, covarient_basis, forward_pinv_jacobian
 
-export l2
-export get_refined_models, convergence_test
-export plot_convergence, plot_error, convergence_rate
-export nc, dx, nref
 
 export f_sin,fθϕ,f_XYZ
 export sqrtg, _sqrtg
@@ -38,6 +33,6 @@ export panel_to_cartesian, panel_to_latlon
 export vector_length, normal_vec, tangent_vec
 export contra_v, contra_v_comp, contra_v_perp, projection_v
 
-
+export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix
 
 end

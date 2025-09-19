@@ -1,15 +1,8 @@
-#### Non-linear advection equation
+#### Linear advection equation (flux form)
 #### solve with dG upwinding as per Brezzi 2004 paper
 #### Replicate test in Section 5.4 of Rognes2013 paper
 
-vecX(XYZ) = VectorValue(-XYZ[2],XYZ[1],0.0)
-u0(XYZ) = exp(-(XYZ[2]^2 + XYZ[3]^2)  )
-u0vecX(XYZ) = u0(XYZ)*vecX(XYZ)
-
-vX = panel_to_cartesian(tangent_vec(vecX))
-u = panel_to_cartesian(u0)
-uvX = panel_to_cartesian(u0vecX)
-
+using Gridap.Geometry
 
 function my_mean( Bu_n::SkeletonPair)
   plus  = ( Bu_n.plus)
@@ -25,16 +18,14 @@ function my_jump(j::SkeletonPair,ginv::SkeletonPair,n::SkeletonPair,u::CellField
   u.plus*(j.plus⋅(ginv.plus⋅n.plus) ) + u.minus*(j.minus⋅(ginv.minus⋅n.minus) )
 end
 
-# panel_model = coarse_parametric_model()
-# panel_model = Gridap.Adaptivity.refine(panel_model)
-# panel_model = Gridap.Adaptivity.refine(panel_model)
-
-# p_fe = 1
 
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
 function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,p_fe::Int,return_vtk=false)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
+
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
 
@@ -45,14 +36,11 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
 
-
   _rhs(p) = αβ -> u(p)(αβ) + surfdiv(contra_v(uvX))(p)(αβ)
-
 
   v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
   u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
   rhs_cf = panelwise_cellfield(_rhs,Ω_panel,panel_ids)
-
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
@@ -62,12 +50,11 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
   U = TrialFESpace(V)
 
   vel = interpolate(v_contr_cf,U)
-
   meas_cf = CellField(sqrtg,Ω_panel)
-
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
+  ### volume stabilisation term
   # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
 
   jac_cf = panelwise_cellfield(forward_jacobian,Λ)
@@ -75,6 +62,7 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
   a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
 
 
+  ### upwinding stabilisation term
   upwind = abs((vel⋅ n_Λ).plus)
   # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
 
@@ -87,19 +75,6 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
   biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)
   liform_advection(q) = ∫( (rhs_cf*q)*meas_cf )dΩ
 
-  # b = assemble_vector(liform_advection,Q)
-
-  # A1 = assemble_matrix(a_Ω,P,Q)
-  # A2 = assemble_matrix(a_s1,P,Q)
-  # A3 = assemble_matrix(a_s2,P,Q)
-  # A = A1 + A2 + A3
-
-  # x = allocate_in_domain(A)
-  # fill!(x,0.0)
-  # ns = numerical_setup(symbolic_setup(LUSolver(),A),A)
-  # solve!(x,ns,b)
-  # uh = FEFunction(P,x)
-
   op = AffineFEOperator(biform_advection,liform_advection,P,Q)
   uh = solve(LUSolver(),op)
 
@@ -111,7 +86,7 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe", cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
   return eu
 end
@@ -134,14 +109,15 @@ function advection_dg_convergence_test(n_ref_lvls,u,vX,uvX,return_vtk=false)
 
 end
 
-n_ref_lvls = 4
-advection_dg_convergence_test(n_ref_lvls,u,vX,uvX,true)
 
 
 ################################################################################
 #### Transient
 ################################################################################
 function transient_advection_dg(panel_model,u::Function,vX::Function,p_fe::Int,CFL=0.1,return_vtk=false)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
+
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
 
@@ -151,7 +127,6 @@ function transient_advection_dg(panel_model,u::Function,vX::Function,p_fe::Int,C
   Λ = SkeletonTriangulation(panel_model)
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
-
 
   v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
   u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
@@ -177,8 +152,6 @@ function transient_advection_dg(panel_model,u::Function,vX::Function,p_fe::Int,C
 
   upwind = abs((vel⋅ n_Λ).plus)/2
   a_s2(u,v) = ∫(  upwind*jump(u)*jump(v)*meas_cf   )dΛ
-  # a_s2(u,v) = ∫(  cf∘((vel⋅ n_Λ).plus)*jump(u)*jump(v)*meas_cf   )dΛ
-
 
   res(t,u,v) =  a_Ω(u,v) + a_s1(u,v) + a_s2(u,v)
   jac(t,u,du,v) = a_Ω(du,v) + a_s1(du,v) + a_s2(du,v)
@@ -188,7 +161,7 @@ function transient_advection_dg(panel_model,u::Function,vX::Function,p_fe::Int,C
   # solve with SSP RK 3
   t0, tF = 0.0, 2*π
   _dt = dx(nc(panel_model))*CFL/p_fe
-  dt = _dt #0.025
+  dt = floor(_dt,sigdigits=1)
 
 
   solver = RungeKutta(LUSolver(), LUSolver(), dt, :EXRK_SSP_3_3)
@@ -197,8 +170,6 @@ function transient_advection_dg(panel_model,u::Function,vX::Function,p_fe::Int,C
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
   cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
-  lvl = nref(nc(panel_model))
-  println("nlevl = $lvl")
   if return_vtk
     dir = datadir("Transient_advection_nref$lvl")
     !isdir(dir) && mkdir(dir)
@@ -260,8 +231,3 @@ function transient_advection_dg_convergence_test(n_ref_lvls,u,vX,CFL=0.1,return_
   savefig(plotsdir()*"/transient_advection_dg_convergence")
 
 end
-
-
-n_ref_lvls = 4
-CFL = 0.1
-transient_advection_dg_convergence_test(n_ref_lvls,u,vX,CFL,false)

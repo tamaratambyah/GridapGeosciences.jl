@@ -36,15 +36,9 @@ end
 @publish Visualisation write_vtk_file
 @publish Visualisation create_vtk_file
 
-@publish Helpers l2
-@publish Helpers get_refined_models
-@publish Helpers convergence_test
-@publish Helpers plot_convergence
-@publish Helpers plot_error
-@publish Helpers convergence_rate
-@publish Helpers  nc
-@publish Helpers dx
-@publish Helpers nref
+@publish Helpers xyz2θϕr
+@publish Helpers θϕ2xyz
+@publish Helpers spherical_to_cartesian_matrix
 
 @publish Helpers f_sin
 @publish Helpers fθϕ

@@ -31,14 +31,11 @@ include("ODEs/ODEs.jl")
 
 include("Visualisation/Visualisation.jl")
 
-
-# include("Lauritzen_functions.jl")
-# export gaussian_hill, cosine_bell,slotted_cylinders, correlated_cosine_bell
-# export nondivergent_velocity, divergent_velocity
-
-# include("Williamson_functions_v2.jl")
-# export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix
-# export f₀, u₀, h₀, η₀, q₀, topography, _topography
+include("convergence_tools.jl")
+export l2
+export get_refined_models, convergence_test
+export plot_convergence, plot_error, convergence_rate
+export nc, dx, nref
 
 include("Exports.jl")
 

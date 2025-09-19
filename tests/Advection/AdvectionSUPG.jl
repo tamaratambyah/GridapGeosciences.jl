@@ -1,13 +1,5 @@
-#### Linear advection equation
+#### Linear advection equation (material form)
 #### solve with SUPG as per Brooks & Hughes 1982 paper
-#### Replicate test in Section 5.4 of Rognes2013 paper
-
-vecX(XYZ) = VectorValue(-XYZ[2],XYZ[1],0.0)
-u0(XYZ) = exp(-(XYZ[2]^2 + XYZ[3]^2)  )
-
-vX = panel_to_cartesian(tangent_vec(vecX))
-u = panel_to_cartesian(u0)
-
 
 ################################################################################
 #### Steady with manufactured solutions
@@ -40,8 +32,8 @@ function advection_supg_solver(panel_model,u::Function,vX::Function,p_fe::Int,CF
 
   # supg stabilisation parameter
   _dx = dx(nc(panel_model))
-  dt = _dx*CFL/p_fe
-  # τ = (1/dt +  1/_dx )^(-1) # Lima2014
+  _dt = _dx*CFL/p_fe
+  dt = floor(_dt,sigdigits=1)
   τ = 0.5*dt
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ + ∫( ((vel⋅∇(u))*v )*meas_cf )dΩ
@@ -88,10 +80,6 @@ function advection_supg_convergence_test(n_ref_lvls,u,vX,CFL=0.1,return_vtk=fals
 
 end
 
-n_ref_lvls = 4
-CFL = 0.1
-advection_supg_convergence_test(n_ref_lvls,u,vX,CFL,true)
-
 
 ################################################################################
 #### Transient
@@ -119,7 +107,8 @@ function transient_advection_supg(panel_model,u::Function,vX::Function,p_fe::Int
 
   # supg stabilisation parameter
   _dx = dx(nc(panel_model))
-  dt = _dx*CFL/p_fe
+  _dt = _dx*CFL/p_fe
+  dt = floor(_dt,sigdigits=1)
   τ = 0.5*dt
 
   a_mass_Ω(dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
@@ -204,9 +193,3 @@ function transient_advection_supg_convergence_test(n_ref_lvls,u,vX,CFL=0.1,retur
   savefig(plotsdir()*"/transient_advection_supg_convergence")
 
 end
-
-
-
-n_ref_lvls = 4
-CFL = 0.2
-transient_advection_supg_convergence_test(n_ref_lvls,u,vX,CFL,false)
