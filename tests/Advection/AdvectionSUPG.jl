@@ -1,5 +1,8 @@
-#### Linear advection equation (material form)
-#### solve with SUPG as per Brooks & Hughes 1982 paper
+""" Linear advection equation (material form)
+∂ₜu + β⋅ ∇ᵧ(u) = 0
+Solve with SUPG as per Brooks & Hughes 1982 paper
+Replicate test in Section 5.4 of Rognes2013 paper
+"""
 
 ################################################################################
 #### Steady with manufactured solutions

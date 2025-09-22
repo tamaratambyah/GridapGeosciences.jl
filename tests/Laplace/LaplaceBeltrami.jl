@@ -1,4 +1,12 @@
+""" Poisson problem using Laplace-Beltrami operator
+u + Δᵧ(u) = f
+Need to remove the kernal via zeromean FE space
+"""
+
+using Gridap.Helpers
 function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,return_vtk=false)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -12,6 +20,7 @@ function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,return_vtk=fa
   meas_cf = CellField(sqrtg,Ω_panel)
   slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
 
+  println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
   @check sum(∫(f_panel_cf*meas_cf)dΩ) < 1e-14 "Function must be zero mean to solve with zeromean FE space!"
 
   rhs_cf = - slap_panel_cf
@@ -31,7 +40,7 @@ function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,return_vtk=fa
     panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
     labels = ["u","uh","eu"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$lvl",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
   return e, uh, f_panel_cf
 end
@@ -54,11 +63,3 @@ function laplace_beltrami_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=
   end
 
 end
-
-
-zeromean_funcs = Dict{Symbol,Any}()
-# zeromean_funcs[:sin] = f_sin
-zeromean_funcs[:XYZ] = f_XYZ
-
-n_ref_lvls = 4
-laplace_beltrami_convergence_test(zeromean_funcs,n_ref_lvls,true)

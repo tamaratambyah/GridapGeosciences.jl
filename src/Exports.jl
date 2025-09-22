@@ -40,9 +40,11 @@ end
 @publish Helpers θϕ2xyz
 @publish Helpers spherical_to_cartesian_matrix
 
-@publish Helpers f_sin
-@publish Helpers fθϕ
-@publish Helpers f_XYZ
+# @publish Helpers f_sin
+# @publish Helpers fθϕ
+# @publish Helpers f_XYZ
+@publish Helpers rho
+@publish Helpers rho3
 @publish Helpers sqrtg
 @publish Helpers _sqrtg
 @publish Helpers grad_meas

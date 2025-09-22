@@ -20,7 +20,8 @@ include("vector_projection_analytic_functions.jl")
 export forward_map, forward_jacobian, covarient_basis, forward_pinv_jacobian
 
 
-export f_sin,fθϕ,f_XYZ
+# export f_sin,fθϕ,f_XYZ,fX
+export rho, rho3
 export sqrtg, _sqrtg
 export grad_meas
 export analytic_metric, analytic_inv_metric, _analytic_inv_metric
