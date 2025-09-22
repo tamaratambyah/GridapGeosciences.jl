@@ -72,3 +72,4 @@ end
 @publish Helpers forward_jacobian
 @publish Helpers covarient_basis
 @publish Helpers forward_pinv_jacobian
+@publish Helpers contravariant_basis

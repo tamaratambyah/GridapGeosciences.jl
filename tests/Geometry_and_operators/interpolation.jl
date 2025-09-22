@@ -1,5 +1,11 @@
+"""
+test the interpolation of function into FE space
+"""
+
 ### convergence tests
 function interpolation(panel_model,func::Function,p_fe::Int)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
@@ -41,12 +47,3 @@ function interpolation_convergence_test(analytic_funcs,n_ref_lvls)
   end
 
 end
-
-
-analytic_funcs = Dict{Symbol,Any}()
-analytic_funcs[:sin] = f_sin
-analytic_funcs[:XYZ] = f_XYZ
-
-n_ref_lvls = 4
-
-interpolation_convergence_test(analytic_funcs,n_ref_lvls)

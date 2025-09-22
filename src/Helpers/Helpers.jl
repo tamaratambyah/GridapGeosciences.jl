@@ -18,7 +18,7 @@ include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
 
 export forward_map, forward_jacobian, covarient_basis, forward_pinv_jacobian
-
+export contravariant_basis
 
 # export f_sin,fθϕ,f_XYZ,fX
 export rho, rho3

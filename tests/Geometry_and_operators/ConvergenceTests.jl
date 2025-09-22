@@ -1,0 +1,40 @@
+using DrWatson
+using Gridap
+using GridapGeosciences
+using Plots, LaTeXStrings
+
+include("interpolation.jl")
+include("sgradient.jl")
+include("surface_area.jl")
+include("vector_projection.jl")
+include("../Laplace/analytic_funcs.jl")
+include("../Geophysical/Williamson_functions_v2.jl")
+
+
+n_ref_lvls = 4
+
+interpolation_convergence_test(analytic_funcs,n_ref_lvls)
+sgrad_convergence_test(analytic_funcs,n_ref_lvls)
+surface_area_convergence_test(4)
+
+####### vector projection
+
+### ambient vectors
+vecX_1(XYZ) = VectorValue(-1.0*XYZ[2],XYZ[1],0.0)
+vecX_2(XYZ) = VectorValue(XYZ[1]*XYZ[2],XYZ[2]*XYZ[3],XYZ[3]^2-RADIUS^2)
+vecX_3(XYZ) = VectorValue(XYZ[2],XYZ[3],0.0)
+
+ambient_vecs = Dict{Symbol,Any}()
+ambient_vecs[:v1] = vecX_1
+ambient_vecs[:v2] = vecX_2
+ambient_vecs[:v3] = vecX_3
+
+### williamson2 vector field - defined in latlon
+williamson_vec = Dict{Symbol,Any}()
+williamson_vec[:z1] = u₀(0.0)
+williamson_vec[:z2] = u₀(0.05)
+williamson_vec[:z3] = u₀(π/2-0.05)
+williamson_vec[:z4] = u₀(π/2)
+
+vector_proj_convergence_test(ambient_vecs,n_ref_lvls,false)
+vector_proj_convergence_test(williamson_vec,n_ref_lvls,true)

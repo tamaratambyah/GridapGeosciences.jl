@@ -1,4 +1,10 @@
+"""
+test the computation of surface gradient
+"""
+
 function sgrad(panel_model,func::Function,p_fe::Int)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
@@ -54,12 +60,3 @@ function sgrad_convergence_test(analytic_funcs,n_ref_lvls)
     savefig(plotsdir()*"/sgrad_convergence_func_$(key)")
   end
 end
-
-
-analytic_funcs = Dict{Symbol,Any}()
-analytic_funcs[:sin] = f_sin
-analytic_funcs[:XYZ] = f_XYZ
-
-n_ref_lvls = 4
-
-sgrad_convergence_test(analytic_funcs,n_ref_lvls)
