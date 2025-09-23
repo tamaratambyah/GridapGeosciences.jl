@@ -1,3 +1,12 @@
+"""
+solve the non-linear shallow water equations in steady form using manufactured solutions
+u + q F^⟂ + ∇ᵧ(Φ) = f₁
+φ + ∇ᵧ⋅F = f₁
+F = φu
+Φ = 0.5(u⋅u) + gᵣφ
+q = 1/φ( ∇ᵧ^⟂⋅u  + f )
+"""
+
 function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Function,η::Function,
     p_fe::Int,return_vtk=false,check_geo_balance=false)
 
@@ -113,7 +122,7 @@ function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::
               "uh","u","eu",
                 ]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$lvl",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
   println(e_u, "; ", e_p, "; ",  e_η)
@@ -129,35 +138,3 @@ function nonlinear_shallow_water_errors(panel_model,h::Function,vX::Function,f::
   e_u,e_p,e_η,e_geo_balance  = nonlinear_shallow_water_solver(panel_model,h,vX,f,η,p_fe,return_vtk,check_geo_balance)
   return e_u,e_p,e_η
 end
-
-
-function williamson2_convergence_test(n_ref_lvls,return_vtk=false,args...)
-
-  for (i,ζ) in enumerate([0, π/2 ])
-
-    println("ζ = $ζ")
-
-    plot()
-
-    h = panel_to_cartesian(h₀(ζ))
-    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-    f = panel_to_cartesian(f₀(ζ))
-    η = panel_to_cartesian(η₀(ζ))
-
-
-    for p_fe in [1]
-      errs,ns,dxs,slope = convergence_test(nonlinear_shallow_water_errors,n_ref_lvls,h,vX,f,η,p_fe,return_vtk,true)
-      plot_convergence(errs,ns,dxs,slope;
-          leginf=["u: p=$p_fe","ϕ: p=$p_fe", "η: p=$p_fe"],
-          colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe],palette(:tab10)[p_fe]],
-          ls=[:solid, :dot,:dashdot], )
-    end
-    savefig(plotsdir()*"/williamson2_NL_sw_convergence_func_z$i")
-  end
-
-end
-
-
-## Williamson2 convergence test
-n_ref_lvls = 4
-williamson2_convergence_test(n_ref_lvls,true)

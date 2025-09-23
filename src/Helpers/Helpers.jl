@@ -22,7 +22,7 @@ export contravariant_basis
 
 # export f_sin,fθϕ,f_XYZ,fX
 export rho, rho3
-export sqrtg, _sqrtg
+export sqrtg, _sqrtg, detg
 export grad_meas
 export analytic_metric, analytic_inv_metric, _analytic_inv_metric
 export analytic_J1

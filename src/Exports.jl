@@ -35,6 +35,7 @@ end
 @publish Visualisation createvtk
 @publish Visualisation write_vtk_file
 @publish Visualisation create_vtk_file
+@publish Visualisation mapped_vtkpoints
 
 @publish Helpers xyz2θϕr
 @publish Helpers θϕ2xyz
@@ -47,6 +48,7 @@ end
 @publish Helpers rho3
 @publish Helpers sqrtg
 @publish Helpers _sqrtg
+@publish Helpers detg
 @publish Helpers grad_meas
 @publish Helpers analytic_metric
 @publish Helpers analytic_inv_metric

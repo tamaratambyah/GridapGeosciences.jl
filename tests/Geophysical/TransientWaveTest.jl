@@ -1,5 +1,10 @@
 
-dir = datadir("Transient_wave_refined")
+using DrWatson
+using Gridap
+using GridapGeosciences
+using Plots, LaTeXStrings
+
+dir = datadir("Transient_wave_equation")
 !isdir(dir) && mkdir(dir)
 !isdir(plotsdir()) && mkdir(plotsdir())
 
@@ -23,7 +28,7 @@ p_fe = 1
 t0, tF = 0.0, 2*π
 CFL = 0.1
 _dt = dx(nc(panel_model))*CFL/p_fe
-dt = 0.01
+dt = floor(_dt, sigdigits=1)
 
 ## finite element solver
 panel_ids = get_panel_ids(panel_model)

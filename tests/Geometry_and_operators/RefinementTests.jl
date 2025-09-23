@@ -39,11 +39,17 @@ end
 ############# multigrid
 using GridapSolvers
 using GridapDistributed, PartitionedArrays
+import GridapSolvers.MultilevelTools: ModelHierarchy
 
 model0 = coarse_parametric_model()
 model1 = Adaptivity.refine(model0)
 model2 = Adaptivity.refine(model1)
 models = [model2,model1]
+
+n_ref_lvls = 4
+models = get_refined_models(n_ref_lvls)
+
+typeof(models) # <:Vector{<:DiscreteModel}
 mh = GridapSolvers.MultilevelTools.ModelHierarchy(models)
 
 
@@ -51,23 +57,23 @@ th = Triangulation(mh)
 
 
 
-function ModelHierarchy(models::Vector{<:DiscreteModel})
-  nlevs = length(models)
-  @check all(map(i -> isa(models[i],AdaptedDiscreteModel),1:nlevs-1)) "Hierarchy models are not adapted models."
-  for lev in 1:nlevs-1
-    @check Adaptivity.is_child(models[lev],models[lev+1]) "Incorrect hierarchy of models."
-  end
+# function ModelHierarchy(models::Vector{<:DiscreteModel})
+#   nlevs = length(models)
+#   @check all(map(i -> isa(models[i],AdaptedDiscreteModel),1:nlevs-1)) "Hierarchy models are not adapted models."
+#   for lev in 1:nlevs-1
+#     @check Adaptivity.is_child(models[lev],models[lev+1]) "Incorrect hierarchy of models."
+#   end
 
-  level_parts = fill(DebugArray([1]),nlevs)
-  meshes = Vector{ModelHierarchyLevel}(undef,nlevs)
-  for lev in 1:nlevs-1
-    glue  = Gridap.Adaptivity.get_adaptivity_glue(models[lev])
-    model = models[lev]
-    meshes[lev] = ModelHierarchyLevel(lev,model,glue,nothing,nothing)
-  end
-  meshes[nlevs] = ModelHierarchyLevel(nlevs,models[nlevs],nothing,nothing,nothing)
-  return HierarchicalArray(meshes,level_parts)
-end
+#   level_parts = fill(DebugArray([1]),nlevs)
+#   meshes = Vector{ModelHierarchyLevel}(undef,nlevs)
+#   for lev in 1:nlevs-1
+#     glue  = Gridap.Adaptivity.get_adaptivity_glue(models[lev])
+#     model = models[lev]
+#     meshes[lev] = ModelHierarchyLevel(lev,model,glue,nothing,nothing)
+#   end
+#   meshes[nlevs] = ModelHierarchyLevel(nlevs,models[nlevs],nothing,nothing,nothing)
+#   return HierarchicalArray(meshes,level_parts)
+# end
 
 using MPI, PartitionedArrays, GridapDistributed
 import GridapSolvers.MultilevelTools: ModelHierarchyLevel, HierarchicalArray

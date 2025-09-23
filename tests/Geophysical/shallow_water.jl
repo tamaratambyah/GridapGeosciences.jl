@@ -1,4 +1,15 @@
+"""
+solve the linearised shallow water equations in steady form using manufactured solutions
+u + f u^⟂ + ∇ᵧ(φ) = f₁
+φ + ∇ᵧ⋅u = f₁
+"""
+
+
+using Gridap.Helpers
 function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Function,p_fe::Int,return_vtk=false,check_geo_balance=false)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
+
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*(p_fe+1))
@@ -80,7 +91,7 @@ function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Fun
     labels = ["p","u_proj","eu","ep"]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$lvl",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
   return e_u, e_p, e_geo_balance
@@ -88,7 +99,8 @@ function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Fun
 end
 
 
-function linear_shallow_water_errors(panel_model,h::Function,vX::Function,f::Function,p_fe::Int,return_vtk=false,check_geo_balance=false)
+function linear_shallow_water_errors(panel_model,h::Function,vX::Function,f::Function,η::Function,
+    p_fe::Int,return_vtk=false,check_geo_balance=false)
   e_u,e_p,e_geo_balance  = linear_shallow_water_solver(panel_model,h,vX,f,p_fe,return_vtk,check_geo_balance)
   return e_u,e_p,false
 end
@@ -96,7 +108,7 @@ end
 function linear_shallow_water_convergence_test(n_ref_lvls,h,vX,f,return_vtk=false)
   plot()
   for p_fe in [1]
-    errs,ns,dxs,slope = convergence_test(linear_shallow_water_errors,n_ref_lvls,h,vX,f,p_fe,return_vtk)
+    errs,ns,dxs,slope = convergence_test(linear_shallow_water_errors,n_ref_lvls,h,vX,f,f,p_fe,return_vtk)
     plot_convergence(errs,ns,dxs,slope;
         leginf=["u: p=$p_fe","ϕ: p=$p_fe"],
         colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe]],
@@ -105,45 +117,3 @@ function linear_shallow_water_convergence_test(n_ref_lvls,h,vX,f,return_vtk=fals
   savefig(plotsdir()*"/sw_convergence")
 
 end
-
-function williamson2_convergence_test(n_ref_lvls,return_vtk=false,args...)
-
-  for (i,ζ) in enumerate([π/2])
-    plot()
-
-    h = panel_to_cartesian(h₀(ζ))
-    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-    f = panel_to_cartesian(f₀(ζ))
-
-    for p_fe in [1]
-      errs,ns,dxs,slope = convergence_test(linear_shallow_water_errors,n_ref_lvls,h,vX,f,p_fe,return_vtk,true)
-      plot_convergence(errs,ns,dxs,slope;
-          leginf=["u: p=$p_fe","ϕ: p=$p_fe"],
-          colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe]],
-          ls=[:solid, :dot], )
-    end
-    savefig(plotsdir()*"/williamson2_sw_convergence_func_z$i")
-  end
-
-end
-
-
-
-## arbitary functions
-depth(XYZ) = 1.0 + 0.1*exp(-( XYZ[2]^2 + XYZ[3]^2 ) )
-velocity(XYZ) = VectorValue(-XYZ[2],XYZ[1],0.0)
-coriolis(XYZ) = 2.0
-
-h = panel_to_cartesian(depth)
-vecX = velocity
-vX = panel_to_cartesian(tangent_vec(vecX))
-f = panel_to_cartesian(coriolis)
-
-linear_shallow_water_convergence_test(n_ref_lvls,h,vX,f,true)
-
-
-
-## Williamson2 convergence test
-u0,ω = 0.1, 1e-5
-n_ref_lvls = 4
-williamson2_convergence_test(n_ref_lvls,true,u0,ω)

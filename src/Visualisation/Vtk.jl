@@ -87,7 +87,9 @@ function mapped_vtkpoints(trian,geo_map::AbstractArray)
 
   # apply the geo_map to cell_coords on trian, then convert to nodes
   cellx = get_cell_coordinates(trian)
+  display(cellx)
   cellx_mapped = lazy_map(evaluate,geo_map,cellx)
+  println(cellx_mapped)
   x_mapped, cell_to_offset = Gridap.Visualization._prepare_node_to_coords(cellx_mapped)
 
   T = eltype(x_mapped)

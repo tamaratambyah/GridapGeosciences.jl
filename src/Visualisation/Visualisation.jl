@@ -17,5 +17,6 @@ include("createpvd.jl")
 
 export make_pvd
 export writevtk, createvtk, write_vtk_file, create_vtk_file
+export mapped_vtkpoints
 
 end
