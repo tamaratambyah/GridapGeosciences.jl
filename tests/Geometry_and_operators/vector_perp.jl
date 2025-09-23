@@ -1,7 +1,11 @@
 ################################################################################
-#### Test normal vectors
+#### Test unit normal vectors
 ################################################################################
+using Gridap.Helpers
 function test_normal_unit_vector(panel_model,return_vtk=false)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
+
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
   dΩ = Measure(Ω_panel,4)
@@ -18,21 +22,19 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
     panel_cfs = [ norm_vec_cf,norm_vec_from_basis_cf]
     labels = ["normal", "n"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$lvl",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 end
 
-models  = get_refined_models(n_ref_lvls)
-for panel_model in models
-  test_normal_unit_vector(panel_model)
-end
 
 
 ################################################################################
 #### Perp convergence
 ################################################################################
-
 function vector_perp(panel_model,vecX::Function,p_fe::Int,return_vtk=false)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
+
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
   dΩ = Measure(Ω_panel,4*p_fe)
@@ -64,7 +66,7 @@ function vector_perp(panel_model,vecX::Function,p_fe::Int,return_vtk=false)
     labels = ["u_perph","u_perp","u_proj", "e"]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$lvl",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
   return e
@@ -90,42 +92,3 @@ function vector_perp_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false
   end
 
 end
-
-
-
-### ambient vectors
-vecX_1(XYZ) = VectorValue(-1.0*XYZ[2],XYZ[1],0.0)
-vecX_2(XYZ) = VectorValue(XYZ[1]*XYZ[2],XYZ[2]*XYZ[3],XYZ[3]^2-RADIUS^2)
-vecX_3(XYZ) = VectorValue(XYZ[2],XYZ[3],0.0)
-
-ambient_vecs = Dict{Symbol,Any}()
-ambient_vecs[:v1] = vecX_1
-ambient_vecs[:v2] = vecX_2
-ambient_vecs[:v3] = vecX_3
-n_ref_lvls = 4
-
-vector_perp_convergence_test(ambient_vecs,n_ref_lvls,false)
-
-
-
-### latlon vectors
-vecθϕ_1(θϕ) = VectorValue(cos(θϕ[1]),0.0)
-vecθϕ_2(θϕ) = VectorValue(-sin(θϕ[1]),0.0)
-
-latlon_vecs = Dict{Symbol,Any}()
-latlon_vecs[:vtheta1] = vec_cartesian_to_latlon(vecθϕ_1)
-# latlon_vecs[:vtheta2] = vec_cartesian_to_latlon(vecθϕ_2)
-n_ref_lvls = 4
-
-vector_perp_convergence_test(latlon_vecs,n_ref_lvls,true)
-
-
-### williamson2 vector field
-vWilliamson(ζ) = θϕ -> - VectorValue( cos(θϕ[2])*cos(ζ) + cos(θϕ[1])*sin(θϕ[2])*sin(ζ),
-                                      -sin(θϕ[1])*sin(ζ) )
-williamson_vec = Dict{Symbol,Any}()
-# williamson_vec[:z1] = vec_cartesian_to_latlon(vWilliamson(0.0))
-# williamson_vec[:z2] = vec_cartesian_to_latlon(vWilliamson(0.05))
-# williamson_vec[:z3] = vec_cartesian_to_latlon(vWilliamson(π/2-0.05))
-williamson_vec[:z4] = vec_cartesian_to_latlon(vWilliamson(π/2))
-vector_perp_convergence_test(williamson_vec,n_ref_lvls,true)

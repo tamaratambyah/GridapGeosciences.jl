@@ -3,17 +3,27 @@ using Gridap
 using GridapGeosciences
 using Test
 
-panel_model = coarse_parametric_model()
-panel_model = refine(panel_model)
+n_ref_lvls = 4
+models  = get_refined_models(n_ref_lvls)
 
+################################################################################
+## Unit normal to surface: k = a₁ × a₂
+################################################################################
+include("vector_perp.jl")
+for panel_model in models
+  test_normal_unit_vector(panel_model)
+end
 
+################################################################################
+## Face normals -- for 1 model
+################################################################################
+panel_model = models[4]
 panel_ids = get_panel_ids(panel_model)
 cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
 
 ################################################################################
-## Face normals
+## Face normals: boundary trian
 ################################################################################
-## Boundary trian
 trian = BoundaryTriangulation(panel_model,1)
 pts = get_cell_points(trian)
 
@@ -28,7 +38,8 @@ n_mapped, = pushforward_normal(trian)
 @test sum(n_mapped(pts) .≈ n_3D(pts)) == num_facets(panel_model)
 
 ################################################################################
-### skeleton trian
+## Face normals: skeleton trian
+################################################################################
 trian = SkeletonTriangulation(panel_model)
 pts = get_cell_points(trian)
 
@@ -42,7 +53,7 @@ n_3D = get_normal_vector(trian,cell_vectors)
 # push forward 2D chart normals to ambient space
 n_mapped, = pushforward_normal(trian)
 
-# test equality
+# test equality of plus and minus side
 @test sum(n_mapped.plus(pts) .≈ n_3D.plus(pts)) == num_facets(panel_model)
 @test sum(n_mapped.minus(pts) .≈ n_3D.minus(pts)) == num_facets(panel_model)
 
@@ -58,11 +69,11 @@ skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_p
 writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
 
 ################################################################################
-## Advection tests
-################################################################################
+## DG tests
 ### check sqrt(g) is continuous across skeleton
 ### show g, g^-1, J not continuous
 ### check |Jg^-1 n| - pullback of area form
+################################################################################
 Λ = SkeletonTriangulation(panel_model)
 pts = get_cell_points(Λ)
 n_Λ = get_normal_vector(Λ)
@@ -70,7 +81,6 @@ meas_cf = panelwise_cellfield(_sqrtg,Λ)
 inv_metric_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
 jac_cf = panelwise_cellfield(forward_jacobian,Λ)
 area_form_cf = pullback_area_form(Λ)
-
 
 # test equality of plus and minus side of sqrt(g)
 @test sum(meas_cf.minus(pts) .≈ meas_cf.plus(pts)) == num_facets(panel_model)
@@ -94,7 +104,9 @@ skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_p
 writevtk(Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
 
 ################################################################################
-### abs(v⋅n.plus) = abs(v⋅n.minus)
+## Advection tests
+### check abs(v⋅n.plus) = abs(v⋅n.minus)
+################################################################################
 vecX(XYZ) = VectorValue(-XYZ[2],XYZ[3],0.0)
 vX = panel_to_cartesian(tangent_vec(vecX))
 

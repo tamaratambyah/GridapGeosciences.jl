@@ -30,7 +30,7 @@ export analytic_perp_matrix
 export surflap, surfdiv, contr_gradf, sgrad
 
 export panel_to_cartesian, panel_to_latlon
-
+export normal_vector_from_basis
 export vector_length, normal_vec, tangent_vec
 export contra_v, contra_v_comp, contra_v_perp, projection_v
 

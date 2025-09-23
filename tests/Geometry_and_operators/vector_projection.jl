@@ -1,3 +1,6 @@
+"""
+test the projection of ambient vector fields on the tangent space
+"""
 
 function vector_proj(panel_model,vecX::Function,p_fe::Int,return_vtk=false)
   lvl = nref(nc(panel_model))

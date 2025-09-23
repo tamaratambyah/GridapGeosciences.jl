@@ -66,7 +66,9 @@ end
 @publish Helpers tangent_vec
 @publish Helpers contra_v
 @publish Helpers contra_v_comp
+@publish Helpers contra_v_perp
 @publish Helpers projection_v
+@publish Helpers normal_vector_from_basis
 
 @publish Helpers forward_map
 @publish Helpers forward_jacobian
