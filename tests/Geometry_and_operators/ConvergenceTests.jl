@@ -25,9 +25,17 @@ sgrad_convergence_test(analytic_funcs,n_ref_lvls)
 sgrad_convergence_test(williamson_funcs,n_ref_lvls)
 
 ### vector projection
-vector_proj_convergence_test(ambient_vecs,n_ref_lvls,false)
+vector_proj_convergence_test(ambient_vecs,n_ref_lvls,true)
 vector_proj_convergence_test(williamson_vec,n_ref_lvls,true)
 
 ### perp operator
-vector_perp_convergence_test(ambient_vecs,n_ref_lvls,false)
+vector_perp_convergence_test(ambient_vecs,n_ref_lvls,true)
 vector_perp_convergence_test(williamson_vec,n_ref_lvls,true)
+
+### mass conversation with scalar fields
+mass_conservation_convergence_test(analytic_funcs,n_ref_lvls,true)
+mass_conservation_convergence_test(williamson_funcs,n_ref_lvls,true)
+
+### mass conversation with vector fields
+mass_conservation_convergence_test(ambient_vecs,n_ref_lvls,false)
+mass_conservation_convergence_test(williamson_vec,n_ref_lvls,false,true)

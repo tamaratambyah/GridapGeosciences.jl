@@ -48,9 +48,8 @@ function vector_proj_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false
 
   for (key, val) in analytic_funcs
     plot()
-    vX = panel_to_cartesian(tangent_vec(val)) # ensure tangent vector
     for p_fe in [1,2,3]
-      errs,ns,dxs,slope = convergence_test(vector_proj_errors,n_ref_lvls,vX,p_fe,return_vtk)
+      errs,ns,dxs,slope = convergence_test(vector_proj_errors,n_ref_lvls,val,p_fe,return_vtk)
       plot_convergence(errs,ns,dxs,slope;leginf=["p=$p_fe"],colors=[palette(:tab10)[p_fe]])
     end
     savefig(plotsdir()*"/vector_proj_convergence_func_$(key)")

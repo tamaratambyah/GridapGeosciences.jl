@@ -31,16 +31,13 @@ end
 ################################################################################
 #### Perp convergence
 ################################################################################
-function vector_perp(panel_model,vecX::Function,p_fe::Int,return_vtk=false)
+function vector_perp(panel_model,vX::Function,p_fe::Int,return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
   dΩ = Measure(Ω_panel,4*p_fe)
-
-
-  vX = panel_to_cartesian(tangent_vec(vecX))
 
   norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel,panel_ids)
   u_proj_cf = panelwise_cellfield(projection_v(vX),Ω_panel,panel_ids)
