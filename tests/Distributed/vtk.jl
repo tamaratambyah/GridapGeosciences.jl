@@ -17,7 +17,7 @@ function Gridap.Visualization.create_vtk_file(
   grid::AbstractArray{<:Gridap.Geometry.Grid},
   filebase;
   celldata, nodaldata,
-  geo_map,
+  geo_map = map(p -> nothing, parts),
   compress=false,append=true,ascii=false,vtkversion=:default
 )
   nparts = length(parts)
@@ -34,7 +34,7 @@ end
 
 function Gridap.Visualization.writevtk(
   arg::GridapDistributed.DistributedModelOrTriangulation,args...;
-  geo_map=nothing,
+  geo_map= map(p -> nothing, local_views(arg)),
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...
 )
   parts=get_parts(arg)
