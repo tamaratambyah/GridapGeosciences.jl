@@ -8,6 +8,7 @@ using Gridap.Geometry
 using Gridap.Adaptivity
 MPIPreferences.use_jll_binary()
 
+### This is Jordi's function from GridapDistributed/test/AdaptivityTests.jl
 function DistributedAdaptivityGlue(serial_glue,parent,child)
   glue = map(partition(get_cell_gids(parent)),partition(get_cell_gids(child))) do parent_gids, child_gids
     old_g2l = global_to_local(parent_gids)
@@ -23,13 +24,20 @@ function DistributedAdaptivityGlue(serial_glue,parent,child)
   return glue
 end
 
-function distributed_pids(model,spids)
-  gids = get_cell_gids(model)
-  pids = map(partition(gids)) do ids
+function distributed_panel_ids(dmodel,spanel_ids::AbstractArray{Int})
+  gids = get_cell_gids(dmodel)
+
+  dpanel_ids = map(partition(gids)) do ids
     lid_to_gid = local_to_global(ids)
-    return spids[lid_to_gid]
+    return spanel_ids[lid_to_gid]
   end
-  return pids
+
+  owned_panel_ids = map(dpanel_ids,partition(gids)) do panel_ids, cids
+    owned_cells = own_to_local(cids)
+    return panel_ids[owned_cells]
+  end
+
+  return dpanel_ids, owned_panel_ids
 end
 
 ################################################################################
@@ -38,33 +46,28 @@ s_model_coarse = coarse_parametric_model()
 s_model_ref = refine(s_model_coarse)
 s_model_ref_ref = refine(s_model_ref)
 
+spanel_ids = [get_panel_ids(s_model_ref_ref),get_panel_ids(s_model_ref),get_panel_ids(s_model_coarse)]
 
-# serial_panel_ids = get_panel_ids(s_model_coarse)
-# serial_cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), serial_panel_ids)
-# writevtk(Triangulation(s_model_coarse),dir*"/ambient_model",geo_map=serial_cell_geo_map)
-
-s_model_coarse = Geometry.UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(2,3)))
-s_model_ref = refine(s_model_coarse)
-s_model_ref_ref = refine(s_model_ref)
+# s_model_coarse = Geometry.UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(2,3)))
+# s_model_ref = refine(s_model_coarse)
+# s_model_ref_ref = refine(s_model_ref)
 
 ################################################################################
 ##### Distributed models
 ################################################################################
-nprocs = (2,2)
+nprocs = 4
 ranks  = with_debug() do distribute
-  distribute(LinearIndices((prod(nprocs),)))
+  distribute(LinearIndices((4,)))
 end
 
-## Level 1 of refinement
-#parent_cell_to_part = sort(rand(1:4,num_cells(s_model_coarse))) #[1,1,2,2,3,4]
 
-part_to_cells = [PartitionedArrays.local_range(rank,prod(nprocs),num_cells(s_model_coarse)) for rank in 1:prod(nprocs)]
+part_to_cells = [PartitionedArrays.local_range(rank,nprocs,num_cells(s_model_coarse)) for rank in 1:nprocs]
 coarse_cell_to_part = zeros(Int32,num_cells(s_model_coarse))
 for (rank, cells) in enumerate(part_to_cells)
   coarse_cell_to_part[cells] .= rank
 end
 
-spids = [get_panel_ids(s_model_ref_ref),get_panel_ids(s_model_ref),get_panel_ids(s_model_coarse)]
+
 
 models = [s_model_ref_ref.model,s_model_ref.model,s_model_coarse]
 glues = [s_model_ref_ref.glue,s_model_ref.glue]
@@ -75,214 +78,45 @@ for level in length(models)-1:-1:1
   cell_to_part[level] = cell_to_part[level+1][n2o_cells]
 end
 
+## plot the partition in serial
+for (level,(model,cparts,panel_ids)) in enumerate(zip(models,cell_to_part,spanel_ids))
+  geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+  writevtk(Triangulation(model),dir*"/serial_model_ref_$(level)";append=false,celldata=["part" => cparts],geo_map=geo_map)
+end
+
+
+
 dmodels = Vector{Any}(undef,length(models))
-pids = Vector{Any}(undef,length(models))
+dpanel_ids = Vector{Any}(undef,length(models))
+owned_panel_ids = Vector{Any}(undef,length(models))
+
 dmodels[end] = DiscreteModel(ranks,models[end],cell_to_part[end])
-pids[end] = distributed_pids(dmodels[end],spids[end])
+dpanel_ids[end],owned_panel_ids[end] = distributed_panel_ids(dmodels[end],spanel_ids[end])
 for level in length(models)-1:-1:1
   child = Gridap.Geometry.UnstructuredDiscreteModel(DiscreteModel(ranks,models[level],cell_to_part[level]))
   parent = dmodels[level+1]
   glue = DistributedAdaptivityGlue(glues[level],parent,child)
   dmodels[level] = GridapDistributed.DistributedAdaptedDiscreteModel(child,parent,glue)
-  pids[level] = distributed_pids(child,spids[level])
+  dpanel_ids[level],owned_panel_ids[level] = distributed_panel_ids(child,spanel_ids[level])
 end
 
-for (level,(model,cparts,panel_ids)) in enumerate(zip(models,cell_to_part,spids))
-
-  #include("vtk.jl")
-  geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
-  writevtk(Triangulation(model),dir*"/serial_model_ref_$(level)";append=false,celldata=["part" => cparts],geo_map=geo_map)
-
+for i in 1:length(models)
+  println("level ", i)
+  map(local_views(dpanel_ids[i]),local_views(owned_panel_ids[i])) do p,op
+    println("Panel ids: ", p)
+    println("Owned ids: ", op)
+  end
 end
+
 
 include("vtk.jl")
-for (level,(_dmodel,panel_ids)) in enumerate(zip(dmodels,pids))
+for (level,(_dmodel,own_panel_ids)) in enumerate(zip(dmodels,owned_panel_ids))
   dmodel = (level == 3) ? _dmodel : Gridap.Adaptivity.get_model(_dmodel)
 
-  gids = get_cell_gids(dmodel)
-  cell_geo_map = map(panel_ids,partition(gids)) do panel_ids, cids
-    owned_cells = own_to_local(cids)
-    println(panel_ids[owned_cells])
-    return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids[owned_cells])
+  # gids = get_cell_gids(dmodel)
+  cell_geo_map = map(own_panel_ids) do panel_ids
+    return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
   end
 
   writevtk(Triangulation(dmodel),dir*"/ambient_model_ref_$(level)"; append=false)#, geo_map=cell_geo_map)
 end
-
-child_cell_to_part  = lazy_map(Reindex(parent_cell_to_part),s_ref_glue.n2o_faces_map[3])
-println(child_cell_to_part)
-if GridapDistributed.i_am_in(ranks)
-  parent = DiscreteModel(ranks,s_model_coarse,parent_cell_to_part)
-  child  = DiscreteModel(ranks,s_model_ref,child_cell_to_part)
-  coarse_adaptivity_glue = DistributedAdaptivityGlue(s_ref_glue,parent,child)
-else
-  println("not main ")
-  parent = nothing; child  = nothing; coarse_adaptivity_glue = nothing
-end
-
-model_coarse = parent
-model_ref = GridapDistributed.DistributedAdaptedDiscreteModel(child,parent,coarse_adaptivity_glue)
-# Gridap.Adaptivity.is_child(model_ref,parent)
-
-## Level 2 of refinement
-ref_parent_cell_to_part = sort(rand(1:4,num_cells(s_model_ref)))
-ref_child_cell_to_part  = lazy_map(Reindex(ref_parent_cell_to_part),s_ref_ref_glue.n2o_faces_map[3])
-println(ref_child_cell_to_part)
-if GridapDistributed.i_am_in(ranks)
-  ref_parent = DiscreteModel(ranks,s_model_ref,ref_parent_cell_to_part) # DiscreteModel(ranks,serial_parent,parent_cell_to_part)
-  ref_child  = DiscreteModel(ranks,s_model_ref_ref,ref_child_cell_to_part) #DiscreteModel(ranks,serial_child,child_cell_to_part)
-  ref_adaptivity_glue = DistributedAdaptivityGlue(s_ref_ref_glue,ref_parent,ref_child)
-else
-  ref_parent = nothing; ref_child  = nothing; ref_adaptivity_glue = nothing
-end
-
-# model_ref = parent
-model_ref_ref = GridapDistributed.DistributedAdaptedDiscreteModel(ref_child,ref_parent,ref_adaptivity_glue)
-Gridap.Adaptivity.is_child(model_ref_ref,ref_parent)
-
-
-# model_coarse = parent
-# model_ref = ref_parent
-# model_ref_ref = ref_child
-
-
-########## Coarse model -- distributed form
-### get the serial panel ids and map to distributed cells
-serial_panel_ids = get_panel_ids(s_model_coarse)
-dmodel = model_coarse
-
-mgids = get_cell_gids(dmodel)
-
-notcells, tcell_to_mcell = map(
-      local_views(dmodel),local_views(dtrian),partition(mgids)) do model,trian,partition
-      lid_to_owner = local_to_owner(partition)
-      part = part_id(partition)
-      glue = get_glue(trian,Val(2))
-      @assert isa(glue,Gridap.Geometry.FaceToFaceGlue)
-      tcell_to_mcell = glue.tface_to_mface
-      notcells = count(tcell_to_mcell) do mcell
-        lid_to_owner[mcell] == part
-      end
-      notcells, tcell_to_mcell
-    end |> tuple_of_arrays
-
-# Find the global range of owned dofs
-first_gtcell = scan(+,notcells,type=:exclusive,init=one(eltype(notcells)))
-
-mcell_to_gtcell = map(
-  first_gtcell,tcell_to_mcell,partition(mgids)) do first_gtcell,tcell_to_mcell,partition
-  mcell_to_gtcell = zeros(Int,local_length(partition))
-  loc_to_owner = local_to_owner(partition)
-  part = part_id(partition)
-  gtcell = first_gtcell
-  for mcell in tcell_to_mcell
-    if loc_to_owner[mcell] == part
-      mcell_to_gtcell[mcell] = serial_panel_ids[gtcell] ## extract the serial panel id
-      gtcell += 1
-    end
-  end
-  mcell_to_gtcell
-end
-
-cell_geo_map = map(mcell_to_gtcell) do pid
-  pids = filter(x -> x > 0, pid)
-  return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pids)
-end
-
-include("vtk.jl")
-writevtk(Triangulation(dmodel),dir*"/ambient_model_ref0",geo_map=cell_geo_map)
-
-
-########## Level 1 refined -- distributed form
-serial_panel_ids = get_panel_ids(s_model_ref)
-dmodel = model_ref
-dtrian = Triangulation(dmodel)
-mgids = get_cell_gids(dmodel)
-
-notcells, tcell_to_mcell = map(
-      local_views(dmodel),local_views(dtrian),partition(mgids)) do model,trian,partition
-      lid_to_owner = local_to_owner(partition)
-      part = part_id(partition)
-      glue = get_glue(trian,Val(2))
-      @assert isa(glue,Gridap.Geometry.FaceToFaceGlue)
-      tcell_to_mcell = glue.tface_to_mface
-      notcells = count(tcell_to_mcell) do mcell
-        lid_to_owner[mcell] == part
-      end
-      notcells, tcell_to_mcell
-    end |> tuple_of_arrays
-
-# Find the global range of owned dofs
-first_gtcell = scan(+,notcells,type=:exclusive,init=one(eltype(notcells)))
-
-
-
-mcell_to_gtcell = map(
-  first_gtcell,tcell_to_mcell,partition(mgids)) do first_gtcell,tcell_to_mcell,partition
-  mcell_to_gtcell = zeros(Int,local_length(partition))
-  loc_to_owner = local_to_owner(partition)
-  part = part_id(partition)
-  gtcell = first_gtcell
-  for mcell in tcell_to_mcell
-    if loc_to_owner[mcell] == part
-      mcell_to_gtcell[mcell] = serial_panel_ids[gtcell] ## extract the serial panel id
-      gtcell += 1
-    end
-  end
-  mcell_to_gtcell
-end
-
-
-cell_geo_map = map(mcell_to_gtcell) do pid
-  pids = filter(x -> x > 0, pid)
-  return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pids)
-end
-
-include("vtk.jl")
-writevtk(Triangulation(dmodel),dir*"/ambient_model_ref1",geo_map=cell_geo_map)
-
-
-######### another level of refinement
-serial_panel_ids = get_panel_ids(s_model_ref_ref)
-dmodel = model_ref_ref
-dtrian = Triangulation(dmodel)
-mgids = get_cell_gids(dmodel)
-
-notcells, tcell_to_mcell = map(
-      local_views(dmodel),local_views(dtrian),partition(mgids)) do model,trian,partition
-      lid_to_owner = local_to_owner(partition)
-      part = part_id(partition)
-      glue = get_glue(trian,Val(2))
-      @assert isa(glue,Gridap.Geometry.FaceToFaceGlue)
-      tcell_to_mcell = glue.tface_to_mface
-      notcells = count(tcell_to_mcell) do mcell
-        lid_to_owner[mcell] == part
-      end
-      notcells, tcell_to_mcell
-    end |> tuple_of_arrays
-
-# Find the global range of owned dofs
-first_gtcell = scan(+,notcells,type=:exclusive,init=one(eltype(notcells)))
-
-mcell_to_gtcell = map(
-  first_gtcell,tcell_to_mcell,partition(mgids)) do first_gtcell,tcell_to_mcell,partition
-  mcell_to_gtcell = zeros(Int,local_length(partition))
-  loc_to_owner = local_to_owner(partition)
-  part = part_id(partition)
-  gtcell = first_gtcell
-  for mcell in tcell_to_mcell
-    if loc_to_owner[mcell] == part
-      mcell_to_gtcell[mcell] = serial_panel_ids[gtcell] ## extract the serial panel id
-      gtcell += 1
-    end
-  end
-  mcell_to_gtcell
-end
-
-
-cell_geo_map = map(mcell_to_gtcell) do pid
-  pids = filter(x -> x > 0, pid)
-  return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pids)
-end
-
-writevtk(Triangulation(dmodel),dir*"/ambient_model_ref2",geo_map=cell_geo_map)
