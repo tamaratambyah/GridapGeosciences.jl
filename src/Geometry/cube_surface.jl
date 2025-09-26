@@ -8,10 +8,15 @@ function generate_ptr(n)
   ptr
 end
 
+function _CCAM_panel_wise_node_ids(npanels)
+  ## CCAM panel ordering
+  data = [ 1,2,3,4, 3,4,5,6,  2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5 ]
+  ptr = generate_ptr(npanels)
+  Table(data,ptr)
+end 
 
-function coarse_cube_surface_3D(a::Real,npanels::Int)
-
-  nodes_3d = a.* [
+function _CCAM_cube_nodes_3d(a::Real)
+   a.* [
     Point(1.0, -1.0, -1.0)  # node 1
     Point(1.0, 1.0, -1.0)   # node 2
     Point(1.0, -1.0, 1.0)   # node 3
@@ -20,13 +25,14 @@ function coarse_cube_surface_3D(a::Real,npanels::Int)
     Point(-1.0, 1.0, 1.0)   # node 6
     Point(-1.0, 1.0, -1.0)  # node 7
     Point(-1.0, -1.0, -1.0) # node 8
-  ]
+   ]
+end 
 
-  ## CCAM panel ordering
-  data = [ 1,2,3,4, 3,4,5,6,  2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5 ]
 
-  ptr = generate_ptr(npanels)
-  cell_node_ids = Table(data,ptr)
+function coarse_cube_surface_3D(a::Real,npanels::Int)
+
+  nodes_3d = _CCAM_cube_nodes_3d(a)
+  cell_node_ids = _CCAM_panel_wise_node_ids(npanels)
 
   polytopes = fill(QUAD,npanels)
   cell_type = fill(1,npanels)

@@ -10,11 +10,10 @@ using FillArrays
 using Test
 using JLD2
 
-dir = datadir("2D_CubedSphereRefactor")
-!isdir(dir) && mkdir(dir)
-!isdir(plotsdir()) && mkdir(plotsdir())
-
-export dir
+# dir = datadir("2D_CubedSphereRefactor")
+# !isdir(dir) && mkdir(dir)
+# !isdir(plotsdir()) && mkdir(plotsdir())
+# export dir
 
 const global RADIUS = 1.0
 export RADIUS
@@ -36,6 +35,8 @@ export l2
 export get_refined_models, convergence_test
 export plot_convergence, plot_error, convergence_rate
 export nc, dx, nref
+
+include("Distributed/Distributed.jl")
 
 include("Exports.jl")
 

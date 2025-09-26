@@ -77,3 +77,5 @@ end
 @publish Helpers covarient_basis
 @publish Helpers forward_pinv_jacobian
 @publish Helpers contravariant_basis
+
+@publish Distributed ParametricOctreeDistributedDiscreteModel
