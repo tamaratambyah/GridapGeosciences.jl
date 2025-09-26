@@ -24,6 +24,10 @@ function DistributedAdaptivityGlue(serial_glue,parent,child)
   return glue
 end
 
+
+#### The distributed panel ids are extracted from the serial. This includes both
+#### owned+ghost panel_ids.
+#### The owned panel_ids are extracted by determining the owned cell
 function distributed_panel_ids(dmodel,spanel_ids::AbstractArray{Int})
   gids = get_cell_gids(dmodel)
 
@@ -45,8 +49,10 @@ using GridapGeosciences
 s_model_coarse = coarse_parametric_model()
 s_model_ref = refine(s_model_coarse)
 s_model_ref_ref = refine(s_model_ref)
+s_model_ref_ref_ref = refine(s_model_ref_ref)
 
-spanel_ids = [get_panel_ids(s_model_ref_ref),get_panel_ids(s_model_ref),get_panel_ids(s_model_coarse)]
+
+spanel_ids = [get_panel_ids(s_model_ref_ref_ref),get_panel_ids(s_model_ref_ref),get_panel_ids(s_model_ref),get_panel_ids(s_model_coarse)]
 
 # s_model_coarse = Geometry.UnstructuredDiscreteModel(CartesianDiscreteModel((0,1,0,1),(2,3)))
 # s_model_ref = refine(s_model_coarse)
@@ -55,9 +61,9 @@ spanel_ids = [get_panel_ids(s_model_ref_ref),get_panel_ids(s_model_ref),get_pane
 ################################################################################
 ##### Distributed models
 ################################################################################
-nprocs = 4
+nprocs = 6
 ranks  = with_debug() do distribute
-  distribute(LinearIndices((4,)))
+  distribute(LinearIndices((nprocs,)))
 end
 
 
@@ -69,8 +75,8 @@ end
 
 
 
-models = [s_model_ref_ref.model,s_model_ref.model,s_model_coarse]
-glues = [s_model_ref_ref.glue,s_model_ref.glue]
+models = [s_model_ref_ref_ref.model, s_model_ref_ref.model, s_model_ref.model, s_model_coarse]
+glues = [s_model_ref_ref_ref.glue, s_model_ref_ref.glue, s_model_ref.glue]
 cell_to_part = Vector{Any}(undef,length(models))
 cell_to_part[end] = coarse_cell_to_part
 for level in length(models)-1:-1:1
@@ -84,8 +90,6 @@ for (level,(model,cparts,panel_ids)) in enumerate(zip(models,cell_to_part,spanel
   writevtk(Triangulation(model),dir*"/serial_model_ref_$(level)";append=false,celldata=["part" => cparts],geo_map=geo_map)
 end
 
-
-
 dmodels = Vector{Any}(undef,length(models))
 dpanel_ids = Vector{Any}(undef,length(models))
 owned_panel_ids = Vector{Any}(undef,length(models))
@@ -93,7 +97,7 @@ owned_panel_ids = Vector{Any}(undef,length(models))
 dmodels[end] = DiscreteModel(ranks,models[end],cell_to_part[end])
 dpanel_ids[end],owned_panel_ids[end] = distributed_panel_ids(dmodels[end],spanel_ids[end])
 for level in length(models)-1:-1:1
-  child = Gridap.Geometry.UnstructuredDiscreteModel(DiscreteModel(ranks,models[level],cell_to_part[level]))
+  child = DiscreteModel(ranks,models[level],cell_to_part[level])
   parent = dmodels[level+1]
   glue = DistributedAdaptivityGlue(glues[level],parent,child)
   dmodels[level] = GridapDistributed.DistributedAdaptedDiscreteModel(child,parent,glue)
@@ -101,22 +105,113 @@ for level in length(models)-1:-1:1
 end
 
 for i in 1:length(models)
-  println("level ", i)
-  map(local_views(dpanel_ids[i]),local_views(owned_panel_ids[i])) do p,op
-    println("Panel ids: ", p)
-    println("Owned ids: ", op)
+  println("Ref lvl: ", length(models)-i)
+  map(local_views(dpanel_ids[i]),local_views(owned_panel_ids[i]),ranks) do p,op, r
+    println("Proc no: $r")
+    println("\tOwned+Ghost panel_ids: ", p)
+    println("\tOwned panel_ids: ", op)
   end
 end
 
-
+#### Plot models 1 at a time. If using a loop, vtk crashes
 include("vtk.jl")
-for (level,(_dmodel,own_panel_ids)) in enumerate(zip(dmodels,owned_panel_ids))
-  dmodel = (level == 3) ? _dmodel : Gridap.Adaptivity.get_model(_dmodel)
 
-  # gids = get_cell_gids(dmodel)
-  cell_geo_map = map(own_panel_ids) do panel_ids
-    return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
-  end
+level = 1
+dmodel = dmodels[level]
+o_pids = owned_panel_ids[level]
 
-  writevtk(Triangulation(dmodel),dir*"/ambient_model_ref_$(level)"; append=false)#, geo_map=cell_geo_map)
+cell_geo_map = map(o_pids) do pid
+  return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pid)
 end
+
+writevtk(Triangulation(dmodel),dir*"/ambient_model_ref_$(level)", append=false, compress=false,geo_map=cell_geo_map)
+
+
+
+map(local_views(dmodel),ranks,o_pids) do model, r, pid
+  println(typeof(model.model))
+  grid = get_grid(model)
+
+  cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pid)
+  writevtk(Triangulation(model.model),dir*"/ambient_model_ref_1_rank$r", append=false, compress=false,geo_map=cell_geo_map)
+
+end
+
+
+##################################################################################
+###### Laplacian test
+################################################################################
+level = 1
+panel_model = dmodels[level]
+panel_ids = owned_panel_ids[level]
+p_fe = 1
+
+function f(p)
+  function _f(αβ)
+    α,β = αβ
+    if p == 1 || p == 5 || p == 6
+      return RADIUS^3/rho3(αβ)*tan(α)*tan(β)
+    else
+      return -RADIUS^3/rho3(αβ)*tan(α)*tan(β)
+    end
+  end
+end
+
+
+Ω_panel = Triangulation(panel_model)
+dΩ = Measure(Ω_panel,2*p_fe+1)
+
+V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1, constraint=:zeromean)
+U = TrialFESpace(V)
+
+
+function distributed_panelwise_cellfield(f::Function,
+    trian::GridapDistributed.DistributedTriangulation,
+    panel_ids::AbstractArray)
+  fields = map(trian.trians,panel_ids) do trian, pids
+      panelwise_cellfield(f,trian,pids)
+  end
+  GridapDistributed.DistributedCellField(fields,trian)
+end
+
+f_panel_cf = distributed_panelwise_cellfield(f,Ω_panel,panel_ids)
+
+function geo_map(panel_ids::AbstractArray{Int})
+  return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+end
+
+function distributed_geo_map(owned_panel_ids::AbstractArray{Int})
+   cell_geo_map = map(owned_panel_ids) do pid
+    return geo_map(pid)
+  end
+  return cell_geo_map
+end
+
+cell_geo_map = map(o_pids) do pid
+  return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pid)
+end
+
+writevtk(Triangulation(panel_model),dir*"/ambient_model_cf_ref_$(level)",cellfields=["f"=>f_panel_cf],
+append=false,geo_map=cell_geo_map)
+
+
+
+inv_metric_cf = CellField(analytic_inv_metric,Ω_panel)
+meas_cf = CellField(sqrtg,Ω_panel)
+slap_panel_cf =  distributed_panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+
+println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
+@check sum(∫(f_panel_cf*meas_cf)dΩ) < 1e-14 "Function must be zero mean to solve with zeromean FE space!"
+
+rhs_cf = - slap_panel_cf
+
+poisson_biform(u,v) =  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
+poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
+op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+
+uh = solve(LUSolver(),op)
+
+e = l2(f_panel_cf-uh,dΩ)
+eh = f_panel_cf-uh
+
+writevtk(Ω_panel,dir*"/ambient_model_nref$(level)_p$p_fe",cellfields=["eu"=>eh],append=false,geo_map=cell_geo_map)

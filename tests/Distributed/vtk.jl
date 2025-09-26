@@ -52,7 +52,7 @@ function Gridap.Visualization.createvtk(
   geo_map=nothing,
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...
 )
-  v = visualization_data(arg,args...;kwargs...)
+  v = Gridap.Visualization.visualization_data(arg,args...;kwargs...)
   parts=get_parts(arg)
   @Gridap.Helpers.notimplementedif length(v) != 1
   visdata = first(v)
