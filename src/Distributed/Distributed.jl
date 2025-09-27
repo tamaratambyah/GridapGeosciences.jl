@@ -8,6 +8,7 @@ using LinearAlgebra
 using FillArrays
 
 using GridapDistributed
+using P4est_wrapper
 using GridapP4est
 using PartitionedArrays
 
@@ -16,6 +17,7 @@ import GridapDistributed: DistributedDiscreteModel, GenericDistributedDiscreteMo
 using GridapGeosciences.Geometry
 import GridapGeosciences.Geometry: _CCAM_panel_wise_node_ids
 import GridapGeosciences.Geometry: _CCAM_cube_nodes_3d
+import GridapGeosciences.Geometry: setup_panel_cmaps
 
 include("ParametricOctreeDistributedDiscreteModels.jl")
 
