@@ -82,15 +82,14 @@ function Gridap.Visualization.create_vtk_file(
 end
 
 
+## Can map directly the coordinates of the trian.
+## This is because these coords are evaluated from the cell maps on the ref points
+## See https://github.com/gridap/Gridap.jl/blob/b75e623687b6df5de2b49952bbd794e85193c70a/src/Visualization/VisualizationData.jl#L78
 function mapped_vtkpoints(trian,geo_map::AbstractArray)
   println("mapped vkpoints")
 
   # apply the geo_map to cell_coords on trian, then convert to nodes
   cellx = get_cell_coordinates(trian)
-
-  display(cellx)
-  # println(length(cellx))
-  # geo_map = geo_map[1:length(cellx)]
 
   cellx_mapped = lazy_map(evaluate,geo_map,cellx)
 
