@@ -6,7 +6,7 @@ returns an array of refined models where
   models[1] == most refined model
   models[end] == coarsest model
 """
-function get_refined_models(n_ref_lvls::Int)
+function get_refined_models(n_ref_lvls::Int,coarse_model=false)
 
   panel_model = coarse_parametric_model()
   panel_models = Vector{DiscreteModel}(undef,n_ref_lvls)
@@ -14,6 +14,10 @@ function get_refined_models(n_ref_lvls::Int)
   for n in n_ref_lvls:-1:1
     panel_model = Gridap.Adaptivity.refine(panel_model)
     panel_models[n] = panel_model
+  end
+
+  if coarse_model
+    push!(panel_models,coarse_parametric_model())
   end
 
   panel_models
