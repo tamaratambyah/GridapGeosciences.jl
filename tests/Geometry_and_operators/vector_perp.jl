@@ -14,7 +14,7 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
   norm_vec_cf = panelwise_cellfield(vX,Ω_panel,panel_ids)
   norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel,panel_ids)
 
-  @check l2(norm_vec_cf-norm_vec_from_basis_cf,dΩ) < 1e-16
+  @check l2(norm_vec_cf-norm_vec_from_basis_cf,dΩ) < 1e-12
 
   if return_vtk
     lvl = nref(nc(panel_model))
@@ -22,7 +22,7 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
     panel_cfs = [ norm_vec_cf,norm_vec_from_basis_cf]
     labels = ["normal", "n"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 end
 

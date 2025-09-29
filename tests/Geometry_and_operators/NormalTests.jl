@@ -5,13 +5,18 @@ using Test
 
 n_ref_lvls = 4
 models  = get_refined_models(n_ref_lvls)
+return_vtk = true
+
+dir = datadir("NormalTests")
+(!isdir(dir) && return_vtk) && mkdir(dir)
+
 
 ################################################################################
 ## Unit normal to surface: k = a₁ × a₂
 ################################################################################
 include("vector_perp.jl")
 for panel_model in models
-  test_normal_unit_vector(panel_model)
+  test_normal_unit_vector(panel_model,return_vtk)
 end
 
 ################################################################################
@@ -58,16 +63,17 @@ n_mapped, = pushforward_normal(trian)
 @test sum(n_mapped.minus(pts) .≈ n_3D.minus(pts)) == num_facets(panel_model)
 
 ## plot normals on skeleton
-panel_cfs = [n_3D.plus, n_3D.minus, n_3D.minus+n_3D.plus,
-             n_2D.plus, n_2D.minus, n_2D.minus+n_2D.plus]
-labels = ["amb_n_plus", "amb_n_minus", "amb_n_total",
-          "chart_n_plus", "chart_n_minus", "chart_n_total"]
-cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+if return_vtk
+  panel_cfs = [n_3D.plus, n_3D.minus, n_3D.minus+n_3D.plus,
+              n_2D.plus, n_2D.minus, n_2D.minus+n_2D.plus]
+  labels = ["amb_n_plus", "amb_n_minus", "amb_n_total",
+            "chart_n_plus", "chart_n_minus", "chart_n_total"]
+  cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
-skel_panel_ids = get_panel_ids(trian)
-skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
-writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
-
+  skel_panel_ids = get_panel_ids(trian)
+  skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
+  writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+end
 ################################################################################
 ## DG tests
 ### check sqrt(g) is continuous across skeleton
@@ -92,16 +98,18 @@ area_form_cf = pullback_area_form(Λ)
 @test sum(inv_metric_cf.plus(pts) .≈ inv_metric_cf.minus(pts)) ≠ num_facets(panel_model)
 @test sum(jac_cf.minus(pts) .≈ jac_cf.plus(pts)) ≠ num_facets(panel_model)
 
-panel_cfs = [meas_cf.plus, meas_cf.minus, meas_cf.minus-meas_cf.plus,
-            jac_cf.plus, jac_cf.minus, jac_cf.minus-jac_cf.plus,
-            area_form_cf.plus, area_form_cf.minus, area_form_cf.plus-area_form_cf.minus]
-labels = ["g_plus", "g_minus", "g_diff", "jac_plus", "jac_minus", "jac_diff",
-          "a_plus", "a_minus", "a_diff"]
-cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+if return_vtk
+  panel_cfs = [meas_cf.plus, meas_cf.minus, meas_cf.minus-meas_cf.plus,
+              jac_cf.plus, jac_cf.minus, jac_cf.minus-jac_cf.plus,
+              area_form_cf.plus, area_form_cf.minus, area_form_cf.plus-area_form_cf.minus]
+  labels = ["g_plus", "g_minus", "g_diff", "jac_plus", "jac_minus", "jac_diff",
+            "a_plus", "a_minus", "a_diff"]
+  cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
-skel_panel_ids = get_panel_ids(Λ)
-skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
-writevtk(Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+  skel_panel_ids = get_panel_ids(Λ)
+  skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
+  writevtk(Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+end
 
 ################################################################################
 ## Advection tests
@@ -117,10 +125,19 @@ U = TrialFESpace(V)
 panel_ids = get_panel_ids(panel_model)
 Λ = SkeletonTriangulation(panel_model)
 n_Λ = get_normal_vector(Λ)
+pts = get_cell_points(Λ)
 
 _vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
 vel = interpolate(_vel,U)
-labels = ["upwind_plus","upwind_minus","upwind_diff"]
-panel_cfs = [abs((vel⋅ n_Λ).plus),abs((vel⋅ n_Λ).minus),abs((vel⋅ n_Λ).minus)-abs((vel⋅ n_Λ).plus)]
-cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false,geo_map=skel_geo_map)
+
+diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))
+@test sum( diff_cf(pts) .< fill([1e-14,1e-14],num_facets(panel_model))) == num_facets(panel_model)
+
+if return_vtk
+  skel_panel_ids = get_panel_ids(Λ)
+  skel_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), skel_panel_ids.plus)
+  labels = ["upwind_plus","upwind_minus","upwind_diff"]
+  panel_cfs = [abs((vel⋅ n_Λ).plus),abs((vel⋅ n_Λ).minus),abs((vel⋅ n_Λ).minus)-abs((vel⋅ n_Λ).plus)]
+  cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+  writevtk(Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false,geo_map=skel_geo_map)
+end
