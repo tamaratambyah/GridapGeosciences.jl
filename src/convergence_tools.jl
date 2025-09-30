@@ -102,3 +102,29 @@ function plot_error(ns,errs;
   end
 
 end
+
+
+function plot_convergence_from_saved(dir,simName)
+  dd = load(datadir(dir, ("$simName.jld2")))
+  dxs = dd["dxs"]
+  errors = dd["errors"]
+  ns = dd["ns"]
+  ps = dd["ps"]
+  slopes = dd["slopes"]
+
+  plot()
+  for p_fe in ps
+    plot_convergence(errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe];leginf=["p=$p_fe"],colors=[palette(:tab10)[p_fe]])
+  end
+  savefig(plotsdir()*"/$simName")
+end
+
+
+function print_convergence_results(errors,ns,dxs,slopes,ps)
+  for p_fe in ps
+    println("p_fe = $p_fe, slope = ", slopes[p_fe])
+    println("\t Error: ", errors[p_fe])
+    println("\t    nc: ", ns[p_fe])
+    println("\t    dx: ", dxs[p_fe])
+  end
+end
