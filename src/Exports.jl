@@ -12,6 +12,7 @@ end
 @publish Fields MyAffineField
 
 @publish Geometry get_panel_ids
+@publish Geometry geo_map_func
 @publish Geometry pullback_area_form
 @publish Geometry pushforward_normal
 @publish Geometry get_facet_normal
@@ -79,3 +80,13 @@ end
 @publish Helpers contravariant_basis
 
 @publish Distributed ParametricOctreeDistributedDiscreteModel
+@publish Distributed DistributedParametricDiscreteModel
+@publish Distributed DistributedAdaptedParametricDiscreteModel
+@publish Distributed geo_map_func
+@publish Distributed panelwise_cellfield
+
+@publish Distributed writevtk
+@publish Distributed createvtk
+@publish Distributed write_vtk_file
+@publish Distributed create_vtk_file
+@publish Distributed create_pvtk_file

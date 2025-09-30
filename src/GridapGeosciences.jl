@@ -10,11 +10,6 @@ using FillArrays
 using Test
 using JLD2
 
-# dir = datadir("2D_CubedSphereRefactor")
-# !isdir(dir) && mkdir(dir)
-# !isdir(plotsdir()) && mkdir(plotsdir())
-# export dir
-
 const global RADIUS = 1.0
 export RADIUS
 
