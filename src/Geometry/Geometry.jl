@@ -25,7 +25,7 @@ include("SkeletonTriangulations.jl")
 include("AdaptedTriangulations.jl")
 include("panelwise_cellfield.jl")
 
-export get_panel_ids
+export get_panel_ids, geo_map_func
 export pullback_area_form
 export pushforward_normal, get_facet_normal, get_mapped_facet_normal
 export BoundaryTriangulation
