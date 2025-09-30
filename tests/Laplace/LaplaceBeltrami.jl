@@ -4,7 +4,7 @@ Need to remove the kernal via zeromean FE space
 """
 
 using Gridap.Helpers
-function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,return_vtk=false)
+function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -30,7 +30,7 @@ function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,return_vtk=fa
   op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 
 
-  uh = solve(LUSolver(),op)
+  uh = solve(ls,op)
 
   e = l2(f_panel_cf-uh,dΩ)
 
@@ -46,20 +46,68 @@ function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,return_vtk=fa
 end
 
 
-function laplace_beltrami_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
-  e,  = laplace_beltrami_solver(panel_model,func,p_fe,return_vtk)
+function laplace_beltrami_errors(panel_model,func::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
+  e,  = laplace_beltrami_solver(panel_model,func,p_fe,ls,return_vtk)
   return e,false,false
 end
 
-function laplace_beltrami_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)
+function laplace_beltrami_convergence_test(dir,analytic_funcs,n_ref_lvls,ps=[1],ls=LUSolver(),return_vtk=false)
+  println("serial laplace beltrami test")
 
   for (key, val) in analytic_funcs
-    plot()
-    for p_fe in [1, 2, 3]
-      errs,ns,dxs,slope = convergence_test(laplace_beltrami_errors,n_ref_lvls,val,p_fe,return_vtk)
-      plot_convergence(errs,ns,dxs,slope;leginf=["p=$p_fe"],colors=[palette(:tab10)[p_fe]])
+    simName = "laplace_beltrami_convergence_func_$(key)"
+
+    errors = Vector{Vector{Float64}}(undef,length(ps))
+    ns = Vector{Vector{Float64}}(undef,length(ps))
+    dxs = Vector{Vector{Float64}}(undef,length(ps))
+    slopes = Vector{Float64}(undef,length(ps))
+
+    for p_fe in ps
+      println("p_fe = $p_fe")
+      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = convergence_test(laplace_beltrami_errors,n_ref_lvls,val,p_fe,ls,return_vtk)
     end
-    savefig(plotsdir()*"/laplace_beltrami_convergence_func_$(key)")
+
+    print_convergence_results(errors,ns,dxs,slopes,ps)
+    output = @strdict errors ns dxs slopes ps
+
+    safesave(datadir(dir, ("$simName.jld2")), output)
+
+    plot_convergence_from_saved(dir,simName)
+
+  end
+
+end
+
+
+################################################################################
+#### Distributed convergence test
+################################################################################
+
+function laplace_beltrami_convergence_test(ranks,nprocs,dir,
+  analytic_funcs,n_ref_lvls,ps=[1],ls=LUSolver(),return_vtk=false)
+
+  println("distributed laplace beltrami test")
+
+  for (key, val) in analytic_funcs
+    simName = "laplace_beltrami_convergence_func_$(key)"
+
+    errors = Vector{Vector{Float64}}(undef,length(ps))
+    ns = Vector{Vector{Float64}}(undef,length(ps))
+    dxs = Vector{Vector{Float64}}(undef,length(ps))
+    slopes = Vector{Float64}(undef,length(ps))
+
+    for p_fe in ps
+      i_am_main(ranks) && println("p_fe = $p_fe")
+      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = convergence_test(ranks,nprocs,laplace_beltrami_errors,n_ref_lvls,val,p_fe,ls,return_vtk)
+    end
+
+    i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
+
+    output = @strdict errors ns dxs slopes ps
+    i_am_main(ranks) && safesave(datadir(dir, ("$simName.jld2")), output)
+
+    i_am_main(ranks) && plot_convergence_from_saved(dir,simName)
+
   end
 
 end

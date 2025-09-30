@@ -1,3 +1,38 @@
+### This is Jordi's function from GridapDistributed/test/AdaptivityTests.jl
+function DistributedAdaptivityGlue(serial_glue,parent,child)
+  glue = map(partition(get_cell_gids(parent)),partition(get_cell_gids(child))) do parent_gids, child_gids
+    old_g2l = global_to_local(parent_gids)
+    old_l2g = local_to_global(parent_gids)
+    new_l2g = local_to_global(child_gids)
+
+    n2o_cell_map  = lazy_map(Reindex(old_g2l),serial_glue.n2o_faces_map[3][new_l2g])
+    n2o_faces_map = [Int64[],Int64[],collect(n2o_cell_map)]
+    n2o_cell_to_child_id = serial_glue.n2o_cell_to_child_id[new_l2g]
+    rrules = serial_glue.refinement_rules[old_l2g]
+    Gridap.Adaptivity.AdaptivityGlue(n2o_faces_map,n2o_cell_to_child_id,rrules)
+  end
+  return glue
+end
+
+#### The distributed panel ids are extracted from the serial. This includes both
+#### owned+ghost panel_ids.
+#### The owned panel_ids are extracted by determining the owned cell
+function distributed_panel_ids(dmodel,spanel_ids::AbstractArray{Int})
+  gids = get_cell_gids(dmodel)
+
+  dpanel_ids = map(partition(gids)) do ids
+    lid_to_gid = local_to_global(ids)
+    return spanel_ids[lid_to_gid]
+  end
+
+  owned_panel_ids = map(dpanel_ids,partition(gids)) do panel_ids, cids
+    owned_cells = own_to_local(cids)
+    return panel_ids[owned_cells]
+  end
+
+  return dpanel_ids, owned_panel_ids
+end
+
 
 function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=true)
 
@@ -7,12 +42,12 @@ function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_mo
   s_model_coarse = s_models[end]
 
   # extract the models and glues in arrays
-  models = map(m->get_model(m),s_models[1:end-1])
+  models = map(m->Adaptivity.get_model(m),s_models[1:end-1])
   glues = map(m->get_adaptivity_glue(m),s_models[1:end-1])
   if coarse_s_model
     push!(models,s_model_coarse)
   else
-    push!(models,get_model(s_model_coarse))
+    push!(models,Adaptivity.get_model(s_model_coarse))
   end
 
   # partition the processors
@@ -55,5 +90,61 @@ function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_mo
   end
 
   return dmodels, dpanel_ids, owned_panel_ids
+
+end
+
+
+
+function convergence_test(ranks,nprocs,f,n_ref_lvls,fargs...)
+  models,  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
+  errs, errs_g, errs_f = GridapGeosciences.h_convergence_test(f,models,fargs...)
+
+  ns = map(x->nc(x),models)
+  dxs = map(x->dx(nc(x)),models)
+  slope = convergence_rate(dxs,errs)
+
+  if typeof(errs_g[1]) == Bool
+    return errs,ns,dxs,slope
+  elseif typeof(errs_f[1]) == Bool
+    return [errs;errs_g],ns,dxs,slope
+  else
+    return [errs;errs_g;errs_f],ns,dxs,slope
+  end
+
+end
+
+
+const options_gmres = """
+-g_ksp_type gmres
+-g_ksp_rtol 1.0e-14
+-g_ksp_converged_reason
+-gj_ksp_type gmres
+-gj_ksp_rtol 1.0e-14
+-gj_ksp_converged_reason
+-ksp_monitor
+"""
+
+# linear solver from options: prefix g
+function petsc_ls_from_options_g(ksp)
+  @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"g_")
+  @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])
+end
+
+# linear solver - gmres, precondiioned with jacobi
+function petsc_gmres_jacobi(ksp)
+  rtol = PetscScalar(1.e-14)
+  atol = GridapPETSc.PETSC.PETSC_DEFAULT
+  dtol = GridapPETSc.PETSC.PETSC_DEFAULT
+  maxits = GridapPETSc.PETSC.PETSC_DEFAULT
+
+  # GMRES solver
+
+  @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"gj_")
+  @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])
+  @check_error_code GridapPETSc.PETSC.KSPSetTolerances(ksp[], rtol, atol, dtol, maxits)
+
+  pc       = Ref{GridapPETSc.PETSC.PC}()
+  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCJACOBI)
 
 end

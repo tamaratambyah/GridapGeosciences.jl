@@ -141,13 +141,11 @@ function ModelHierarchy(models::Vector{<:GridapDistributed.DistributedDiscreteMo
 end
 
 
-1;
+
 
 
 
 #### Plot models 1 at a time. If using a loop, vtk crashes
-include("vtk.jl")
-
 level = 1
 dmodel = dmodels[level]
 o_pids = owned_panel_ids[level]

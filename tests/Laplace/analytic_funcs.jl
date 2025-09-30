@@ -45,8 +45,8 @@ fX(XYZ::VectorValue{3}) = XYZ[1]*XYZ[2]*XYZ[3]
 
 # mapped functions from cartesian or latlon
 mapped_funcs = Dict{Symbol,Any}()
-mapped_funcs[:sin] = panel_to_latlon(fθϕ)
-mapped_funcs[:XYZ] = panel_to_cartesian(fX)
+mapped_funcs[:Msin] = panel_to_latlon(fθϕ)
+mapped_funcs[:MXYZ] = panel_to_cartesian(fX)
 
 """
 Williamson2 stream function, defined using latlon coordinates
