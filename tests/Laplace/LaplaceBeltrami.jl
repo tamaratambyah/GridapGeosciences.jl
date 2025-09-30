@@ -36,7 +36,7 @@ function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,return_vtk=fa
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(panel_ids)
     panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
     labels = ["u","uh","eu"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)

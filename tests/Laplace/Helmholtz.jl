@@ -30,7 +30,7 @@ function helmholtz_solver(panel_model,f::Function,p_fe::Int,return_vtk=false)
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(panel_ids)
     panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
     labels = ["u","uh","eu"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -113,7 +113,8 @@ function mixed_helmholtz_solver(panel_model,f::Function,p_fe::Int,return_vtk=fal
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    # cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(panel_ids)
 
     panel_cfs = [uh, sh, graduh, f_panel_cf, gradu_cf, rhs_cf, f_panel_cf - uh, sigma_cf - sh, gradu_cf - graduh  ]
     labels = ["uh","sh","graduh", "u_ex", "gradu","rhs", "eu", "es", "egradu"]
