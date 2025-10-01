@@ -14,25 +14,6 @@ function DistributedAdaptivityGlue(serial_glue,parent,child)
   return glue
 end
 
-#### The distributed panel ids are extracted from the serial. This includes both
-#### owned+ghost panel_ids.
-#### The owned panel_ids are extracted by determining the owned cell
-function distributed_panel_ids(dmodel,spanel_ids::AbstractArray{Int})
-  gids = get_cell_gids(dmodel)
-
-  dpanel_ids = map(partition(gids)) do ids
-    lid_to_gid = local_to_global(ids)
-    return spanel_ids[lid_to_gid]
-  end
-
-  owned_panel_ids = map(dpanel_ids,partition(gids)) do panel_ids, cids
-    owned_cells = own_to_local(cids)
-    return panel_ids[owned_cells]
-  end
-
-  return dpanel_ids, owned_panel_ids
-end
-
 
 function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=true)
 
@@ -95,23 +76,6 @@ end
 
 
 
-function convergence_test(ranks,nprocs,f,n_ref_lvls,fargs...)
-  models,  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
-  errs, errs_g, errs_f = GridapGeosciences.h_convergence_test(f,models,fargs...)
-
-  ns = map(x->nc(x),models)
-  dxs = map(x->dx(nc(x)),models)
-  slope = convergence_rate(dxs,errs)
-
-  if typeof(errs_g[1]) == Bool
-    return errs,ns,dxs,slope
-  elseif typeof(errs_f[1]) == Bool
-    return [errs;errs_g],ns,dxs,slope
-  else
-    return [errs;errs_g;errs_f],ns,dxs,slope
-  end
-
-end
 
 
 const options_gmres = """
