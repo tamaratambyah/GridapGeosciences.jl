@@ -29,10 +29,14 @@ include("ParametricOctreeDistributedDiscreteModels.jl")
 include("DistributedParametricDiscreteModel.jl")
 include("panelwise_cellfield.jl")
 include("Vtk.jl")
+include("createpvd.jl")
+include("helpers.jl")
 
 export ParametricOctreeDistributedDiscreteModel
 export DistributedParametricDiscreteModel, DistributedAdaptedParametricDiscreteModel
 export panelwise_cellfield, geo_map_func, get_panel_ids
 export writevtk, createvtk, write_vtk_file, create_vtk_file, create_pvtk_file
+export _make_pvd_distributed
+export distributed_panel_ids
 
 end
