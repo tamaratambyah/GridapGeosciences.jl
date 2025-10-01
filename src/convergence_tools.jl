@@ -23,7 +23,7 @@ function get_refined_models(n_ref_lvls::Int,coarse_model=false)
   panel_models
 end
 
-function h_convergence_test(f,models,fargs...)
+function _h_convergence_test(models,f,fargs...)
   errs = Float64[]
   errs_g = []
   errs_f = []
@@ -38,9 +38,9 @@ function h_convergence_test(f,models,fargs...)
   errs, errs_g, errs_f
 end
 
-function convergence_test(f,n_ref_lvls,fargs...)
-  models  = get_refined_models(n_ref_lvls)
-  errs, errs_g, errs_f = h_convergence_test(f,models,fargs...)
+function h_convergence_test(models::AbstractArray,f,fargs...)
+  # models  = get_refined_models(n_ref_lvls)
+  errs, errs_g, errs_f = _h_convergence_test(models,f,fargs...)
 
   ns = map(x->nc(x),models)
   dxs = map(x->dx(nc(x)),models)
@@ -53,9 +53,40 @@ function convergence_test(f,n_ref_lvls,fargs...)
   else
     return [errs;errs_g;errs_f],ns,dxs,slope
   end
-
-
 end
+
+
+# function p_convergence_test(ps,models::AbstractArray,f,fargs...)
+#   errors = Vector{Vector{Float64}}(undef,length(ps))
+#   ns = Vector{Vector{Float64}}(undef,length(ps))
+#   dxs = Vector{Vector{Float64}}(undef,length(ps))
+#   slopes = Vector{Float64}(undef,length(ps))
+
+
+#   for p_fe in ps
+#     println("p_fe = $p_fe")
+#     errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,f,fargs...)
+#   end
+#   return errors, ns, dxs, slopes
+
+# end
+
+# function the_convergence_test(dir,simName,varNames,ps,models,f,fargs...)
+#   errors, ns, dxs, slopes = p_convergence_test(ps,models,f,fargs...)
+
+#   print_convergence_results(errors,ns,dxs,slopes,ps)
+#   output = @strdict errors ns dxs slopes ps
+
+#   safesave(datadir(dir, ("$simName.jld2")), output)
+
+#   plot_convergence_from_saved(dir,simName,varNames)
+# end
+
+
+
+
+
+
 
 function plot_convergence(errs,ns,dxs,slope;kwargs...)
   r = string(Int(round(slope))) # approximate convergence rate
@@ -104,7 +135,7 @@ function plot_error(ns,errs;
 end
 
 
-function plot_convergence_from_saved(dir,simName)
+function plot_convergence_from_saved(dir,simName,varNames=["u"])
   dd = load(datadir(dir, ("$simName.jld2")))
   dxs = dd["dxs"]
   errors = dd["errors"]
@@ -114,9 +145,11 @@ function plot_convergence_from_saved(dir,simName)
 
   plot()
   for p_fe in ps
-    plot_convergence(errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe];leginf=["p=$p_fe"],colors=[palette(:tab10)[p_fe]])
+    leginf = map(x->"$x: p=$p_fe", varNames)
+    cols = map(x->palette(:tab10)[p_fe], varNames )
+    plot_convergence(errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe];leginf=leginf,colors=cols)
   end
-  savefig(plotsdir()*"/$simName")
+  savefig(dir*"/$simName")
 end
 
 

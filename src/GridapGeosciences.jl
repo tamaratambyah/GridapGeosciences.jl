@@ -27,7 +27,7 @@ include("Visualisation/Visualisation.jl")
 
 include("convergence_tools.jl")
 export l2
-export get_refined_models, convergence_test
+export get_refined_models, convergence_test, h_convergence_test
 export plot_convergence, plot_error, convergence_rate, plot_convergence_from_saved
 export print_convergence_results
 export nc, dx, nref

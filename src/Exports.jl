@@ -90,3 +90,6 @@ end
 @publish Distributed write_vtk_file
 @publish Distributed create_vtk_file
 @publish Distributed create_pvtk_file
+
+@publish Distributed _make_pvd_distributed
+@publish Distributed distributed_panel_ids
