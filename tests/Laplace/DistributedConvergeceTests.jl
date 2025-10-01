@@ -34,7 +34,7 @@ function main(convergence_func;nprocs,
 
   dir = datadir(out_loc)
 
-  (i_am_main(ranks) && (return_vtk && !isdir(dir)) ) && mkdir(dir)
+  (i_am_main(ranks) && !isdir(dir) ) && mkdir(dir)
 
   GridapPETSc.Init(args=split(options))
 
@@ -54,20 +54,18 @@ end
 
 
 ## Distributed Laplace Beltrami
-for dict in [analytic_funcs, mapped_funcs, williamson_funcs]
+for dict in [analytic_funcs]#, mapped_funcs, williamson_funcs]
 
   main(laplace_beltrami_convergence_test;nprocs=6,n_ref_lvls=4,
-  analytic_funcs=dict,ps=[1,2,3],
+  analytic_funcs=dict,ps=[1],#[1,2,3],
   out_loc="DistributedLaplaceTests",options=options_gmres,return_vtk=false)
 
-end
-
-
-## Distributed Helmholtz
-for dict in [analytic_funcs, mapped_funcs, williamson_funcs]
-
   main(helmholtz_convergence_test;nprocs=6,n_ref_lvls=4,
-  analytic_funcs=dict,ps=[1,2,3],
+  analytic_funcs=dict,ps=[1],#[1,2,3],
+  out_loc="DistributedLaplaceTests",options=options_gmres,return_vtk=false)
+
+  main(mixed_helmholtz_convergence_test;nprocs=6,n_ref_lvls=4,
+  analytic_funcs=dict,ps=[1],#[1,2,3],
   out_loc="DistributedLaplaceTests",options=options_gmres,return_vtk=false)
 
 end

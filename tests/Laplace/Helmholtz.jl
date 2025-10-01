@@ -37,17 +37,20 @@ function helmholtz_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),return
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  return e, uh, f_panel_cf
+  return e, false, false
 end
 
 
-function helmholtz_errors(panel_model,func::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
-  e,  = helmholtz_solver(panel_model,func,p_fe,ls,return_vtk)
-  return e,false,false
-end
+# function helmholtz_errors(panel_model,func::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
+#   e,  = helmholtz_solver(panel_model,func,p_fe,ls,return_vtk)
+#   return e,false,false
+# end
 
-function helmholtz_convergence_test(dir,analytic_funcs,n_ref_lvls,ps=[1],ls=LUSolver(),return_vtk=false)
+function helmholtz_convergence_test(dir,analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
   println("serial helmholtz test")
+
+  models  = get_refined_models(n_ref_lvls)
+
   for (key, val) in analytic_funcs
     simName = "helmholtz_convergence_func_$(key)"
 
@@ -58,7 +61,7 @@ function helmholtz_convergence_test(dir,analytic_funcs,n_ref_lvls,ps=[1],ls=LUSo
 
     for p_fe in ps
       println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = convergence_test(helmholtz_errors,n_ref_lvls,val,p_fe,ls,return_vtk)
+      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,helmholtz_solver,val,p_fe,ls,return_vtk)
     end
 
     print_convergence_results(errors,ns,dxs,slopes,ps)
@@ -75,10 +78,11 @@ end
 ################################################################################
 #### Distributed convergence test
 ################################################################################
-function helmholtz_convergence_test(ranks,nprocs,dir,
-  analytic_funcs,n_ref_lvls,ps=[1],ls=LUSolver(),return_vtk=false)
+function helmholtz_convergence_test(ranks::AbstractArray,nprocs,dir,
+  analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
 
   println("distributed helmholtz test")
+  models,  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
 
   for (key, val) in analytic_funcs
     simName = "helmholtz_convergence_func_$(key)"
@@ -90,7 +94,7 @@ function helmholtz_convergence_test(ranks,nprocs,dir,
 
     for p_fe in ps
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = convergence_test(ranks,nprocs,helmholtz_errors,n_ref_lvls,val,p_fe,ls,return_vtk)
+      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,helmholtz_solver,val,p_fe,ls,return_vtk)
     end
 
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
@@ -110,7 +114,7 @@ end
 σ - ∇ᵧ(u) = 0
 u + ∇ᵧ⋅σ = f
 """
-function mixed_helmholtz_solver(panel_model,f::Function,p_fe::Int,return_vtk=false)
+function mixed_helmholtz_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -150,7 +154,7 @@ function mixed_helmholtz_solver(panel_model,f::Function,p_fe::Int,return_vtk=fal
   liformX((v,t)) = ∫( (rhs_cf*v)*meas_cf )dΩ
 
   op = AffineFEOperator(biformX,liformX,X,Y)
-  uh,sh = solve(LUSolver(),op)
+  uh,sh = solve(ls,op)
   graduh = covarient_basis_cf ⋅sh
 
 
@@ -160,7 +164,6 @@ function mixed_helmholtz_solver(panel_model,f::Function,p_fe::Int,return_vtk=fal
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    # cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
     cell_geo_map = geo_map_func(panel_ids)
 
     panel_cfs = [uh, sh, graduh, f_panel_cf, gradu_cf, rhs_cf, f_panel_cf - uh, sigma_cf - sh, gradu_cf - graduh  ]
@@ -170,29 +173,71 @@ function mixed_helmholtz_solver(panel_model,f::Function,p_fe::Int,return_vtk=fal
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  return e_u,e_s,e_gradu
-
-end
-
-
-
-function mixed_helmholtz_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
-  e_u,e_s,e_gradu  = mixed_helmholtz_solver(panel_model,func,p_fe,return_vtk)
   return e_u,e_gradu,false
+
 end
 
-function mixed_helmholtz_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)
+
+function mixed_helmholtz_convergence_test(dir,analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
+  println("serial helmholtz mixed test")
+
+  models  = get_refined_models(n_ref_lvls)
 
   for (key, val) in analytic_funcs
-    plot()
-    for p_fe in [1,2]
-      errs,ns,dxs,slope = convergence_test(mixed_helmholtz_errors,n_ref_lvls,val,p_fe,return_vtk)
-      plot_convergence(errs,ns,dxs,slope;
-          leginf=["u: p=$p_fe","s: p=$p_fe"],
-          colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe]],
-          ls=[:solid, :dot], )
+    simName = "mixed_helmholtz_convergence_func_$(key)"
+
+    errors = Vector{Vector{Float64}}(undef,length(ps))
+    ns = Vector{Vector{Float64}}(undef,length(ps))
+    dxs = Vector{Vector{Float64}}(undef,length(ps))
+    slopes = Vector{Float64}(undef,length(ps))
+
+
+    for p_fe in ps
+      println("p_fe = $p_fe")
+      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,mixed_helmholtz_solver,val,p_fe,ls,return_vtk)
     end
-    savefig(plotsdir()*"/mixed_helmholtz_convergence_func_$(key)")
+    print_convergence_results(errors,ns,dxs,slopes,ps)
+    output = @strdict errors ns dxs slopes ps
+
+    safesave(datadir(dir, ("$simName.jld2")), output)
+
+    plot_convergence_from_saved(dir,simName,["u","s"])
+
+  end
+
+end
+
+################################################################################
+#### Distributed
+################################################################################
+
+
+function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
+  analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
+  println("distributed helmholtz mixed test")
+
+  models,  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
+
+  for (key, val) in analytic_funcs
+    simName = "mixed_helmholtz_convergence_func_$(key)"
+
+    errors = Vector{Vector{Float64}}(undef,length(ps))
+    ns = Vector{Vector{Float64}}(undef,length(ps))
+    dxs = Vector{Vector{Float64}}(undef,length(ps))
+    slopes = Vector{Float64}(undef,length(ps))
+
+
+    for p_fe in ps
+      i_am_main(ranks) && println("p_fe = $p_fe")
+      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,mixed_helmholtz_solver,val,p_fe,ls,return_vtk)
+    end
+    print_convergence_results(errors,ns,dxs,slopes,ps)
+    output = @strdict errors ns dxs slopes ps
+
+    i_am_main(ranks) && safesave(datadir(dir, ("$simName.jld2")), output)
+
+    i_am_main(ranks) && plot_convergence_from_saved(dir,simName,["u","s"])
+
   end
 
 end
