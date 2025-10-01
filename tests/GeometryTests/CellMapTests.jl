@@ -1,3 +1,4 @@
+module CellMapTests
 using Gridap
 using GridapGeosciences
 using Test
@@ -57,4 +58,7 @@ end
 ## test the cell maps of panel models against cartesian models
 for (level,(panel_model,cart_model)) in enumerate(zip(panel_models,cart_panel_models))
   test_cell_maps(panel_model,cart_model)
+end
+
+
 end

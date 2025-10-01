@@ -1,7 +1,6 @@
-"""
-test the integration of surface area
-i.e. surface area = ∫ᵧ 1 = ∫ 1 √g
-"""
+### test the integration of surface area
+### i.e. surface area = ∫ᵧ 1 = ∫ 1 √g
+
 
 function surface_area(panel_model,degree::Int)
   extact_area = 4*π*RADIUS^2

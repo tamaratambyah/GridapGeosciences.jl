@@ -1,3 +1,5 @@
+module NormalTests
+
 using DrWatson
 using Gridap
 using GridapGeosciences
@@ -5,7 +7,7 @@ using Test
 
 n_ref_lvls = 4
 models  = get_refined_models(n_ref_lvls)
-return_vtk = true
+return_vtk = false
 
 dir = datadir("NormalTests")
 (!isdir(dir) && return_vtk) && mkdir(dir)
@@ -14,7 +16,7 @@ dir = datadir("NormalTests")
 ################################################################################
 ## Unit normal to surface: k = a₁ × a₂
 ################################################################################
-include("vector_perp.jl")
+include("../Operators/vector_perp.jl")
 for panel_model in models
   test_normal_unit_vector(panel_model,return_vtk)
 end
@@ -140,4 +142,7 @@ if return_vtk
   panel_cfs = [abs((vel⋅ n_Λ).plus),abs((vel⋅ n_Λ).minus),abs((vel⋅ n_Λ).minus)-abs((vel⋅ n_Λ).plus)]
   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
   writevtk(Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false,geo_map=skel_geo_map)
+end
+
+
 end
