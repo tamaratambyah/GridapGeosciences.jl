@@ -1,11 +1,13 @@
 module GeometryTests
 
-# using Test
+using Test
 
-# @testset "CellMap" begin include("CellMapTests.jl") end
+@testset "CellMap" begin include("CellMapTests.jl") end
 
-# @testset "Normal" begin include("NormalTests.jl") end
+@testset "Normal" begin include("NormalTests.jl") end
 
-# @testset "Refinement" begin include("RefinementTests.jl") end
+@testset "Refinement" begin include("RefinementTests.jl") end
 
-end # module
+end
+
+# @testset "CellMap" begin include("tests/GeometryTests/CellMapTests.jl") end

@@ -4,21 +4,48 @@ using DrWatson
 using Gridap
 using GridapGeosciences
 using Test
+using Gridap.Helpers
+
+################################################################################
+#### Test unit normal vectors
+################################################################################
+
+function test_normal_unit_vector(panel_model,return_vtk=false)
+  lvl = nref(nc(panel_model))
+  println("nref = $lvl")
+
+  Ω_panel = Triangulation(panel_model)
+  panel_ids = get_panel_ids(panel_model)
+  dΩ = Measure(Ω_panel,4)
+
+  vX = panel_to_cartesian(normal_vec)
+  norm_vec_cf = panelwise_cellfield(vX,Ω_panel,panel_ids)
+  norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel,panel_ids)
+
+  @check l2(norm_vec_cf-norm_vec_from_basis_cf,dΩ) < 1e-12
+
+  if return_vtk
+    lvl = nref(nc(panel_model))
+    cell_geo_map = geo_map_func(panel_ids)
+    panel_cfs = [ norm_vec_cf,norm_vec_from_basis_cf]
+    labels = ["normal", "n"]
+    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  end
+end
+
 
 n_ref_lvls = 4
 models  = get_refined_models(n_ref_lvls)
 return_vtk = false
-
 dir = datadir("NormalTests")
 (!isdir(dir) && return_vtk) && mkdir(dir)
-
 
 ################################################################################
 ## Unit normal to surface: k = a₁ × a₂
 ################################################################################
-include("../Operators/vector_perp.jl")
 for panel_model in models
-  test_normal_unit_vector(panel_model,return_vtk)
+  test_normal_unit_vector(panel_model)
 end
 
 ################################################################################
@@ -26,7 +53,7 @@ end
 ################################################################################
 panel_model = models[4]
 panel_ids = get_panel_ids(panel_model)
-cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+cell_geo_map = geo_map_func(panel_ids)
 
 ################################################################################
 ## Face normals: boundary trian
