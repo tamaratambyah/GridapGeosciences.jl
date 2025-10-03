@@ -3,7 +3,21 @@ u + Δᵧ(u) = f
 Need to remove the kernal via zeromean FE space
 """
 
-using Gridap.Helpers
+module LaplaceBeltrami
+
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+
+using GridapGeosciences
+using Test
+
+include("analytic_funcs.jl")
+include("../convergence_tools.jl")
+
 function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
@@ -29,8 +43,17 @@ function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver()
   poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
   op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 
+  # uh = solve(ls,op)
 
-  uh = solve(ls,op)
+  ## for pvectors, the ghost may not be in the prange of the get_matrix
+  ## This causes issues with GridapSolvers Krylov solvers, in the allocation of x
+  ## To avoid, allocate x based on the domain of A
+  A = get_matrix(op)
+  b = get_vector(op)
+  ns = numerical_setup(symbolic_setup(ls,A),A)
+  x = allocate_in_domain(A); fill!(x,0.0)
+  solve!(x,ns,b)
+  uh = FEFunction(U,x)
 
   e = l2(f_panel_cf-uh,dΩ)
 
@@ -45,6 +68,36 @@ function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver()
   return e, false,false
 end
 
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 4
+  ps = [1,2,3]
+  ls = LUSolver()
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
+    ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+  end
+
+  for (key, val) in analytic_funcs
+    i_am_main(ranks) && println("laplace_beltrami_convergence_func_$(key)")
+    p_convergence_test(ranks,models,laplace_beltrami_solver,val,ps,ls)
+  end
+
+
+end
+
+
+################################################################################
+#### Serieal convergence test
+################################################################################
+
 function laplace_beltrami_convergence_test(dir,analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
   println("serial laplace beltrami test")
 
@@ -58,9 +111,9 @@ function laplace_beltrami_convergence_test(dir,analytic_funcs,n_ref_lvls=4,ps=[1
     dxs = Vector{Vector{Float64}}(undef,length(ps))
     slopes = Vector{Float64}(undef,length(ps))
 
-    for p_fe in ps
+    for (i,p_fe) in enumerate(ps)
       println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,laplace_beltrami_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,laplace_beltrami_solver,val,p_fe,ls,return_vtk)
     end
 
     print_convergence_results(errors,ns,dxs,slopes,ps)
@@ -93,9 +146,9 @@ function laplace_beltrami_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
     dxs = Vector{Vector{Float64}}(undef,length(ps))
     slopes = Vector{Float64}(undef,length(ps))
 
-    for p_fe in ps
+    for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,laplace_beltrami_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,laplace_beltrami_solver,val,p_fe,ls,return_vtk)
     end
 
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
@@ -108,3 +161,7 @@ function laplace_beltrami_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
   end
 
 end
+
+
+
+end # module

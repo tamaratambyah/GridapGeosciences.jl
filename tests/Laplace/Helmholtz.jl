@@ -21,10 +21,17 @@ function helmholtz_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),return
 
   rhs_cf = f_panel_cf + slap_panel_cf
 
-  poisson_biform(u,v) = ∫(u*v*meas_cf)dΩ -  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
-  poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
-  op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
-  uh = solve(ls,op)
+  helmholtz_biform(u,v) = ∫(u*v*meas_cf)dΩ -  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
+  helmholtz_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
+  op = AffineFEOperator(helmholtz_biform,helmholtz_liform,U,V)
+  # uh = solve(ls,op)
+
+  A = get_matrix(op)
+  b = get_vector(op)
+  ns = numerical_setup(symbolic_setup(ls,A),A)
+  x = Gridap.Algebra.allocate_in_domain(A); fill!(x,0.0)
+  solve!(x,ns,b)
+  uh = FEFunction(U,x)
 
   e = l2(f_panel_cf-uh,dΩ)
 
@@ -59,9 +66,9 @@ function helmholtz_convergence_test(dir,analytic_funcs,n_ref_lvls=4,ps=[1],ls=LU
     dxs = Vector{Vector{Float64}}(undef,length(ps))
     slopes = Vector{Float64}(undef,length(ps))
 
-    for p_fe in ps
+    for (i,p_fe) in enumerate(ps)
       println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,helmholtz_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,helmholtz_solver,val,p_fe,ls,return_vtk)
     end
 
     print_convergence_results(errors,ns,dxs,slopes,ps)
@@ -92,9 +99,9 @@ function helmholtz_convergence_test(ranks::AbstractArray,nprocs,dir,
     dxs = Vector{Vector{Float64}}(undef,length(ps))
     slopes = Vector{Float64}(undef,length(ps))
 
-    for p_fe in ps
+    for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,helmholtz_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,helmholtz_solver,val,p_fe,ls,return_vtk)
     end
 
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
@@ -154,9 +161,17 @@ function mixed_helmholtz_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),
   liformX((v,t)) = ∫( (rhs_cf*v)*meas_cf )dΩ
 
   op = AffineFEOperator(biformX,liformX,X,Y)
-  uh,sh = solve(ls,op)
-  graduh = covarient_basis_cf ⋅sh
+  # uh,sh = solve(ls,op)
 
+  A = get_matrix(op)
+  b = get_vector(op)
+  ns = numerical_setup(symbolic_setup(ls,A),A)
+  x = Gridap.Algebra.allocate_in_domain(A); fill!(x,0.0)
+  solve!(x,ns,b)
+  xh = FEFunction(X,x)
+  uh,sh = xh
+
+  graduh = covarient_basis_cf ⋅sh
 
   e_u = l2( (f_panel_cf - uh)*meas_cf,dΩ) # error in scalar u
   e_s = l2((sigma_cf - sh)*meas_cf,dΩ) # error in contra compons of grad u
@@ -192,9 +207,9 @@ function mixed_helmholtz_convergence_test(dir,analytic_funcs,n_ref_lvls=4,ps=[1]
     slopes = Vector{Float64}(undef,length(ps))
 
 
-    for p_fe in ps
+    for (i,p_fe) in enumerate(ps)
       println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,mixed_helmholtz_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,mixed_helmholtz_solver,val,p_fe,ls,return_vtk)
     end
     print_convergence_results(errors,ns,dxs,slopes,ps)
     output = @strdict errors ns dxs slopes ps
@@ -210,8 +225,6 @@ end
 ################################################################################
 #### Distributed
 ################################################################################
-
-
 function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
   analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
   println("distributed helmholtz mixed test")
@@ -227,9 +240,9 @@ function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
     slopes = Vector{Float64}(undef,length(ps))
 
 
-    for p_fe in ps
+    for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[p_fe],ns[p_fe],dxs[p_fe],slopes[p_fe] = h_convergence_test(models,mixed_helmholtz_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,mixed_helmholtz_solver,val,p_fe,ls,return_vtk)
     end
     print_convergence_results(errors,ns,dxs,slopes,ps)
     output = @strdict errors ns dxs slopes ps

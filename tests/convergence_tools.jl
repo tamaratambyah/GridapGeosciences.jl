@@ -1,0 +1,225 @@
+using Gridap
+using Gridap.Adaptivity, Gridap.Helpers
+using GridapDistributed
+using PartitionedArrays
+using Plots, LaTeXStrings
+using JLD2
+using Test
+
+l2(e,dΩ) = sum(∫( e⋅e )dΩ)
+nc(panel_model) = num_cells(panel_model)/6 ## nc = num cells per panel
+dx(nc) = sqrt( 4*π*RADIUS^2 / (6*sqrt(nc)^2) )
+nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
+
+"""
+get_refined_models
+returns an array of refined models where
+  models[1] == most refined model
+  models[end] == coarsest model
+"""
+function get_refined_models(n_ref_lvls::Int,coarse_model=false)
+
+  panel_model = coarse_parametric_model()
+  panel_models = Vector{DiscreteModel}(undef,n_ref_lvls)
+
+  for n in n_ref_lvls:-1:1
+    panel_model = Gridap.Adaptivity.refine(panel_model)
+    panel_models[n] = panel_model
+  end
+
+  if coarse_model
+    push!(panel_models,coarse_parametric_model())
+  end
+
+  panel_models
+end
+
+
+function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=true)
+
+  # get refined models in serial
+  s_models  = get_refined_models(n_ref_lvls,coarse_s_model)
+  spanel_ids = map(m->get_panel_ids(m),s_models)
+  s_model_coarse = s_models[end]
+
+  # extract the models and glues in arrays
+  models = map(m->Adaptivity.get_model(m),s_models[1:end-1])
+  glues = map(m->get_adaptivity_glue(m),s_models[1:end-1])
+  if coarse_s_model
+    push!(models,s_model_coarse)
+  else
+    push!(models,Adaptivity.get_model(s_model_coarse))
+  end
+
+  # partition the processors
+  part_to_cells = [PartitionedArrays.local_range(rank,nprocs,num_cells(s_model_coarse)) for rank in 1:nprocs]
+
+  # store the partition for each model
+  cell_to_part = Vector{Vector{Int32}}(undef,length(models))
+
+  # get the coarse partition
+  coarse_cell_to_part = zeros(Int32,num_cells(s_model_coarse))
+  for (rank, cells) in enumerate(part_to_cells)
+    coarse_cell_to_part[cells] .= rank
+  end
+  cell_to_part[end] = coarse_cell_to_part
+
+  # get the refine partition based on glue
+  for level in length(models)-1:-1:1
+    n2o_cells = glues[level].n2o_faces_map[3]
+    cell_to_part[level] = cell_to_part[level+1][n2o_cells]
+  end
+
+  # construct array of distributed models, distributed panel ids (all + owned only)
+  dmodels = Vector{DistributedParametricDiscreteModel}(undef,length(models))
+  # dmodels = Vector{Any}(undef,length(models))
+  dpanel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
+  owned_panel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
+
+  # the coarsest model is the last in the list
+  coarse_dmodel = DiscreteModel(ranks,models[end],cell_to_part[end])
+  dpanel_ids[end],owned_panel_ids[end] = distributed_panel_ids(coarse_dmodel,spanel_ids[end])
+  dmodels[end] = DistributedParametricDiscreteModel(coarse_dmodel,dpanel_ids[end])
+
+  # loop backwards through refinement levels
+  for level in length(models)-1:-1:1
+    child = DiscreteModel(ranks,models[level],cell_to_part[level])
+    parent = dmodels[level+1]
+    glue = DistributedAdaptivityGlue(glues[level],parent,child)
+    dpanel_ids[level],owned_panel_ids[level] = distributed_panel_ids(child,spanel_ids[level])
+
+    dmodels[level] = DistributedAdaptedParametricDiscreteModel(child,parent,glue,dpanel_ids[level])
+    # dmodels[level] = DistributedParametricDiscreteModel(child, dpanel_ids[level])
+    # dmodels[level] = DiscreteModel(ranks,models[level],cell_to_part[level])
+  end
+
+  return dmodels, dpanel_ids, owned_panel_ids
+
+end
+
+
+
+"""
+convergence test functions
+"""
+
+function _h_convergence_test(models,f,fargs...)
+  errs = Float64[]
+  errs_g = []
+  errs_f = []
+
+  for model in models
+    e,eg,ef = f(model,fargs...)
+    push!(errs,e)
+    push!(errs_g,eg)
+    push!(errs_f,ef)
+  end
+
+  errs, errs_g, errs_f
+end
+
+function h_convergence_test(models::AbstractArray,f,fargs...)
+  errs, errs_g, errs_f = _h_convergence_test(models,f,fargs...)
+
+  ns = map(x->nc(x),models)
+  dxs = map(x->dx(nc(x)),models)
+  slope = convergence_rate(dxs,errs)
+
+  if typeof(errs_g[1]) == Bool
+    return errs,ns,dxs,slope
+  elseif typeof(errs_f[1]) == Bool
+    return [errs;errs_g],ns,dxs,slope
+  else
+    return [errs;errs_g;errs_f],ns,dxs,slope
+  end
+end
+
+# set ranks = [true] for serial
+function p_convergence_test(ranks,models::AbstractArray,convergence_func,f::Function,ps=[1],ls=LUSolver())
+  i_am_main(ranks) && println("auto convergence test")
+
+  for (i,p_fe) in enumerate(ps)
+    println("p_fe = $p_fe")
+    errors,ns,dxs,slope = h_convergence_test(models,convergence_func,f,p_fe,ls)
+    i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slope,p_fe)
+    @test slope > 2*p_fe
+  end
+
+end
+
+function convergence_rate(dxs,errors)
+  x = log10.(dxs)
+  y = log10.(abs.(errors))
+  linreg = hcat(fill!(similar(x), 1), x) \ y
+  linreg[2]
+end
+
+
+"""
+plotting and printing helper functions
+"""
+
+function plot_convergence(errs,ns,dxs,slope;kwargs...)
+  r = string(Int(round(slope))) # approximate convergence rate
+
+  plot_error(ns,errs;kwargs...)
+  plot!(yscale=:log10,framestyle=:box,
+  xscale=:log10,xlabel="n cells",ylabel="L2(u - uh)"
+  )
+  plot_error(ns,dxs.^slope*errs[1]*1000;leginf=["dx^$r"],colors=kwargs[:colors],ls=[:dash],markers = [:none])
+end
+
+
+function plot_error(ns,errs;
+  leginf = fill(false,Int(length(errs)/length(ns))),
+  ls=[:solid, :dash, :dot, :dashdot, :dashdotdot],
+  colors = palette(:tab10),
+  markers = [:circle, :rect, :diamond, :utriangle, :cross, :xcross],
+  ms=[6,6,8,6,6,8,8] )
+
+  nsims = Int(length(errs)/length(ns))
+  for i in 1:nsims
+    idx1 = 1 + (i-1)*length(ns)
+    idx2 = (i)*length(ns)
+    plot!(ns,
+          errs[idx1:idx2],
+          lw=3,
+          markersize=ms[i],
+          c=colors[i],ls=ls[i], markershape=markers[i],
+          label=leginf[i])
+  end
+
+end
+
+
+function plot_convergence_from_saved(dir,simName,varNames=["u"])
+  dd = load(datadir(dir, ("$simName.jld2")))
+  dxs = dd["dxs"]
+  errors = dd["errors"]
+  ns = dd["ns"]
+  ps = dd["ps"]
+  slopes = dd["slopes"]
+
+  plot()
+  for (i,p_fe) in enumerate(ps)
+    leginf = map(x->"$x: p=$p_fe", varNames)
+    cols = map(x->palette(:tab10)[p_fe], varNames )
+    plot_convergence(errors[i],ns[i],dxs[i],slopes[i];leginf=leginf,colors=cols)
+  end
+  savefig(dir*"/$simName")
+end
+
+
+function print_convergence_results(errors::AbstractArray,ns::AbstractArray{Vector{Float64}},
+  dxs::AbstractArray{Vector{Float64}},slopes::AbstractArray{Float64},ps::AbstractArray{Int})
+  for (i,p_fe) in enumerate(ps)
+    print_convergence_results(errors[i],ns[i],dxs[i],slopes[i],p_fe)
+  end
+end
+
+function print_convergence_results(errors::AbstractArray,ns::AbstractArray{Float64},dxs::AbstractArray{Float64},slopes::Float64,p_fe::Int)
+    println("p_fe = $p_fe, slope = ", slopes)
+    println("\t Error: ", errors)
+    println("\t    nc: ", ns)
+    println("\t    dx: ", dxs)
+end
