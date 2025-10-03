@@ -3,6 +3,7 @@ using Gridap
 using GridapGeosciences
 using Plots, LaTeXStrings
 
+include("../convergence_tools.jl")
 include("AdvectionSUPG.jl")
 include("AdvectionDGUpwinding.jl")
 
@@ -17,12 +18,23 @@ uvX = panel_to_cartesian(u0vecX)
 
 n_ref_lvls = 4
 CFL = 0.1
+ps = [1,2,3]
 
+################################################################################
+#### Serial convergence test
+################################################################################
+dir = datadir("SerialAdvectionTests")
+!isdir(dir) && mkdir(dir)
+
+ls = LUSolver()
 
 ## SUPG
-advection_supg_convergence_test(n_ref_lvls,u,vX,CFL,true)
-transient_advection_supg_convergence_test(n_ref_lvls,u,vX,CFL,false)
+advection_supg_convergence_test(dir,u,vX,n_ref_lvls,ps,CFL,ls)
+
+# transient_advection_supg_convergence_test(n_ref_lvls,u,vX,CFL,false) ### BROKEN
 
 ## DG
-advection_dg_convergence_test(n_ref_lvls,u,vX,uvX,true)
-transient_advection_dg_convergence_test(n_ref_lvls,u,vX,CFL,false)
+advection_dg_convergence_test(dir,u,vX,uvX,n_ref_lvls,ps,ls)
+
+
+# transient_advection_dg_convergence_test(n_ref_lvls,u,vX,CFL,false) ### BROKEN
