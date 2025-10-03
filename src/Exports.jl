@@ -93,3 +93,4 @@ end
 
 @publish Distributed _make_pvd_distributed
 @publish Distributed distributed_panel_ids
+@publish Distributed DistributedAdaptivityGlue
