@@ -16,15 +16,15 @@ ps = [1,2,3]
 ################################################################################
 dir = datadir("SerialLaplaceTests")
 !isdir(dir) && mkdir(dir)
-for dict in [analytic_funcs]#, mapped_funcs, williamson_funcs]
+for dict in [analytic_funcs, mapped_funcs, williamson_funcs]
   ### Laplace-Beltrami - requires zeromean functions
   LaplaceBeltrami.laplace_beltrami_convergence_test(dir,dict,n_ref_lvls,ps)
 
   ### Helmholtz: primial formulation
-  # helmholtz_convergence_test(dir,dict,n_ref_lvls,ps)
+  Helmholtz.helmholtz_convergence_test(dir,dict,n_ref_lvls,ps)
 
   ### Helmholtz: mixed problem
-  # mixed_helmholtz_convergence_test(dir,dict,n_ref_lvls,[1,2])
+  MixedHelmholtz.mixed_helmholtz_convergence_test(dir,dict,n_ref_lvls,[1,2])
 end
 
 
@@ -51,12 +51,12 @@ end
 (i_am_main(ranks) && !isdir(dir) ) && mkdir(dir)
 
 
-for dict in [williamson_funcs] #[analytic_funcs, mapped_funcs, williamson_funcs]
+for dict in [analytic_funcs, mapped_funcs, williamson_funcs]
 
-  # LaplaceBeltrami.laplace_beltrami_convergence_test(ranks,nprocs,dir,dict,n_ref_lvls,ps,cg)
+  LaplaceBeltrami.laplace_beltrami_convergence_test(ranks,nprocs,dir,dict,n_ref_lvls,ps,cg)
 
-  # helmholtz_convergence_test(ranks,nprocs,dir,dict,n_ref_lvls,ps,cg)
+  Helmholtz.helmholtz_convergence_test(ranks,nprocs,dir,dict,n_ref_lvls,ps,cg)
 
-  mixed_helmholtz_convergence_test(ranks,nprocs,dir,dict,n_ref_lvls,[1,2],minres)
+  MixedHelmholtz.mixed_helmholtz_convergence_test(ranks,nprocs,dir,dict,n_ref_lvls,[1,2],minres)
 
 end

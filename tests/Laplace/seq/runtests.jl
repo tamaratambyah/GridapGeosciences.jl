@@ -1,5 +1,7 @@
 using Test
 
-@testset "LaplaceTests" begin include("LaplaceBeltramiTests.jl") end
+@testset "LaplaceBeltramiTests" begin include("LaplaceBeltramiTests.jl") end
+@testset "HelmholtzTests" begin include("HelmholtzTests.jl") end
+@testset "MixedHelmholtzTests" begin include("MixedHelmholtzTests.jl") end
 
-# @testset "Laplace" begin include("tests/Laplace/seq/LaplaceBeltramiTests.jl") end
+# include("tests/Laplace/seq/runtests.jl")

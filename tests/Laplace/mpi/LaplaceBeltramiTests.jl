@@ -1,4 +1,4 @@
-module LaplaceBeltramiTestsSeq
+module LaplaceBeltramiTestsMPI
 using MPI, PartitionedArrays
 include("../LaplaceBeltrami.jl")
 
