@@ -4,7 +4,7 @@ using Test
 
 @testset "CellMap" begin include("CellMapTests.jl") end
 
-@testset "Normal" begin include("NormalTests.jl") end
+@testset "NormalVector" begin include("NormalVectorTests.jl") end
 
 @testset "Refinement" begin include("RefinementTests.jl") end
 
