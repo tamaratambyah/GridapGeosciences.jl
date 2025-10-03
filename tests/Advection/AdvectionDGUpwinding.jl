@@ -78,7 +78,15 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
   liform_advection(q) = ∫( (rhs_cf*q)*meas_cf )dΩ
 
   op = AffineFEOperator(biform_advection,liform_advection,P,Q)
-  uh = solve(LUSolver(),op)
+
+  # uh = solve(LUSolver(),op)
+  A = get_matrix(op)
+  b = get_vector(op)
+  ns = numerical_setup(symbolic_setup(ls,A),A)
+  x = allocate_in_domain(A); fill!(x,0.0)
+  solve!(x,ns,b)
+  uh = FEFunction(P,x)
+
 
   eu = l2((uh-u_cf)*meas_cf,dΩ)
 
