@@ -116,48 +116,23 @@ function main(distribute,nprocs)
 end
 
 ################################################################################
-#### Serieal convergence test
+#### Convergence test with plots
 ################################################################################
-function mixed_helmholtz_convergence_test(dir,analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
-  println("serial helmholtz mixed test")
 
-  models  = get_refined_models(n_ref_lvls)
-
-  for (key, val) in analytic_funcs
-    simName = "mixed_helmholtz_convergence_func_$(key)"
-
-    errors = Vector{Vector{Float64}}(undef,length(ps))
-    ns = Vector{Vector{Float64}}(undef,length(ps))
-    dxs = Vector{Vector{Float64}}(undef,length(ps))
-    slopes = Vector{Float64}(undef,length(ps))
-
-
-    for (i,p_fe) in enumerate(ps)
-      println("p_fe = $p_fe")
-      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,mixed_helmholtz_solver,val,p_fe,ls,return_vtk)
-    end
-    print_convergence_results(errors,ns,dxs,slopes,ps)
-    output = @strdict errors ns dxs slopes ps
-
-    safesave(datadir(dir, ("$simName.jld2")), output)
-
-    plot_convergence_from_saved(dir,simName,["u","s"])
-
-  end
-
-end
-
-################################################################################
-#### Distributed
-################################################################################
 function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
   analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
-  println("distributed helmholtz mixed test")
 
-  models,  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
+  # serial models
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+  end
 
   for (key, val) in analytic_funcs
     simName = "mixed_helmholtz_convergence_func_$(key)"
+    i_am_main(ranks) && println(simName)
 
     errors = Vector{Vector{Float64}}(undef,length(ps))
     ns = Vector{Vector{Float64}}(undef,length(ps))

@@ -34,21 +34,25 @@ function get_refined_models(n_ref_lvls::Int,coarse_model=false)
   panel_models
 end
 
-
 function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=true)
+  s_models  = get_refined_models(n_ref_lvls,coarse_s_model)
+  get_distributed_refined_models(ranks,nprocs,s_models)
+end
+
+
+function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:DiscreteModel})
 
   # get refined models in serial
-  s_models  = get_refined_models(n_ref_lvls,coarse_s_model)
   spanel_ids = map(m->get_panel_ids(m),s_models)
   s_model_coarse = s_models[end]
 
   # extract the models and glues in arrays
   models = map(m->Adaptivity.get_model(m),s_models[1:end-1])
   glues = map(m->get_adaptivity_glue(m),s_models[1:end-1])
-  if coarse_s_model
-    push!(models,s_model_coarse)
-  else
+  if typeof(s_model_coarse) <: AdaptedDiscreteModel
     push!(models,Adaptivity.get_model(s_model_coarse))
+  else
+    push!(models,s_model_coarse)
   end
 
   # partition the processors
