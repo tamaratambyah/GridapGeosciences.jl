@@ -33,3 +33,33 @@ function DistributedAdaptivityGlue(serial_glue,parent,child)
   end
   return glue
 end
+
+
+
+
+### return distributed version of serial model after n_ref_lvls of refinement
+function get_distributed_panel_model(ranks,nprocs,n_ref_lvls::Int)
+
+  # get refined models in serial
+  s_panel_model = coarse_parametric_model()
+  for n in 1:n_ref_lvls
+    s_panel_model = Gridap.Adaptivity.refine(s_panel_model)
+  end
+
+  spanel_ids = get_panel_ids(s_panel_model)
+
+  part_to_cells = [PartitionedArrays.local_range(rank,nprocs,num_cells(s_panel_model)) for rank in 1:nprocs]
+
+  # get the partition
+  fine_cell_to_part = zeros(Int32,num_cells(s_panel_model))
+  for (rank, cells) in enumerate(part_to_cells)
+    fine_cell_to_part[cells] .= rank
+  end
+
+  # distribute the model
+  dmodel = DiscreteModel(ranks,Adaptivity.get_model(s_panel_model),fine_cell_to_part)
+  dpanel_ids, = distributed_panel_ids(dmodel,spanel_ids)
+  panel_model = DistributedParametricDiscreteModel(dmodel,dpanel_ids)
+
+ return panel_model
+end
