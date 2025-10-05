@@ -18,7 +18,7 @@ using Test
 include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
-function laplace_beltrami_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
+function laplace_beltrami_solver(panel_model,p_fe::Int,f::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -87,7 +87,7 @@ function main(distribute,nprocs)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("laplace_beltrami_convergence_func_$(key)")
-    p_convergence_test(ranks,models,laplace_beltrami_solver,val,ps,ls)
+    p_convergence_test(ranks,ps,models,laplace_beltrami_solver,val,ls)
   end
 
 
@@ -120,7 +120,7 @@ function laplace_beltrami_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
 
     for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,laplace_beltrami_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,laplace_beltrami_solver,p_fe,val,ls,return_vtk)
     end
 
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)

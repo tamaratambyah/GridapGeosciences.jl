@@ -6,6 +6,7 @@ using Plots, LaTeXStrings
 include("../convergence_tools.jl")
 include("Helmholtz.jl")
 include("LaplaceBeltrami.jl")
+include("MixedHelmholtz.jl")
 include("analytic_funcs.jl")
 
 n_ref_lvls = 4

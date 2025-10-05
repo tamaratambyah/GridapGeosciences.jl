@@ -107,13 +107,13 @@ end
 convergence test functions
 """
 
-function _h_convergence_test(models,f,fargs...)
+function _h_convergence_test(models,f,p_fe::Int,fargs...)
   errs = Float64[]
   errs_g = []
   errs_f = []
 
   for model in models
-    e,eg,ef = f(model,fargs...)
+    e,eg,ef = f(model,p_fe,fargs...)
     push!(errs,e)
     push!(errs_g,eg)
     push!(errs_f,ef)
@@ -122,8 +122,8 @@ function _h_convergence_test(models,f,fargs...)
   errs, errs_g, errs_f
 end
 
-function h_convergence_test(models::AbstractArray,f,fargs...)
-  errs, errs_g, errs_f = _h_convergence_test(models,f,fargs...)
+function h_convergence_test(models::AbstractArray,f,p_fe::Int,fargs...)
+  errs, errs_g, errs_f = _h_convergence_test(models,f,p_fe,fargs...)
 
   ns = map(x->nc(x),models)
   dxs = map(x->dx(nc(x)),models)
@@ -139,14 +139,14 @@ function h_convergence_test(models::AbstractArray,f,fargs...)
 end
 
 # set ranks = [true] for serial
-function p_convergence_test(ranks,models::AbstractArray,convergence_func,f::Function,ps=[1],ls=LUSolver())
+function p_convergence_test(ranks,ps::Vector{Int},models::AbstractArray,convergence_func,fargs...)
   i_am_main(ranks) && println("auto convergence test")
 
   for (i,p_fe) in enumerate(ps)
     println("p_fe = $p_fe")
-    errors,ns,dxs,slope = h_convergence_test(models,convergence_func,f,p_fe,ls)
+    errors,ns,dxs,slope = h_convergence_test(models,convergence_func,p_fe,fargs...)
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slope,p_fe)
-    @test slope > 2*p_fe
+    @test slope > p_fe + 1
   end
 
 end

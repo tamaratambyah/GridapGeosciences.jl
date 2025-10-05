@@ -18,7 +18,7 @@ include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
 
-function helmholtz_solver(panel_model,f::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
+function helmholtz_solver(panel_model,p_fe::Int,f::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -83,7 +83,7 @@ function main(distribute,nprocs)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("helmholtz_convergence_func_$(key)")
-    p_convergence_test(ranks,models,helmholtz_solver,val,ps,ls)
+    p_convergence_test(ranks,ps,models,helmholtz_solver,val,ls)
   end
 
 
@@ -115,7 +115,7 @@ function helmholtz_convergence_test(ranks::AbstractArray,nprocs,dir,
 
     for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,helmholtz_solver,val,p_fe,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,helmholtz_solver,p_fe,val,ls,return_vtk)
     end
 
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
