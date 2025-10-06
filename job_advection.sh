@@ -13,6 +13,8 @@ source $HOME/scripts/load-intel.sh
 mpiexec -n 6 julia --project=$PBS_O_WORKDIR -e'
   using MPI
   using PartitionedArrays
+  include("tests/Transient/AdvectionSUPG.jl")
+
   options = """
     -ksp_type gmres
     -ksp_rtol 1.0e-6
