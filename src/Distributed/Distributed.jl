@@ -28,6 +28,7 @@ import Gridap.Visualization: writevtk, createvtk, write_vtk_file, create_vtk_fil
 include("ParametricOctreeDistributedDiscreteModels.jl")
 include("DistributedParametricDiscreteModel.jl")
 include("panelwise_cellfield.jl")
+include("panel_ids.jl")
 include("Vtk.jl")
 include("createpvd.jl")
 include("helpers.jl")
@@ -40,5 +41,6 @@ export _make_pvd_distributed
 export distributed_panel_ids
 export DistributedAdaptivityGlue
 export get_distributed_panel_model
+export get_panel_ids
 
 end

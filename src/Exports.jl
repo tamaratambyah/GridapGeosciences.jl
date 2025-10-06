@@ -93,3 +93,4 @@ end
 @publish Distributed distributed_panel_ids
 @publish Distributed DistributedAdaptivityGlue
 @publish Distributed get_distributed_panel_model
+@publish Distributed get_panel_ids

@@ -32,7 +32,7 @@ end
 
 function get_panel_ids(trian::BodyFittedTriangulation)
   panel_model = get_background_model(trian)
-  @check typeof(panel_model) <: ParametricDiscreteModel
+  @check typeof(panel_model) <: ParametricDiscreteModel "\n Not a ParametricDiscreteModel"
   get_panel_ids(panel_model)
 end
 
