@@ -6,7 +6,6 @@ using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using Gridap.Algebra, Gridap.FESpaces
 using LinearAlgebra
 using FillArrays
-using Plots, LaTeXStrings
 
 import ..RADIUS
 
