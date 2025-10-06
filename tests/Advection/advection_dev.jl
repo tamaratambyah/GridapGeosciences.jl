@@ -17,7 +17,7 @@ using Plots, LaTeXStrings
 using GridapPETSc
 
 
-include("Lauritzen_functions.jl")
+include("../Transient/Lauritzen_functions.jl")
 include("../Distributed/distributed_model.jl")
 
 dir = datadir("Transient_advection_test_supg_debug2")

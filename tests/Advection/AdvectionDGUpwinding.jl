@@ -4,7 +4,20 @@ Solve with dG upwinding as per Brezzi 2004 paper
 Replicate test in Section 5.4 of Rognes2013 paper
 """
 
-using Gridap.Geometry, Gridap.Algebra
+module AdvectionDGUpwinding
+
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+
+using GridapGeosciences
+using Test
+
+include("advection_funcs.jl")
+include("../convergence_tools.jl")
 
 function my_mean( Bu_n::SkeletonPair)
   plus  = ( Bu_n.plus)
@@ -24,7 +37,7 @@ end
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,p_fe::Int,ls=LUSolver(),return_vtk=false)
+function advection_dg_solver(panel_model,p_fe::Int,u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -51,7 +64,12 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  vel = interpolate(v_contr_cf,U)
+  # vel = interpolate(v_contr_cf,U)
+  _a(u,v) = ∫( u⋅v )dΩ
+  _l(v) = ∫( v_contr_cf ⋅ v )dΩ
+  op = AffineFEOperator(_a,_l,U,V)
+  vel = solve(LUSolver(),op)
+
   meas_cf = CellField(sqrtg,Ω_panel)
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
@@ -92,7 +110,7 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(panel_ids)
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -101,14 +119,51 @@ function advection_dg_solver(panel_model,u::Function,vX::Function,uvX::Function,
   return eu,false,false
 end
 
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
 
+  n_ref_lvls = 4
+  ps = [1,2,3]
+  ls = LUSolver()
 
-function advection_dg_convergence_test(dir,u::Function,vX::Function,uvX::Function,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
-  println("serial advection DG test")
+  vX = panel_to_cartesian(tangent_vec(vecX))
+  u = panel_to_cartesian(u0)
+  uvX = panel_to_cartesian(u0vecX)
 
   models  = get_refined_models(n_ref_lvls)
 
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+  end
+
+  i_am_main(ranks) && println("advection_dg_convergence_func")
+  p_convergence_test(ranks,ps,models,advection_dg_solver,u,vX,uvX,ls)
+
+end
+
+
+
+################################################################################
+#### Convergence test with plots
+################################################################################
+function advection_dg_convergence_test(ranks,nprocs,dir,u::Function,vX::Function,uvX::Function,
+  n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
+
+  # serial models
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+  end
+
   simName = "advection_dg_convergence_func"
+  i_am_main(ranks) && println(simName)
 
   errors = Vector{Vector{Float64}}(undef,length(ps))
   ns = Vector{Vector{Float64}}(undef,length(ps))
@@ -117,137 +172,18 @@ function advection_dg_convergence_test(dir,u::Function,vX::Function,uvX::Functio
 
   for (i,p_fe) in enumerate(ps)
     println("p_fe = $p_fe")
-    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,advection_dg_solver,u,vX,uvX,p_fe,ls,return_vtk)
+    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,advection_dg_solver,p_fe,u,vX,uvX,ls,return_vtk)
   end
 
-  print_convergence_results(errors,ns,dxs,slopes,ps)
+  i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
+
   output = @strdict errors ns dxs slopes ps
+  i_am_main(ranks) && safesave(datadir(dir, ("$simName.jld2")), output)
 
-  safesave(datadir(dir, ("$simName.jld2")), output)
-
-  plot_convergence_from_saved(dir,simName)
+  i_am_main(ranks) && plot_convergence_from_saved(dir,simName)
 
 
 end
 
 
-################################################################################
-#### Transient
-################################################################################
-function transient_advection_dg(panel_model,u::Function,vX::Function,p_fe::Int,CFL=0.1,return_vtk=false)
-  lvl = nref(nc(panel_model))
-  println("nref = $lvl")
-
-  panel_ids = get_panel_ids(panel_model)
-  degree = 2*(p_fe + 1)
-
-  Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,degree)
-
-  Λ = SkeletonTriangulation(panel_model)
-  dΛ = Measure(Λ,degree)
-  n_Λ = get_normal_vector(Λ)
-
-  v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
-
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
-  P = TransientTrialFESpace(Q)
-
-  # hard code RT space as order 1 -- for velocity
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
-  U = TrialFESpace(V)
-
-  # initial conditions
-  vel = interpolate(v_contr_cf,U)
-  uh0 = interpolate(u_cf, P(0.0))
-
-  meas_cf = CellField(sqrtg,Ω_panel)
-
-  ## weak form
-  a_mass(t,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
-
-  a_Ω(u,v) =   ∫( -(u*(∇(v)⋅vel) )*meas_cf )dΩ
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
-
-  upwind = abs((vel⋅ n_Λ).plus)/2
-  a_s2(u,v) = ∫(  upwind*jump(u)*jump(v)*meas_cf   )dΛ
-
-  res(t,u,v) =  a_Ω(u,v) + a_s1(u,v) + a_s2(u,v)
-  jac(t,u,du,v) = a_Ω(du,v) + a_s1(du,v) + a_s2(du,v)
-  jac_t(t,u,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
-  opT = TransientSemilinearFEOperator(a_mass, res, (jac,jac_t), P, Q, constant_mass=true)
-
-  # solve with SSP RK 3
-  t0, tF = 0.0, 2*π
-  _dt = dx(nc(panel_model))*CFL/p_fe
-  dt = floor(_dt,sigdigits=1)
-
-
-  solver = RungeKutta(LUSolver(), LUSolver(), dt, :EXRK_SSP_3_3)
-  solT = solve(solver, opT, t0, tF, uh0)
-
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
-
-  cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
-  if return_vtk
-    dir = datadir("Transient_advection_nref$lvl")
-    !isdir(dir) && mkdir(dir)
-    !isdir(plotsdir()) && mkdir(plotsdir())
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covarient_basis_cf⋅ vel],append=false,geo_map=cell_geo_map)
-  end
-
-  ## store errors
-  ts = Float64[]
-  Es = Float64[]
-
-  push!(ts,0.0)
-  push!(Es,0.0)
-
-  for (t,uh) in solT
-
-    println(t)
-
-    eu = l2((uh-uh0)*meas_cf,dΩ)
-
-    push!(ts,t)
-    push!(Es,eu)
-
-    if return_vtk
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh],append=false,geo_map=cell_geo_map)
-    end
-  end
-
-  if return_vtk
-    make_pvd(dir,"solT",1)
-  end
-
-  plot()
-  plot!(ts,Es,lw=3,label="nref = $lvl")
-  plot!(xlabel="t",ylabel=L"L2(u_0-u_t)")
-  savefig(plotsdir()*"/advection_transient_error_nref$lvl")
-
-
-  return Es[end]
-
-end
-
-
-function transient_advection_dg_errors(panel_model,args...)
-  e_u  = transient_advection_dg(panel_model,args...)
-  return e_u,false,false
-end
-
-function transient_advection_dg_convergence_test(n_ref_lvls,u,vX,CFL=0.1,return_vtk=false)
-
-  for p_fe in [1]
-    errs,ns,dxs,slope = convergence_test(transient_advection_dg_errors,n_ref_lvls,u,vX,p_fe,CFL,return_vtk)
-    plot()
-    plot_convergence(errs,ns,dxs,slope;
-        leginf=["u: p=$p_fe"],
-        colors=[palette(:tab10)[p_fe]],
-        ls=[:solid, :dot], )
-  end
-  savefig(plotsdir()*"/transient_advection_dg_convergence")
-
-end
+end #module

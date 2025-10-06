@@ -15,8 +15,6 @@ ranks = with_debug() do distribute
 end
 
 
-
-
 panel_model = get_distributed_panel_model(ranks,nprocs,6)
 
 cell_geo_map = geo_map_func(get_panel_ids(panel_model))
