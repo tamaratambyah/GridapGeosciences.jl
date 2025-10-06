@@ -16,12 +16,14 @@ include("../helpers.jl")
 ################################################################################
 #### Transient
 ################################################################################
-function transient_advection_supg(panel_model,p_fe::Int,u::Function,v::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
+      u::Function,v::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+
   lvl = nref(nc(panel_model))
-  println("nlevl = $lvl")
+  i_am_main(ranks) && println("nlevl = $lvl")
 
   dir = datadir("Transient_advection_nref$lvl")
-  (return_vtk && !isdir(dir)) && mkdir(dir)
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 
   panel_ids = get_panel_ids(panel_model)
@@ -105,7 +107,7 @@ function transient_advection_supg(panel_model,p_fe::Int,u::Function,v::Function,
 
   for (t,uh) in solT
 
-    println(t)
+    i_am_main(ranks) && println(t)
 
     eu = l2((uh-uh0)*meas_cf,dΩ)
 
@@ -118,7 +120,7 @@ function transient_advection_supg(panel_model,p_fe::Int,u::Function,v::Function,
   end
 
   output = @strdict ts Es
-  safesave(datadir(dir, ("advection_errors.jld2")), output)
+  i_am_main(ranks) && safesave(datadir(dir, ("advection_errors.jld2")), output)
 
   return Es[end],false,false
 end
@@ -144,7 +146,7 @@ function main(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_vtk=false)
 
   panel_model = get_distributed_panel_model(ranks,nprocs,n_ref_lvls)
 
-  transient_advection_supg(panel_model,p_fe,u,v,CFL,ls,tF,return_vtk)
+  transient_advection_supg(ranks,panel_model,p_fe,u,v,CFL,ls,tF,return_vtk)
 
   GridapPETSc.Finalize()
   GridapPETSc.gridap_petsc_gc()
