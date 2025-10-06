@@ -24,7 +24,7 @@ mpiexec -n 6 julia --project=$PBS_O_WORKDIR -e'
 
    with_mpi() do distribute
       AdvectionSUPG.main(distribute;nprocs=6,options=options,
-        n_ref_lvls=6,p_fe=1,CFL=0.1,tF=5,return_vtk=true)
+        n_ref_lvls=6,p_fe=1,CFL=0.1,tF=15,return_vtk=true)
   end                  
 
 ' 

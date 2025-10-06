@@ -22,7 +22,7 @@ function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nlevl = $lvl")
 
-  dir = datadir("Transient_advection_nref$lvl")
+  dir = datadir("Transient_advection_nref$(lvl)_long")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 
@@ -105,6 +105,7 @@ function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
   push!(ts,0.0)
   push!(Es,0.0)
 
+  counter = 1
   for (t,uh) in solT
 
     i_am_main(ranks) && println(t)
@@ -113,10 +114,11 @@ function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
 
     push!(ts,t)
     push!(Es,eu)
-    if return_vtk
+    if return_vtk && (mod(counter,10) == 0)
       # writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh],append=false,geo_map=cell_geo_map)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh,"v"=>covarient_basis_cf⋅ get_velocity(t)],append=false,geo_map=cell_geo_map)
     end
+    counter = counter + 1
   end
 
   output = @strdict ts Es
