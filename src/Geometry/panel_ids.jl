@@ -30,6 +30,14 @@ function get_panel_ids!(panel_ids, model::Gridap.Adaptivity.AdaptedDiscreteModel
 end
 
 
+function get_panel_ids(trian::BodyFittedTriangulation)
+  panel_model = get_background_model(trian)
+  @check typeof(panel_model) <: ParametricDiscreteModel
+  get_panel_ids(panel_model)
+end
+
+
+
 function geo_map_func(panel_ids::AbstractArray{Int})
   println("serial geo map")
   return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)

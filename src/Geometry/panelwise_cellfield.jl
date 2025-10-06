@@ -21,6 +21,13 @@ function panelwise_cellfield(cf::SkeletonPair,atrian::AdaptedTriangulation)
   return SkeletonPair(plus,minus)
 end
 
+### For BodyFittedTriangulation, get the panel ids from the background model
+function panelwise_cellfield(f::Function,trian::BodyFittedTriangulation)
+  panel_ids = get_panel_ids(trian)
+  panelwise_cellfield(f,trian,panel_ids)
+end
+
+
 ### For Skeleton and Boundary Triangulations, map with map from reference face
 ### Thus, return cellfield on the reference domain
 
