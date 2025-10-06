@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -P zg98
 #PBS -q normal
-#PBS -l walltime=1:00:00
+#PBS -l walltime=8:00:00
 #PBS -l ncpus=6
 #PBS -l mem=24gb
 #PBS -N advection
@@ -24,7 +24,7 @@ mpiexec -n 6 julia --project=$PBS_O_WORKDIR -e'
 
    with_mpi() do distribute
       AdvectionSUPG.main(distribute;nprocs=6,options=options,
-        n_ref_lvls=6,p_fe=1,CFL=0.1,tF=0.1,return_vtk=true)
+        n_ref_lvls=6,p_fe=1,CFL=0.1,tF=5,return_vtk=true)
   end                  
 
 ' 

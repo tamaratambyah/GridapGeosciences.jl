@@ -122,6 +122,8 @@ function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
   output = @strdict ts Es
   i_am_main(ranks) && safesave(datadir(dir, ("advection_errors.jld2")), output)
 
+  _make_pvd_distributed(dir,"solT",1)
+
   return Es[end],false,false
 end
 
