@@ -79,7 +79,6 @@ end
 
 @publish Distributed ParametricOctreeDistributedDiscreteModel
 @publish Distributed DistributedParametricDiscreteModel
-@publish Distributed DistributedAdaptedParametricDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed panelwise_cellfield
 
