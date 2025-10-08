@@ -1,0 +1,45 @@
+module DistributedTriangulationTests
+using Gridap
+using GridapGeosciences
+using Test
+using GridapDistributed
+
+# using Test; @testset "DistributedTriangulationIds" begin include("tests/Distributed/DistributedTriangulationTests.jl") end
+
+include("../convergence_tools.jl")
+
+################################################################################
+## Test the evaluation of cmaps on DistributedTriangulations
+################################################################################
+
+function test_triangulation(trian::GridapDistributed.DistributedTriangulation)
+  map(trian.trians) do trian
+    cmap = get_cell_map(trian)
+    pts = get_cell_ref_coordinates(trian)
+    lazy_map(evaluate,cmap,pts)
+    @test true
+  end
+end
+
+nprocs = 6
+ranks = with_debug() do distribute
+  distribute(LinearIndices((nprocs,)))
+end
+
+n_ref_lvls = 2
+dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+
+model = dmodels[2]
+
+trian = Triangulation(model)
+test_triangulation(trian)
+
+btrian = BoundaryTriangulation(model)
+test_triangulation(btrian)
+
+strian = SkeletonTriangulation(model)
+test_triangulation(strian)
+
+
+
+end

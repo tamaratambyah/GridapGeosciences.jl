@@ -33,7 +33,8 @@ end
 
 function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=true)
   s_models  = get_refined_models(n_ref_lvls,coarse_s_model)
-  get_distributed_refined_models(ranks,nprocs,s_models)
+  dmodels, dpanel_ids, owned_panel_ids = get_distributed_refined_models(ranks,nprocs,s_models)
+  dmodels
 end
 
 
@@ -73,25 +74,22 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
 
   # construct array of distributed models, distributed panel ids (all + owned only)
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,length(models))
-  # dmodels = Vector{Any}(undef,length(models))
   dpanel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
   owned_panel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
 
   # the coarsest model is the last in the list
-  coarse_dmodel = UnstructuredDiscreteModel(DiscreteModel(ranks,models[end],cell_to_part[end]))
+  coarse_dmodel = DiscreteModel(ranks,models[end],cell_to_part[end])
   dpanel_ids[end],owned_panel_ids[end] = distributed_panel_ids(coarse_dmodel,spanel_ids[end])
   dmodels[end] = DistributedParametricDiscreteModel(coarse_dmodel,dpanel_ids[end])
 
   # loop backwards through refinement levels
   for level in length(models)-1:-1:1
-    child = UnstructuredDiscreteModel(DiscreteModel(ranks,models[level],cell_to_part[level]))
+    child = DiscreteModel(ranks,models[level],cell_to_part[level])
     parent = dmodels[level+1]
     glue = DistributedAdaptivityGlue(glues[level],parent,child)
     dpanel_ids[level],owned_panel_ids[level] = distributed_panel_ids(child,spanel_ids[level])
 
-    # dmodels[level] = DistributedAdaptedParametricDiscreteModel(child,parent,glue,dpanel_ids[level])
     dmodels[level] = DistributedParametricDiscreteModel(child, dpanel_ids[level])
-    # dmodels[level] = DiscreteModel(ranks,models[level],cell_to_part[level])
   end
 
   return dmodels, dpanel_ids, owned_panel_ids

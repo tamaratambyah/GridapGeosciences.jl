@@ -35,12 +35,15 @@ function Geometry.BoundaryTriangulation(
   Dc = num_cell_dims(model)
   d = Dc - 1
 
+  # Note, restrict the cell_to_nodes and cell_to_type based on the mask
+  # This is because the Distributed constructor dispatches here and in Distributed,
+  # we do not always have a left cell / right cell on every processor
   node_coordinates = collect1d(get_node_coordinates(model))
   cell_to_nodes = Table(lazy_map(Reindex(get_face_nodes(model,d)),face_to_bgface))
   cell_to_type = collect1d(lazy_map(Reindex(get_face_type(model,d)),face_to_bgface))
   reffes = get_reffaces(ReferenceFE{d},model)
 
-  # arbitary boundary triangulation to get F2Fglue
+  # make the facegrid with wrong fmaps to get F2Fglue
   # Note, F2Fglue only on reference cell, so okay to use junk nodes
   _face_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,NonOriented())
   _cell_grid = get_grid(model)
@@ -62,7 +65,7 @@ function Geometry.BoundaryTriangulation(
   cfmaps = lazy_map(Reindex(cmaps),face_2_cell_ids)
   fmaps = lazy_map(∘, cfmaps,ref_face_2_ref_cell_map)
 
-  # make the boundary triangulation
+  # make the facegrid with correct fmaps
   face_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,NonOriented(),nothing,fmaps)
   cell_grid = get_grid(model)
   glue = Geometry.FaceToCellGlue(topo,cell_grid,face_grid,face_to_bgface,bgface_to_lcell)
