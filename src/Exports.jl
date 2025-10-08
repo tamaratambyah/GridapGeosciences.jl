@@ -93,3 +93,6 @@ end
 @publish Distributed DistributedAdaptivityGlue
 @publish Distributed get_distributed_panel_model
 @publish Distributed get_panel_ids
+@publish Distributed get_owned_panel_ids
+@publish Distributed get_skel_panel_ids
+@publish Distributed BoundaryTriangulation

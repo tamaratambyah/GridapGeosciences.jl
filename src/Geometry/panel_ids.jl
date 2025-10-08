@@ -36,6 +36,7 @@ function get_panel_ids(trian::BodyFittedTriangulation,global_pids=[1])
   get_panel_ids(panel_model)
 end
 
+## for distributed
 function get_panel_ids(trian::Gridap.Geometry.TriangulationView,panel_ids::AbstractArray)
   println("new panel ids")
   panel_model = get_background_model(trian)

@@ -35,10 +35,14 @@ function Geometry.BoundaryTriangulation(
   Dc = num_cell_dims(model)
   d = Dc - 1
 
+  node_coordinates = collect1d(get_node_coordinates(model))
+  cell_to_nodes = Table(lazy_map(Reindex(get_face_nodes(model,d)),face_to_bgface))
+  cell_to_type = collect1d(lazy_map(Reindex(get_face_type(model,d)),face_to_bgface))
+  reffes = get_reffaces(ReferenceFE{d},model)
+
   # arbitary boundary triangulation to get F2Fglue
   # Note, F2Fglue only on reference cell, so okay to use junk nodes
-  _bgface_grid = Grid(ReferenceFE{Dc-1},model)
-  _face_grid = view(_bgface_grid,face_to_bgface)
+  _face_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,NonOriented())
   _cell_grid = get_grid(model)
   _btrian = BodyFittedTriangulation(model,_face_grid,face_to_bgface)
   _glue = Geometry.FaceToCellGlue(topo,_cell_grid,_face_grid,face_to_bgface,bgface_to_lcell)
@@ -53,21 +57,13 @@ function Geometry.BoundaryTriangulation(
   # compose face map and cell map
   ref_face_2_ref_cell_map = F2Fglue.tface_to_mface_map;   println((ref_face_2_ref_cell_map))
   cmaps = get_cell_map(get_grid(model))
+
   # cfmaps = map(f-> cmaps[f],face_2_cell_ids)
   cfmaps = lazy_map(Reindex(cmaps),face_2_cell_ids)
   fmaps = lazy_map(∘, cfmaps,ref_face_2_ref_cell_map)
 
-
-  ## make bgface_grid with proper face maps
-  node_coordinates = collect1d(get_node_coordinates(model))
-  cell_to_nodes = Table(get_face_nodes(model,d))
-  cell_to_type = collect1d(get_face_type(model,d))
-  reffes = get_reffaces(ReferenceFE{d},model)
-  bgface_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,NonOriented(),
-              nothing,fmaps)
-
   # make the boundary triangulation
-  face_grid = view(bgface_grid,face_to_bgface)
+  face_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,NonOriented(),nothing,fmaps)
   cell_grid = get_grid(model)
   glue = Geometry.FaceToCellGlue(topo,cell_grid,face_grid,face_to_bgface,bgface_to_lcell)
   trian = BodyFittedTriangulation(model,face_grid,face_to_bgface)

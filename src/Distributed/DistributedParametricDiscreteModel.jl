@@ -6,10 +6,6 @@
 ################################################################################
 const DistributedParametricDiscreteModel{Dc,Dp} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{<:ParametricDiscreteModel{Dc,Dp}}}
 
-struct DistributedParametricDiscreteModelCache{A}
-  dpanel_ids::A
-end
-
 function DistributedParametricDiscreteModel(
   model::GridapDistributed.DistributedDiscreteModel,
   dpanel_ids::AbstractArray
@@ -27,20 +23,30 @@ function DistributedParametricDiscreteModel(
               get_reffes(_grid),ctype,OrientationStyle(_grid),
                         nothing,cmaps)
 
-
     topo = UnstructuredGridTopology(get_grid_topology(model))
     labels = FaceLabeling(topo)
 
     # extract the owned panel ids
-    owned_cells = own_to_local(cids)
-    panel_ids = pids[owned_cells]
-    ParametricDiscreteModel(grid,topo,labels,panel_ids)
+    #owned_cells = local_to_global(cids)
+    #panel_ids = pids[owned_cells]
+    ParametricDiscreteModel(grid,topo,labels,pids)
    end
 
-  metadata = DistributedParametricDiscreteModelCache(dpanel_ids)
+  metadata = nothing
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids;metadata)
 end
 
 function get_panel_ids(dmodel::DistributedParametricDiscreteModel)
   return map(get_panel_ids,local_views(dmodel))
+end
+
+function get_owned_panel_ids(dmodel::DistributedParametricDiscreteModel)
+  gids = get_cell_gids(dmodel)
+  dpanel_ids = get_panel_ids(dmodel)
+
+  panel_ids = map(dpanel_ids,partition(gids)) do pids, cids
+    owned_cells = own_to_local(cids)
+    return pids[owned_cells]
+  end
+  return panel_ids
 end

@@ -1,5 +1,4 @@
 using Gridap
-# using Pkg
 using GridapGeosciences
 using DrWatson
 using FillArrays
@@ -91,11 +90,14 @@ end
 #### BodyFittedTriangulation
 ################################################################################
 
+
 dpanel_model = dmodels[2]
 get_panel_ids(dpanel_model)
 
 trian = Triangulation(dpanel_model)
-cell_geo_map = geo_map_func(get_panel_ids(trian))
+get_panel_ids(trian)
+get_owned_panel_ids(trian)
+cell_geo_map = geo_map_func(get_owned_panel_ids(trian))
 writevtk(trian,dir*"/distributed_model",append=false,geo_map=cell_geo_map)
 
 ################################################################################
@@ -103,124 +105,22 @@ writevtk(trian,dir*"/distributed_model",append=false,geo_map=cell_geo_map)
 #### Need to return the mask that is all the interior cells
 ################################################################################
 
-function Geometry.BoundaryTriangulation(
-  portion,model::DistributedParametricDiscreteModel,labels::GridapDistributed.DistributedFaceLabeling;tags=nothing)
-  println("distribue booundary trian")
-  Dc = num_cell_dims(model)
-
-  topo = get_grid_topology(model)
-  face_to_mask = get_isboundary_face(topo,Dc-1) # This is globally consistent
-
-  ## for ParametricDiscreteModel, we want all cells that are not the boundary
-  ## i.e. all internal cells
-  _face_to_mask = map(face_to_mask) do m
-    return .!m
-  end
-
-  Geometry.BoundaryTriangulation(portion,model,_face_to_mask)
-end
-
 btrian = BoundaryTriangulation(dpanel_model)
 b_panel_ids =  get_panel_ids(btrian)
 
 b_geo_map = geo_map_func(b_panel_ids)
 writevtk(btrian,dir*"/distributed_boundary_trian",append=false,geo_map=b_geo_map)
 
-function Geometry.BoundaryTriangulation(
-  portion,model::DistributedParametricDiscreteModel,face_to_mask::AbstractArray,lcell=1)
-  println("Distributed boundary trian with lcell")
-  Dc = num_cell_dims(model)
-  gids = get_face_gids(model,Dc)
-  trians = map(local_views(model),face_to_mask) do model, face_to_mask
-    BoundaryTriangulation(model,face_to_mask,lcell)
-  end
-  parent = GridapDistributed.DistributedTriangulation(trians,model)
-  return GridapDistributed.filter_cells_when_needed(portion,gids,parent)
-end
+
 
 ################################################################################
 #### SkeletonTriangulation
-#### Need to return the mask that is all the interior cells
-#### Take information for lcell=1, lcell=2
-#### Why does lcell=2 fail? Something wrong with the mask ... how to correct?
+#### Need to dispatch to serial
 ################################################################################
-
-model = dpanel_model
-Dc = num_cell_dims(model)
-topo = get_grid_topology(model)
-face_to_mask = get_isboundary_face(topo,Dc-1) # This is globally consistent
-
-## for ParametricDiscreteModel, we want all cells that are not the boundary
-## i.e. all internal cells
-_face_to_mask = map(face_to_mask) do m
-  return .!m
-end
-
-btrian_left = BoundaryTriangulation(no_ghost,dpanel_model,_face_to_mask,1)
-btrian_right = BoundaryTriangulation(no_ghost,dpanel_model,_face_to_mask,2)
-
-
-
-function Geometry.SkeletonTriangulation(
-  portion,model::DistributedParametricDiscreteModel;kwargs...)
-  Dc = num_cell_dims(model)
-  gids = get_face_gids(model,Dc)
-
-  topo = get_grid_topology(model)
-  face_to_mask = get_isboundary_face(topo,Dc-1) # This is globally consistent
-
-  ## for ParametricDiscreteModel, we want all cells that are not the boundary
-  ## i.e. all internal cells
-  _face_to_mask = map(face_to_mask) do m
-    return .!m
-  end
-
-  trians = map(local_views(model),_face_to_mask) do model,face_to_mask
-    plus = Geometry.BoundaryTriangulation(model,face_to_mask,1)
-    minus = Geometry.BoundaryTriangulation(model,face_to_mask,2)
-    SkeletonTriangulation(plus,minus)
-  end
-  parent = GridapDistributed.DistributedTriangulation(trians,model)
-  return GridapDistributed.filter_cells_when_needed(portion,gids,parent)
-end
-
-
-### debug
 skel = SkeletonTriangulation(dpanel_model)
 
-tt = skel.trians.items[6].plus
-cmap = get_cell_map(tt)
-pts = get_cell_ref_coordinates(tt)
-lazy_map(evaluate,cmap,pts)
+skel_panel_ids = get_panel_ids(skel)
+_skel_panel_ids = get_skel_panel_ids(skel_panel_ids)
 
-
-writevtk(skel,dir*"/distributed_skel_trian",append=false)
-
-dpanel_ids = skel.model.metadata.dpanel_ids
-
-skel_panel_ids_plus = map(skel.trians,dpanel_ids) do trian, panel_ids
-  btrian = trian.plus
-  panel_model = get_background_model(btrian)
-  Dc = num_cell_dims(panel_model)
-  glue = get_glue(btrian,Val(Dc))
-  face_2_cell = glue.tface_to_mface
-  face_panel_ids = panel_ids[face_2_cell]
-  return face_panel_ids
-end
-
-skel_panel_ids_minus = map(skel.trians,dpanel_ids) do trian, panel_ids
-  btrian = trian.minus
-  panel_model = get_background_model(btrian)
-  Dc = num_cell_dims(panel_model)
-  glue = get_glue(btrian,Val(Dc))
-  face_2_cell = glue.tface_to_mface
-  face_panel_ids = panel_ids[face_2_cell]
-  return face_panel_ids
-end
-
-skel_panel_ids = SkeletonPair(skel_panel_ids_plus,skel_panel_ids_minus)
-
-skel_geo_map = geo_map_func(skel_panel_ids.plus)
+skel_geo_map = geo_map_func(_skel_panel_ids)
 writevtk(skel,dir*"/distributed_skel_trian",append=false,geo_map=skel_geo_map)
-
-skel = SkeletonTriangulation(dpanel_model)
