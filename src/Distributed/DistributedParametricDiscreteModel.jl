@@ -17,9 +17,19 @@ function DistributedParametricDiscreteModel(
   gids = get_cell_gids(model)
 
   models = map(local_views(model),dpanel_ids,partition(gids)) do model, pids, cids
-    grid = get_grid(model)
-    topo = get_grid_topology(model)
-    labels = get_face_labeling(model)
+    _grid = get_grid(model)
+
+    ## construct the new grid by hand, so that specific cmaps are given
+    nodes = collect1d(get_node_coordinates(_grid)) # these are just junk nodes, never used
+    ctype = collect1d(get_cell_type(_grid))
+    cmaps = collect1d(get_cell_map(_grid))
+    grid = Gridap.Geometry.UnstructuredGrid(nodes,get_cell_node_ids(_grid),
+              get_reffes(_grid),ctype,OrientationStyle(_grid),
+                        nothing,cmaps)
+
+
+    topo = UnstructuredGridTopology(get_grid_topology(model))
+    labels = FaceLabeling(topo)
 
     # extract the owned panel ids
     owned_cells = own_to_local(cids)

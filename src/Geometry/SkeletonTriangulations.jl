@@ -1,4 +1,5 @@
-function get_panel_ids(strian::SkeletonTriangulation)
+# need this global_pids junk array for dispatching in Distributed
+function get_panel_ids(strian::SkeletonTriangulation,global_pids=[1])
   plus = get_face_panel_ids(strian.plus)
   minus = get_face_panel_ids(strian.plus)
   SkeletonPair(plus,minus)

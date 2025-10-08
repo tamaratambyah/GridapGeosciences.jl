@@ -10,3 +10,4 @@ Es = df["Es"]
 plot()
 plot!(ts,Es,lw=3)
 plot!(xlabel="t",ylabel="L2(u - uh)")
+savefig(plotsdir()*"/advection_errors")

@@ -29,6 +29,7 @@ function Geometry.BoundaryTriangulation(
   )
 
   println("my boundary trian")
+  println(bgface_to_lcell)
 
   topo = get_grid_topology(model)
   Dc = num_cell_dims(model)
@@ -47,12 +48,13 @@ function Geometry.BoundaryTriangulation(
   # tface_to_mface_map = Gridap.Geometry.compute_face_to_cell_reference_map(_cell_grid,_face_grid,_glue)
 
   ## get the face2cell_ids
-  face_2_cell_ids = _glue.face_to_cell
+  face_2_cell_ids = _glue.face_to_cell; println(length(face_2_cell_ids))
 
   # compose face map and cell map
-  ref_face_2_ref_cell_map = F2Fglue.tface_to_mface_map
+  ref_face_2_ref_cell_map = F2Fglue.tface_to_mface_map;   println((ref_face_2_ref_cell_map))
   cmaps = get_cell_map(get_grid(model))
-  cfmaps = map(f-> cmaps[f],face_2_cell_ids)
+  # cfmaps = map(f-> cmaps[f],face_2_cell_ids)
+  cfmaps = lazy_map(Reindex(cmaps),face_2_cell_ids)
   fmaps = lazy_map(∘, cfmaps,ref_face_2_ref_cell_map)
 
 
@@ -77,8 +79,8 @@ end
 """
 return face-wise array of panel ids
 """
-
-function get_panel_ids(btrian::BoundaryTriangulation)
+# need this global_pids junk array for dispatching in Distributed
+function get_panel_ids(btrian::BoundaryTriangulation,global_pids=[1])
   get_face_panel_ids(btrian)
 end
 
