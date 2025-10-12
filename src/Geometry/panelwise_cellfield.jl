@@ -1,10 +1,16 @@
-function panelwise_cellfield(f::Function,trian::Triangulation,panel_ids::AbstractArray{Int})
+function panelwise_cellfield(f::Function,trian::BodyFittedTriangulation,panel_ids::AbstractArray{Int})
   @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
   cell_field = map(p->GenericField(f(p)),panel_ids)
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end
 
 ### For Adapted Triangulations, return cellfield on the atrian
+function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids::AbstractArray{Int})
+  println("Adapted Triangulation")
+  cf = panelwise_cellfield(f,atrian.trian,panel_ids)
+  panelwise_cellfield(cf,atrian)
+end
+
 function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation)
   println("Adapted Boundary Triangulation")
   cf = panelwise_cellfield(f,atrian.trian)
@@ -21,10 +27,9 @@ function panelwise_cellfield(cf::SkeletonPair,atrian::AdaptedTriangulation)
   return SkeletonPair(plus,minus)
 end
 
-### For BodyFittedTriangulation, get the panel ids from the background model
-function panelwise_cellfield(f::Function,trian::BodyFittedTriangulation)
-  panel_ids = get_panel_ids(trian)
-  panelwise_cellfield(f,trian,panel_ids)
+
+function panelwise_cellfield(f::Function,trian::TriangulationView)
+  panelwise_cellfield(f,trian.parent)
 end
 
 
@@ -33,13 +38,18 @@ end
 
 ### Boundary
 function panelwise_cellfield(f::Function,trian::BoundaryTriangulation)
-  _face_cf = boundary_cell_data(f,trian)
+  face_panel_ids = get_panel_ids(trian)
+  panelwise_cellfield(f,trian,face_panel_ids)
+end
+
+function panelwise_cellfield(f::Function,trian::BoundaryTriangulation,face_panel_ids::AbstractArray{Int})
+  _face_cf = _boundary_cell_data(f,trian,face_panel_ids)
   face_cf = GenericCellField(_face_cf,trian,ReferenceDomain())
   return face_cf
 end
 
-function boundary_cell_data(f::Function,trian::BoundaryTriangulation)
-  face_panel_ids = get_panel_ids(trian)
+function _boundary_cell_data(f::Function,trian,face_panel_ids::AbstractArray)
+  # face_panel_ids = get_panel_ids(trian)
 
   @check length(face_panel_ids) == num_cells(trian) "\n Incorrect panel ids"
 
@@ -61,13 +71,16 @@ end
 
 ### Skeleton - left and right boundary triangulations returned as SkeletonPair
 function panelwise_cellfield(f::Function,trian::SkeletonTriangulation)
+  # panel_ids = get_panel_ids(trian)
   ### plus
-  _face_cf_plus = boundary_cell_data(f,trian.plus)
-  plus = GenericCellField(_face_cf_plus,trian,ReferenceDomain())
+  # _face_cf_plus = _boundary_cell_data(f,trian.plus,panel_ids.plus)
+  _face_cf_plus = panelwise_cellfield(f,trian.plus)
+  plus = GenericCellField(get_data(_face_cf_plus),trian,ReferenceDomain())
 
   #### minus
-  _face_cf_minus = boundary_cell_data(f,trian.minus)
-  minus = GenericCellField(_face_cf_minus,trian,ReferenceDomain())
+  # _face_cf_minus = _boundary_cell_data(f,trian.minus,panel_ids.minus)
+  _face_cf_minus = panelwise_cellfield(f,trian.minus)
+  minus = GenericCellField(get_data(_face_cf_minus),trian,ReferenceDomain())
 
   SkeletonPair(plus,minus)
 end

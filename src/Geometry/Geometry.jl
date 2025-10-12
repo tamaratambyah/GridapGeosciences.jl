@@ -9,6 +9,8 @@ using FillArrays
 # using GridapGeosciences.Adaptivity
 # import GridapGeosciences.Adaptivity: get_panel_ids
 
+import Gridap.Geometry: TriangulationView
+
 using GridapGeosciences.Fields
 import GridapGeosciences.Fields: MatMultField, forward_jacobian
 
@@ -24,6 +26,8 @@ include("BoundaryTriangulations.jl")
 include("SkeletonTriangulations.jl")
 include("AdaptedTriangulations.jl")
 include("panelwise_cellfield.jl")
+include("TriangulationView.jl")
+include("TriangulationPanelIds.jl")
 
 export get_panel_ids, geo_map_func
 export pullback_area_form
@@ -38,7 +42,8 @@ export ParametricDiscreteModel
 export get_nodes_from_coords
 
 export panelwise_cellfield
-
-
+export _pushforward_normal
+export _pullback_area_form
+export get_owned_panel_ids
 
 end

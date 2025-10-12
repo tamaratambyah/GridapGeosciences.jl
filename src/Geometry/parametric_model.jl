@@ -8,7 +8,7 @@ end
 function setup_panel_cmaps(cube_cmaps, panel_ids)
   cube2panel_map = lazy_map(p->MatMultField( A_cube2panel[p] ), panel_ids)
   panel_cmaps = lazy_map(∘,cube2panel_map,cube_cmaps)
-end 
+end
 
 function parametric_model(cube_model)
   Dc = num_cell_dims(cube_model)
@@ -23,7 +23,7 @@ function parametric_model(cube_model)
 
   ## map the cube to the parametric domain
   cube_cmaps  = get_cell_map(cube_grid)
-  panel_cmaps = setup_panel_cmaps(cube_cmaps, panel_ids) 
+  panel_cmaps = setup_panel_cmaps(cube_cmaps, panel_ids)
 
   ## create the panel model
   ## to correctly trigger Dc=2,Dp=2, need to have 2D nodes.
@@ -54,5 +54,4 @@ Geometry.get_grid(model::ParametricDiscreteModel) = model.grid
 Geometry.get_grid_topology(model::ParametricDiscreteModel) = model.grid_topology
 Geometry.get_face_labeling(model::ParametricDiscreteModel) = model.face_labeling
 get_panel_ids(model::ParametricDiscreteModel) = model.panel_ids
-
 Geometry.get_cell_map(model::ParametricDiscreteModel) = model.grid.cell_map

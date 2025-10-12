@@ -29,22 +29,10 @@ function get_panel_ids!(panel_ids, model::Gridap.Adaptivity.AdaptedDiscreteModel
   get_panel_ids!(panel_ids, model.parent)
 end
 
-# need this global_pids junk array for dispatching in Distributed
-function get_panel_ids(trian::BodyFittedTriangulation,global_pids=[1])
-  panel_model = get_background_model(trian)
-  @check typeof(panel_model) <: ParametricDiscreteModel "\n Not a ParametricDiscreteModel"
-  get_panel_ids(panel_model)
-end
 
-## for distributed
-function get_panel_ids(trian::Gridap.Geometry.TriangulationView,panel_ids::AbstractArray)
-  println("new panel ids")
-  panel_model = get_background_model(trian)
-  Dc = num_cell_dims(panel_model)
-  glue = get_glue(trian,Val(Dc))
-  face_2_cell = glue.tface_to_mface
-  face_panel_ids = panel_ids[face_2_cell]
-  return face_panel_ids
+function geo_map_func(trian::Triangulation)
+  panel_ids = get_panel_ids(trian)
+  geo_map_func(panel_ids)
 end
 
 function geo_map_func(panel_ids::AbstractArray{Int})

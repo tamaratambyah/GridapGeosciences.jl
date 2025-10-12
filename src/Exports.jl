@@ -26,6 +26,9 @@ end
 @publish Geometry A_panel2cube
 @publish Geometry b_panel2cube
 @publish Geometry ParametricDiscreteModel
+@publish Geometry _pushforward_normal
+@publish Geometry _pullback_area_form
+@publish Geometry get_owned_panel_ids
 
 @publish Geometry panelwise_cellfield
 
@@ -96,3 +99,4 @@ end
 @publish Distributed get_owned_panel_ids
 @publish Distributed get_skel_panel_ids
 @publish Distributed BoundaryTriangulation
+@publish Distributed pullback_area_form

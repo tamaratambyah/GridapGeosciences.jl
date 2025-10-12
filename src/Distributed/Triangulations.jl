@@ -1,6 +1,6 @@
 function GridapDistributed.BoundaryTriangulation(
-  portion,model::DistributedParametricDiscreteModel,labels::GridapDistributed.DistributedFaceLabeling;tags=nothing)
-  println("distribue booundary trian")
+  portion,model::DistributedParametricDiscreteModel,labels::DistributedFaceLabeling;tags=nothing)
+  println("distributed booundary trian")
   Dc = num_cell_dims(model)
 
   topo = get_grid_topology(model)
@@ -12,4 +12,12 @@ function GridapDistributed.BoundaryTriangulation(
   end
 
   Gridap.Geometry.BoundaryTriangulation(portion,model,_face_to_mask)
+end
+
+
+function pullback_area_form(trian::DistributedTriangulation)
+  fields = map(trian.trians) do t
+    return pullback_area_form(t)
+  end
+  DistributedCellField(fields,trian)
 end

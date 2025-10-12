@@ -1,10 +1,15 @@
 ################################################################################
 #### DistributedParametricDiscreteModel
 #### Has serial ParametricDiscreteModel underneath
-#### The provided panel_ids are owned+ghost. Return only the owned in get_panel_ids
+#### The provided panel_ids are owned+ghost. Return only owned+ghost in get_panel_ids
+#### Return owned in get_owned_panel_ids
 #### Implemenet the interface of GridapDistributed.GenericDistributedDiscreteModel
 ################################################################################
 const DistributedParametricDiscreteModel{Dc,Dp} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{<:ParametricDiscreteModel{Dc,Dp}}}
+
+struct DistributedParametricDiscreteModelCache{A}
+  dpanel_ids::A
+end
 
 function DistributedParametricDiscreteModel(
   model::GridapDistributed.DistributedDiscreteModel,
@@ -27,26 +32,30 @@ function DistributedParametricDiscreteModel(
     labels = FaceLabeling(topo)
 
     # extract the owned panel ids
-    #owned_cells = local_to_global(cids)
-    #panel_ids = pids[owned_cells]
+    # owned_cells = own_to_local(cids)
+    # panel_ids = pids[owned_cells]
     ParametricDiscreteModel(grid,topo,labels,pids)
    end
 
-  metadata = nothing
+  metadata = DistributedParametricDiscreteModelCache(dpanel_ids)
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids;metadata)
 end
 
+## these are local+ghost panel ids
 function get_panel_ids(dmodel::DistributedParametricDiscreteModel)
   return map(get_panel_ids,local_views(dmodel))
+  # dmodel.metadata.dpanel_ids
 end
 
+# return owned here to assist with triangulations
 function get_owned_panel_ids(dmodel::DistributedParametricDiscreteModel)
   gids = get_cell_gids(dmodel)
-  dpanel_ids = get_panel_ids(dmodel)
+  dpanel_ids = dmodel.metadata.dpanel_ids
 
   panel_ids = map(dpanel_ids,partition(gids)) do pids, cids
     owned_cells = own_to_local(cids)
     return pids[owned_cells]
   end
   return panel_ids
+
 end

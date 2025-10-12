@@ -29,7 +29,7 @@ function Geometry.BoundaryTriangulation(
   )
 
   println("my boundary trian")
-  println(bgface_to_lcell)
+  # println(bgface_to_lcell)
 
   topo = get_grid_topology(model)
   Dc = num_cell_dims(model)
@@ -55,10 +55,10 @@ function Geometry.BoundaryTriangulation(
   # tface_to_mface_map = Gridap.Geometry.compute_face_to_cell_reference_map(_cell_grid,_face_grid,_glue)
 
   ## get the face2cell_ids
-  face_2_cell_ids = _glue.face_to_cell; println(length(face_2_cell_ids))
+  face_2_cell_ids = _glue.face_to_cell; #println(length(face_2_cell_ids))
 
   # compose face map and cell map
-  ref_face_2_ref_cell_map = F2Fglue.tface_to_mface_map;   println((ref_face_2_ref_cell_map))
+  ref_face_2_ref_cell_map = F2Fglue.tface_to_mface_map;   #println((ref_face_2_ref_cell_map))
   cmaps = get_cell_map(get_grid(model))
 
   # cfmaps = map(f-> cmaps[f],face_2_cell_ids)
@@ -78,21 +78,6 @@ end
 """
 return face-wise array of panel ids
 """
-# need this global_pids junk array for dispatching in Distributed
-function get_panel_ids(btrian::BoundaryTriangulation,global_pids=[1])
-  get_face_panel_ids(btrian)
-end
-
-function get_face_panel_ids(btrian::BoundaryTriangulation)
-  panel_model = get_background_model(btrian)
-  panel_ids = get_panel_ids(panel_model)
-  Dc = num_cell_dims(panel_model)
-
-  glue = get_glue(btrian,Val(Dc))
-  face_2_cell = glue.tface_to_mface
-  face_panel_ids = panel_ids[face_2_cell]
-  return face_panel_ids
-end
 
 ################################################################################
 """
@@ -160,7 +145,8 @@ end
 push normal vector from chart to the surface
 This method is based on Santi's formula
 """
-function pushforward_normal(trian::BoundaryTriangulation)
+pushforward_normal(trian::BoundaryTriangulation) = _pushforward_normal(trian)
+function _pushforward_normal(trian)
   panel_model = get_background_model(trian)
   n_2_2D = get_normal_vector(trian)
 
@@ -182,9 +168,9 @@ function pushforward_normal(trian::BoundaryTriangulation)
 
   _n_mapped = J_cf ⋅ (inv_cf  ⋅ n_2_2D )
   ff = Operation(sqrt)(  n_2_2D   ⋅ (inv_cf⋅ n_2_2D )  )
-  n_mapped = _n_mapped/ff
+  n_mapped = Operation(/)(_n_mapped)(ff) #_n_mapped/ff
 
-  return n_mapped, J_cf
+  return n_mapped
 end
 
 
@@ -193,7 +179,8 @@ pullback of the area form
 returns |Jg^{-1} ̂n|
 """
 ##
-function pullback_area_form(trian::BoundaryTriangulation)
+pullback_area_form(trian::BoundaryTriangulation) = _pullback_area_form(trian)
+function _pullback_area_form(trian)
   inv_metric_cf = panelwise_cellfield(_analytic_inv_metric,trian)
   jac_cf = panelwise_cellfield(forward_jacobian,trian)
   n_Λ = get_normal_vector(trian)
