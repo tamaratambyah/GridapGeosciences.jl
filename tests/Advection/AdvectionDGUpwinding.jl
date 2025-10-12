@@ -37,7 +37,7 @@ end
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-function advection_dg_solver(panel_model,p_fe::Int,u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
+function advection_dg_solver(panel_model,p_fe::Int,dir,u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -64,32 +64,27 @@ function advection_dg_solver(panel_model,p_fe::Int,u::Function,vX::Function,uvX:
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  # vel = interpolate(v_contr_cf,U)
-  _a(u,v) = ∫( u⋅v )dΩ
-  _l(v) = ∫( v_contr_cf ⋅ v )dΩ
-  op = AffineFEOperator(_a,_l,U,V)
-  vel = solve(LUSolver(),op)
-
+  vel = interpolate(v_contr_cf,U)
   meas_cf = CellField(sqrtg,Ω_panel)
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
   ### volume stabilisation term
-  # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
 
-  jac_cf = panelwise_cellfield(forward_jacobian,Λ)
-  ginv_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
-  a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
+  # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
+  # ginv_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
+  # a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
 
 
   ### upwinding stabilisation term
   upwind = abs((vel⋅ n_Λ).plus)
-  # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
+  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
 
-  cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
-  cell_normal = get_facet_normal(Λ,cell_geo_map)
-  n = get_normal_vector(Λ,cell_normal)
-  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u*n)⋅jump(v*n)*meas_cf   )dΛ
+  # cell_geo_map = geo_map_func(panel_ids)
+  # cell_normal = get_facet_normal(Λ,cell_geo_map)
+  # n = get_normal_vector(Λ,cell_normal)
+  # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u*n)⋅jump(v*n)*meas_cf   )dΛ
 
 
   biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)
@@ -110,7 +105,7 @@ function advection_dg_solver(panel_model,p_fe::Int,u::Function,vX::Function,uvX:
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = geo_map_func(panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -142,7 +137,7 @@ function main(distribute,nprocs)
   end
 
   i_am_main(ranks) && println("advection_dg_convergence_func")
-  p_convergence_test(ranks,ps,models,advection_dg_solver,u,vX,uvX,ls)
+  p_convergence_test(ranks,ps,models,advection_dg_solver,"",u,vX,uvX,ls)
 
 end
 
@@ -172,7 +167,7 @@ function advection_dg_convergence_test(ranks,nprocs,dir,u::Function,vX::Function
 
   for (i,p_fe) in enumerate(ps)
     println("p_fe = $p_fe")
-    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,advection_dg_solver,p_fe,u,vX,uvX,ls,return_vtk)
+    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,advection_dg_solver,p_fe,dir,u,vX,uvX,ls,return_vtk)
   end
 
   i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)

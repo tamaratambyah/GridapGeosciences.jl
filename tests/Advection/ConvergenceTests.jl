@@ -30,7 +30,7 @@ nprocs = 1
 AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,dir,u,vX,n_ref_lvls,ps,CFL,ls)
 
 ## DG
-AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,dir,u,vX,uvX,n_ref_lvls,ps,ls)
+AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,dir,u,vX,uvX,n_ref_lvls,ps,ls,true)
 
 
 
@@ -59,8 +59,12 @@ ranks = with_debug() do distribute
 end
 (i_am_main(ranks) && !isdir(dir) ) && mkdir(dir)
 
+ls = LUSolver()
 ## SUPG
-AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,dir,u,vX,n_ref_lvls,ps,CFL,ls)
+AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,dir,u,vX,n_ref_lvls,ps,CFL,ls,true)
 
 ## DG
-AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,dir,u,vX,uvX,n_ref_lvls,ps,ls)
+using GridapSolvers
+include("AdvectionDGUpwinding.jl")
+ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=i_am_main(ranks))
+AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,dir,u,vX,uvX,n_ref_lvls,ps,ls,true)

@@ -10,6 +10,7 @@ include("../convergence_tools.jl")
 
 ################################################################################
 ## Test the evaluation of cmaps on DistributedTriangulations
+## i.e. are all the cellmaps there
 ################################################################################
 
 function test_triangulation(trian::GridapDistributed.DistributedTriangulation)

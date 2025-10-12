@@ -23,7 +23,7 @@ include("../convergence_tools.jl")
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-function advection_supg_solver(panel_model,p_fe::Int,u::Function,vX::Function,CFL=0.1,ls=LUSolver(),return_vtk=false)
+function advection_supg_solver(panel_model,p_fe::Int,dir,u::Function,vX::Function,CFL=0.1,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -83,7 +83,7 @@ function advection_supg_solver(panel_model,p_fe::Int,u::Function,vX::Function,CF
   eu = l2((uh-u_cf)*meas_cf,dΩ)
 
   if return_vtk
-    cell_geo_map = geo_map_func(panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -145,7 +145,7 @@ function advection_supg_convergence_test(ranks::AbstractArray,nprocs::Int,
 
   for (i,p_fe) in enumerate(ps)
     i_am_main(ranks) && println("p_fe = $p_fe")
-    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,advection_supg_solver,p_fe,u,vX,CFL,ls,return_vtk)
+    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,advection_supg_solver,p_fe,dir,u,vX,CFL,ls,return_vtk)
   end
 
   i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)

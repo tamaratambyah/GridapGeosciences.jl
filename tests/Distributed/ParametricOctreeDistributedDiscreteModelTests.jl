@@ -23,7 +23,7 @@ ref_coarse_flags=map(ranks,partition(get_cell_gids(parametric_octree_dmodel.octr
 	flags=zeros(Cint,length(indices))
 	flags.=refine_flag
 	flags
-end 
+end
 
 parametric_octree_model_adapted = Gridap.Adaptivity.adapt(parametric_octree_dmodel,ref_coarse_flags)
 map(local_views(parametric_octree_model_adapted.parametric_dmodel)) do model

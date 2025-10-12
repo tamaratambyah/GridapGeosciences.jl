@@ -66,7 +66,7 @@ cell_vectors = get_facet_normal(trian,cell_geo_map)
 n_3D = get_normal_vector(trian,cell_vectors)
 
 # push forward 2D chart normals to ambient space
-n_mapped, = pushforward_normal(trian)
+n_mapped = pushforward_normal(trian)
 
 # test equality
 @test sum(n_mapped(pts) .≈ n_3D(pts)) == num_facets(panel_model)
@@ -85,7 +85,7 @@ cell_vectors = get_facet_normal(trian,cell_geo_map)
 n_3D = get_normal_vector(trian,cell_vectors)
 
 # push forward 2D chart normals to ambient space
-n_mapped, = pushforward_normal(trian)
+n_mapped = pushforward_normal(trian)
 
 # test equality of plus and minus side
 @test sum(n_mapped.plus(pts) .≈ n_3D.plus(pts)) == num_facets(panel_model)
