@@ -4,7 +4,22 @@ u + ∇ᵧ(φ) = f₁
 φ + ∇ᵧ⋅u = f₁
 """
 
-function wave_solver(panel_model,h::Function,vX::Function,p_fe::Int,return_vtk=false)
+module WaveEquation
+
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+
+using GridapGeosciences
+using Test
+
+include("../convergence_tools.jl")
+include("helpers.jl")
+
+function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -47,7 +62,7 @@ function wave_solver(panel_model,h::Function,vX::Function,p_fe::Int,return_vtk=f
   liformX((v,q)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ + ∫( (rhs_scalar*q)*meas_cf )dΩ
 
   op = AffineFEOperator(biformX,liformX,X,Y)
-  uh,ph = solve(LUSolver(),op)
+  uh,ph = solve(ls,op)
 
   uh_proj = covarient_basis_cf ⋅ uh
 
@@ -56,7 +71,7 @@ function wave_solver(panel_model,h::Function,vX::Function,p_fe::Int,return_vtk=f
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [h_cf, u_proj_cf, ph, uh_proj, h_cf-ph, u_proj_cf-uh_proj ]
     labels = ["p","u_proj", "ph", "uh_proj", "ep","eu"]
 
@@ -65,41 +80,53 @@ function wave_solver(panel_model,h::Function,vX::Function,p_fe::Int,return_vtk=f
 
   end
 
-  return e_u,e_p
-end
-
-
-function wave_errors(panel_model,h::Function,vX::Function,f::Function,η::Function,p_fe::Int,return_vtk=false)
-  e_u,e_p  = wave_solver(panel_model,h,vX,p_fe,return_vtk)
   return e_u,e_p,false
 end
 
-function williamson2_convergence_test(solver,n_ref_lvls,return_vtk=false,args...)
-  simName = string(solver)[1:end-7]
 
-  println("W2 test")
+function wave_errors(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,f::Function,η::Function,ls=LUSolver(),return_vtk=false)
+  wave_solver(panel_model,p_fe,dir,h,vX,ls,return_vtk)
+end
 
-  for (i,ζ) in enumerate([0.0])
-    plot()
+
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 4
+  ps = [1,2,3]
+  ζs = [0.0]
+  ls = LUSolver()
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+  end
+
+  for (i,ζ) in enumerate(ζs)
 
     h = panel_to_cartesian(h₀(ζ))
     vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-    f = panel_to_cartesian(f₀(ζ))
-    η = panel_to_cartesian(η₀(ζ))
 
-    for p_fe in [1]
-      println("p = ", p_fe)
-      errs,ns,dxs,slope = convergence_test(solver,n_ref_lvls,h,vX,f,η,p_fe,return_vtk)
-      plot_convergence(errs,ns,dxs,slope;
-          leginf=["u: p=$p_fe","ϕ: p=$p_fe"],
-          colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe]],
-          ls=[:solid, :dot], )
-
-
-      output = @strdict errs ns dxs slope
-      safesave(datadir(dir, ("williamson2_$(simName)_convergence_func_z$(i)_p$p_fe.jld2")), output)
-    end
-    savefig(plotsdir()*"/williamson2_$(simName)_convergence_func_z$i")
+    i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
+    p_convergence_test(ranks,ps,models,wave_solver,"",h,vX,ls)
   end
 
+
 end
+
+################################################################################
+#### Convergence test with plots
+################################################################################
+
+function wave_convergence_test(ranks::AbstractArray,nprocs::Int,
+  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
+
+  williamson2_convergence_test(ranks,nprocs,wave_errors,ζs,n_ref_lvls,ps,ls,return_vtk)
+end
+
+end # module

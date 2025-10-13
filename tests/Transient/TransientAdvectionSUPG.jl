@@ -150,6 +150,11 @@ function transient_advection_supg_errors(panel_model,p_fe::Int,dir::String,
   return minimum(Es[end-10:end]),false,false
 end
 
+# function transient_advection_errors(panel_model,p_fe::Int,solver,fargs...)
+#   ts, Es = solver(panel_model,p_fe,fargs...)
+#   return minimum(Es[end-10:end]),false,false
+# end
+
 ################################################################################
 #### Main run for transient solution
 ################################################################################
