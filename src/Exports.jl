@@ -28,7 +28,6 @@ end
 @publish Geometry ParametricDiscreteModel
 @publish Geometry _pushforward_normal
 @publish Geometry _pullback_area_form
-@publish Geometry get_owned_panel_ids
 
 @publish Geometry panelwise_cellfield
 

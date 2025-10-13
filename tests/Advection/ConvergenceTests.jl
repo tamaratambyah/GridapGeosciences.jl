@@ -20,25 +20,15 @@ ps = [1]#[1,2,3]
 ################################################################################
 #### Serial convergence test
 ################################################################################
-dir = datadir("SerialAdvectionTests")
-!isdir(dir) && mkdir(dir)
 ls = LUSolver()
 ranks = [true]
 nprocs = 1
 
 ## SUPG
-AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,dir,u,vX,n_ref_lvls,ps,CFL,ls)
+AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,u,vX,n_ref_lvls,ps,CFL,ls,true)
 
 ## DG
-AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,dir,u,vX,uvX,n_ref_lvls,ps,ls,true)
-
-
-
-
-# transient_advection_supg_convergence_test(n_ref_lvls,u,vX,CFL,false) ### BROKEN
-
-# transient_advection_dg_convergence_test(n_ref_lvls,u,vX,CFL,false) ### BROKEN
-
+AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,u,vX,uvX,n_ref_lvls,ps,ls,true)
 
 
 ################################################################################
@@ -52,19 +42,17 @@ using GridapSolvers, GridapPETSc
 
 
 nprocs = 6
-dir = datadir("DistributedAdvectionTests")
 
 ranks = with_debug() do distribute
   distribute(LinearIndices((nprocs,)))
 end
-(i_am_main(ranks) && !isdir(dir) ) && mkdir(dir)
 
 ls = LUSolver()
 ## SUPG
-AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,dir,u,vX,n_ref_lvls,ps,CFL,ls,true)
+AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,u,vX,n_ref_lvls,ps,CFL,ls,true)
 
 ## DG
-using GridapSolvers
-include("AdvectionDGUpwinding.jl")
-ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=i_am_main(ranks))
-AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,dir,u,vX,uvX,n_ref_lvls,ps,ls,true)
+ls = LUSolver()
+# using GridapSolvers
+# ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=i_am_main(ranks))
+AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,u,vX,uvX,n_ref_lvls,ps,ls,true)

@@ -44,6 +44,5 @@ export get_nodes_from_coords
 export panelwise_cellfield
 export _pushforward_normal
 export _pullback_area_form
-export get_owned_panel_ids
 
 end

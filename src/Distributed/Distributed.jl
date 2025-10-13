@@ -22,7 +22,7 @@ import GridapGeosciences.Geometry: _CCAM_panel_wise_node_ids
 import GridapGeosciences.Geometry: _CCAM_cube_nodes_3d
 import GridapGeosciences.Geometry: setup_panel_cmaps
 import GridapGeosciences.Geometry: panelwise_cellfield, geo_map_func
-import GridapGeosciences.Geometry: get_panel_ids, get_owned_panel_ids
+import GridapGeosciences.Geometry: get_panel_ids
 import GridapGeosciences.Geometry: pullback_area_form
 
 using GridapGeosciences.Fields

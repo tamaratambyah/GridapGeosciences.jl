@@ -116,7 +116,7 @@ function main(distribute,nprocs)
   end
 
   i_am_main(ranks) && println("advection_supg_convergence_func")
-  p_convergence_test(ranks,ps,models,advection_supg_solver,u,vX,CFL,ls)
+  p_convergence_test(ranks,ps,models,advection_supg_solver,"",u,vX,CFL,ls)
 
 end
 
@@ -125,7 +125,7 @@ end
 #### Convergence test with plots
 ################################################################################
 function advection_supg_convergence_test(ranks::AbstractArray,nprocs::Int,
-  dir,u::Function,vX::Function,n_ref_lvls=4,ps=[1],CFL=0.1,ls=LUSolver(),return_vtk=false)
+  u::Function,vX::Function,n_ref_lvls=4,ps=[1],CFL=0.1,ls=LUSolver(),return_vtk=false)
 
   # serial models
   models  = get_refined_models(n_ref_lvls)
@@ -137,6 +137,9 @@ function advection_supg_convergence_test(ranks::AbstractArray,nprocs::Int,
 
   simName = "advection_supg_convergence_func"
   i_am_main(ranks) && println(simName)
+
+  dir = datadir("AdvectionSUPG")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   errors = Vector{Vector{Float64}}(undef,length(ps))
   ns = Vector{Vector{Float64}}(undef,length(ps))

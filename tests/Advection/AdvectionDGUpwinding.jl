@@ -146,7 +146,7 @@ end
 ################################################################################
 #### Convergence test with plots
 ################################################################################
-function advection_dg_convergence_test(ranks,nprocs,dir,u::Function,vX::Function,uvX::Function,
+function advection_dg_convergence_test(ranks,nprocs,u::Function,vX::Function,uvX::Function,
   n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
 
   # serial models
@@ -159,6 +159,9 @@ function advection_dg_convergence_test(ranks,nprocs,dir,u::Function,vX::Function
 
   simName = "advection_dg_convergence_func"
   i_am_main(ranks) && println(simName)
+
+  dir = datadir("AdvectionDG")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   errors = Vector{Vector{Float64}}(undef,length(ps))
   ns = Vector{Vector{Float64}}(undef,length(ps))
