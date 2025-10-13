@@ -18,7 +18,7 @@ using Test
 include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
-function mixed_helmholtz_solver(panel_model,p_fe::Int,dir,f::Function,ls=LUSolver(),return_vtk=false)
+function mixed_helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 

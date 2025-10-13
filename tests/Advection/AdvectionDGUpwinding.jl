@@ -37,7 +37,8 @@ end
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-function advection_dg_solver(panel_model,p_fe::Int,dir,u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
+function advection_dg_solver(panel_model,p_fe::Int,dir::String,
+    u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 

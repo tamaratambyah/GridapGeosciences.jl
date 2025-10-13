@@ -96,6 +96,18 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
 
 end
 
+function get_ranks(model::DiscreteModel)
+    return [true]
+end
+
+function get_ranks(dmodel::GridapDistributed.DistributedDiscreteModel)
+  gids = get_cell_gids(dmodel)
+
+  ranks = map(partition(gids)) do gid
+     return part_id(gid)
+  end
+  return ranks
+end
 
 
 """

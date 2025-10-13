@@ -23,7 +23,8 @@ include("../convergence_tools.jl")
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-function advection_supg_solver(panel_model,p_fe::Int,dir,u::Function,vX::Function,CFL=0.1,ls=LUSolver(),return_vtk=false)
+function advection_supg_solver(panel_model,p_fe::Int,dir::String,
+    u::Function,vX::Function,CFL=0.1,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -119,7 +120,6 @@ function main(distribute,nprocs)
   p_convergence_test(ranks,ps,models,advection_supg_solver,"",u,vX,CFL,ls)
 
 end
-
 
 ################################################################################
 #### Convergence test with plots

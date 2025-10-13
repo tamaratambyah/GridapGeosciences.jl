@@ -1,4 +1,4 @@
-module AdvectionSUPG
+module TransientAdvectionSUPG
 
 using DrWatson
 using Gridap
@@ -11,21 +11,27 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
+include("../Advection/advection_funcs.jl")
 include("Lauritzen_functions.jl")
-include("../helpers.jl")
+include("../convergence_tools.jl")
+
 ################################################################################
 #### Transient
 ################################################################################
-function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
+function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
       u::Function,v::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+
+  # get the ranks to help with storing/saving solution
+  ranks = get_ranks(panel_model)
 
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nlevl = $lvl")
 
-  dir = datadir("Transient_advection_nref$(lvl)_long")
-  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+  dir = _dir*"/sol_nref$lvl"
+  (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
 
+  ## now enter the solver
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
 
@@ -55,8 +61,8 @@ function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
     vecX(XYZ) = v(t)(XYZ)
     vX = panel_to_cartesian(tangent_vec(vecX))
     v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-    return v_contr_cf
-    # interpolate(v_contr_cf,U)
+    # return v_contr_cf
+    interpolate(v_contr_cf,U)
   end
 
 
@@ -91,10 +97,9 @@ function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
 
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
-  cell_geo_map = geo_map_func(panel_ids)
+  cell_geo_map = geo_map_func(Ω_panel)
 
   if return_vtk
-    # writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covarient_basis_cf⋅ vel],append=false,geo_map=cell_geo_map)
     writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covarient_basis_cf⋅ get_velocity(0.0)],append=false,geo_map=cell_geo_map)
   end
 
@@ -106,41 +111,62 @@ function transient_advection_supg(ranks::AbstractArray,panel_model,p_fe::Int,
   push!(Es,0.0)
 
   counter = 1
+  eu = 0.0
+  t = 0.0
   for (t,uh) in solT
 
-    i_am_main(ranks) && println(t)
+    i_am_main(ranks) && println("t = ", t)
 
     eu = l2((uh-uh0)*meas_cf,dΩ)
 
     push!(ts,t)
     push!(Es,eu)
     if return_vtk && (mod(counter,10) == 0)
-      # writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh],append=false,geo_map=cell_geo_map)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh,"v"=>covarient_basis_cf⋅ get_velocity(t)],append=false,geo_map=cell_geo_map)
     end
     counter = counter + 1
   end
 
-  output = @strdict ts Es
-  i_am_main(ranks) && safesave(datadir(dir, ("advection_errors.jld2")), output)
+  push!(ts,t)
+  push!(Es,eu)
 
-  _make_pvd_distributed(dir,"solT",1)
+  if return_vtk
+    if length(ranks) > 1
+      _make_pvd_distributed(dir,"solT",1)
+    else
+      make_pvd(dir,"solT",1)
+    end
+  end
 
-  return Es[end],false,false
+
+  return ts, Es
+end
+
+## helper function to return the error for transient solution
+function transient_advection_supg_errors(panel_model,p_fe::Int,dir::String,
+  u::Function,v::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+
+  ts, Es = transient_advection_supg_solver(panel_model,p_fe,dir,u,v,CFL,ls,tF,return_vtk)
+  return minimum(Es[end-10:end]),false,false
 end
 
 ################################################################################
 #### Main run for transient solution
 ################################################################################
-function main(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_vtk=false)
+function main_transient(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_vtk=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("advection_supg_convergence_func")
+  i_am_main(ranks) && println("transient_advection_supg")
 
   u0(XYZ) = cosine_bell(XYZ)
   u = panel_to_cartesian(u0)
   v = nondivergent_velocity
+
+  panel_model = get_distributed_panel_model(ranks,nprocs,n_ref_lvls)
+
+  dir = datadir("Transient_advection_supg")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   GridapPETSc.Init(args=split(options))
 
@@ -148,9 +174,10 @@ function main(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_vtk=false)
   # ls = LUSolver()
   ls = PETScLinearSolver()
 
-  panel_model = get_distributed_panel_model(ranks,nprocs,n_ref_lvls)
+  ts, Es = transient_advection_supg_solver(panel_model,p_fe,dir,u,v,CFL,ls,tF,return_vtk)
 
-  transient_advection_supg(ranks,panel_model,p_fe,u,v,CFL,ls,tF,return_vtk)
+  output = @strdict ts Es
+  i_am_main(ranks) && safesave(datadir(dir, ("advection_errors.jld2")), output)
 
   GridapPETSc.Finalize()
   GridapPETSc.gridap_petsc_gc()
@@ -161,49 +188,74 @@ end
 
 
 ################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 4
+  ps = [1,2,3]
+  ls = LUSolver()
+  CFL = 0.1
+
+  v = vt
+  u = panel_to_cartesian(u0)
+  tF = 2*π
+
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+  end
+
+  i_am_main(ranks) && println("transient_advection_supg_convergence")
+  p_convergence_test(ranks,ps,models,transient_advection_supg_errors,"",u,v,CFL,ls,tF)
+
+end
+
+################################################################################
 #### Convergence test with plots
 ################################################################################
-# function transient_advection_supg_convergence_test(ranks::AbstractArray,nprocs::Int,
-#   dir,u::Function,vX::Function,n_ref_lvls=4,ps=[1],CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+function transient_advection_supg_convergence_test(ranks::AbstractArray,nprocs::Int,
+    u::Function,vt::Function,n_ref_lvls=4,ps=[1],CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
 
-#   # serial models
-#   models  = get_refined_models(n_ref_lvls)
+  # serial models
+  models  = get_refined_models(n_ref_lvls)
 
-#   if prod(nprocs) > 1
-#     i_am_main(ranks) && println("Distributed test")
-#     models,  = get_distributed_refined_models(ranks,nprocs,models)
-#   end
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+  end
 
-#   simName = "transient_advection_supg_convergence_func"
-#   i_am_main(ranks) && println(simName)
+  simName = "transient_advection_supg_convergence"
+  i_am_main(ranks) && println(simName)
 
-#   errors = Vector{Vector{Float64}}(undef,length(ps))
-#   ns = Vector{Vector{Float64}}(undef,length(ps))
-#   dxs = Vector{Vector{Float64}}(undef,length(ps))
-#   slopes = Vector{Float64}(undef,length(ps))
+  dir = datadir("TransientAdvectionSUPG")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
+  errors = Vector{Vector{Float64}}(undef,length(ps))
+  ns = Vector{Vector{Float64}}(undef,length(ps))
+  dxs = Vector{Vector{Float64}}(undef,length(ps))
+  slopes = Vector{Float64}(undef,length(ps))
 
 
-#   for (i,p_fe) in enumerate(ps)
-#     i_am_main(ranks) && println("p_fe = $p_fe")
-#     errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,advection_supg_solver,p_fe,u,vX,CFL,ls,tF,return_vtk)
-#   end
+  for (i,p_fe) in enumerate(ps)
+    i_am_main(ranks) && println("p_fe = $p_fe")
+    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,transient_advection_supg_errors,p_fe,dir,u,vt,CFL,ls,tF,return_vtk)
+  end
 
-#   i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
+  i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
 
-#   output = @strdict errors ns dxs slopes ps
-#   i_am_main(ranks) && safesave(datadir(dir, ("$simName.jld2")), output)
+  output = @strdict errors ns dxs slopes ps
+  i_am_main(ranks) && safesave(datadir(dir, ("$simName.jld2")), output)
 
-#   i_am_main(ranks) && plot_convergence_from_saved(dir,simName)
+  i_am_main(ranks) && plot_convergence_from_saved(dir,simName)
 
-#   if return_vtk
-#     if nprocs > 1
-#       _make_pvd_distributed(dir,"solT",1)
-#     else
-#       make_pvd(dir,"solT",1)
-#     end
-#   end
 
-# end
+
+end
 
 
 end # module

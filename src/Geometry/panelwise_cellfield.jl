@@ -6,13 +6,13 @@ end
 
 ### For Adapted Triangulations, return cellfield on the atrian
 function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids::AbstractArray{Int})
-  println("Adapted Triangulation")
+  # println("Adapted Triangulation")
   cf = panelwise_cellfield(f,atrian.trian,panel_ids)
   panelwise_cellfield(cf,atrian)
 end
 
 function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation)
-  println("Adapted Boundary Triangulation")
+  # println("Adapted Boundary Triangulation")
   cf = panelwise_cellfield(f,atrian.trian)
   panelwise_cellfield(cf,atrian)
 end
