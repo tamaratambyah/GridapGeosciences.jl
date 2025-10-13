@@ -18,7 +18,7 @@ using Test
 include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
-function mixed_helmholtz_solver(panel_model,p_fe::Int,f::Function,ls=LUSolver(),return_vtk=false)
+function mixed_helmholtz_solver(panel_model,p_fe::Int,dir,f::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -76,7 +76,7 @@ function mixed_helmholtz_solver(panel_model,p_fe::Int,f::Function,ls=LUSolver(),
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = geo_map_func(panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
 
     panel_cfs = [uh, sh, graduh, f_panel_cf, gradu_cf, rhs_cf, f_panel_cf - uh, sigma_cf - sh, gradu_cf - graduh  ]
     labels = ["uh","sh","graduh", "u_ex", "gradu","rhs", "eu", "es", "egradu"]
@@ -109,7 +109,7 @@ function main(distribute,nprocs)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("mixed_helmholtz_convergence_func_$(key)")
-    p_convergence_test(ranks,ps,models,mixed_helmholtz_solver,val,ls)
+    p_convergence_test(ranks,ps,models,mixed_helmholtz_solver,"",val,ls)
   end
 
 
@@ -119,7 +119,7 @@ end
 #### Convergence test with plots
 ################################################################################
 
-function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
+function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,
   analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
 
   # serial models
@@ -129,6 +129,9 @@ function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
     i_am_main(ranks) && println("Distributed test")
     models,  = get_distributed_refined_models(ranks,nprocs,models)
   end
+
+  dir = datadir("MixedHelmholtz")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   for (key, val) in analytic_funcs
     simName = "mixed_helmholtz_convergence_func_$(key)"
@@ -142,7 +145,7 @@ function mixed_helmholtz_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
 
     for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,mixed_helmholtz_solver,p_fe,val,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,mixed_helmholtz_solver,p_fe,dir,val,ls,return_vtk)
     end
     print_convergence_results(errors,ns,dxs,slopes,ps)
     output = @strdict errors ns dxs slopes ps

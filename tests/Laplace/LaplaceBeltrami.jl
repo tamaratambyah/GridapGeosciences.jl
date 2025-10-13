@@ -18,7 +18,7 @@ using Test
 include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
-function laplace_beltrami_solver(panel_model,p_fe::Int,f::Function,ls=LUSolver(),return_vtk=false)
+function laplace_beltrami_solver(panel_model,p_fe::Int,dir,f::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -59,7 +59,7 @@ function laplace_beltrami_solver(panel_model,p_fe::Int,f::Function,ls=LUSolver()
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = geo_map_func(panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
     labels = ["u","uh","eu"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -87,7 +87,7 @@ function main(distribute,nprocs)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("laplace_beltrami_convergence_func_$(key)")
-    p_convergence_test(ranks,ps,models,laplace_beltrami_solver,val,ls)
+    p_convergence_test(ranks,ps,models,laplace_beltrami_solver,"",val,ls)
   end
 
 
@@ -97,7 +97,7 @@ end
 #### Convergence test with plots
 ################################################################################
 
-function laplace_beltrami_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
+function laplace_beltrami_convergence_test(ranks::AbstractArray,nprocs::Int,
   analytic_funcs,n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
 
   # serial models
@@ -108,6 +108,8 @@ function laplace_beltrami_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
     models,  = get_distributed_refined_models(ranks,nprocs,models)
   end
 
+  dir = datadir("LaplaceBeltrami")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   for (key, val) in analytic_funcs
     simName = "laplace_beltrami_convergence_func_$(key)"
@@ -120,7 +122,7 @@ function laplace_beltrami_convergence_test(ranks::AbstractArray,nprocs::Int,dir,
 
     for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,laplace_beltrami_solver,p_fe,val,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,laplace_beltrami_solver,p_fe,dir,val,ls,return_vtk)
     end
 
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
