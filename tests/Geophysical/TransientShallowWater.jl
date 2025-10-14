@@ -7,16 +7,21 @@ F = φu
 q = 1/φ( ∇ᵧ^†⋅u  + f )
 """
 
+
+module TransientShallowWater
+
 using DrWatson
 using Gridap
 using GridapDistributed
 using GridapSolvers
 using PartitionedArrays
-using MPIPreferences
 using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+
 using GridapGeosciences
-using GridapPETSc
 using Test
+
+include("../convergence_tools.jl")
+include("Williamson2Test.jl")
 
 function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   h::Function,vX::Function,f::Function,b::Function,ls=LUSolver(),CFL=0.1,return_vtk=false)
@@ -281,20 +286,6 @@ function transient_shallow_water_convergence_test(ranks::AbstractArray,nprocs::I
 end
 
 
-include("Williamson2Test.jl")
 
 
-ranks = [true]
-nprocs = 1
-ζs = [0.0]
-n_ref_lvls = 3
-ps = [1]
-ls = LUSolver()
-CFL = 0.1
-
-transient_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true)
-
-
-with_debug() do distribute
-  main(distribute,1)
-end
+end ## module
