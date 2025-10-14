@@ -158,7 +158,7 @@ function main(distribute,nprocs)
   ls = LUSolver()
   CFL = 0.1
 
-  v = vX
+  v = panel_to_cartesian(tangent_vec(vecX))
   u = panel_to_cartesian(u0)
   tF = 2*π
 
