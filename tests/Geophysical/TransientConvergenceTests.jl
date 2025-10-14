@@ -10,7 +10,7 @@ include("TransientShallowWater.jl")
 ζs = [0.0]
 n_ref_lvls = 3
 ps = [1]
-ls = LUSolver()
+lss = (LUSolver(),LUSolver())
 CFL = 0.1
 
 ################################################################################
@@ -18,7 +18,7 @@ CFL = 0.1
 ################################################################################
 ranks = [true]
 nprocs = 1
-TransientShallowWater.transient_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true)
+TransientShallowWater.transient_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,lss,CFL,true)
 
 
 

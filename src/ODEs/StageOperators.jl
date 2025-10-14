@@ -18,3 +18,49 @@ function Gridap.ODEs.LinearStageOperator(
 
   LinearStageOperator(J, r, tx, ws, usx, reuse)
 end
+
+
+#### overloads to allow for Pvectors in distributed
+function Gridap.Algebra.solve!(
+  x::AbstractVector,
+  ls::LinearSolver, lop::LinearStageOperator,
+  ns::Nothing
+)
+
+  J = lop.J
+  ss = symbolic_setup(ls, J)
+  ns = numerical_setup(ss, J)
+
+  r = lop.r
+  rmul!(r, -1)
+
+  # solve!(x, ns, r)
+  _x = Gridap.Algebra.allocate_in_domain(J)
+  fill!(_x,0.0)
+  Gridap.Algebra.solve!(_x,ns,r)
+  copy!(x,_x)
+
+  ns
+end
+
+function Gridap.Algebra.solve!(
+  x::AbstractVector,
+  ls::LinearSolver, lop::LinearStageOperator,
+  ns
+)
+  if !lop.reuse
+    J = lop.J
+    numerical_setup!(ns, J)
+  end
+
+  r = lop.r
+  rmul!(r, -1)
+
+  # solve!(x, ns, r)
+  _x = Gridap.Algebra.allocate_in_domain(J)
+  fill!(_x,0.0)
+  Gridap.Algebra.solve!(_x,ns,r)
+  copy!(x,_x)
+
+  ns
+end

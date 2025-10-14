@@ -16,7 +16,7 @@ using GridapDistributed
 using GridapSolvers
 using PartitionedArrays
 using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
-
+using GridapPETSc
 using GridapGeosciences
 using Test
 
@@ -24,7 +24,9 @@ include("../convergence_tools.jl")
 include("Williamson2Test.jl")
 
 function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
-  h::Function,vX::Function,f::Function,b::Function,ls=LUSolver(),CFL=0.1,return_vtk=false)
+  h::Function,vX::Function,f::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
+
+  ls_ode, ls_diag = lss
 
   # get the ranks to help with storing/saving solution
   ranks = get_ranks(panel_model)
@@ -93,6 +95,13 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   res_y(t,((u,p),(q,F,Φ)),(w,v,ψ)) = resq(((u,p),(q,F,Φ)),(w,v,ψ)) + resF(((u,p),(q,F,Φ)),(w,v,ψ)) + resΦ(((u,p),(q,F,Φ)),(w,v,ψ))
   jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( dq*p*w*meas_cf  )dΩ + ∫( (dF⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( dΦ*ψ*meas_cf  )dΩ
 
+  _res_y((q,F,Φ),(w,v,ψ))  = res_y(0.0,(xh0,(q,F,Φ)),(w,v,ψ))
+  _jac_y((q,F,Φ),(dq,dF,dΦ),(w,v,ψ)) = jac_y(0.0,(xh0,(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ))
+  _opFE = FEOperator(_res_y,_jac_y,X_diag,Y_diag)
+  nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls_diag,verbose=i_am_main(ranks))
+  qh,Fh,Φh = solve(nls,_opFE)
+  vort = qh*xh0[2] - cor_cf
+
   #### PROGNOSTIC VARIABLES
 
   # equation for depth:
@@ -112,7 +121,7 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog)
   opFE = FEOperator(res_y,jac_y,X_diag,Y_diag)
-  opDAE = DAEFEOperator(opT,opFE,ls)
+  opDAE = DAEFEOperator(opT,opFE,ls_diag)
 
   t0, tF = 0.0, _tF
   _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
@@ -120,17 +129,13 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
   τ = dt/2
 
-  ode_solver = RungeKutta(ls,ls,dt,:EXRK_SSP_3_3)
+  ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
 
   solT  = solve(ode_solver,opDAE,t0,tF,xh0)
   it = iterate(solT)
 
 
-  _res_y((q,F,Φ),(w,v,ψ))  = res_y(0.0,(xh0,(q,F,Φ)),(w,v,ψ))
-  _jac_y((q,F,Φ),(dq,dF,dΦ),(w,v,ψ)) = jac_y(0.0,(xh0,(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ))
-  _opFE = FEOperator(_res_y,_jac_y,X_diag,Y_diag)
-  nls = NewtonRaphsonSolver(LUSolver(),1e-8,3) #NLSolver(LUSolver(),show_trace=false,method=:newton)
-  qh,Fh,Φh = solve(nls,_opFE)
+
 
   Enstropys = Float64[]
   Energys = Float64[]
@@ -145,10 +150,9 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
 
   cell_geo_map = geo_map_func(Ω_panel)
-  labels = ["uh","ph","bt","h"]
   if return_vtk
-    panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],b_cf,h_cf]
-    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+    panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],qh,Fh,Φh,vort,b_cf]
+    cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","bt"],panel_cfs)
     writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
@@ -238,10 +242,58 @@ end
 
 ## helper function to return errors
 function transient_shallow_water_errors(panel_model,p_fe::Int,dir::String,
-  h::Function,vX::Function,f::Function,η::Function,b::Function,ls=LUSolver(),CFL=0.1,return_vtk=false)
-  Es_u,Es_p  = transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,return_vtk)
+  h::Function,vX::Function,f::Function,η::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
+  Es_u,Es_p  = transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,lss,CFL,return_vtk)
   return minimum(Es_u[end-10:end]),minimum(Es_p[end-10:end]),false
 end
+
+################################################################################
+#### Main run for transient solution
+################################################################################
+function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=false)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("transient_shallow_water")
+
+  h = panel_to_cartesian(h₀(ζ))
+  vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+  f = panel_to_cartesian(f₀(ζ))
+  b = panel_to_cartesian(_topography)
+
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+  end
+
+  panel_model = models[1]
+
+  dir = datadir("Transient_shallow_water")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
+  # GridapPETSc.Init(args=split(options))
+
+  # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=1)
+
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=1,name="diagnostic_solver")#
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=1,name="ode_solver")#
+  lss = (ls_ode,ls_diag)
+
+  Es_u,Es_p  = transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,lss,CFL,return_vtk)
+
+  output = @strdict Es_u Es_p
+  i_am_main(ranks) && safesave(datadir(dir, ("shallow_water_errors.jld2")), output)
+
+  # GridapPETSc.Finalize()
+  # GridapPETSc.gridap_petsc_gc()
+
+  i_am_main(ranks) && println("--DONE--")
+
+end
+
+
 
 ################################################################################
 #### Auto convergence test
@@ -252,7 +304,7 @@ function main(distribute,nprocs)
   n_ref_lvls = 4
   ps = [1]
   ζs = [0.0]
-  ls = LUSolver()
+  lss = (LUSolver(),LUSolver())
   CFL = 0.1
   models  = get_refined_models(n_ref_lvls)
 
@@ -271,7 +323,7 @@ function main(distribute,nprocs)
     b = panel_to_cartesian(_topography)
 
     i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,"",h,vX,f,η,b,ls,CFL)
+    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,"",h,vX,f,η,b,lss,CFL)
   end
 
 end
@@ -280,9 +332,9 @@ end
 #### Convergence test with plots
 ################################################################################
 function transient_shallow_water_convergence_test(ranks::AbstractArray,nprocs::Int,
-  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),CFL=0.1,return_vtk=false)
+  ζs=[0.0],n_ref_lvls=4,ps=[1],lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
 
-  williamson2_convergence_test(ranks,nprocs,transient_shallow_water_errors,ζs,n_ref_lvls,ps,ls,CFL,return_vtk)
+  williamson2_convergence_test(ranks,nprocs,transient_shallow_water_errors,ζs,n_ref_lvls,ps,lss,CFL,return_vtk)
 end
 
 
