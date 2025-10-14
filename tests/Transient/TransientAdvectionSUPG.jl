@@ -143,17 +143,11 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
 end
 
 ## helper function to return the error for transient solution
-function transient_advection_supg_errors(panel_model,p_fe::Int,dir::String,
-  u::Function,v::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
-
-  ts, Es = transient_advection_supg_solver(panel_model,p_fe,dir,u,v,CFL,ls,tF,return_vtk)
+function transient_advection_supg_errors(panel_model,args...)
+  ts, Es  = transient_advection_supg_solver(panel_model,args...)
   return minimum(Es[end-10:end]),false,false
 end
 
-# function transient_advection_errors(panel_model,p_fe::Int,solver,fargs...)
-#   ts, Es = solver(panel_model,p_fe,fargs...)
-#   return minimum(Es[end-10:end]),false,false
-# end
 
 ################################################################################
 #### Main run for transient solution

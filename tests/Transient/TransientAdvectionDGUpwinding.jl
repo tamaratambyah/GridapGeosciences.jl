@@ -1,0 +1,188 @@
+module TransientAdvectionDGUpwinding
+
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using MPIPreferences
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+using GridapGeosciences
+using GridapPETSc
+using Test
+
+include("../Advection/advection_funcs.jl")
+include("../convergence_tools.jl")
+
+function my_mean( Bu_n::SkeletonPair)
+  plus  = ( Bu_n.plus)
+  minus = ( Bu_n.minus)
+  0.5*( plus - minus  )
+end
+
+function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
+      u::Function,vX::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+
+  # get the ranks to help with storing/saving solution
+  ranks = get_ranks(panel_model)
+
+  lvl = nref(nc(panel_model))
+  i_am_main(ranks) && println("nlevl = $lvl")
+
+  dir = _dir*"/sol_nref$lvl"
+  (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
+
+  panel_ids = get_panel_ids(panel_model)
+  degree = 2*(p_fe + 1)
+
+  Ω_panel = Triangulation(panel_model)
+  dΩ = Measure(Ω_panel,degree)
+
+  Λ = SkeletonTriangulation(panel_model)
+  if typeof(Ω_panel) <: GridapDistributed.DistributedTriangulation
+    i_am_main(ranks) && println("ghost skel mesh")
+    Λ = SkeletonTriangulation(with_ghost,panel_model)
+  end
+  dΛ = Measure(Λ,degree)
+  n_Λ = get_normal_vector(Λ)
+
+  v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
+
+  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  P = TransientTrialFESpace(Q)
+
+  # hard code RT space as order 1 -- for velocity
+  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
+  U = TrialFESpace(V)
+
+  # initial conditions
+  vel = interpolate(v_contr_cf,U)
+  uh0 = interpolate(u_cf, P(0.0))
+
+  meas_cf = CellField(sqrtg,Ω_panel)
+
+  ## weak form
+  a_mass(t,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
+
+  a_Ω(u,v) =   ∫( -(u*(∇(v)⋅vel) )*meas_cf )dΩ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
+
+  upwind = abs((vel⋅ n_Λ).plus)/2
+  a_s2(u,v) = ∫(  upwind*jump(u)*jump(v)*meas_cf   )dΛ
+
+  res(t,u,v) =  a_Ω(u,v) + a_s1(u,v) + a_s2(u,v)
+  jac(t,u,du,v) = a_Ω(du,v) + a_s1(du,v) + a_s2(du,v)
+  jac_t(t,u,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
+  opT = TransientSemilinearFEOperator(a_mass, res, (jac,jac_t), P, Q, constant_mass=true)
+
+  # solve with SSP RK 3
+  t0 = 0.0
+  _dt = dx(nc(panel_model))*CFL/p_fe
+  dt = floor(_dt,sigdigits=1)
+
+
+  solver = RungeKutta(ls, ls, dt, :EXRK_SSP_3_3)
+  solT = solve(solver, opT, t0, tF, uh0)
+
+  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+
+  cell_geo_map = geo_map_func(Ω_panel)
+  if return_vtk
+    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covarient_basis_cf⋅ vel],append=false,geo_map=cell_geo_map)
+  end
+
+  ## store errors
+  ts = Float64[]
+  Es = Float64[]
+
+  counter = 1
+  eu = 0.0
+  t = 0.0
+
+  push!(ts,t)
+  push!(Es,eu)
+
+  for (t,uh) in solT
+
+    i_am_main(ranks) && println(t)
+
+    eu = l2((uh-uh0)*meas_cf,dΩ)
+
+    push!(ts,t)
+    push!(Es,eu)
+
+    if return_vtk  && (mod(counter,10) == 0)
+      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh],append=false,geo_map=cell_geo_map)
+    end
+    counter = counter + 1
+  end
+
+  push!(ts,t)
+  push!(Es,eu)
+
+  if return_vtk
+    if length(ranks) > 1
+      _make_pvd_distributed(dir,"solT",1)
+    else
+      make_pvd(dir,"solT",1)
+    end
+  end
+
+
+
+  return ts, Es
+
+end
+
+
+function transient_advection_dg_errors(panel_model,args...)
+  ts, Es  = transient_advection_dg_solver(panel_model,args...)
+  return minimum(Es[end-10:end]),false,false
+end
+
+
+################################################################################
+#### Convergence test with plots
+################################################################################
+function transient_advection_dg_convergence_test(ranks::AbstractArray,nprocs::Int,
+  u::Function,vX::Function,n_ref_lvls=4,ps=[1],CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+
+# serial models
+models  = get_refined_models(n_ref_lvls)
+
+if prod(nprocs) > 1
+  i_am_main(ranks) && println("Distributed test")
+  models,  = get_distributed_refined_models(ranks,nprocs,models)
+end
+
+simName = "transient_advection_dg_convergence"
+i_am_main(ranks) && println(simName)
+
+dir = datadir("TransientAdvectionDG")
+(i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
+errors = Vector{Vector{Float64}}(undef,length(ps))
+ns = Vector{Vector{Float64}}(undef,length(ps))
+dxs = Vector{Vector{Float64}}(undef,length(ps))
+slopes = Vector{Float64}(undef,length(ps))
+
+
+for (i,p_fe) in enumerate(ps)
+  i_am_main(ranks) && println("p_fe = $p_fe")
+  errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,transient_advection_dg_errors,p_fe,dir,u,vX,CFL,ls,tF,return_vtk)
+end
+
+i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
+
+output = @strdict errors ns dxs slopes ps
+i_am_main(ranks) && safesave(datadir(dir, ("$simName.jld2")), output)
+
+i_am_main(ranks) && plot_convergence_from_saved(dir,simName)
+
+
+
+end
+
+
+end ## module
