@@ -259,7 +259,7 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
   h = panel_to_cartesian(h₀(ζ))
   vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
   f = panel_to_cartesian(f₀(ζ))
-  b = panel_to_cartesian(_topography)
+  b = panel_to_cartesian(topography)
 
   models  = get_refined_models(n_ref_lvls)
 
@@ -277,8 +277,8 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
 
   # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=1)
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=1,name="diagnostic_solver")#
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=1,name="ode_solver")#
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")#
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=i_am_main(ranks),name="ode_solver")#
   lss = (ls_ode,ls_diag)
 
   Es_u,Es_p  = transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,lss,CFL,return_vtk)
