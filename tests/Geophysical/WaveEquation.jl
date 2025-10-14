@@ -17,7 +17,7 @@ using GridapGeosciences
 using Test
 
 include("../convergence_tools.jl")
-include("helpers.jl")
+include("Williamson2Test.jl")
 
 function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,ls=LUSolver(),return_vtk=false)
   lvl = nref(nc(panel_model))
@@ -84,7 +84,8 @@ function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,
 end
 
 
-function wave_errors(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,f::Function,η::Function,ls=LUSolver(),return_vtk=false)
+function wave_errors(panel_model,p_fe::Int,dir::String,
+  h::Function,vX::Function,f::Function,η::Function,b::Function,ls=LUSolver(),CFL=0.1,return_vtk=false)
   wave_solver(panel_model,p_fe,dir,h,vX,ls,return_vtk)
 end
 
@@ -124,9 +125,9 @@ end
 ################################################################################
 
 function wave_convergence_test(ranks::AbstractArray,nprocs::Int,
-  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
+  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),CFL=0.1,return_vtk=false)
 
-  williamson2_convergence_test(ranks,nprocs,wave_errors,ζs,n_ref_lvls,ps,ls,return_vtk)
+  williamson2_convergence_test(ranks,nprocs,wave_errors,ζs,n_ref_lvls,ps,ls,CFL,return_vtk)
 end
 
 end # module

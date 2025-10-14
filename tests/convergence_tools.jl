@@ -1,6 +1,7 @@
 using Gridap
 using Gridap.Adaptivity, Gridap.Helpers
 using GridapDistributed
+using GridapGeosciences
 using PartitionedArrays
 using Plots, LaTeXStrings
 using JLD2

@@ -20,7 +20,7 @@ using GridapGeosciences
 using Test
 
 include("../convergence_tools.jl")
-include("helpers.jl")
+include("Williamson2Test.jl")
 
 
 function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
@@ -148,8 +148,9 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
 
 end
 
-function nonlinear_shallow_water_errors(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,f::Function,η::Function,
-  ls=LUSolver(),return_vtk=false,check_geo_balance=false)
+function nonlinear_shallow_water_errors(panel_model,p_fe::Int,dir::String,
+  h::Function,vX::Function,f::Function,η::Function,b::Function,
+ ls=LUSolver(),CFL=0.1,return_vtk=false,check_geo_balance=false)
   nonlinear_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,η,ls,return_vtk,check_geo_balance)
 end
 
@@ -189,9 +190,9 @@ end
 ################################################################################
 
 function nonlinear_shallow_water_convergence_test(ranks::AbstractArray,nprocs::Int,
-  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false,check_geo_balance=false)
+  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),CFL=0.1,return_vtk=false,check_geo_balance=false)
 
-  williamson2_convergence_test(ranks,nprocs,nonlinear_shallow_water_errors,ζs,n_ref_lvls,ps,ls,return_vtk,check_geo_balance)
+  williamson2_convergence_test(ranks,nprocs,nonlinear_shallow_water_errors,ζs,n_ref_lvls,ps,ls,CFL,return_vtk,check_geo_balance)
 end
 
 

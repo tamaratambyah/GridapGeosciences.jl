@@ -42,5 +42,6 @@ include("RungeKuttaEX.jl")
 include("StageOperators.jl")
 
 export DAEFEOperator
+export LinearStageOperator
 
 end

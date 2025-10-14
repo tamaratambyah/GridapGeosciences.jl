@@ -147,6 +147,32 @@ function transient_advection_dg_errors(panel_model,args...)
   return minimum(Es[end-10:end]),false,false
 end
 
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 4
+  ps = [1,2,3]
+  ls = LUSolver()
+  CFL = 0.1
+
+  v = vX
+  u = panel_to_cartesian(u0)
+  tF = 2*π
+
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+  end
+
+  i_am_main(ranks) && println("transient_advection_dg_convergence")
+  p_convergence_test(ranks,ps,models,transient_advection_dg_errors,"",u,v,CFL,ls,tF)
+end
 
 ################################################################################
 #### Convergence test with plots

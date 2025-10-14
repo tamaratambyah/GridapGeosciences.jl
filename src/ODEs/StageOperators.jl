@@ -4,7 +4,7 @@
 #######################
 
 
-function LinearStageOperator(
+function Gridap.ODEs.LinearStageOperator(
   odeop::DAEODEOperator, odeopcache,
   tx::Real, usx::Tuple{Vararg{AbstractVector}},
   ws::Tuple{Vararg{Real}},
@@ -16,5 +16,5 @@ function LinearStageOperator(
     Gridap.ODEs.jacobian!(J, odeop, tx, usx, ws, odeopcache)
   end
 
-  LinearStageOperator(J, r, reuse)
+  LinearStageOperator(J, r, tx, ws, usx, reuse)
 end

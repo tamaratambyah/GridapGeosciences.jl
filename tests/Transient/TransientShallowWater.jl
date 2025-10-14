@@ -7,24 +7,30 @@ F = φu
 q = 1/φ( ∇ᵧ^†⋅u  + f )
 """
 
-panel_model = coarse_parametric_model()
-panel_model = Gridap.Adaptivity.refine(panel_model)
-panel_model = Gridap.Adaptivity.refine(panel_model)
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using MPIPreferences
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+using GridapGeosciences
+using GridapPETSc
+using Test
 
-p_fe = 1
-CFL = 0.1
-ζ = 0.0
+function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
+  h::Function,vX::Function,f::Function,b::Function,ls=LUSolver(),CFL=0.1,return_vtk=false)
 
-h = panel_to_cartesian(h₀(ζ))
-vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-f = panel_to_cartesian(f₀(ζ))
-# b = panel_to_cartesian(topography)
-b = panel_to_cartesian(_topography)
+  # get the ranks to help with storing/saving solution
+  ranks = get_ranks(panel_model)
 
-function transient_sw(panel_model,h::Function,vX::Function,f::Function,b::Function,p_fe::Int,CFL=0.1,return_vtk=false)
   lvl = nref(nc(panel_model))
-  println("Refinement level: $lvl")
+  i_am_main(ranks) && println("nlevl = $lvl")
 
+  dir = _dir*"/sol_nref$lvl"
+  (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
+
+  ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*(p_fe+1))
@@ -59,7 +65,7 @@ function transient_sw(panel_model,h::Function,vX::Function,f::Function,b::Functi
 
 
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  gravity = _g#1.0
+  gravity = _g
 
 
   # mectrics required in weak forms
@@ -99,14 +105,12 @@ function transient_sw(panel_model,h::Function,vX::Function,f::Function,b::Functi
   jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
 
-  ls = LUSolver()
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog)
   opFE = FEOperator(res_y,jac_y,X_diag,Y_diag)
   opDAE = DAEFEOperator(opT,opFE,ls)
 
-  t0, tF = 0.0, _tF#2*π
+  t0, tF = 0.0, _tF
   _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
-  # dt = 0.04
   dt = floor(_dt, sigdigits=1)
 
   τ = dt/2
@@ -115,8 +119,6 @@ function transient_sw(panel_model,h::Function,vX::Function,f::Function,b::Functi
 
   solT  = solve(ode_solver,opDAE,t0,tF,xh0)
   it = iterate(solT)
-
-
 
 
   _res_y((q,F,Φ),(w,v,ψ))  = res_y(0.0,(xh0,(q,F,Φ)),(w,v,ψ))
@@ -137,19 +139,22 @@ function transient_sw(panel_model,h::Function,vX::Function,f::Function,b::Functi
   push!(Masss,mass0)
 
 
-  cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+  cell_geo_map = geo_map_func(Ω_panel)
+  labels = ["uh","ph","bt","h"]
   if return_vtk
-    dir = datadir("Transient_shallow_water_nref$lvl")
-    !isdir(dir) && mkdir(dir)
-    labels = ["uh","ph","bt","h"]
     panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],b_cf,h_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  # t1 = time()
+
   Es_u = Float64[]
   Es_p = Float64[]
+  e_u,e_p = 0.0, 0.0
+  push!(Es_u,e_u)
+  push!(Es_p,e_p)
+
+  counter = 1
   while !isnothing(it)
     data, state = it
     t, xh = data
@@ -176,20 +181,24 @@ function transient_sw(panel_model,h::Function,vX::Function,f::Function,b::Functi
     # push!(Energys,energy)
     # push!(Masss,_mass)
 
-    if return_vtk
+    if return_vtk  && (mod(counter,10) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort]
       cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort"],panel_cfs)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
     end
-
+    counter = counter + 1
     it = iterate(solT, state)
   end
-  # elapsed_time = time() - t1
-  # println("Elapsed time: ", elapsed_time, " seconds")
 
   if return_vtk
-    make_pvd(dir,"solT",1)
+    if length(ranks) > 1
+      _make_pvd_distributed(dir,"solT",1)
+    else
+      make_pvd(dir,"solT",1)
+    end
   end
+
+  return Es_u, Es_p
 
   # ## plot casimirs
   # dxx =dx(nc(panel_model))
@@ -222,39 +231,70 @@ function transient_sw(panel_model,h::Function,vX::Function,f::Function,b::Functi
 end
 
 
-
-function transient_shallow_water_errors(panel_model,h::Function,vX::Function,f::Function,b::Function,p_fe::Int,
-  CFL=0.1,return_vtk=false)
-  e_u,e_p  = transient_sw(panel_model,h,vX,f,b,p_fe,CFL,return_vtk)
-  return e_u,e_p,false
+## helper function to return errors
+function transient_shallow_water_errors(panel_model,p_fe::Int,dir::String,
+  h::Function,vX::Function,f::Function,η::Function,b::Function,ls=LUSolver(),CFL=0.1,return_vtk=false)
+  Es_u,Es_p  = transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,return_vtk)
+  return minimum(Es_u[end-10:end]),minimum(Es_p[end-10:end]),false
 end
 
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
 
-function williamson2_convergence_test(n_ref_lvls,CFL=0.1,return_vtk=false,args...)
+  n_ref_lvls = 4
+  ps = [1]
+  ζs = [0.0]
+  ls = LUSolver()
+  CFL = 0.1
+  models  = get_refined_models(n_ref_lvls)
 
-for (i,ζ) in enumerate([0 ])
-
-  println("ζ = $ζ")
-
-  plot()
-
-  h = panel_to_cartesian(h₀(ζ))
-  vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-  f = panel_to_cartesian(f₀(ζ))
-  b = panel_to_cartesian(_topography)
-
-  for p_fe in [1]
-    errs,ns,dxs,slope = convergence_test(transient_shallow_water_errors,n_ref_lvls,h,vX,f,b,p_fe,CFL,return_vtk)
-    plot_convergence(errs,ns,dxs,slope;
-        leginf=["u: p=$p_fe","ϕ: p=$p_fe"],
-        colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe]],
-        ls=[:solid, :dot], )
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
-  savefig(plotsdir()*"/williamson2_transient_sw_convergence_func_z$i")
-end
+
+  for (i,ζ) in enumerate(ζs)
+
+    h = panel_to_cartesian(h₀(ζ))
+    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+    f = panel_to_cartesian(f₀(ζ))
+    η = panel_to_cartesian(η₀(ζ))
+    b = panel_to_cartesian(_topography)
+
+    i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
+    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,"",h,vX,f,η,b,ls,CFL)
+  end
 
 end
 
+################################################################################
+#### Convergence test with plots
+################################################################################
+function transient_shallow_water_convergence_test(ranks::AbstractArray,nprocs::Int,
+  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),CFL=0.1,return_vtk=false)
+
+  williamson2_convergence_test(ranks,nprocs,transient_shallow_water_errors,ζs,n_ref_lvls,ps,ls,CFL,return_vtk)
+end
+
+
+include("../Geophysical/Williamson2Test.jl")
+
+
+ranks = [true]
+nprocs = 1
+ζs = [0.0]
+n_ref_lvls = 3
+ps = [1]
+ls = LUSolver()
 CFL = 0.1
-n_ref_lvls = 4
-williamson2_convergence_test(n_ref_lvls,CFL,false)
+
+transient_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true)
+
+
+with_debug() do distribute
+  main(distribute,1)
+end
