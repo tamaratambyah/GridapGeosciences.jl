@@ -281,7 +281,7 @@ function transient_shallow_water_convergence_test(ranks::AbstractArray,nprocs::I
 end
 
 
-include("../Geophysical/Williamson2Test.jl")
+include("Williamson2Test.jl")
 
 
 ranks = [true]
