@@ -1,7 +1,7 @@
 include("Williamson_functions_v2.jl")
 
 function williamson2_convergence_test(ranks::AbstractArray,nprocs::Int,
-  solver_errors,ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false)
+  solver_errors,ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),return_args...)
 
   solverName = string(solver_errors)[1:end-7]
 
@@ -32,7 +32,7 @@ function williamson2_convergence_test(ranks::AbstractArray,nprocs::Int,
 
     for (i,p_fe) in enumerate(ps)
       i_am_main(ranks) && println("p_fe = $p_fe")
-      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,solver_errors,p_fe,dir,h,vX,f,η,ls,return_vtk)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,solver_errors,p_fe,dir,h,vX,f,η,ls,return_args...)
     end
 
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slopes,ps)
@@ -40,7 +40,7 @@ function williamson2_convergence_test(ranks::AbstractArray,nprocs::Int,
     output = @strdict errors ns dxs slopes ps
     i_am_main(ranks) && safesave(datadir(dir, ("$simName.jld2")), output)
 
-    i_am_main(ranks) && plot_convergence_from_saved(dir,simName,["u","ϕ"])
+    i_am_main(ranks) && plot_convergence_from_saved(dir,simName,["u","ϕ","η"])
 
   end
 

@@ -7,8 +7,25 @@ F = φu
 q = 1/φ( ∇ᵧ^⟂⋅u  + f )
 """
 
-function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Function,η::Function,
-    p_fe::Int,return_vtk=false,check_geo_balance=false)
+module NLShallowWater
+
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+
+using GridapGeosciences
+using Test
+
+include("../convergence_tools.jl")
+include("helpers.jl")
+
+
+function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
+  h::Function,vX::Function,f::Function,η::Function,ls=LUSolver(),
+    return_vtk=false,check_geo_balance=false)
 
   lvl = nref(nc(panel_model))
   println("Refinement level: $lvl")
@@ -56,20 +73,20 @@ function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::
   biformF(F,v) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ
   liformF(v) = ∫( h_h*(u_contra_h⋅(metric_cf⋅v))*meas_cf   )dΩ
   op = AffineFEOperator(biformF,liformF,U,V)
-  Fh = solve(LUSolver(),op)
+  Fh = solve(ls,op)
 
   # Bernoulli potential
   biformΦ(Φ,r) = ∫( Φ*r*meas_cf  )dΩ
   liformΦ(r) = ∫( gravity*h_h*r*meas_cf  )dΩ + ∫( 0.5*( u_contra_h ⋅(metric_cf⋅u_contra_h) )r*meas_cf  )dΩ
   op = AffineFEOperator(biformΦ,liformΦ,P,Q)
-  Φh = solve(LUSolver(),op)
+  Φh = solve(ls,op)
 
   # vorticity
   perp_matrix_cf = CellField(analytic_perp_matrix,Ω_panel)
   biformq(q,r) = ∫( q*h_h*r*meas_cf  )dΩ
   liformq(r) = ∫( cor_cf*r*meas_cf  )dΩ + ∫( (perp_matrix_cf⋅u_contra_h)⋅∇(r)  )dΩ
   op = AffineFEOperator(biformq,liformq,H,R)
-  qh = solve(LUSolver(),op)
+  qh = solve(ls,op)
 
   e_η = l2((η_h - qh*h_h )*meas_cf,dΩ)
 
@@ -82,7 +99,7 @@ function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::
                 - ∫( r*(Fh⋅grad_meas_cf + meas_cf*(∇⋅Fh) )  )dΩ
                 )
   op = AffineFEOperator(biform_p,liform_p,P,Q)
-  ph = solve(LUSolver(),op)
+  ph = solve(ls,op)
   e_p = l2((h_cf - ph)*meas_cf,dΩ) # error in depth
 
 
@@ -105,7 +122,7 @@ function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::
                   - ∫( qh*( (perp_matrix_cf⋅Fh) ⋅(metric_cf ⋅v))   )dΩ
                     )
   op = AffineFEOperator(biform_u,liform_u,U,V)
-  uh = solve(LUSolver(),op)
+  uh = solve(ls,op)
 
   uh_proj = covarient_basis_cf ⋅ uh
 
@@ -114,7 +131,7 @@ function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [ph, h_cf,ph-h_cf,
                 uh_proj, u_proj_h, uh_proj-u_proj_h,
                  ]
@@ -127,14 +144,55 @@ function nonlinear_shallow_water_solver(panel_model,h::Function,vX::Function,f::
 
   println(e_u, "; ", e_p, "; ",  e_η)
 
-  return e_u,  e_p, e_η, e_geo_balance
+  return e_u,  e_p, e_η
 
 end
 
-
-
-function nonlinear_shallow_water_errors(panel_model,h::Function,vX::Function,f::Function,η::Function,p_fe::Int,
-    return_vtk=false,check_geo_balance=false)
-  e_u,e_p,e_η,e_geo_balance  = nonlinear_shallow_water_solver(panel_model,h,vX,f,η,p_fe,return_vtk,check_geo_balance)
-  return e_u,e_p,e_η
+function nonlinear_shallow_water_errors(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,f::Function,η::Function,
+  ls=LUSolver(),return_vtk=false,check_geo_balance=false)
+  nonlinear_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,η,ls,return_vtk,check_geo_balance)
 end
+
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 4
+  ps = [1,2,3]
+  ζs = [0.0]
+  ls = LUSolver()
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+  end
+
+  for (i,ζ) in enumerate(ζs)
+
+    h = panel_to_cartesian(h₀(ζ))
+    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+    f = panel_to_cartesian(f₀(ζ))
+    η = panel_to_cartesian(η₀(ζ))
+
+    i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
+    p_convergence_test(ranks,ps,models,nonlinear_shallow_water_solver,"",h,vX,f,η,ls)
+  end
+
+end
+
+################################################################################
+#### Convergence test with plots
+################################################################################
+
+function nonlinear_shallow_water_convergence_test(ranks::AbstractArray,nprocs::Int,
+  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),return_vtk=false,check_geo_balance=false)
+
+  williamson2_convergence_test(ranks,nprocs,nonlinear_shallow_water_errors,ζs,n_ref_lvls,ps,ls,return_vtk,check_geo_balance)
+end
+
+
+end # module

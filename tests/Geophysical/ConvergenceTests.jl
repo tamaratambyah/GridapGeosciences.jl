@@ -6,7 +6,7 @@ using Plots, LaTeXStrings
 
 include("WaveEquation.jl")
 # include("shallow_water.jl")
-# include("nonlinear_shallow_water.jl")
+include("NLShallowWater.jl")
 
 ps = [1]
 ζs=[0.0]
@@ -19,6 +19,7 @@ ls=LUSolver()
 ranks = [true]
 nprocs = 1
 WaveEquation.wave_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true)
+NLShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true,true)
 
 # williamson2_convergence_test(linear_shallow_water_errors,n_ref_lvls)
 # williamson2_convergence_test(nonlinear_shallow_water_errors,n_ref_lvls)
