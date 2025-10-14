@@ -6,7 +6,7 @@ using Plots, LaTeXStrings
 include("../convergence_tools.jl")
 include("TransientAdvectionSUPG.jl")
 include("TransientAdvectionDGUpwinding.jl")
-include("../Advection/advection_funcs.jl")
+include("advection_funcs.jl")
 
 vX = panel_to_cartesian(tangent_vec(vecX))
 u = panel_to_cartesian(u0)
@@ -51,3 +51,15 @@ TransientAdvectionSUPG.transient_advection_supg_convergence_test(ranks,nprocs,u,
 
 # ## DG
 TransientAdvectionDGUpwinding.transient_advection_dg_convergence_test(ranks,nprocs,u,vX,n_ref_lvls,ps,CFL,ls,tF,true)
+
+
+# options_gmres = """
+# -ksp_type gmres
+# -ksp_rtol 1.0e-6
+# -ksp_converged_reason
+# -ksp_monitor
+# """
+# with_debug() do distribute
+#   TransientAdvectionSUPG.main_transient(distribute;nprocs=6,options=options_gmres,
+#     n_ref_lvls=6,p_fe=1,CFL=0.1,tF=0.1,return_vtk=true)
+# end

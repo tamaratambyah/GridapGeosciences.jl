@@ -17,7 +17,7 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("../Advection/advection_funcs.jl")
+include("advection_funcs.jl")
 include("Lauritzen_functions.jl")
 include("../convergence_tools.jl")
 
