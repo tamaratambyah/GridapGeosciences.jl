@@ -1,3 +1,9 @@
+""" Linear advection equation (material form)
+∂ₜu + β⋅ ∇ᵧ(u) = 0
+Solve with SUPG as per Brooks & Hughes 1982 paper
+Replicate test in Section 2.2, 2.3 of Lauritzen2012 paper
+"""
+
 module TransientAdvectionSUPG
 
 using DrWatson

@@ -1,5 +1,5 @@
-""" Linear advection equation (flux form)
-∂ₜu + ∇ᵧ⋅(βu) = 0
+""" Linear advection equation (flux form) with manufactured solution
+u + ∇ᵧ⋅(βu) = f
 Solve with dG upwinding as per Brezzi 2004 paper
 Replicate test in Section 5.4 of Rognes2013 paper
 """

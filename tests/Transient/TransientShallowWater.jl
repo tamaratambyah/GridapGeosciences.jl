@@ -1,3 +1,12 @@
+"""
+solve the non-linear shallow water equations
+∂ₜu + q F^† + ∇ᵧ(Φ) = 0
+∂ₜφ + ∇ᵧ⋅F = 0
+F = φu
+Φ = 0.5(u⋅u) + gᵣφ
+q = 1/φ( ∇ᵧ^†⋅u  + f )
+"""
+
 panel_model = coarse_parametric_model()
 panel_model = Gridap.Adaptivity.refine(panel_model)
 panel_model = Gridap.Adaptivity.refine(panel_model)

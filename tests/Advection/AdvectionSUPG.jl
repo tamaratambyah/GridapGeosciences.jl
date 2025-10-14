@@ -1,5 +1,5 @@
-""" Linear advection equation (material form)
-∂ₜu + β⋅ ∇ᵧ(u) = 0
+""" Linear advection equation (material form) with manufactured solution
+u + β⋅ ∇ᵧ(u) = f
 Solve with SUPG as per Brooks & Hughes 1982 paper
 Replicate test in Section 5.4 of Rognes2013 paper
 """

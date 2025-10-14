@@ -1,3 +1,10 @@
+"""
+solve the linearised wave equation in
+∂ₜu + ∇ᵧ(φ) = 0
+∂ₜφ + ∇ᵧ⋅u = 0
+"""
+
+
 module TransientWaveEquation
 
 using DrWatson

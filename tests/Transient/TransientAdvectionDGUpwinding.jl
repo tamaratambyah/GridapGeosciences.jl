@@ -1,3 +1,9 @@
+""" Linear advection equation (flux form)
+∂ₜu + ∇ᵧ⋅(βu) = 0
+Solve with dG upwinding as per Brezzi 2004 paper
+Replicate test in Section 5.4 of Rognes2013 paper
+"""
+
 module TransientAdvectionDGUpwinding
 
 using DrWatson
