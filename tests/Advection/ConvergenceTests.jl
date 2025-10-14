@@ -15,7 +15,7 @@ uvX = panel_to_cartesian(u0vecX)
 
 n_ref_lvls = 4
 CFL = 0.1
-ps = [1]#[1,2,3]
+ps = [1,2,3]
 
 ################################################################################
 #### Serial convergence test
@@ -53,6 +53,4 @@ AdvectionSUPG.advection_supg_convergence_test(ranks,nprocs,u,vX,n_ref_lvls,ps,CF
 
 ## DG
 ls = LUSolver()
-# using GridapSolvers
-# ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=i_am_main(ranks))
 AdvectionDGUpwinding.advection_dg_convergence_test(ranks,nprocs,u,vX,uvX,n_ref_lvls,ps,ls,true)

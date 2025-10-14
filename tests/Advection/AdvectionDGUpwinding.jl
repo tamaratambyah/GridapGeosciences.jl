@@ -39,8 +39,11 @@ end
 ################################################################################
 function advection_dg_solver(panel_model,p_fe::Int,dir::String,
     u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
+
+  ranks = get_ranks(panel_model)
+
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  i_am_main(ranks) && println("nref = $lvl")
 
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
@@ -49,6 +52,10 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   dΩ = Measure(Ω_panel,degree)
 
   Λ = SkeletonTriangulation(panel_model)
+  if typeof(Ω_panel) <: GridapDistributed.DistributedTriangulation
+    i_am_main(ranks) && println("ghost skel mesh")
+    Λ = SkeletonTriangulation(with_ghost,panel_model)
+  end
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
 
