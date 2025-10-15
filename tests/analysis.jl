@@ -1,6 +1,7 @@
 using DrWatson
 using JLD2
 using Plots
+using GridapGeosciences
 
 #### advection
 dir = datadir("gadi/Transient_advection_nref6")
@@ -45,3 +46,8 @@ plot()
 plot!(ts[2:end],abs.(divus[2:end]),lw=3)
 plot!(xlabel="t",ylabel="|div (u)|")
 savefig(plotsdir()*"/wave_transient_panel_div")
+
+
+#### shallow water
+dir = datadir("gadi/sol_nref6")
+_make_pvd_distributed(dir,"solT",1)

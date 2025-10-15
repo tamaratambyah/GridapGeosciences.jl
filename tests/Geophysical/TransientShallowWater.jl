@@ -259,7 +259,7 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
   h = panel_to_cartesian(h₀(ζ))
   vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
   f = panel_to_cartesian(f₀(ζ))
-  b = panel_to_cartesian(topography)
+  b = panel_to_cartesian(_topography)
 
   models  = get_refined_models(n_ref_lvls)
 
