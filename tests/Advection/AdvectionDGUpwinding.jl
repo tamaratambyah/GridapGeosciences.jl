@@ -90,8 +90,8 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
 
   # cell_geo_map = geo_map_func(panel_ids)
-  # cell_normal = get_facet_normal(Λ,cell_geo_map)
-  # n = get_normal_vector(Λ,cell_normal)
+  # n = get_facet_normal(Λ,cell_geo_map)
+  ##    # n = pushforward_normal(Λ)
   # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u*n)⋅jump(v*n)*meas_cf   )dΛ
 
 
