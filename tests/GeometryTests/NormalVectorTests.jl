@@ -6,6 +6,8 @@ using GridapGeosciences
 using Test
 using Gridap.Helpers
 
+include("../convergence_tools.jl")
+
 ################################################################################
 #### Test unit normal vectors
 ################################################################################
@@ -62,14 +64,13 @@ trian = BoundaryTriangulation(panel_model,1)
 pts = get_cell_points(trian)
 
 # get face normals in 3D
-cell_vectors = get_facet_normal(trian,cell_geo_map)
-n_3D = get_normal_vector(trian,cell_vectors)
+n_3D = pushforward_normal(trian,cell_geo_map)
 
 # push forward 2D chart normals to ambient space
 n_mapped = pushforward_normal(trian)
 
 # test equality
-@test sum(n_mapped(pts) .≈ n_3D(pts)) == num_facets(panel_model)
+@test all(n_mapped(pts) .≈ n_3D(pts))
 
 ################################################################################
 ## Face normals: skeleton trian
@@ -80,16 +81,17 @@ pts = get_cell_points(trian)
 # regular 2D normal in chart
 n_2D = get_normal_vector(trian)
 
-# get face normals in 3D
-cell_vectors = get_facet_normal(trian,cell_geo_map)
-n_3D = get_normal_vector(trian,cell_vectors)
+# # get face normals in 3D
+# cell_vectors = get_facet_normal(trian,cell_geo_map)
+# n_3D = get_normal_vector(trian,cell_vectors)
+n_3D = pushforward_normal(trian,cell_geo_map)
 
 # push forward 2D chart normals to ambient space
 n_mapped = pushforward_normal(trian)
 
 # test equality of plus and minus side
-@test sum(n_mapped.plus(pts) .≈ n_3D.plus(pts)) == num_facets(panel_model)
-@test sum(n_mapped.minus(pts) .≈ n_3D.minus(pts)) == num_facets(panel_model)
+@test all(n_mapped.plus(pts) .≈ n_3D.plus(pts))
+@test all(n_mapped.minus(pts) .≈ n_3D.minus(pts))
 
 ## plot normals on skeleton
 if return_vtk
@@ -118,14 +120,14 @@ jac_cf = panelwise_cellfield(forward_jacobian,Λ)
 area_form_cf = pullback_area_form(Λ)
 
 # test equality of plus and minus side of sqrt(g)
-@test sum(meas_cf.minus(pts) .≈ meas_cf.plus(pts)) == num_facets(panel_model)
+@test all(meas_cf.minus(pts) .≈ meas_cf.plus(pts))
 
 # test equality of plus and minus side of |Jg^-1 n|
-@test sum(area_form_cf.plus(pts) .≈ area_form_cf.minus(pts)) == num_facets(panel_model)
+@test all(area_form_cf.plus(pts) .≈ area_form_cf.minus(pts))
 
 # test inequality of plus and minus side for g^-1 and J
-@test sum(inv_metric_cf.plus(pts) .≈ inv_metric_cf.minus(pts)) ≠ num_facets(panel_model)
-@test sum(jac_cf.minus(pts) .≈ jac_cf.plus(pts)) ≠ num_facets(panel_model)
+@test !all(inv_metric_cf.plus(pts) .≈ inv_metric_cf.minus(pts))
+@test !all(jac_cf.minus(pts) .≈ jac_cf.plus(pts))
 
 if return_vtk
   panel_cfs = [meas_cf.plus, meas_cf.minus, meas_cf.minus-meas_cf.plus,
@@ -160,7 +162,7 @@ _vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
 vel = interpolate(_vel,U)
 
 diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))
-@test sum( diff_cf(pts) .< fill([1e-14,1e-14],num_facets(panel_model))) == num_facets(panel_model)
+@test all(all.(lazy_map(x->isless.(x, 1e-14), diff_cf(pts))))
 
 if return_vtk
   skel_panel_ids = get_panel_ids(Λ)
