@@ -80,10 +80,19 @@ return face-wise array of panel ids
 """
 
 ################################################################################
+function pushforward_normal(args...)
+  @abstractmethod
+end
+
 """
 map normal vector using cell_geo_map
 This method is an adaption of Gridap's machinary
 """
+function pushforward_normal(trian::BoundaryTriangulation,cell_geo_map::AbstractArray)
+  cell_vectors = get_facet_normal(trian,cell_geo_map)
+  get_normal_vector(trian,cell_vectors)
+end
+
 Geometry.get_facet_normal(trian::BoundaryTriangulation,cell_geo_map::AbstractArray) = Geometry.get_facet_normal(trian,trian.glue,cell_geo_map)
 
 function Geometry.get_facet_normal(trian::BoundaryTriangulation,face_to_cell_glue,cell_geo_map::AbstractArray)
@@ -168,7 +177,7 @@ function _pushforward_normal(trian)
 
   _n_mapped = J_cf ⋅ (inv_cf  ⋅ n_2_2D )
   ff = Operation(sqrt)(  n_2_2D   ⋅ (inv_cf⋅ n_2_2D )  )
-  n_mapped = Operation(/)(_n_mapped)(ff) #_n_mapped/ff
+  n_mapped = _n_mapped/ff
 
   return n_mapped
 end

@@ -99,3 +99,4 @@ end
 @publish Distributed get_skel_panel_ids
 @publish Distributed BoundaryTriangulation
 @publish Distributed pullback_area_form
+@publish Distributed pushforward_normal

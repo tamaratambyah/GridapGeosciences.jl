@@ -21,3 +21,18 @@ function pullback_area_form(trian::DistributedTriangulation)
   end
   DistributedCellField(fields,trian)
 end
+
+
+function pushforward_normal(trian::GridapDistributed.DistributedTriangulation,cell_geo_map::AbstractArray)
+  fields = map(trian.trians,cell_geo_map) do t,m
+    pushforward_normal(t,m)
+  end
+  GridapDistributed.DistributedCellField(fields,trian)
+end
+
+function pushforward_normal(trian::GridapDistributed.DistributedTriangulation)
+  fields = map(trian.trians) do t
+    return GridapGeosciences.pushforward_normal(t)
+  end
+  return GridapDistributed.DistributedCellField(fields,trian)
+end

@@ -23,7 +23,7 @@ import GridapGeosciences.Geometry: _CCAM_cube_nodes_3d
 import GridapGeosciences.Geometry: setup_panel_cmaps
 import GridapGeosciences.Geometry: panelwise_cellfield, geo_map_func
 import GridapGeosciences.Geometry: get_panel_ids
-import GridapGeosciences.Geometry: pullback_area_form
+import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
 
 using GridapGeosciences.Fields
 using GridapGeosciences.Visualisation
@@ -50,5 +50,6 @@ export get_distributed_panel_model
 export get_panel_ids, get_owned_panel_ids, get_skel_panel_ids
 export BoundaryTriangulation
 export pullback_area_form
+export pushforward_normal
 
 end

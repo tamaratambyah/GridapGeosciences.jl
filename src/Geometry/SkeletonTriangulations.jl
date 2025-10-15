@@ -5,6 +5,11 @@ function get_panel_ids(strian::SkeletonTriangulation)
 end
 
 
+function pushforward_normal(trian::SkeletonTriangulation,cell_geo_map::AbstractArray)
+  cell_vectors = get_facet_normal(trian,cell_geo_map)
+  get_normal_vector(trian,cell_vectors)
+end
+
 function Geometry.get_facet_normal(trian::SkeletonTriangulation,cell_geo_map::AbstractArray)
   println("skeleton facet normal")
   plus = get_facet_normal(trian.plus,cell_geo_map)
