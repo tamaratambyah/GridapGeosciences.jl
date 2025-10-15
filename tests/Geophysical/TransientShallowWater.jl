@@ -21,8 +21,8 @@ using GridapGeosciences
 using Test
 
 include("../convergence_tools.jl")
-include("Williamson2Test.jl")
-# include("Williamson5Test.jl")
+# include("Williamson2Test.jl")
+include("Williamson5Test.jl")
 
 function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   h::Function,vX::Function,f::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
@@ -276,7 +276,7 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
   panel_model = models[1]
   lss = (ls_ode,ls_diag)
 
-  dir = datadir("Transient_shallow_water")
+  dir = datadir("Transient_shallow_water_W5")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   # GridapPETSc.Init(args=split(options))
