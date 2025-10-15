@@ -5,6 +5,9 @@ using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using Gridap.Algebra, Gridap.FESpaces, Gridap.ODEs
 using LinearAlgebra
 using FillArrays
+using PartitionedArrays
+
+import PartitionedArrays: consistent!
 
 import Gridap.Helpers: @abstractmethod
 import Gridap.ODEs: LinearODE, QuasilinearODE, SemilinearODE
