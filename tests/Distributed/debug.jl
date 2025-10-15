@@ -78,27 +78,53 @@ meas_cf = CellField(sqrtg,Ω_panel)
 
 a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
-function my_mean( Bu_n::SkeletonPair)
-  plus  = ( Bu_n.plus)
-  minus = ( Bu_n.minus)
-  0.5*( plus - minus  )
+# function my_mean( Bu_n::SkeletonPair)
+#   plus  = ( Bu_n.plus)
+#   minus = ( Bu_n.minus)
+#   0.5*( plus - minus  )
+# end
+
+function _my_mean(j::SkeletonPair,vel::CellField,u::CellField)
+  0.5*( (j.plus⋅vel.plus)*u.plus + (j.minus⋅vel.minus)*u.minus )
+end
+
+function my_jump(j::SkeletonPair,ginv::SkeletonPair,n::SkeletonPair,u::CellField)
+  u.plus*(j.plus⋅(ginv.plus⋅n.plus) ) + u.minus*(j.minus⋅(ginv.minus⋅n.minus) )
 end
 
 ### volume stabilisation term
-a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
+# a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
 
-# jac_cf = panelwise_cellfield(forward_jacobian,Λ)
-# ginv_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
-# a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
+jac_cf = panelwise_cellfield(forward_jacobian,Λ)
+ginv_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
+a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
+
+# upwind = abs((vel⋅ n_Λ).plus)
+### upwinding stabilisation term
+# a_s2(u,v) = ∫(  0.5*abs((vel⋅ n_Λ).plus)*jump(u)*jump(v)*meas_cf   )dΛ
+
+meas_cf = panelwise_cellfield(_sqrtg,Λ)
+out = (meas_cf.plus-meas_cf.minus)(pts)
+map(out) do o
+  @test all( lazy_map(x-> all(isless.(x,tol)), o))
+end
+
+
+n = pushforward_normal(Λ)
+
+pts = get_cell_points(Λ)
+out = (n.plus+n.minus)(pts)
+tol=1e-14
+myisless(b::Gridap.TensorValues.MultiValue,a::Number) = all(Gridap.TensorValues.isless.(b.data,a))
+map(out) do o
+  @test all( lazy_map(x-> all(myisless.(x,tol)), o))
+end
+
 
 upwind = abs((vel⋅ n_Λ).plus)
-### upwinding stabilisation term
-a_s2(u,v) = ∫(  0.5*abs((vel⋅ n_Λ).plus)*jump(u)*jump(v)*meas_cf   )dΛ
-
-# cell_geo_map = geo_map_func(panel_ids)
-# cell_normal = get_facet_normal(Λ,cell_geo_map)
-# n = get_normal_vector(Λ,cell_normal)
-# a_s2(u,v) = ∫(  0.5*(upwind)*jump(u*n)⋅jump(v*n)*meas_cf   )dΛ
+cell_geo_map = geo_map_func(panel_ids)
+n = get_facet_normal(Λ,cell_geo_map)
+a_s2(u,v) = ∫(  0.5*(upwind)*jump(u*n)⋅jump(v*n)*meas_cf   )dΛ
 
 
 biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)

@@ -4,7 +4,6 @@ using GridapGeosciences
 using Gridap.Adaptivity
 using Test
 using GridapDistributed
-# using Test; @testset "DistributedPanelIds" begin include("tests/Distributed/DistributedPanelIdsTests.jl") end
 
 include("../convergence_tools.jl")
 
@@ -12,14 +11,6 @@ include("../convergence_tools.jl")
 ## Test the panel ids from the BodyFittedTriangulation trian are the same as the
 ## panel ids from the model
 ################################################################################
-
-nprocs = 6
-ranks = with_debug() do distribute
-  distribute(LinearIndices((nprocs,)))
-end
-
-n_ref_lvls = 2
-dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
 
 function test_distributed_panel_ids(dpanel_model)
   trian = Triangulation(dpanel_model)
@@ -37,7 +28,14 @@ function test_distributed_panel_ids(dpanel_model)
 
 end
 
+function main(distribute,nprocs)
 
-test_distributed_panel_ids(dmodels[1])
+  ranks = distribute(LinearIndices((nprocs,)))
+  n_ref_lvls = 2
+  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
 
+  test_distributed_panel_ids(dmodels[1])
 end
+
+
+end # module
