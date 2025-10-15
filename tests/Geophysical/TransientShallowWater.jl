@@ -263,24 +263,24 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
   b = panel_to_cartesian(topography)
 
   models  = get_refined_models(n_ref_lvls)
+  ls_diag = LUSolver()
+  ls_ode = LUSolver()
 
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
     models,  = get_distributed_refined_models(ranks,nprocs,models)
+    ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")#
+    ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=i_am_main(ranks),name="ode_solver")#
   end
 
   panel_model = models[1]
+  lss = (ls_ode,ls_diag)
 
   dir = datadir("Transient_shallow_water")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   # GridapPETSc.Init(args=split(options))
 
-  # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=1)
-
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")#
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=i_am_main(ranks),name="ode_solver")#
-  lss = (ls_ode,ls_diag)
 
   Es_u,Es_p  = transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,lss,CFL,return_vtk)
 

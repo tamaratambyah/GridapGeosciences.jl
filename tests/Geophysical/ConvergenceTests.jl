@@ -40,8 +40,11 @@ ranks = with_debug() do distribute
   distribute(LinearIndices((nprocs,)))
 end
 
-ls = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=1)#
+
+ls = LUSolver()
 
 WaveEquation.wave_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true)
+
 LinearisedShallowWater.linear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true,true)
+
 ShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true,true)

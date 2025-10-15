@@ -1,6 +1,6 @@
 using DrWatson
 using MPI, PartitionedArrays
-
+using GridapGeosciences
 
 # include("TransientWaveEquation.jl")
 include("TransientShallowWater.jl")
@@ -16,5 +16,5 @@ include("TransientShallowWater.jl")
 # end
 
 with_debug() do distribute
-  TransientShallowWater.main_transient(distribute,1;n_ref_lvls=3,return_vtk=true)
+  TransientShallowWater.main_transient(distribute,6;n_ref_lvls=2,return_vtk=true)
 end
