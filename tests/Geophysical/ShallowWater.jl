@@ -7,7 +7,7 @@ F = φu
 q = 1/φ( ∇ᵧ^⟂⋅u  + f )
 """
 
-module NLShallowWater
+module ShallowWater
 
 using DrWatson
 using Gridap
@@ -54,7 +54,7 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   h_h = interpolate(h_cf,P)
 
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  gravity = 1.0
+  gravity = _g
 
   # absolute vorticity
   η_cf = panelwise_cellfield(η,Ω_panel,panel_ids)

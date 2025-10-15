@@ -6,7 +6,7 @@ using Plots, LaTeXStrings
 
 include("WaveEquation.jl")
 # include("shallow_water.jl")
-include("NLShallowWater.jl")
+include("ShallowWater.jl")
 
 ps = [1]
 ζs=[0.0]
@@ -19,11 +19,11 @@ ls=LUSolver()
 ranks = [true]
 nprocs = 1
 WaveEquation.wave_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true)
-NLShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true,true)
+ShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true,true)
 
-# williamson2_convergence_test(linear_shallow_water_errors,n_ref_lvls)
-# williamson2_convergence_test(nonlinear_shallow_water_errors,n_ref_lvls)
-#
+
+
+
 
 # ### linearised shallow water with arbitary functions
 # depth(XYZ) = 1.0 + 0.1*exp(-( XYZ[2]^2 + XYZ[3]^2 ) )
@@ -54,6 +54,7 @@ ranks = with_debug() do distribute
   distribute(LinearIndices((nprocs,)))
 end
 
-ls = LUSolver()
+ls = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=1)#
 
 WaveEquation.wave_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true)
+ShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true,true)
