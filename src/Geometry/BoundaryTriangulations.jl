@@ -75,11 +75,16 @@ function Geometry.BoundaryTriangulation(
 
 end
 
-"""
-return face-wise array of panel ids
-"""
 
 ################################################################################
+"""
+get the facet normal vector on the sphere
+compute as the pushforward of the parametric facet normal
+Two different methods:
+  1. using Gridap's machinary
+  2. using Santi's formula
+"""
+
 function pushforward_normal(args...)
   @abstractmethod
 end
