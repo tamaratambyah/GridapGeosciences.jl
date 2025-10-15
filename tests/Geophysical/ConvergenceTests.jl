@@ -5,37 +5,23 @@ using Plots, LaTeXStrings
 
 
 include("WaveEquation.jl")
-# include("shallow_water.jl")
+include("LinearisedShallowWater.jl")
 include("ShallowWater.jl")
 
 ps = [1]
-ζs=[0.0]
+ζs = [0.0]
 n_ref_lvls = 4
-ls=LUSolver()
+ls = LUSolver()
+CFL = 0.1
 
 ################################################################################
 #### Serial convergence test
 ################################################################################
 ranks = [true]
 nprocs = 1
-WaveEquation.wave_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true)
-ShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true,true)
-
-
-
-
-
-# ### linearised shallow water with arbitary functions
-# depth(XYZ) = 1.0 + 0.1*exp(-( XYZ[2]^2 + XYZ[3]^2 ) )
-# velocity(XYZ) = VectorValue(-XYZ[2],XYZ[1],0.0)
-# coriolis(XYZ) = 2.0
-
-# h = panel_to_cartesian(depth)
-# vecX = velocity
-# vX = panel_to_cartesian(tangent_vec(vecX))
-# f = panel_to_cartesian(coriolis)
-
-# linear_shallow_water_convergence_test(n_ref_lvls,h,vX,f,true)
+WaveEquation.wave_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true)
+LinearisedShallowWater.linear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true,true)
+ShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true,true)
 
 
 ################################################################################
@@ -57,4 +43,5 @@ end
 ls = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=1)#
 
 WaveEquation.wave_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true)
-ShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,true,true)
+LinearisedShallowWater.linear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true,true)
+ShallowWater.nonlinear_shallow_water_convergence_test(ranks,nprocs,ζs,n_ref_lvls,ps,ls,CFL,true,true)

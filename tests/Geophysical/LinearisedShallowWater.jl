@@ -4,9 +4,25 @@ u + f u^⟂ + ∇ᵧ(φ) = f₁
 φ + ∇ᵧ⋅u = f₁
 """
 
+module LinearisedShallowWater
 
-using Gridap.Helpers
-function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Function,p_fe::Int,return_vtk=false,check_geo_balance=false)
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+
+using GridapGeosciences
+using Test
+
+include("../convergence_tools.jl")
+include("Williamson2Test.jl")
+
+
+function linear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
+    h::Function,vX::Function,f::Function,ls=LUSolver(),return_vtk=false,check_geo_balance=false)
+
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
@@ -77,7 +93,7 @@ function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Fun
   liformX((v,q)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ + ∫( (rhs_scalar*q)*meas_cf )dΩ
 
   op = AffineFEOperator(biformX,liformX,X,Y)
-  uh,ph = solve(LUSolver(),op)
+  uh,ph = solve(ls,op)
 
   uh_proj = covarient_basis_cf ⋅ uh
 
@@ -85,8 +101,8 @@ function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Fun
   e_p = l2((h_cf - ph)*meas_cf,dΩ) # error in depth
 
   if return_vtk
-    lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+
+    cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [ph, uh_proj, uh_proj-u_proj_cf,ph-h_cf]
     labels = ["p","u_proj","eu","ep"]
 
@@ -94,26 +110,59 @@ function linear_shallow_water_solver(panel_model,h::Function,vX::Function,f::Fun
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  return e_u, e_p, e_geo_balance
+  return e_u, e_p, false
 
 end
 
 
-function linear_shallow_water_errors(panel_model,h::Function,vX::Function,f::Function,η::Function,
-    p_fe::Int,return_vtk=false,check_geo_balance=false)
-  e_u,e_p,e_geo_balance  = linear_shallow_water_solver(panel_model,h,vX,f,p_fe,return_vtk,check_geo_balance)
-  return e_u,e_p,false
+function linear_shallow_water_errors(panel_model,p_fe::Int,dir::String,
+  h::Function,vX::Function,f::Function,η::Function,b::Function,
+  ls=LUSolver(),CFL=0.1,return_vtk=false,check_geo_balance=false)
+
+  linear_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,ls,return_vtk,check_geo_balance)
 end
 
-function linear_shallow_water_convergence_test(n_ref_lvls,h,vX,f,return_vtk=false)
-  plot()
-  for p_fe in [1]
-    errs,ns,dxs,slope = convergence_test(linear_shallow_water_errors,n_ref_lvls,h,vX,f,f,p_fe,return_vtk)
-    plot_convergence(errs,ns,dxs,slope;
-        leginf=["u: p=$p_fe","ϕ: p=$p_fe"],
-        colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe]],
-        ls=[:solid, :dot], )
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 4
+  ps = [1,2,3]
+  ζs = [0.0]
+  ls = LUSolver()
+  models  = get_refined_models(n_ref_lvls)
+
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
-  savefig(plotsdir()*"/sw_convergence")
+
+  for (i,ζ) in enumerate(ζs)
+
+    h = panel_to_cartesian(h₀(ζ))
+    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+    f = panel_to_cartesian(f₀(ζ))
+
+    i_am_main(ranks) && println("linear_shallow_water_convergence_func_z$i")
+    p_convergence_test(ranks,ps,models,linear_shallow_water_solver,"",h,vX,f,ls)
+
+  end
 
 end
+
+
+################################################################################
+#### Convergence test with plots
+################################################################################
+
+function linear_shallow_water_convergence_test(ranks::AbstractArray,nprocs::Int,
+  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),CFL=0.1,return_vtk=false,check_geo_balance=false)
+  williamson2_convergence_test(ranks,nprocs,linear_shallow_water_errors,ζs,n_ref_lvls,ps,ls,CFL,return_vtk,check_geo_balance)
+end
+
+
+
+end ##module
