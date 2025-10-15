@@ -32,7 +32,7 @@ end
 
 function pushforward_normal(trian::GridapDistributed.DistributedTriangulation)
   fields = map(trian.trians) do t
-    return GridapGeosciences.pushforward_normal(t)
+    return pushforward_normal(t)
   end
   return GridapDistributed.DistributedCellField(fields,trian)
 end
