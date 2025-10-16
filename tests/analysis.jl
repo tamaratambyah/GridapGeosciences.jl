@@ -49,5 +49,16 @@ savefig(plotsdir()*"/wave_transient_panel_div")
 
 
 #### shallow water
-dir = datadir("gadi/sol_nref6")
+dir = datadir("gadi/Transient_shallow_water_W2")
 _make_pvd_distributed(dir,"solT",1)
+df = load(datadir(dir, ("shallow_water_errors.jld2")))
+
+Es_u = df["Es_u"]
+Es_p = df["Es_p"]
+plot()
+plot!(1:length(Es_u),Es_u,lw=3,label="Eu")
+plot!(xlabel="t",ylabel="Eu")
+
+plot()
+plot!(1:length(Es_p),Es_p,lw=3,label="Ep")
+plot!(xlabel="t",ylabel="Ep")

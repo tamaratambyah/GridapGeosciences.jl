@@ -105,19 +105,20 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
   #### PROGNOSTIC VARIABLES
 
-  # equation for depth:
+  # equation for depth and velocity:
   mass(t,(dut,dpt),(v,r)) = ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
-  res_p(((u,p),(q,F,Φ)),(v,r)) = ∫( r*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
+  res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ∫( r*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
 
-  res_u(((u,p),(q,F,Φ)),(v,r)) = (  ∫( q*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
+  res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = (  ∫( q*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
+                                + ∫( -τ*( (q-q0)/dt )*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
                                 + ∫( -τ*(u⋅∇(q))*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
                                 - ∫( Φ*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
                     )
 
-  res_x(t,((u,p),(q,F,Φ)),(v,r)) = res_u(((u,p),(q,F,Φ)),(v,r)) + res_p(((u,p),(q,F,Φ)),(v,r))
-  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r)) =  ∫( -τ*(du⋅∇(q))*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
-  jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
+  res_x(t,((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) + res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0))
+  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) =  ∫( -τ*(du⋅∇(q))*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
+  jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
 
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog)

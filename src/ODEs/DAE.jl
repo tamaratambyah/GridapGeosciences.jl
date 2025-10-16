@@ -258,7 +258,7 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   fill!(_x,0.0)
   Gridap.Algebra.solve!(_x,ns,b)
   copy!(x,_x)
-  PartitionedArrays.consistent!(x) |> fetch
+  consistent!(x) |> fetch
 
   LinearSolverCache(A,b,ns)
 end
@@ -281,7 +281,7 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   fill!(_x,0.0)
   Gridap.Algebra.solve!(_x,ns,b)
   copy!(x,_x)
-  PartitionedArrays.consistent!(x) |> fetch
+  consistent!(x) |> fetch
 
   cache
 end

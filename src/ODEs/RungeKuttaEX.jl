@@ -69,6 +69,11 @@ function Gridap.ODEs.ode_march!(
   diagnostics = get_free_dof_values(odeopcache.diagnostics)
   daeop = DAENonlinearOperator(odeop,odeopcache,zero(u0),t0)
 
+  # solve for initial diagnostics, and store in the ODE operator cache
+  update!(daeop,u0,t0)
+  dae_cache = solve!(diagnostics,dae_nl,daeop,dae_cache)
+  Gridap.ODEs.update_odeopcache!(odeopcache, odeop, t0, diagnostics,diagnostics)
+
 
   for i in eachindex(c)
 
@@ -82,11 +87,9 @@ function Gridap.ODEs.ode_march!(
       axpy!(A[i, j] * dt, slopes[j], ui_pre)
     end
 
-    # diagnostics
+    # solve or stage diagnostics, and store in the ODE operator cache
     update!(daeop,ui_pre,tx)
     dae_cache = solve!(diagnostics,dae_nl,daeop,dae_cache)
-
-    # Update ODE operator cache
     Gridap.ODEs.update_odeopcache!(odeopcache, odeop, tx, diagnostics)
 
     ###################

@@ -19,6 +19,11 @@ function Gridap.ODEs.LinearStageOperator(
   LinearStageOperator(J, r, tx, ws, usx, reuse)
 end
 
+## helper for nonPvectors
+function PartitionedArrays.consistent!(a::Vector)
+  println("my consistent")
+  a
+end
 
 #### overloads to allow for Pvectors in distributed
 function Gridap.Algebra.solve!(
@@ -26,6 +31,7 @@ function Gridap.Algebra.solve!(
   ls::LinearSolver, lop::LinearStageOperator,
   ns::Nothing
 )
+  println("regular linear stage solver")
 
   J = lop.J
   ss = symbolic_setup(ls, J)
@@ -39,6 +45,7 @@ function Gridap.Algebra.solve!(
   fill!(_x,0.0)
   Gridap.Algebra.solve!(_x,ns,r)
   copy!(x,_x)
+  consistent!(x) |> fetch
 
   ns
 end
@@ -48,6 +55,8 @@ function Gridap.Algebra.solve!(
   ls::LinearSolver, lop::LinearStageOperator,
   ns
 )
+  println("regular linear stage solver")
+
   if !lop.reuse
     J = lop.J
     numerical_setup!(ns, J)
@@ -61,6 +70,7 @@ function Gridap.Algebra.solve!(
   fill!(_x,0.0)
   Gridap.Algebra.solve!(_x,ns,r)
   copy!(x,_x)
+  consistent!(x) |> fetch
 
   ns
 end

@@ -34,6 +34,7 @@ mutable struct DAEODEOpFromTFEOpCache <: GridapType
   tfeopcache
   const_forms
   diagnostics
+  diagnostics0
   Ys
   Yts
 end
@@ -113,6 +114,7 @@ function Gridap.ODEs.allocate_odeopcache(
 
   # set initial diagnostics to be uh
   diagnostics = zero(Ys[1])
+  diagnostics0 = zero(Ys[1])
   println("set diagnostics")
 
   # Allocate FE spaces for derivatives
@@ -143,7 +145,7 @@ function Gridap.ODEs.allocate_odeopcache(
   jacs = get_jacs(odeop.tfeop)
 
   yh = zero(Ys[1])
-
+  yh0 = zero(Ys[1])
   # We want the stored jacobians to have the same sparsity as the full jacobian
   # (when all orders are considered), so we start by allocating it and we will assemble
   # the constant jacobians in a copy of the full jacobian
@@ -151,9 +153,8 @@ function Gridap.ODEs.allocate_odeopcache(
   # semilinear but not linear, it has only one form but `order+1` jacobians.
   dc = DomainContribution()
   for k in 0:order
-    println(k)
     jac = jacs[k+1]
-    dc = dc + jac(t, (uh,yh), du, v)
+    dc = dc + jac(t, (uh,yh), du, v,yh0)
   end
   matdata = collect_cell_matrix(Ut, V, dc)
   J_full = allocate_matrix(assembler, matdata)
@@ -164,7 +165,7 @@ function Gridap.ODEs.allocate_odeopcache(
       const_form = nothing
       if Gridap.ODEs.is_form_constant(odeop, k)
         jac = jacs[k+1]
-        dc = jac(t, (uh,yh), du, v)
+        dc = jac(t, (uh,yh), du, v,yh0)
         matdata = collect_cell_matrix(Ut, V, dc)
         const_form = copy(J_full)
         LinearAlgebra.fillstored!(const_form, zero(eltype(const_form)))
@@ -177,7 +178,7 @@ function Gridap.ODEs.allocate_odeopcache(
     k = order
     if Gridap.ODEs.is_form_constant(odeop, k)
       jac = jacs[k+1]
-      dc = jac(t, (uh,yh), du, v)
+      dc = jac(t, (uh,yh), du, v,yh0)
       matdata = collect_cell_matrix(Ut, V, dc)
       const_form = copy(J_full)
       LinearAlgebra.fillstored!(const_form, zero(eltype(const_form)))
@@ -188,10 +189,35 @@ function Gridap.ODEs.allocate_odeopcache(
 
 
 
-  DAEODEOpFromTFEOpCache(Us, Uts, tfeopcache, const_forms,diagnostics,Ys,Yts)
+  DAEODEOpFromTFEOpCache(Us, Uts, tfeopcache, const_forms,diagnostics,diagnostics0,Ys,Yts)
 end
 
-function Gridap.ODEs.update_odeopcache!(odeopcache, odeop::DAEODEOpFromTFEOp, t::Real)
+function Gridap.ODEs.update_odeopcache!(odeopcache, odeop::DAEODEOpFromTFEOp, t::Real,diagnostics,diagnostics0)
+  println("updating my cache with initial diagnostics")
+
+  Us = ()
+  for k in 0:get_order(odeop)
+    Us = (Us..., evaluate!(odeopcache.Us[k+1], odeopcache.Uts[k+1], t))
+  end
+  odeopcache.Us = Us
+
+  tfeopcache, tfeop = odeopcache.tfeopcache, odeop.tfeop
+  odeopcache.tfeopcache = update_tfeopcache!(tfeopcache, tfeop, t)
+
+  # update diagnostics
+  Ys = ()
+  for k in 0:get_order(odeop)
+    Ys = (Ys..., evaluate!(odeopcache.Ys[k+1], odeopcache.Yts[k+1], t))
+  end
+  odeopcache.Ys = Ys
+
+  odeopcache.diagnostics = FEFunction(Ys[1],diagnostics)
+  odeopcache.diagnostics0 = FEFunction(Ys[1],diagnostics0)
+
+  odeopcache
+end
+
+function Gridap.ODEs.update_odeopcache!(odeopcache, odeop::DAEODEOpFromTFEOp, t::Real,diagnostics)
   println("updating my cache")
 
   Us = ()
@@ -227,9 +253,10 @@ function Gridap.Algebra.allocate_residual(
   assembler = Gridap.ODEs.get_assembler(odeop.tfeop)
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   res = Gridap.ODEs.get_res(odeop.tfeop)
-  vecdata = collect_cell_vector(V, res(t, (uh,yh), v))
+  vecdata = collect_cell_vector(V, res(t, (uh,yh), v,yh0))
   allocate_vector(assembler, vecdata)
 end
 
@@ -246,9 +273,10 @@ function Gridap.Algebra.residual!(
   !add && fill!(r, zero(eltype(r)))
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   res = Gridap.ODEs.get_res(odeop.tfeop)
-  dc = res(t, (uh,yh), v)
+  dc = res(t, (uh,yh), v, yh0)
   vecdata = collect_cell_vector(V, dc)
   assemble_vector_add!(r, assembler, vecdata)
 
@@ -268,10 +296,11 @@ function Gridap.Algebra.residual!(
   !add && fill!(r, zero(eltype(r)))
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   # Residual
   res = Gridap.ODEs.get_res(odeop.tfeop)
-  dc = res(t, (uh,yh), v)
+  dc = res(t, (uh,yh), v, yh0)
 
   # Mass
   order = get_order(odeop)
@@ -298,10 +327,11 @@ function Gridap.Algebra.residual!(
   !add && fill!(r, zero(eltype(r)))
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   # Residual
   res = Gridap.ODEs.get_res(odeop.tfeop)
-  dc = res(t, (uh,yh), v)
+  dc = res(t, (uh,yh), v, yh0)
 
   # Mass
   order = get_order(odeop)
@@ -328,10 +358,11 @@ function Gridap.Algebra.residual!(
   !add && fill!(r, zero(eltype(r)))
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   # Residual
   res = Gridap.ODEs.get_res(odeop.tfeop)
-  dc = res(t, (uh,yh), v)
+  dc = res(t, (uh,yh), v, yh0)
 
   # Forms
   order = get_order(odeop)
@@ -364,12 +395,13 @@ function Gridap.Algebra.allocate_jacobian(
   assembler = Gridap.ODEs.get_assembler(odeop.tfeop)
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   jacs = Gridap.ODEs.get_jacs(odeop.tfeop)
   dc = DomainContribution()
   for k in 0:get_order(odeop.tfeop)
     jac = jacs[k+1]
-    dc = dc + jac(t, (uh,yh), du, v)
+    dc = dc + jac(t, (uh,yh), du, v, yh0)
   end
   matdata = collect_cell_matrix(Ut, V, dc)
   allocate_matrix(assembler, matdata)
@@ -388,6 +420,7 @@ function Gridap.ODEs.jacobian_add!(
   assembler = Gridap.ODEs.get_assembler(odeop.tfeop)
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   jacs = Gridap.ODEs.get_jacs(odeop.tfeop)
   dc = DomainContribution()
@@ -395,7 +428,7 @@ function Gridap.ODEs.jacobian_add!(
     w = ws[k+1]
     iszero(w) && continue
     jac = jacs[k+1]
-    dc = dc + w * jac(t, (uh,yh), du, v)
+    dc = dc + w * jac(t, (uh,yh), du, v, yh0)
   end
 
   if num_domains(dc) > 0
@@ -419,6 +452,7 @@ function Gridap.ODEs.jacobian_add!(
   assembler = Gridap.ODEs.get_assembler(odeop.tfeop)
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   order = get_order(odeop)
   jacs = Gridap.ODEs.get_jacs(odeop.tfeop)
@@ -427,7 +461,7 @@ function Gridap.ODEs.jacobian_add!(
     w = ws[k+1]
     iszero(w) && continue
     jac = jacs[k+1]
-    dc = dc + w * jac(t, (uh,yh), du, v)
+    dc = dc + w * jac(t, (uh,yh), du, v, yh0)
   end
 
   # Special case for the mass matrix
@@ -438,7 +472,7 @@ function Gridap.ODEs.jacobian_add!(
       axpy_entries!(w, odeopcache.const_forms[1], J)
     else
       jac = jacs[k+1]
-      dc = dc + w * jac(t, (uh,yh), du, v)
+      dc = dc + w * jac(t, (uh,yh), du, v, yh0)
     end
   end
 
@@ -463,6 +497,7 @@ function Gridap.ODEs.jacobian_add!(
   assembler = Gridap.ODEs.get_assembler(odeop.tfeop)
 
   yh = odeopcache.diagnostics
+  yh0 = odeopcache.diagnostics0
 
   jacs = Gridap.ODEs.get_jacs(odeop.tfeop)
   dc = DomainContribution()
@@ -473,7 +508,7 @@ function Gridap.ODEs.jacobian_add!(
       axpy_entries!(w, odeopcache.const_forms[k+1], J)
     else
       jac = jacs[k+1]
-      dc = dc + w * jac(t, (uh,yh), du, v)
+      dc = dc + w * jac(t, (uh,yh), du, v, yh0)
     end
   end
 
