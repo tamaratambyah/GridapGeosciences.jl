@@ -270,14 +270,14 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
     models,  = get_distributed_refined_models(ranks,nprocs,models)
-    ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")#
-    ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=i_am_main(ranks),name="ode_solver")#
+    ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=false,name="diagnostic_solver")
+    ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=false,name="ode_solver")
   end
 
   panel_model = models[1]
   lss = (ls_ode,ls_diag)
 
-  dir = datadir("Transient_shallow_water_W5")
+  dir = datadir("Transient_shallow_water_W5_supg")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   # GridapPETSc.Init(args=split(options))
