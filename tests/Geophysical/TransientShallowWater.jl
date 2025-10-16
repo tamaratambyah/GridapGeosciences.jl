@@ -184,13 +184,13 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
     push!(Es_u,e_u)
     push!(Es_p,e_p)
 
-    # ens = sum(∫( (qh*qh*xh[2])*meas_cf  )dΩ)
-    # energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
-    # _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
+    ens = sum(∫( (qh*qh*xh[2])*meas_cf  )dΩ)
+    energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
+    _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
 
-    # push!(Enstropys,ens)
-    # push!(Energys,energy)
-    # push!(Masss,_mass)
+    push!(Enstropys,ens)
+    push!(Energys,energy)
+    push!(Masss,_mass)
 
     if return_vtk  && (mod(counter,10) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort]
@@ -209,12 +209,14 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
     end
   end
 
+  dxx =dx(nc(panel_model))
+  output = @strdict Masss Energys Enstropys dt CFL dxx elapsed_time
+  safesave(datadir(dir, ("shallow_water_casimirs.jld2")), output)
+
   return Es_u, Es_p
 
   # ## plot casimirs
-  # dxx =dx(nc(panel_model))
-  # output = @strdict Masss Energys Enstropys dt CFL dxx elapsed_time
-  # safesave(datadir(dir, ("tsw_entropy.jld2")), output)
+
 
 
   # ts = dt*collect(0:length(Masss)-1)
