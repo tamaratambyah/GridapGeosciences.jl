@@ -19,8 +19,10 @@ include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
 function laplace_beltrami_solver(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+  ranks = get_ranks(panel_model)
+
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  i_am_main(ranks) && println("nref = $lvl")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -34,7 +36,7 @@ function laplace_beltrami_solver(panel_model,p_fe::Int,dir::String,f::Function,l
   meas_cf = CellField(sqrtg,Ω_panel)
   slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
 
-  println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
+  # i_am_main(ranks) && println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
   @check sum(∫(f_panel_cf*meas_cf)dΩ) < 1e-14 "Function must be zero mean to solve with zeromean FE space!"
 
   rhs_cf = - slap_panel_cf
@@ -71,7 +73,7 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs,octree=false)
+function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 4

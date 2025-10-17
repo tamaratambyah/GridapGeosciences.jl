@@ -19,8 +19,10 @@ include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
 function mixed_helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+  ranks = get_ranks(panel_model)
+
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  i_am_main(ranks) && println("nref = $lvl")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -35,7 +37,7 @@ function mixed_helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls
 
   rhs_cf = f_panel_cf + sdiv_cf
 
-  println("Check sdiv(sgrad) against slap: ", l2(sdiv_cf-slap_panel_cf,dΩ) )
+  i_am_main(ranks) && println("Check sdiv(sgrad) against slap: ", l2(sdiv_cf-slap_panel_cf,dΩ) )
 
 
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
@@ -92,7 +94,7 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs)
+function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 4
@@ -102,7 +104,12 @@ function main(distribute,nprocs)
 
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
-    models,  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
+    if octree
+      i_am_main(ranks) && println("Octrees")
+      models =  get_octree_refined_models(ranks,n_ref_lvls)
+    else
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
     ## can use minres solver, but it takes ages to converge. So just use LU
     # ls = MINRESSolver(;Pl=JacobiLinearSolver(),maxiter=5000,verbose=true)
   end

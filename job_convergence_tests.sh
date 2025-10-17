@@ -14,10 +14,13 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
   using MPI
   using PartitionedArrays
   include("tests/Laplace/LaplaceBeltrami.jl")
-
+  include("tests/Laplace/Helmholtz.jl")
+  include("tests/Laplace/MixedHelmholtz.jl")
 
     with_mpi() do distribute
-        LaplaceBeltrami.main(distribute,4)
+        LaplaceBeltrami.main(distribute,4;octree=true)
+        Helmholtz.main(distribute,4;octree=true)
+        # MixedHelmholtz.main(distribute,4,true)
     end
 
 ' 
