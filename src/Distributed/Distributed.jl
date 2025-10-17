@@ -48,7 +48,7 @@ export distributed_panel_ids
 export DistributedAdaptivityGlue
 export get_distributed_panel_model
 export get_panel_ids, get_owned_panel_ids, get_skel_panel_ids
-export BoundaryTriangulation
+# export BoundaryTriangulation
 export pullback_area_form
 export pushforward_normal
 

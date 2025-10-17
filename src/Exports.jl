@@ -44,7 +44,9 @@ end
 @publish Helpers θϕ2xyz
 @publish Helpers spherical_to_cartesian_matrix
 
-
+@publish Helpers E
+@publish Helpers F
+@publish Helpers G
 @publish Helpers rho
 @publish Helpers rho3
 @publish Helpers sqrtg
@@ -97,6 +99,6 @@ end
 @publish Distributed get_panel_ids
 @publish Distributed get_owned_panel_ids
 @publish Distributed get_skel_panel_ids
-@publish Distributed BoundaryTriangulation
+# @publish Distributed BoundaryTriangulation
 @publish Distributed pullback_area_form
 @publish Distributed pushforward_normal

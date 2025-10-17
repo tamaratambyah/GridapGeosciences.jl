@@ -24,7 +24,7 @@ export rho, rho3
 export sqrtg, _sqrtg, detg
 export grad_meas
 export analytic_metric, analytic_inv_metric, _analytic_inv_metric
-export analytic_J1
+# export analytic_J1
 export analytic_perp_matrix
 export surflap, surfdiv, contr_gradf, sgrad
 
@@ -34,5 +34,7 @@ export vector_length, normal_vec, tangent_vec
 export contra_v, contra_v_comp, contra_v_perp, projection_v
 
 export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix
+
+export E, F, G
 
 end
