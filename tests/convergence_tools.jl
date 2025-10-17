@@ -32,7 +32,7 @@ function get_refined_models(n_ref_lvls::Int,coarse_model=false)
   panel_models
 end
 
-function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=true)
+function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=false)
   s_models  = get_refined_models(n_ref_lvls,coarse_s_model)
   dmodels, dpanel_ids, owned_panel_ids = get_distributed_refined_models(ranks,nprocs,s_models)
   dmodels
@@ -96,6 +96,28 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
   return dmodels, dpanel_ids, owned_panel_ids
 
 end
+
+#### get array of octree models
+function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
+
+  dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
+
+  for (i,n) in enumerate(n_ref_lvls:-1:1)
+    parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n)
+    dmodels[i] = parametric_octree_dmodel.parametric_dmodel
+  end
+
+
+  if coarse_model
+    parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+    push!(dmodels,parametric_octree_dmodel.parametric_dmodel)
+  end
+
+  return dmodels
+end
+
+
+
 
 function get_ranks(model::DiscreteModel)
     return [true]

@@ -3,7 +3,7 @@ using MPI, PartitionedArrays
 include("../LaplaceBeltrami.jl")
 
 with_mpi() do distribute
-  LaplaceBeltrami.main(distribute,6)
+  LaplaceBeltrami.main(distribute,4)
 end
 
 end

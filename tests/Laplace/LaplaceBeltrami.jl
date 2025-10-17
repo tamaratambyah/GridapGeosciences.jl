@@ -71,7 +71,7 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs)
+function main(distribute,nprocs,octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 4
@@ -81,7 +81,12 @@ function main(distribute,nprocs)
 
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
-    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    if octree
+      i_am_main(ranks) && println("Octrees")
+      models =  get_octree_refined_models(ranks,n_ref_lvls)
+    else
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
     ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
