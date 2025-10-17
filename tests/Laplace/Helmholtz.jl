@@ -22,7 +22,7 @@ function helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSol
   ranks = get_ranks(panel_model)
 
   lvl = nref(nc(panel_model))
-  i_am_main(ranks) && println("nref = $lvl")
+  i_am_main(ranks) && println("nref = $lvl; p_fe = $p_fe")
 
 
   panel_ids = get_panel_ids(panel_model)
@@ -72,10 +72,16 @@ end
 function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: Helmholtz")
+
   n_ref_lvls = 4
   ps = [1,2,3]
   ls = LUSolver()
   models  = get_refined_models(n_ref_lvls)
+
+  dir = datadir("HelmholtzConvergence")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
@@ -90,9 +96,10 @@ function main(distribute,nprocs;octree=false)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("helmholtz_convergence_func_$(key)")
-    p_convergence_test(ranks,ps,models,helmholtz_solver,"",val,ls)
+    p_convergence_test(ranks,ps,models,helmholtz_solver,dir,val,ls,true)
   end
 
+  i_am_main(ranks) && println("--DONE--")
 
 end
 

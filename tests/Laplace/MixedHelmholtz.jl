@@ -97,10 +97,16 @@ end
 function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: Mixed Helmholtz")
+
   n_ref_lvls = 4
   ps = [1,2] ## using RT, so only test p=1,2
   ls = LUSolver()
   models  = get_refined_models(n_ref_lvls)
+
+  dir = datadir("MixedHelmholtzConvergence")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
@@ -116,10 +122,10 @@ function main(distribute,nprocs;octree=false)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("mixed_helmholtz_convergence_func_$(key)")
-    p_convergence_test(ranks,ps,models,mixed_helmholtz_solver,"",val,ls)
+    p_convergence_test(ranks,ps,models,mixed_helmholtz_solver,dir,val,ls)
   end
 
-
+  i_am_main(ranks) && println("--DONE--")
 end
 
 ################################################################################

@@ -22,7 +22,7 @@ function laplace_beltrami_solver(panel_model,p_fe::Int,dir::String,f::Function,l
   ranks = get_ranks(panel_model)
 
   lvl = nref(nc(panel_model))
-  i_am_main(ranks) && println("nref = $lvl")
+  i_am_main(ranks) && println("nref = $lvl; p_fe = $p_fe")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -76,10 +76,17 @@ end
 function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: Laplace Beltrami")
+
   n_ref_lvls = 4
   ps = [1,2,3]
   ls = LUSolver()
   models  = get_refined_models(n_ref_lvls)
+
+  dir = datadir("LaplaceBeltramiConvergence")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
 
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
@@ -94,9 +101,10 @@ function main(distribute,nprocs;octree=false)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("laplace_beltrami_convergence_func_$(key)")
-    p_convergence_test(ranks,ps,models,laplace_beltrami_solver,"",val,ls)
+    p_convergence_test(ranks,ps,models,laplace_beltrami_solver,dir,val,ls,true)
   end
 
+  i_am_main(ranks) && println("--DONE--")
 
 end
 

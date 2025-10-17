@@ -132,13 +132,13 @@ end
 convergence test functions
 """
 
-function _h_convergence_test(models,f,p_fe::Int,fargs...)
+function _h_convergence_test(models,f,p_fe::Int,dir::String,fargs...)
   errs = Float64[]
   errs_g = []
   errs_f = []
 
   for model in models
-    e,eg,ef = f(model,p_fe,fargs...)
+    e,eg,ef = f(model,p_fe,dir,fargs...)
     push!(errs,e)
     push!(errs_g,eg)
     push!(errs_f,ef)
@@ -147,8 +147,8 @@ function _h_convergence_test(models,f,p_fe::Int,fargs...)
   errs, errs_g, errs_f
 end
 
-function h_convergence_test(models::AbstractArray,f,p_fe::Int,fargs...)
-  errs, errs_g, errs_f = _h_convergence_test(models,f,p_fe,fargs...)
+function h_convergence_test(models::AbstractArray,f,p_fe::Int,dir::String,fargs...)
+  errs, errs_g, errs_f = _h_convergence_test(models,f,p_fe,dir,fargs...)
 
   ns = map(x->nc(x),models)
   dxs = map(x->dx(nc(x)),models)
@@ -164,13 +164,17 @@ function h_convergence_test(models::AbstractArray,f,p_fe::Int,fargs...)
 end
 
 # set ranks = [true] for serial
-function p_convergence_test(ranks,ps::Vector{Int},models::AbstractArray,convergence_func,fargs...)
-  i_am_main(ranks) && println("auto convergence test")
+function p_convergence_test(ranks,ps::Vector{Int},models::AbstractArray,convergence_func,dir::String,fargs...)
+  # i_am_main(ranks) && println("auto convergence test")
 
   for (i,p_fe) in enumerate(ps)
-    println("p_fe = $p_fe")
-    errors,ns,dxs,slope = h_convergence_test(models,convergence_func,p_fe,fargs...)
+    # i_am_main(ranks) && println("p_fe = $p_fe")
+    errors,ns,dxs,slope = h_convergence_test(models,convergence_func,p_fe,dir,fargs...)
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slope,p_fe)
+
+    output = @strdict errors ns dxs slope
+    i_am_main(ranks) && safesave(datadir(dir, ("convergence_p$p_fe.jld2")), output)
+
     @test slope > p_fe + 1
   end
 
