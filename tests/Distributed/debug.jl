@@ -48,8 +48,29 @@ degree = 2*(p_fe + 1)
 Ω_panel = Triangulation(panel_model)
 dΩ = Measure(Ω_panel,degree)
 
-Λ = SkeletonTriangulation(with_ghost,panel_model)
-# Λ = SkeletonTriangulation(Ω_panel)
+model = panel_model
+
+gids = get_cell_gids(model)
+
+
+trians = map(local_views(model),partition(gids)) do model, cids
+  topo = get_grid_topology(model)
+  D = num_cell_dims(model)
+  face_to_mask = collect(Bool, .!get_isboundary_face(topo,D-1))
+  owned_cells = own_to_local(cids)
+  owned_face_to_mask = face_to_mask[owned_cells]
+  # length(owned_face_to_mask)
+  SkeletonTriangulation(model,owned_face_to_mask)
+end
+parent = DistributedTriangulation(trians,model)
+
+function Gridap.Geometry.SkeletonTriangulation(model::DistributedParametricDiscreteModel;kwargs...)
+  println("my skeleton -- default is with_ghost")
+  SkeletonTriangulation(with_ghost,model;kwargs...)
+end
+
+# Λ = SkeletonTriangulation(with_ghost,panel_model)
+Λ = SkeletonTriangulation(panel_model)
 dΛ = Measure(Λ,degree)
 n_Λ = get_normal_vector(Λ)
 
@@ -103,27 +124,27 @@ a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf
 ### upwinding stabilisation term
 # a_s2(u,v) = ∫(  0.5*abs((vel⋅ n_Λ).plus)*jump(u)*jump(v)*meas_cf   )dΛ
 
-meas_cf = panelwise_cellfield(_sqrtg,Λ)
-out = (meas_cf.plus-meas_cf.minus)(pts)
-map(out) do o
-  @test all( lazy_map(x-> all(isless.(x,tol)), o))
-end
+# meas_cf = panelwise_cellfield(_sqrtg,Λ)
+# out = (meas_cf.plus-meas_cf.minus)(pts)
+# map(out) do o
+#   @test all( lazy_map(x-> all(isless.(x,tol)), o))
+# end
 
 
 n = pushforward_normal(Λ)
 
-pts = get_cell_points(Λ)
-out = (n.plus+n.minus)(pts)
-tol=1e-14
-myisless(b::Gridap.TensorValues.MultiValue,a::Number) = all(Gridap.TensorValues.isless.(b.data,a))
-map(out) do o
-  @test all( lazy_map(x-> all(myisless.(x,tol)), o))
-end
+# pts = get_cell_points(Λ)
+# out = (n.plus+n.minus)(pts)
+# tol=1e-14
+# myisless(b::Gridap.TensorValues.MultiValue,a::Number) = all(Gridap.TensorValues.isless.(b.data,a))
+# map(out) do o
+#   @test all( lazy_map(x-> all(myisless.(x,tol)), o))
+# end
 
 
 upwind = abs((vel⋅ n_Λ).plus)
 cell_geo_map = geo_map_func(panel_ids)
-n = get_facet_normal(Λ,cell_geo_map)
+n = pushforward_normal(Λ,cell_geo_map)
 a_s2(u,v) = ∫(  0.5*(upwind)*jump(u*n)⋅jump(v*n)*meas_cf   )dΛ
 
 

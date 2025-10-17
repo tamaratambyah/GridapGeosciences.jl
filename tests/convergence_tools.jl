@@ -102,12 +102,7 @@ function get_ranks(model::DiscreteModel)
 end
 
 function get_ranks(dmodel::GridapDistributed.DistributedDiscreteModel)
-  gids = get_cell_gids(dmodel)
-
-  ranks = map(partition(gids)) do gid
-     return part_id(gid)
-  end
-  return ranks
+  get_parts(dmodel)
 end
 
 

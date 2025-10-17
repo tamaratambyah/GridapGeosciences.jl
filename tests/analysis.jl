@@ -49,7 +49,7 @@ savefig(plotsdir()*"/wave_transient_panel_div")
 
 
 #### shallow water
-dir = datadir("gadi/Transient_shallow_water_W2")
+dir = datadir("gadi/Transient_shallow_water_W5_supg/sol_nref6")
 _make_pvd_distributed(dir,"solT",1)
 df = load(datadir(dir, ("shallow_water_errors.jld2")))
 
