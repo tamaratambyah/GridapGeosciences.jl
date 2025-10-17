@@ -7,9 +7,6 @@
 ################################################################################
 const DistributedParametricDiscreteModel{Dc,Dp} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{<:ParametricDiscreteModel{Dc,Dp}}}
 
-struct DistributedParametricDiscreteModelCache{A}
-  dpanel_ids::A
-end
 
 function DistributedParametricDiscreteModel(
   model::GridapDistributed.DistributedDiscreteModel,
@@ -37,20 +34,19 @@ function DistributedParametricDiscreteModel(
     ParametricDiscreteModel(grid,topo,labels,pids)
    end
 
-  metadata = DistributedParametricDiscreteModelCache(dpanel_ids)
+  metadata = nothing
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids;metadata)
 end
 
 ## these are local+ghost panel ids
 function get_panel_ids(dmodel::DistributedParametricDiscreteModel)
   return map(get_panel_ids,local_views(dmodel))
-  # dmodel.metadata.dpanel_ids
 end
 
 # return owned here to assist with triangulations
 function get_owned_panel_ids(dmodel::DistributedParametricDiscreteModel)
   gids = get_cell_gids(dmodel)
-  dpanel_ids = dmodel.metadata.dpanel_ids
+  dpanel_ids = get_panel_ids(dmodel)
 
   panel_ids = map(dpanel_ids,partition(gids)) do pids, cids
     owned_cells = own_to_local(cids)
