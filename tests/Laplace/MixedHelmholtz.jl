@@ -122,7 +122,9 @@ function main(distribute,nprocs;octree=false)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("mixed_helmholtz_convergence_func_$(key)")
-    p_convergence_test(ranks,ps,models,mixed_helmholtz_solver,dir,val,ls)
+    _dir = dir*"/func_$(key)"
+    (i_am_main(ranks) && !isdir(_dir) ) && mkdir(_dir)
+    p_convergence_test(ranks,ps,models,mixed_helmholtz_solver,_dir,val,ls)
   end
 
   i_am_main(ranks) && println("--DONE--")

@@ -101,7 +101,9 @@ function main(distribute,nprocs;octree=false)
 
   for (key, val) in analytic_funcs
     i_am_main(ranks) && println("laplace_beltrami_convergence_func_$(key)")
-    p_convergence_test(ranks,ps,models,laplace_beltrami_solver,dir,val,ls,true)
+    _dir = dir*"/func_$(key)"
+    (i_am_main(ranks) && !isdir(_dir) ) && mkdir(_dir)
+    p_convergence_test(ranks,ps,models,laplace_beltrami_solver,_dir,val,ls,true)
   end
 
   i_am_main(ranks) && println("--DONE--")

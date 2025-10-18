@@ -167,16 +167,25 @@ end
 function p_convergence_test(ranks,ps::Vector{Int},models::AbstractArray,convergence_func,dir::String,fargs...)
   # i_am_main(ranks) && println("auto convergence test")
 
+  errors = Vector{Vector{Float64}}(undef,length(ps))
+  ns = Vector{Vector{Float64}}(undef,length(ps))
+  dxs = Vector{Vector{Float64}}(undef,length(ps))
+  slopes = Vector{Float64}(undef,length(ps))
+
+
   for (i,p_fe) in enumerate(ps)
     # i_am_main(ranks) && println("p_fe = $p_fe")
-    errors,ns,dxs,slope = h_convergence_test(models,convergence_func,p_fe,dir,fargs...)
+    errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,convergence_func,p_fe,dir,fargs...)
     i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slope,p_fe)
 
-    output = @strdict errors ns dxs slope
+    output = @strdict errors ns dxs slopes
     i_am_main(ranks) && safesave(datadir(dir, ("convergence_p$p_fe.jld2")), output)
 
     @test slope > p_fe + 1
   end
+
+  output = @strdict errors ns dxs slopes ps
+  i_am_main(ranks) && safesave(datadir(dir, ("convergence.jld2")), output)
 
 end
 
@@ -225,12 +234,14 @@ function plot_error(ns,errs;
 end
 
 
-function plot_convergence_from_saved(dir,simName,varNames=["u"])
+function plot_convergence_from_saved(dir,simName,ps=[],varNames=["u"])
   dd = load(datadir(dir, ("$simName.jld2")))
   dxs = dd["dxs"]
   errors = dd["errors"]
   ns = dd["ns"]
-  ps = dd["ps"]
+  if isempty(ps)
+    ps = dd["ps"]
+  end
   slopes = dd["slopes"]
 
   plot()
