@@ -176,7 +176,7 @@ function p_convergence_test(ranks,ps::Vector{Int},models::AbstractArray,converge
   for (i,p_fe) in enumerate(ps)
     # i_am_main(ranks) && println("p_fe = $p_fe")
     errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,convergence_func,p_fe,dir,fargs...)
-    i_am_main(ranks) && print_convergence_results(errors,ns,dxs,slope,p_fe)
+    i_am_main(ranks) && print_convergence_results(errors[i],ns[i],dxs[i],slopes[i],p_fe)
 
     output = @strdict errors ns dxs slopes
     i_am_main(ranks) && safesave(datadir(dir, ("convergence_p$p_fe.jld2")), output)
