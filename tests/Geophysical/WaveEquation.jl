@@ -93,7 +93,7 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs)
+function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 4
@@ -102,19 +102,31 @@ function main(distribute,nprocs)
   ls = LUSolver()
   models  = get_refined_models(n_ref_lvls)
 
+  dir = datadir("WaveConvergence")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
-    models,  = get_distributed_refined_models(ranks,nprocs,models)
-    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+    if octree
+      i_am_main(ranks) && println("Octrees")
+      models =  get_octree_refined_models(ranks,n_ref_lvls)
+    else
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
+    ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
+
+
   for (i,ζ) in enumerate(ζs)
+    _dir = dir*"/func_z$i"
+    (i_am_main(ranks) && !isdir(_dir) ) && mkdir(_dir)
 
     h = panel_to_cartesian(h₀(ζ))
     vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
 
     i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,wave_solver,"",h,vX,ls)
+    p_convergence_test(ranks,ps,models,wave_solver,_dir,h,vX,ls)
   end
 
 

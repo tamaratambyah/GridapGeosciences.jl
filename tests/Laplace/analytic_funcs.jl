@@ -33,7 +33,7 @@ end
 # analytic functions defined on the chart
 analytic_funcs = Dict{Symbol,Any}()
 analytic_funcs[:sin] = f_sin
-# analytic_funcs[:XYZ] = f_XYZ
+analytic_funcs[:XYZ] = f_XYZ
 
 """
 mapped functions defined in terms cartesian coordinates and latlon coordinates

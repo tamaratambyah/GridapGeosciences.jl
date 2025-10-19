@@ -62,3 +62,11 @@ plot!(xlabel="t",ylabel="Eu")
 plot()
 plot!(1:length(Es_p),Es_p,lw=3,label="Ep")
 plot!(xlabel="t",ylabel="Ep")
+
+
+## gadi convegence results
+include("convergence_tools.jl")
+dir = datadir("gadi/LaplaceBeltramiConvergence/func_sin")
+dir = datadir("gadi/HelmholtzConvergence/func_sin")
+files = filter(x->endswith(x, ".jld2"), readdir((dir)))
+plot_convergence_from_saved(dir,"convergence")

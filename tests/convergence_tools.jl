@@ -234,14 +234,12 @@ function plot_error(ns,errs;
 end
 
 
-function plot_convergence_from_saved(dir,simName,ps=[],varNames=["u"])
+function plot_convergence_from_saved(dir,simName,varNames=["u"])
   dd = load(datadir(dir, ("$simName.jld2")))
   dxs = dd["dxs"]
   errors = dd["errors"]
   ns = dd["ns"]
-  if isempty(ps)
-    ps = dd["ps"]
-  end
+  ps = dd["ps"]
   slopes = dd["slopes"]
 
   plot()
