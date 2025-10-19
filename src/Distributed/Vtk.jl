@@ -74,7 +74,7 @@ function Gridap.Visualization.create_pvtk_file(
   # compute the regular visualisation points
   points = Gridap.Visualization._vtkpoints(trian)
 
-  println(typeof(geo_map)<:AbstractArray)
+  # println(typeof(geo_map)<:AbstractArray)
   ## if geo_map provided, map the points to ambient space
   if geo_map != nothing
     points = mapped_vtkpoints(trian,geo_map)

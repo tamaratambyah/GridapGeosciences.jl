@@ -19,7 +19,7 @@ function get_panel_ids(trian::BoundaryTriangulation,panel_ids::AbstractArray)
 end
 
 function get_panel_ids(trian::TriangulationView,panel_ids::AbstractArray)
-  println("trian view")
+  println("trian view panel ids")
   get_face_panel_ids(trian,panel_ids)
 end
 
