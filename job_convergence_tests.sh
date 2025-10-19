@@ -18,13 +18,17 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
   include("tests/Laplace/MixedHelmholtz.jl")
   include("tests/Geophysical/WaveEquation.jl")
   include("tests/Geophysical/ShallowWater.jl")
+  include("tests/Advection/AdvectionSUPG.jl")
+  include("tests/Advection/TransientAdvectionSUPG.jl")
 
     with_mpi() do distribute
         # LaplaceBeltrami.main(distribute,4;octree=true)
         # Helmholtz.main(distribute,4;octree=true)
         # MixedHelmholtz.main(distribute,4,true)
-        WaveEquation.main(distribute,4;octree=true)
-        ShallowWater.main(distribute,4;octree=true)
+        # WaveEquation.main(distribute,4;octree=true)
+        # ShallowWater.main(distribute,4;octree=true)
+        AdvectionSUPG.main(distribute,4;octree=true)
+        TransientAdvectionSUPG.main(distribute,4;octree=true)
     end
 
 ' 
