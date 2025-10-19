@@ -27,8 +27,10 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   h::Function,vX::Function,f::Function,η::Function,ls=LUSolver(),
     return_vtk=false,check_geo_balance=false)
 
+  ranks = get_ranks(panel_model)
+
   lvl = nref(nc(panel_model))
-  println("Refinement level: $lvl")
+  i_am_main(ranks) &&  println("Refinement level: $lvl")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -112,7 +114,7 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   e_geo_balance = sum(∫( geo_balance )dΩ)
   if check_geo_balance
     @check vector_length(e_geo_balance) < 1e-12
-    println("Global geostropohic balance error: $e_geo_balance")
+    i_am_main(ranks) && println("Global geostropohic balance error: $e_geo_balance")
   end
 
   # solve for velocity
@@ -142,7 +144,7 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  println(e_u, "; ", e_p, "; ",  e_η)
+  i_am_main(ranks) && println(e_u, "; ", e_p, "; ",  e_η)
 
   return e_u,  e_p, e_η
 
@@ -189,7 +191,7 @@ function main(distribute,nprocs;octree=false)
     η = panel_to_cartesian(η₀(ζ))
 
     i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,nonlinear_shallow_water_solver,_dir,h,vX,f,η,ls)
+    p_convergence_test(ranks,ps,models,nonlinear_shallow_water_solver,_dir,h,vX,f,η,ls,true)
   end
 
 end

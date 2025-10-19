@@ -20,8 +20,10 @@ include("../convergence_tools.jl")
 include("Williamson2Test.jl")
 
 function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,ls=LUSolver(),return_vtk=false)
+  ranks = get_ranks(panel_model)
+
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  i_am_main(ranks) && println("nref = $lvl")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -113,7 +115,7 @@ function main(distribute,nprocs;octree=false)
     else
       models,  = get_distributed_refined_models(ranks,nprocs,models)
     end
-    ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
 
@@ -126,7 +128,7 @@ function main(distribute,nprocs;octree=false)
     vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
 
     i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,wave_solver,_dir,h,vX,ls)
+    p_convergence_test(ranks,ps,models,wave_solver,_dir,h,vX,ls,true)
   end
 
 
