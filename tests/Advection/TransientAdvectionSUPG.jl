@@ -195,7 +195,7 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs)
+function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 4
@@ -209,14 +209,22 @@ function main(distribute,nprocs)
 
   models  = get_refined_models(n_ref_lvls)
 
+  dir = datadir("TranientAdvectionSUPGConvergence")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
-    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    if octree
+      i_am_main(ranks) && println("Octrees")
+      models =  get_octree_refined_models(ranks,n_ref_lvls)
+    else
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
     # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
   i_am_main(ranks) && println("transient_advection_supg_convergence")
-  p_convergence_test(ranks,ps,models,transient_advection_supg_errors,"",u,v,CFL,ls,tF)
+  p_convergence_test(ranks,ps,models,transient_advection_supg_errors,dir,u,v,CFL,ls,tF,true)
 
 end
 
