@@ -67,8 +67,8 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
     vecX(XYZ) = v(t)(XYZ)
     vX = panel_to_cartesian(tangent_vec(vecX))
     v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-    # return v_contr_cf
-    interpolate(v_contr_cf,U)
+    return v_contr_cf
+    # interpolate(v_contr_cf,U)
   end
 
 
@@ -96,6 +96,10 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
 
   # solve with SSP RK 3
   uh0 = interpolate(u_cf, P)
+  # _a(u,v) = ∫( u*v )dΩ
+  # _l(v) = ∫( u_cf*v )dΩ
+  # op = AffineFEOperator(_a,_l,P,Q)
+  # uh0 = solve(LUSolver(),op)
   t0 = 0.0
 
   solver = RungeKutta(ls, ls, dt, :EXRK_SSP_3_3)
@@ -199,7 +203,7 @@ function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 4
-  ps = [1,2,3]
+  ps = [1]#[1,2,3]
   ls = LUSolver()
   CFL = 0.1
 
@@ -209,7 +213,7 @@ function main(distribute,nprocs;octree=false)
 
   models  = get_refined_models(n_ref_lvls)
 
-  dir = datadir("TransientAdvectionSUPGConvergence")
+  dir = datadir("TransientAdvectionSUPGConvergence_Octree_6_bad")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   if prod(nprocs) > 1

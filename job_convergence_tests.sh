@@ -29,8 +29,8 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
         # WaveEquation.main(distribute,4;octree=true)
         # ShallowWater.main(distribute,4;octree=true)
         # AdvectionSUPG.main(distribute,4;octree=true)
-        # AdvectionDGUpwinding.main(distribute,1)
-        TransientAdvectionSUPG.main(distribute,4)
+        # AdvectionDGUpwinding.main(distribute,4;octree=true)
+        TransientAdvectionSUPG.main(distribute,4;octree=true)
     end
 
 ' 

@@ -72,7 +72,13 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  vel = interpolate(v_contr_cf,U)
+  # _a(u,v) = ∫( u⋅v )dΩ
+  # _l(v) = ∫( v_contr_cf⋅v )dΩ
+  # op = AffineFEOperator(_a,_l,U,V)
+  # vel = solve(LUSolver(),op)
+  # vel = interpolate(v_contr_cf,U)
+  vel = v_contr_cf
+
   meas_cf = CellField(sqrtg,Ω_panel)
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
