@@ -13,14 +13,16 @@ source $HOME/scripts/load-intel.sh
 mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
   using MPI
   using PartitionedArrays
-  include("tests/Laplace/LaplaceBeltrami.jl")
-  include("tests/Laplace/Helmholtz.jl")
-  include("tests/Laplace/MixedHelmholtz.jl")
+  # include("tests/Laplace/LaplaceBeltrami.jl")
+  # include("tests/Laplace/Helmholtz.jl")
+  # include("tests/Laplace/MixedHelmholtz.jl")
   include("tests/Geophysical/WaveEquation.jl")
   include("tests/Geophysical/ShallowWater.jl")
-  include("tests/Advection/AdvectionSUPG.jl")
+  include("tests/Geophysical/TransientShallowWater.jl")
+  # include("tests/Advection/AdvectionSUPG.jl")
   include("tests/Advection/AdvectionDGUpwinding.jl")
-  include("tests/Advection/TransientAdvectionSUPG.jl")
+  include("tests/Advection/TransientAdvectionDGUpwinding.jl")
+  # include("tests/Advection/TransientAdvectionSUPG.jl")
 
     with_mpi() do distribute
         # LaplaceBeltrami.main(distribute,4;octree=true)

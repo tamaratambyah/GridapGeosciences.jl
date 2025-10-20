@@ -63,8 +63,13 @@ function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
   U = TrialFESpace(V)
 
   # initial conditions
-  vel = interpolate(v_contr_cf,U)
-  uh0 = interpolate(u_cf, P(0.0))
+  # vel = interpolate(v_contr_cf,U)
+  # uh0 = interpolate(u_cf, P(0.0))
+  vel = v_contr_cf
+  _a(u,v) = ∫( u*v )dΩ
+  _l(v) = ∫( u_cf*v )dΩ
+  op = AffineFEOperator(_a,_l,P(0.0),Q)
+  uh0 = solve(LUSolver(),op)
 
   meas_cf = CellField(sqrtg,Ω_panel)
 
@@ -154,7 +159,7 @@ function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 4
-  ps = [1,2,3]
+  ps = [1,2]#[1,2,3]
   ls = LUSolver()
   CFL = 0.1
 

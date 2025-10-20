@@ -35,7 +35,7 @@ function transient_wave_solver(panel_model,p_fe::Int,_dir::String,
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nlevl = $lvl")
 
-  dir = _dir*"/sol_nref$lvl"
+  dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
 
@@ -56,7 +56,11 @@ function transient_wave_solver(panel_model,p_fe::Int,_dir::String,
   ## initial conditions
   h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
   vec_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  xh0 = interpolate([vec_contra_cf,h_cf],X)
+  # xh0 = interpolate([vec_contra_cf,h_cf],X)
+  _a((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
+  _l(v) = ∫( vec_contra_cf⋅v + h_cf*q )dΩ
+  op = AffineFEOperator(_a,_l,X,Y)
+  xh0 = solve(LUSolver(),op)
 
   ## transient weak form
   metric_cf = CellField(analytic_metric,Ω_panel)
@@ -142,7 +146,6 @@ function transient_wave_solver(panel_model,p_fe::Int,_dir::String,
   end
   return ts, Es, ms, s_divus, divus
 end
-
 
 
 ################################################################################

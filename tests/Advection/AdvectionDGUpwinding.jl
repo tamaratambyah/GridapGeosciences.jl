@@ -148,17 +148,17 @@ function main(distribute,nprocs;octree=false)
 
   models  = get_refined_models(n_ref_lvls)
 
-  # if prod(nprocs) > 1
-    # i_am_main(ranks) && println("Distributed test")
-    # if octree
+  if prod(nprocs) > 1
+    i_am_main(ranks) && println("Distributed test")
+    if octree
       i_am_main(ranks) && println("Octrees")
       models =  get_octree_refined_models(ranks,n_ref_lvls)
-    # else
-      # i_am_main(ranks) && println("Distributed models")
-      # models,  = get_distributed_refined_models(ranks,nprocs,models)
-    # end
-    ls = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1e-8,maxiter=5000,verbose=i_am_main(ranks))
-  # end
+    else
+      i_am_main(ranks) && println("Distributed models")
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
+    # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1e-8,maxiter=5000,verbose=i_am_main(ranks))
+  end
 
   i_am_main(ranks) && println("advection_dg_convergence_func")
   p_convergence_test(ranks,ps,models,advection_dg_solver,dir,u,vX,uvX,ls,true)

@@ -35,7 +35,7 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nlevl = $lvl")
 
-  dir = _dir*"/sol_nref$lvl"
+  dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
   ## finite element solver
@@ -69,7 +69,11 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
   h_h = interpolate(h_cf-b_cf,P)
 
-  xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
+  # xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
+  _a((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
+  _l(v) = ∫( u_contra_h⋅v + h_h*q )dΩ
+  op = AffineFEOperator(_a,_l,X_prog(0.0),Y_prog)
+  xh0 = solve(LUSolver(),op)
 
 
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
@@ -327,7 +331,7 @@ function main(distribute,nprocs)
     b = panel_to_cartesian(_topography)
 
     i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,"",h,vX,f,η,b,lss,CFL)
+    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,"",h,vX,f,η,b,lss,CFL,true)
   end
 
 end

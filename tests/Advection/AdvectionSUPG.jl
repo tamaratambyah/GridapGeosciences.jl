@@ -51,10 +51,11 @@ function advection_supg_solver(panel_model,p_fe::Int,dir::String,
   U = TrialFESpace(V)
 
   # vel = interpolate(v_contr_cf,U)
-  _a(u,v) = ∫( u⋅v )dΩ
-  _l(v) = ∫( v_contr_cf ⋅ v )dΩ
-  op = AffineFEOperator(_a,_l,U,V)
-  vel = solve(LUSolver(),op)
+  # _a(u,v) = ∫( u⋅v )dΩ
+  # _l(v) = ∫( v_contr_cf ⋅ v )dΩ
+  # op = AffineFEOperator(_a,_l,U,V)
+  # vel = solve(LUSolver(),op)
+  vel = v_contr_cf
 
 
   meas_cf = CellField(sqrtg,Ω_panel)

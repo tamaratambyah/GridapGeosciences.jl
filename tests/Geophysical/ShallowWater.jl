@@ -50,7 +50,8 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
   u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
   u_contra_h = interpolate(u_contra_cf,U)
-  u_proj_h = covarient_basis_cf ⋅ u_contra_h
+  # u_proj_h = covarient_basis_cf ⋅ u_contra_h
+  u_proj_h = covarient_basis_cf ⋅ u_contra_cf
 
   h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
   h_h = interpolate(h_cf,P)
@@ -73,29 +74,35 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   #### DIAGNOSTIC VARIABLES
   # mass flux
   biformF(F,v) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ
-  liformF(v) = ∫( h_h*(u_contra_h⋅(metric_cf⋅v))*meas_cf   )dΩ
+  # liformF(v) = ∫( h_h*(u_contra_h⋅(metric_cf⋅v))*meas_cf   )dΩ
+  liformF(v) = ∫( h_cf*(u_contra_cf⋅(metric_cf⋅v))*meas_cf   )dΩ
   op = AffineFEOperator(biformF,liformF,U,V)
   Fh = solve(ls,op)
 
   # Bernoulli potential
   biformΦ(Φ,r) = ∫( Φ*r*meas_cf  )dΩ
-  liformΦ(r) = ∫( gravity*h_h*r*meas_cf  )dΩ + ∫( 0.5*( u_contra_h ⋅(metric_cf⋅u_contra_h) )r*meas_cf  )dΩ
+  # liformΦ(r) = ∫( gravity*h_h*r*meas_cf  )dΩ + ∫( 0.5*( u_contra_h ⋅(metric_cf⋅u_contra_h) )r*meas_cf  )dΩ
+  liformΦ(r) = ∫( gravity*h_cf*r*meas_cf  )dΩ + ∫( 0.5*( u_contra_cf ⋅(metric_cf⋅u_contra_cf) )r*meas_cf  )dΩ
   op = AffineFEOperator(biformΦ,liformΦ,P,Q)
   Φh = solve(ls,op)
 
   # vorticity
   perp_matrix_cf = CellField(analytic_perp_matrix,Ω_panel)
-  biformq(q,r) = ∫( q*h_h*r*meas_cf  )dΩ
-  liformq(r) = ∫( cor_cf*r*meas_cf  )dΩ + ∫( (perp_matrix_cf⋅u_contra_h)⋅∇(r)  )dΩ
+  # biformq(q,r) = ∫( q*h_h*r*meas_cf  )dΩ
+  biformq(q,r) = ∫( q*h_cf*r*meas_cf  )dΩ
+  # liformq(r) = ∫( cor_cf*r*meas_cf  )dΩ + ∫( (perp_matrix_cf⋅u_contra_h)⋅∇(r)  )dΩ
+  liformq(r) = ∫( cor_cf*r*meas_cf  )dΩ + ∫( (perp_matrix_cf⋅u_contra_cf)⋅∇(r)  )dΩ
   op = AffineFEOperator(biformq,liformq,H,R)
   qh = solve(ls,op)
 
-  e_η = l2((η_h - qh*h_h )*meas_cf,dΩ)
+  # e_η = l2((η_h - qh*h_h )*meas_cf,dΩ)
+  e_η = l2((η_cf - qh*h_cf )*meas_cf,dΩ)
 
   #### PROGNOSTIC VARIABLES
 
   # equation for depth:
-  rhs_h = h_h + 1/meas_cf*( Fh⋅grad_meas_cf + meas_cf*(∇⋅Fh)   )
+  # rhs_h = h_h + 1/meas_cf*( Fh⋅grad_meas_cf + meas_cf*(∇⋅Fh)   )
+  rhs_h = h_cf + 1/meas_cf*( Fh⋅grad_meas_cf + meas_cf*(∇⋅Fh)   )
   biform_p(p,r) = ∫( (p*r)*meas_cf )dΩ
   liform_p(r) = ( ∫( (rhs_h*r)*meas_cf )dΩ
                 - ∫( r*(Fh⋅grad_meas_cf + meas_cf*(∇⋅Fh) )  )dΩ
@@ -107,7 +114,8 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
 
   # equation for velocity
   Fperph = 1/meas_cf*(perp_matrix_cf⋅Fh)
-  rhs_u = u_contra_h + qh*Fperph + (  inv_metric_cf⋅gradient(Φh) )
+  # rhs_u = u_contra_h + qh*Fperph + (  inv_metric_cf⋅gradient(Φh) )
+  rhs_u = u_contra_cf + qh*Fperph + (  inv_metric_cf⋅gradient(Φh) )
 
   # check geostropohic balance
   geo_balance = qh*Fperph + (  inv_metric_cf⋅gradient(Φh) )
