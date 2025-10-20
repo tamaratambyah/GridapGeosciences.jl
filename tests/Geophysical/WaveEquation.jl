@@ -98,6 +98,9 @@ end
 function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: Wave Equation")
+
   n_ref_lvls = 4
   ps = [1,2,3]
   ζs = [0.0]
@@ -131,7 +134,7 @@ function main(distribute,nprocs;octree=false)
     p_convergence_test(ranks,ps,models,wave_solver,_dir,h,vX,ls,true)
   end
 
-
+  i_am_main(ranks) && println("--DONE--")
 end
 
 ################################################################################

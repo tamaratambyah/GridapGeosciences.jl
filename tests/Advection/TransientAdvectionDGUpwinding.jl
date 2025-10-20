@@ -35,7 +35,7 @@ function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nlevl = $lvl")
 
-  dir = _dir*"/sol_nref$lvl"
+  dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
   panel_ids = get_panel_ids(panel_model)
@@ -155,8 +155,11 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs)
+function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: Transient AdvectionDGUpwinding")
 
   n_ref_lvls = 4
   ps = [1,2]#[1,2,3]
@@ -169,14 +172,25 @@ function main(distribute,nprocs)
 
   models  = get_refined_models(n_ref_lvls)
 
+  dir = datadir("TransientAdvectionDGUpwinding")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
-    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    if octree
+      i_am_main(ranks) && println("Octrees")
+      models =  get_octree_refined_models(ranks,n_ref_lvls)
+    else
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
     # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
+
   i_am_main(ranks) && println("transient_advection_dg_convergence")
-  p_convergence_test(ranks,ps,models,transient_advection_dg_errors,"",u,v,CFL,ls,tF)
+  p_convergence_test(ranks,ps,models,transient_advection_dg_errors,dir,u,v,CFL,ls,tF,true)
+
+  i_am_main(ranks) && println("--DONE--")
 end
 
 ################################################################################

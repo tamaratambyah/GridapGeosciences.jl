@@ -57,6 +57,7 @@ function Gridap.Algebra.solve!(
 )
   println("regular linear stage solver")
 
+  J = lop.J
   if !lop.reuse
     J = lop.J
     numerical_setup!(ns, J)

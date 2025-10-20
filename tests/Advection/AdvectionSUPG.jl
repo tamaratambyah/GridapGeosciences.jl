@@ -103,6 +103,8 @@ end
 ################################################################################
 function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: AdvectionSUPG")
 
   n_ref_lvls = 4
   ps = [1,2,3]
@@ -131,6 +133,7 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("advection_supg_convergence_func")
   p_convergence_test(ranks,ps,models,advection_supg_solver,dir,u,vX,CFL,ls,true)
 
+  i_am_main(ranks) && println("--DONE--")
 end
 
 ################################################################################

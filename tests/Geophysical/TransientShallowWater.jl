@@ -21,8 +21,8 @@ using GridapGeosciences
 using Test
 
 include("../convergence_tools.jl")
-# include("Williamson2Test.jl")
-include("Williamson5Test.jl")
+include("Williamson2Test.jl")
+# include("Williamson5Test.jl")
 
 function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   h::Function,vX::Function,f::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
@@ -71,7 +71,7 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
   # xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
   _a((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
-  _l(v) = ∫( u_contra_h⋅v + h_h*q )dΩ
+  _l((v,q)) = ∫( u_contra_cf⋅v + (h_cf-b_cf)*q )dΩ
   op = AffineFEOperator(_a,_l,X_prog(0.0),Y_prog)
   xh0 = solve(LUSolver(),op)
 
@@ -205,6 +205,9 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
     it = iterate(solT, state)
   end
 
+  push!(Es_u,e_u)
+  push!(Es_p,e_p)
+
   if return_vtk
     if length(ranks) > 1
       _make_pvd_distributed(dir,"solT",1)
@@ -214,8 +217,8 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   end
 
   dxx =dx(nc(panel_model))
-  output = @strdict Masss Energys Enstropys dt CFL dxx elapsed_time
-  safesave(datadir(dir, ("shallow_water_casimirs.jld2")), output)
+  output = @strdict Masss Energys Enstropys dt CFL dxx
+  i_am_main(ranks) && safesave(datadir(dir, ("shallow_water_casimirs.jld2")), output)
 
   return Es_u, Es_p
 
@@ -244,7 +247,7 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   # plot!(yaxis=:log,xlabel="t",ylabel=L"|x_t-x_0|/x_0")
   # savefig(plotsdir()*"/sw_transient_enstropy_odes")
 
-  return Es_u[end], Es_p[end]
+  # return Es_u[end], Es_p[end]
 end
 
 
@@ -252,7 +255,7 @@ end
 function transient_shallow_water_errors(panel_model,p_fe::Int,dir::String,
   h::Function,vX::Function,f::Function,η::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
   Es_u,Es_p  = transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,lss,CFL,return_vtk)
-  return minimum(Es_u[end-10:end]),minimum(Es_p[end-10:end]),false
+  return minimum(Es_p[end-10:end]),minimum(Es_u[end-10:end]),false
 end
 
 ################################################################################
@@ -306,8 +309,11 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs)
+function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: Transient Shallow Water")
 
   n_ref_lvls = 4
   ps = [1]
@@ -316,9 +322,17 @@ function main(distribute,nprocs)
   CFL = 0.1
   models  = get_refined_models(n_ref_lvls)
 
+  dir = datadir("TransientShallowWaterConvergence")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
-    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    if octree
+      i_am_main(ranks) && println("Octrees")
+      models =  get_octree_refined_models(ranks,n_ref_lvls)
+    else
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
     # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
@@ -328,11 +342,14 @@ function main(distribute,nprocs)
     vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
     f = panel_to_cartesian(f₀(ζ))
     η = panel_to_cartesian(η₀(ζ))
-    b = panel_to_cartesian(_topography)
+    b = panel_to_cartesian(topography)
 
     i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,"",h,vX,f,η,b,lss,CFL,true)
+    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,dir,h,vX,f,η,b,lss,CFL)
   end
+
+  i_am_main(ranks) && println("WARNING! Error output is [p,u]")
+  i_am_main(ranks) && println("--DONE--")
 
 end
 
