@@ -33,7 +33,7 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nlevl = $lvl")
 
-  dir = _dir*"/sol_nref$lvl"
+  dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
 
@@ -209,7 +209,7 @@ function main(distribute,nprocs;octree=false)
 
   models  = get_refined_models(n_ref_lvls)
 
-  dir = datadir("TranientAdvectionSUPGConvergence")
+  dir = datadir("TransientAdvectionSUPGConvergence")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   if prod(nprocs) > 1

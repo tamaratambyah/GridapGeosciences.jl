@@ -52,10 +52,10 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   dΩ = Measure(Ω_panel,degree)
 
   Λ = SkeletonTriangulation(panel_model)
-  # if typeof(Ω_panel) <: GridapDistributed.DistributedTriangulation
-    # i_am_main(ranks) && println("ghost skel mesh")
-    # Λ = SkeletonTriangulation(with_ghost,panel_model)
-  # end
+  if typeof(Ω_panel) <: GridapDistributed.DistributedTriangulation
+    i_am_main(ranks) && println("ghost skel mesh")
+    Λ = SkeletonTriangulation(with_ghost,panel_model)
+  end
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
 
@@ -110,6 +110,7 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
 
 
   eu = l2((uh-u_cf)*meas_cf,dΩ)
+  i_am_main(ranks) && println("Error = ",eu)
 
   if return_vtk
     lvl = nref(nc(panel_model))
@@ -141,19 +142,20 @@ function main(distribute,nprocs;octree=false)
 
   models  = get_refined_models(n_ref_lvls)
 
-  if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
+  # if prod(nprocs) > 1
+    # i_am_main(ranks) && println("Distributed test")
+    # if octree
       i_am_main(ranks) && println("Octrees")
       models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
-    end
-    ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=2000,verbose=i_am_main(ranks))
-  end
+    # else
+      # i_am_main(ranks) && println("Distributed models")
+      # models,  = get_distributed_refined_models(ranks,nprocs,models)
+    # end
+    ls = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1e-8,maxiter=5000,verbose=i_am_main(ranks))
+  # end
 
   i_am_main(ranks) && println("advection_dg_convergence_func")
-  p_convergence_test(ranks,ps,models,advection_dg_solver,dir,u,vX,uvX,ls)
+  p_convergence_test(ranks,ps,models,advection_dg_solver,dir,u,vX,uvX,ls,true)
 
 end
 
