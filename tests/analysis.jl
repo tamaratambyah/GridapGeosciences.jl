@@ -66,7 +66,12 @@ plot!(xlabel="t",ylabel="Ep")
 
 ## gadi convegence results
 include("convergence_tools.jl")
-dir = datadir("gadi/LaplaceBeltramiConvergence/func_sin")
-dir = datadir("gadi/HelmholtzConvergence/func_sin")
+# dir = datadir("gadi/LaplaceBeltramiConvergence/func_sin")
+# dir = datadir("gadi/HelmholtzConvergence/func_sin")
+# dir = datadir("gadi/WaveConvergence/func_z1")
+# dir = datadir("gadi/AdvectionSUPGConvergence")
+dir = datadir("gadi/AdvectionDGConvergence")
+# dir = datadir("gadi/TransientAdvectionSUPGConvergence_Octree_6")
+
 files = filter(x->endswith(x, ".jld2"), readdir((dir)))
-plot_convergence_from_saved(dir,"convergence")
+plot_convergence_from_saved(dir,"convergence",["u","p"])

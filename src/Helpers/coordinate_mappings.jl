@@ -51,6 +51,13 @@ panel_to_latlon(f::Function) = p -> panel_to_latlon(f,p)
 ################################################################################
 ### Alberto's coordinate_mappings
 ################################################################################
+function xyz2θϕ(x)
+  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
+  θ = atan(x[2], x[1])
+  ϕ = asin(x[3]/r)
+  VectorValue(θ,ϕ)
+end
+
 function xyz2θϕr(x)
   r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
   θ = atan(x[2], x[1])

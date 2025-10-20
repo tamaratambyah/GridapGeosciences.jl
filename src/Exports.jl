@@ -10,6 +10,7 @@ end
 @publish Fields ForwardMapPanel1
 @publish Fields MatMultField
 @publish Fields MyAffineField
+@publish Fields Cartesian2SphereicalMap
 
 @publish Geometry get_panel_ids
 @publish Geometry geo_map_func
@@ -43,6 +44,7 @@ end
 @publish Helpers xyz2θϕr
 @publish Helpers θϕ2xyz
 @publish Helpers spherical_to_cartesian_matrix
+@publish Helpers xyz2θϕ
 
 @publish Helpers E
 @publish Helpers F

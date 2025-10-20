@@ -33,7 +33,7 @@ export normal_vector_from_basis
 export vector_length, normal_vec, tangent_vec
 export contra_v, contra_v_comp, contra_v_perp, projection_v
 
-export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix
+export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix, xyz2θϕ
 
 export E, F, G
 

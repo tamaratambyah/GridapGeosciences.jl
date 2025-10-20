@@ -213,7 +213,7 @@ function main(distribute,nprocs;octree=false)
 
   models  = get_refined_models(n_ref_lvls)
 
-  dir = datadir("TransientAdvectionSUPGConvergence_Octree_6_bad")
+  dir = datadir("TransientAdvectionSUPGConvergence_Octree")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   if prod(nprocs) > 1

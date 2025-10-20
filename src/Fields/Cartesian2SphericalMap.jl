@@ -16,7 +16,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap,cellx::AbstractArray{<:VectorValue{3}} )
 
   y = cache
-  map!(x-> cartesian_to_latlon(x), y, cellx  )
+  map!(x-> xyz2θϕ(x), y, cellx  )
 
   return y
 end
@@ -29,6 +29,7 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap,x::VectorValue{3})
   y = cache
-  y = cartesian_to_latlon(x)
+  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
+  y = VectorValue(atan(x[2], x[1]), asin(x[3]/r))
   return y
 end
