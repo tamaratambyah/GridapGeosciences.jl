@@ -4,7 +4,7 @@
 #PBS -l walltime=1:00:00
 #PBS -l ncpus=4
 #PBS -l mem=16gb
-#PBS -N transient_shallow_water
+#PBS -N transient_advection_supg
 #PBS -l wd
 
 source $HOME/scripts/load-configs-zg98.sh
@@ -18,12 +18,12 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
   # include("tests/Laplace/MixedHelmholtz.jl")
   # include("tests/Geophysical/WaveEquation.jl")
   # include("tests/Geophysical/ShallowWater.jl")
-  include("tests/Geophysical/TransientShallowWater.jl")
+  # include("tests/Geophysical/TransientShallowWater.jl")
 
   # include("tests/Advection/AdvectionSUPG.jl")
   # include("tests/Advection/AdvectionDGUpwinding.jl")
   # include("tests/Advection/TransientAdvectionDGUpwinding.jl")
-  # include("tests/Advection/TransientAdvectionSUPG.jl")
+  include("tests/Advection/TransientAdvectionSUPG.jl")
 
     with_mpi() do distribute
         # LaplaceBeltrami.main(distribute,4;octree=true)
@@ -31,10 +31,10 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
         # MixedHelmholtz.main(distribute,4,true)
         # WaveEquation.main(distribute,4;octree=true)
         # ShallowWater.main(distribute,4;octree=true)
-        TransientShallowWater.main(distribute,4;octree=true)
+        # TransientShallowWater.main(distribute,4;octree=true)
         # AdvectionSUPG.main(distribute,4;octree=true)
         # AdvectionDGUpwinding.main(distribute,4;octree=true)
-        # TransientAdvectionSUPG.main(distribute,4;octree=true)
+        TransientAdvectionSUPG.main(distribute,4;octree=true)
         # TransientAdvectionDGUpwinding.main(distribute,4;octree=true)
     end
 
