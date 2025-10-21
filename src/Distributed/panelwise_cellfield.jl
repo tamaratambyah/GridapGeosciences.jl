@@ -1,17 +1,40 @@
+# function panelwise_cellfield(f::Function,
+#   trian::GridapDistributed.DistributedTriangulation,
+#   panel_ids::AbstractArray)
+
+#   dmodel = get_background_model(trian)
+#   gids = get_cell_gids(dmodel)
+
+#   fields = map(trian.trians,partition(gids),panel_ids) do t,cid,pid
+#     owned_cells = own_to_local(cid)
+#     panel_ids = pid[owned_cells]
+#     panelwise_cellfield(f,t,panel_ids)
+#   end
+#   GridapDistributed.DistributedCellField(fields,trian)
+# end
+
+#### This function is Alberto's solution to the issue with ghost+local on
+#### octree periodic meshes. See issue %%%% in GridapP4est
 function panelwise_cellfield(f::Function,
   trian::GridapDistributed.DistributedTriangulation,
   panel_ids::AbstractArray)
 
-  dmodel = get_background_model(trian)
-  gids = get_cell_gids(dmodel)
+  println("new panelwise cellfield")
 
-  fields = map(trian.trians,partition(gids),panel_ids) do t,cid,pid
-    owned_cells = own_to_local(cid)
-    panel_ids = pid[owned_cells]
-    panelwise_cellfield(f,t,panel_ids)
+  panel_model = trian.model
+
+  fields = map(panel_ids,local_views(panel_model)) do panel_ids, lmodel
+    panelwise_cellfield(f,Triangulation(lmodel),panel_ids)
   end
-  GridapDistributed.DistributedCellField(fields,trian)
+
+  trians = map(local_views(panel_model)) do lmodel
+    Triangulation(lmodel)
+  end
+
+  _trian = GridapDistributed.DistributedTriangulation(trians,panel_model)
+  GridapDistributed.DistributedCellField(fields,_trian)
 end
+
 
 function panelwise_cellfield(f::Function,
   trian::GridapDistributed.DistributedTriangulation)

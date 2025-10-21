@@ -16,10 +16,13 @@ using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
 using GridapGeosciences
 using GridapPETSc
 using Test
+using CSV
+using DataFrames
 
 include("advection_funcs.jl")
 include("Lauritzen_functions.jl")
 include("../convergence_tools.jl")
+include("../output_tools.jl")
 
 ################################################################################
 #### Transient
@@ -36,6 +39,7 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
   dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
+  # (i_am_main(ranks) && return_vtk) &&  save_mesh(dir,panel_model)
 
   ## now enter the solver
   panel_ids = get_panel_ids(panel_model)
@@ -67,8 +71,8 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
     vecX(XYZ) = v(t)(XYZ)
     vX = panel_to_cartesian(tangent_vec(vecX))
     v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-    return v_contr_cf
-    # interpolate(v_contr_cf,U)
+    # return v_contr_cf
+    interpolate(v_contr_cf,U)
   end
 
 
@@ -108,9 +112,14 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
   cell_geo_map = geo_map_func(Ω_panel)
+  labels = ["uh","v"]
 
   if return_vtk
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covarient_basis_cf⋅ get_velocity(0.0)],append=false,geo_map=cell_geo_map)
+    panel_cfs = [uh0, covarient_basis_cf⋅ get_velocity(0.0)]
+    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+
+    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,panel_cfs,labels)
   end
 
   ## store errors
@@ -132,7 +141,11 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
     push!(ts,t)
     push!(Es,eu)
     if return_vtk && (mod(counter,10) == 0)
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh,"v"=>covarient_basis_cf⋅ get_velocity(t)],append=false,geo_map=cell_geo_map)
+      panel_cfs = [uh, covarient_basis_cf⋅ get_velocity(t)]
+      cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+
+      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+      # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,panel_cfs,labels)
     end
     counter = counter + 1
   end
