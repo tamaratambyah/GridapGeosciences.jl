@@ -24,8 +24,8 @@ using DataFrames
 
 include("../convergence_tools.jl")
 include("../output_tools.jl")
-include("Williamson2Test.jl")
-# include("Williamson5Test.jl")
+# include("Williamson2Test.jl")
+include("Williamson5Test.jl")
 
 function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   h::Function,vX::Function,f::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
@@ -203,7 +203,7 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
     push!(Energys,energy)
     push!(Masss,_mass)
 
-    if return_vtk  && (mod(counter,10) == 0)
+    if return_vtk  && (mod(counter,50) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort]
       cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort"],panel_cfs)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
@@ -270,7 +270,7 @@ end
 ################################################################################
 #### Main run for transient solution
 ################################################################################
-function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=false)
+function main_transient(distribute,nprocs;octree=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   i_am_main(ranks) && println("--START--")
@@ -287,7 +287,12 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
 
   if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
-    models,  = get_distributed_refined_models(ranks,nprocs,models)
+    if octree
+      i_am_main(ranks) && println("Octrees")
+      models =  get_octree_refined_models(ranks,n_ref_lvls)
+    else
+      models,  = get_distributed_refined_models(ranks,nprocs,models)
+    end
     ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
     ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=i_am_main(ranks),name="ode_solver")
   end
@@ -295,7 +300,7 @@ function main_transient(distribute,nprocs;options="",n_ref_lvls=4,p_fe=1,CFL=0.1
   panel_model = models[1]
   lss = (ls_ode,ls_diag)
 
-  dir = datadir("Transient_shallow_water_W5_supg")
+  dir = datadir("TransientShallowWater_W5_octree_supg")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   # GridapPETSc.Init(args=split(options))
