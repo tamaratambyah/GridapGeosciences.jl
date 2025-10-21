@@ -83,7 +83,7 @@ plot_convergence_from_saved(dir,"convergence",["u","p","n"])
 
 
 include("plot_tools.jl")
-dir = datadir("gadi/TransientShallowWaterConvergence/sol_p1_nref4")
+dir = datadir("gadi/TransientShallowWater_W5_octree_supg/sol_p1_nref6")
 n = 100
 plotName = "SW"
 cf = "vort"

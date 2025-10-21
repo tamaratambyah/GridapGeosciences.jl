@@ -3,101 +3,88 @@ using Gridap
 using GridapGeosciences
 using Test
 
-
-
-my_forward_jacobian(p) = αβ -> transpose( gradient(forward_map(p))(αβ) )
-
-function f(x)
+### some points for testing
+function _r(x)
   a = -π/4 + (π/4 - -π/4)*rand()
   b = -π/4 + (π/4 - -π/4)*rand()
   Point(a,b)
 end
+pts = [_r(1) for i in 1:10]
+αβ = pts[1]
+p = 1
 
-pts = [f(1) for i in 1:10]
-for p in collect(1:6)
-  J1 = lazy_map(x->my_forward_jacobian(p)(x), pts)
-  J2 = lazy_map(x->forward_jacobian(p)(x), pts)
-  @test all(J1 .≈ J2)
+
+include("../convergence_tools.jl")
+include("../Laplace/analytic_funcs.jl")
+
+########### Forward jacobian
+auto_forward_jacobian(p) = αβ -> transpose( gradient(forward_map(p))(αβ) )
+
+############### ONE VARIABLES ##################################################
+# J1(αβ) =  auto_forward_jacobian(1)(αβ)
+# J1t(αβ) =  transpose(J1(αβ))
+# auto_metric(αβ) = J1t(αβ)⋅J1(αβ)
+# auto_inv_metric(αβ) = inv(auto_metric(αβ))
+# auto_detg(αβ) = det(auto_metric(αβ))
+# auto_sqrtg(αβ) = sqrt(auto_detg(αβ))
+# auto_grad_meas(αβ) = gradient(auto_sqrtg)(αβ)
+
+# auto_grad_meas(αβ)
+
+# ####### surface laplacin
+# auto_W(f::Function,p::Int) = αβ ->  auto_sqrtg(αβ)*( auto_inv_metric(αβ) ⋅ gradient(f(p))(αβ))
+# auto_surflap(f::Function,p::Int) = αβ -> 1/auto_sqrtg(αβ) * ( divergence(auto_W(f,p))(αβ) )
+# auto_surflap(f::Function) = p -> auto_surflap(f,p)
+
+# p=2
+# auto_surflap(f_sin)(p)(αβ)
+# surflap(f_sin)(p)(αβ)
+
+
+############### TWO VARIABLES ##################################################
+J(p::Int,αβ) = auto_forward_jacobian(p)(αβ)
+Jt(p::Int,αβ) =  transpose(J(p,αβ))
+auto_metric(p::Int,αβ) = Jt(p,αβ)⋅J(p,αβ)
+auto_inv_metric(p::Int,αβ) = inv(auto_metric(p,αβ))
+auto_detg(p::Int,αβ) = det(auto_metric(p,αβ))
+auto_sqrtg(p::Int,αβ) = sqrt(auto_detg(p,αβ))
+auto_sqrtg(p::Int) = αβ -> auto_detg(p,αβ)
+auto_grad_meas(p::Int) = αβ -> gradient(auto_sqrtg(p))(αβ)
+
+auto_grad_meas(p)(αβ)
+
+####### surface laplacin
+auto_W(f::Function,p::Int) = αβ ->  auto_sqrtg(p,αβ)*( auto_inv_metric(p,αβ) ⋅ gradient(f(p))(αβ))
+auto_surflap(f::Function,p::Int) = αβ -> 1/auto_sqrtg(p,αβ) * ( divergence(auto_W(f,p))(αβ) )
+auto_surflap(f::Function) = p -> auto_surflap(f,p)
+
+p=1
+auto_surflap(f_sin)(p)(αβ)
+surflap(f_sin)(p)(αβ)
+
+####### contra of sgrad
+auto_contr_gradf(f::Function,p::Int) = αβ -> auto_inv_metric(p,αβ) ⋅ gradient(f(p))(αβ)
+auto_contr_gradf(f::Function) = p -> auto_contr_gradf(f,p)
+auto_contr_gradf(f_sin)(p)(αβ) ≈ contr_gradf(f_sin)(p)(αβ)
+
+####### sgrad
+auto_sgrad(f::Function,p::Int) =  αβ -> J(p,αβ) ⋅ (auto_inv_metric(p,αβ) ⋅ gradient(f(p))(αβ))
+auto_sgrad(f::Function) = p -> auto_sgrad(f,p)
+
+auto_sgrad(f_sin)(p)(αβ) ≈ sgrad(f_sin)(p)(αβ)
+
+
+####### surf div
+_a_sdiv(vec::Function,p) = αβ ->  auto_sqrtg(p,αβ)*( vec(p)(αβ))
+auto_surfdiv(vec::Function,p::Int) = αβ -> 1/auto_sqrtg(p,αβ) * ( divergence(_a_sdiv(vec,p))(αβ) )
+auto_surfdiv(vec::Function) = p -> auto_surfdiv(vec,p)
+
+auto_surfdiv(contr_gradf(f_sin))(p)(αβ) ≈ surfdiv(contr_gradf(f_sin))(p)(αβ)
+
+
+########## perp operator
+function auto_perp_matrix(p::Int,αβ)
+  m = auto_metric(p,αβ)
+  TensorValue{2,2}( -m[1,2], m[1,1], -m[2,2], m[1,2] )
 end
-
-
-########### psuedo inverse
-function pinvJ(J::Gridap.TensorValues.MultiValue{Tuple{D1,D2}}) where {D1,D2}
-  Jt = transpose(J)
-  inv(Jt⋅J)⋅Jt
-end
-
-my_pinv_jacobian(p) = αβ -> pinvJ(my_forward_jacobian(p)(αβ) )
-my_pinv_jacobian(1)(αβ) ≈ forward_pinv_jacobian(1)(αβ)
-for p in collect(1:6)
-  J1 = lazy_map(x->my_pinv_jacobian(p)(x), pts)
-  J2 = lazy_map(x->forward_pinv_jacobian(p)(x), pts)
-  @test all(J1 .≈ J2)
-end
-
-
-
-############# metrics
-function metric(p::Int)
-  function _m(αβ::Point)
-    J = my_forward_jacobian(p)(αβ)
-    Jt = transpose(J)
-    Jt⋅J
-  end
-end
-
-for p in collect(1:6)
-  m1 = lazy_map(x->metric(p)(x), pts)
-  m2 = lazy_map(x->analytic_metric(x), pts)
-  @test all(m1 .≈ m2)
-end
-
-
-metric_inv(p) = αβ -> inv(metric(p)(αβ))
-for p in collect(1:6)
-  m1 = lazy_map(x->metric_inv(p)(x), pts)
-  m2 = lazy_map(x->analytic_inv_metric(x), pts)
-  @test all(m1 .≈ m2)
-end
-
-function perp_matrix(p::Int)
-  function _pm(αβ::Point)
-    m = metric(p)(αβ)
-    TensorValue{2,2}( -m[1,2], m[1,1], -m[2,2], m[1,2] )
-  end
-end
-
-for p in collect(1:6)
-  m1 = lazy_map(x->perp_matrix(p)(x), pts)
-  m2 = lazy_map(x->analytic_perp_matrix(x), pts)
-  @test all(m1 .≈ m2)
-end
-
-my_E(αβ) =  metric(1)(αβ)[1]
-my_E(αβ)
-E(αβ)
-
-my_detg(p) = αβ -> det(metric(p)(αβ))
-my_detg(p)(αβ)
-
-for p in collect(1:6)
-  m1 = lazy_map(x->my_detg(p)(x), pts)
-  m2 = lazy_map(x->detg(x), pts)
-  @test all(m1 .≈ m2)
-end
-
-my_sqrtg(p) = αβ -> sqrt(my_detg(p))(αβ)
-for p in collect(1:6)
-  m1 = lazy_map(x->my_sqrtg(p)(x), pts)
-  m2 = lazy_map(x->sqrtg(x), pts)
-  @test all(m1 .≈ m2)
-end
-
-my_grad_meas(p) = αβ -> gradient(my_sqrtg(p) )(αβ)
-for p in collect(1:6)
-  m1 = lazy_map(x->my_grad_meas(p)(x), pts)
-  m2 = lazy_map(x->grad_meas(x), pts)
-  # @test all(m1 .≈ m2)
-end
-my_grad_meas(p)(αβ)
-grad_meas(αβ)
+auto_perp_matrix(p,αβ) ≈ analytic_perp_matrix(αβ)
