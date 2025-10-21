@@ -45,16 +45,19 @@ E(αβ) = dXda(αβ)*dXda(αβ) + dYda(αβ)*dYda(αβ) + dZda(αβ)*dZda(αβ)
 F(αβ) = dXda(αβ)*dXdb(αβ) + dYda(αβ)*dYdb(αβ) + dZda(αβ)*dZdb(αβ)
 G(αβ) = dXdb(αβ)*dXdb(αβ) + dYdb(αβ)*dYdb(αβ) + dZdb(αβ)*dZdb(αβ)
 
-detg(αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
-sqrtg(αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
-_sqrtg(p::Int) = αβ -> sqrtg(αβ)
+detg(p::Int,αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
+_detg(αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
+sqrtg(p::Int,αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
+_sqrtg(αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
 
-grad_meas(αβ) = gradient(sqrtg)(αβ)
+# grad_meas(αβ) = gradient(sqrtg)(αβ)
 
-analytic_metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
+metric(p::Int,αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
+_metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
 
-analytic_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/detg(αβ),-F(αβ)/detg(αβ),-F(αβ)/detg(αβ),E(αβ)/detg(αβ))
-_analytic_inv_metric(p::Int) = αβ -> analytic_inv_metric(αβ)
+inv_metric(p::Int,αβ) =  TensorValue{2,2}(G(αβ)/detg(p,αβ),-F(αβ)/detg(p,αβ),-F(αβ)/detg(p,αβ),E(αβ)/detg(p,αβ))
+_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/_detg(αβ),-F(αβ)/_detg(αβ),-F(αβ)/_detg(αβ),E(αβ)/_detg(αβ))
+# _analytic_inv_metric(p::Int) = αβ -> analytic_inv_metric(αβ)
 
 # analytic_J1(αβ) = RADIUS*TensorValue{3,2}(dXda(αβ),dYda(αβ),dZda(αβ), dXdb(αβ),dYdb(αβ),dZdb(αβ))
 
@@ -71,22 +74,22 @@ analytic_perp_matrix(αβ) = TensorValue{2,2}( -F(αβ), E(αβ), -G(αβ), F(α
 # w(f::Function,p::Int) = αβ -> VectorValue(w1(f,p)(αβ),w2(f,p)(αβ))
 # surflap(f::Function,p::Int) = αβ -> 1/sqrtg(αβ)*(divergence(w(f,p))(αβ))
 
-### to compute surflap more compactly
-W(f,p) = αβ ->  sqrtg(αβ)*( analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ))
-surflap(f::Function,p::Int) = αβ -> 1/sqrtg(αβ) * ( divergence(W(f,p))(αβ) )
+# ### to compute surflap more compactly
+# W(f,p) = αβ ->  sqrtg(αβ)*( analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ))
+# surflap(f::Function,p::Int) = αβ -> 1/sqrtg(αβ) * ( divergence(W(f,p))(αβ) )
 
-surflap(f::Function) = p -> surflap(f,p)
-
-
-### to compute surface divergence analytically
-_sdiv(vec::Function,p) = αβ ->  sqrtg(αβ)*( vec(p)(αβ))
-surfdiv(vec::Function,p::Int) = αβ -> 1/sqrtg(αβ) * ( divergence(_sdiv(vec,p))(αβ) )
-surfdiv(vec::Function) = p -> surfdiv(vec,p)
+# surflap(f::Function) = p -> surflap(f,p)
 
 
-##### to compute contra sgrad analytically
-contr_gradf(f::Function,p::Int) = αβ -> analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ)
-contr_gradf(f::Function) = p -> contr_gradf(f,p)
+# ### to compute surface divergence analytically
+# _sdiv(vec::Function,p) = αβ ->  sqrtg(αβ)*( vec(p)(αβ))
+# surfdiv(vec::Function,p::Int) = αβ -> 1/sqrtg(αβ) * ( divergence(_sdiv(vec,p))(αβ) )
+# surfdiv(vec::Function) = p -> surfdiv(vec,p)
 
-sgrad(f::Function,p::Int) =  αβ -> forward_jacobian(αβ,p) ⋅ (analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ))
-sgrad(f::Function) = p -> sgrad(f,p)
+
+# ##### to compute contra sgrad analytically
+# contr_gradf(f::Function,p::Int) = αβ -> analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ)
+# contr_gradf(f::Function) = p -> contr_gradf(f,p)
+
+# sgrad(f::Function,p::Int) =  αβ -> forward_jacobian(αβ,p) ⋅ (analytic_inv_metric(αβ) ⋅ gradient(f(p))(αβ))
+# sgrad(f::Function) = p -> sgrad(f,p)

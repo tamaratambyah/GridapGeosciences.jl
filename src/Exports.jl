@@ -46,18 +46,18 @@ end
 @publish Helpers spherical_to_cartesian_matrix
 @publish Helpers xyz2θϕ
 
-@publish Helpers E
-@publish Helpers F
-@publish Helpers G
-@publish Helpers rho
-@publish Helpers rho3
+# @publish Helpers E
+# @publish Helpers F
+# @publish Helpers G
+# @publish Helpers rho
+# @publish Helpers rho3
 @publish Helpers sqrtg
-@publish Helpers _sqrtg
+# @publish Helpers _sqrtg
 @publish Helpers detg
 @publish Helpers grad_meas
-@publish Helpers analytic_metric
-@publish Helpers analytic_inv_metric
-@publish Helpers _analytic_inv_metric
+@publish Helpers metric
+@publish Helpers inv_metric
+# @publish Helpers _inv_metric
 
 @publish Helpers analytic_perp_matrix
 @publish Helpers surflap

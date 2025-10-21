@@ -178,7 +178,8 @@ function _pushforward_normal(trian)
 
   J_cf = GenericCellField(Gridap.Fields.MemoArray(J_face),trian,ReferenceDomain())
 
-  inv_cf = CellField(analytic_inv_metric,trian)
+  # inv_cf = CellField(analytic_inv_metric,trian)
+  inv_cf = panelwise_cellfield(inv_metric,trian)
 
   _n_mapped = J_cf ⋅ (inv_cf  ⋅ n_2_2D )
   ff = Operation(sqrt)(  n_2_2D   ⋅ (inv_cf⋅ n_2_2D )  )
@@ -195,7 +196,7 @@ returns |Jg^{-1} ̂n|
 ##
 pullback_area_form(trian::BoundaryTriangulation) = _pullback_area_form(trian)
 function _pullback_area_form(trian)
-  inv_metric_cf = panelwise_cellfield(_analytic_inv_metric,trian)
+  inv_metric_cf = panelwise_cellfield(inv_metric,trian)
   jac_cf = panelwise_cellfield(forward_jacobian,trian)
   n_Λ = get_normal_vector(trian)
 

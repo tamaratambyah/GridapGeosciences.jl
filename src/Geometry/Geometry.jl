@@ -15,7 +15,7 @@ using GridapGeosciences.Fields
 import GridapGeosciences.Fields: MatMultField, forward_jacobian
 
 using GridapGeosciences.Helpers
-import GridapGeosciences.Helpers: analytic_inv_metric, _analytic_inv_metric
+import GridapGeosciences.Helpers: inv_metric
 
 include("panel_ids.jl")
 include("cube_surface.jl")

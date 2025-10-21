@@ -86,5 +86,5 @@ include("plot_tools.jl")
 dir = datadir("gadi/TransientShallowWater_W5_octree_supg/sol_p1_nref6")
 n = 100
 plotName = "SW"
-cf = "vort"
+cf = "ph"
 plot_latlon(dir,n,plotName,cf)

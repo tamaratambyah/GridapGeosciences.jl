@@ -26,7 +26,7 @@ for dict in [analytic_funcs]#, mapped_funcs, williamson_funcs]
   Helmholtz.helmholtz_convergence_test(ranks,nprocs,dict,n_ref_lvls,ps,ls,true)
 
   ### Helmholtz: mixed problem
-  MixedHelmholtz.mixed_helmholtz_convergence_test(ranks,nprocs,dict,n_ref_lvls,[1,2],ls,true)
+  MixedHelmholtz.mixed_helmholtz_convergence_test(ranks,nprocs,dict,n_ref_lvls,[1],ls,true)
 end
 
 

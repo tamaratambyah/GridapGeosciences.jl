@@ -7,11 +7,9 @@ using Gridap.Algebra, Gridap.FESpaces
 using LinearAlgebra
 using FillArrays
 
-import ..RADIUS
 
 using GridapGeosciences.Helpers
-import GridapGeosciences.Helpers: dXda, dXdb, dYda,dYdb, dZda, dZdb
-import GridapGeosciences.Helpers: forward_map, inverse_map, inverse_jacobian
+import GridapGeosciences.Helpers: forward_map, forward_jacobian, inverse_map, inverse_jacobian
 
 include("ForwardMap.jl")
 include("InverseMap.jl")

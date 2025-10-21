@@ -18,7 +18,13 @@ include("../convergence_tools.jl")
 include("../Laplace/analytic_funcs.jl")
 
 ########### Forward jacobian
-auto_forward_jacobian(p) = αβ -> transpose( gradient(forward_map(p))(αβ) )
+auto_forward_jacobian(p::Int,αβ) = transpose( gradient(forward_map(p))(αβ) )
+auto_forward_jacobian(p::Int) = αβ -> auto_forward_jacobian(p::Int,αβ)
+
+auto_forward_jacobian(p,αβ) ≈ forward_jacobian(αβ,p)
+auto_forward_jacobian(p)(αβ) ≈ forward_jacobian(p)(αβ)
+
+# auto_forward_jacobian(p) = αβ -> transpose( gradient(forward_map(p))(αβ) )
 
 ############### ONE VARIABLES ##################################################
 # J1(αβ) =  auto_forward_jacobian(1)(αβ)
@@ -42,6 +48,7 @@ auto_forward_jacobian(p) = αβ -> transpose( gradient(forward_map(p))(αβ) )
 
 
 ############### TWO VARIABLES ##################################################
+
 J(p::Int,αβ) = auto_forward_jacobian(p)(αβ)
 Jt(p::Int,αβ) =  transpose(J(p,αβ))
 auto_metric(p::Int,αβ) = Jt(p,αβ)⋅J(p,αβ)

@@ -44,8 +44,8 @@ function plot_latlon(dir::String,n,plotName::String,cf::String)
         title = plotName*": t = $t")
     GLMakie.surface!(ax,x, y, zeros(size(gridded)),color=gridded)
     Colorbar(f[1,2],
-    # limits = (minimum(cdata), maximum(cdata)),
-    limits = (-0.6, 1.1),
+    limits = (minimum(cdata), maximum(cdata)),
+    # limits = (-0.6, 0.6),
     colormap = :viridis)
     save(_dir*"/output_$i.png", f)
   end

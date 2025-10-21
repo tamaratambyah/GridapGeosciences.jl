@@ -9,8 +9,6 @@ using Gridap.Algebra, Gridap.FESpaces
 using LinearAlgebra
 using FillArrays
 
-const global RADIUS = 1.0
-export RADIUS
 
 include("Helpers/Helpers.jl")
 

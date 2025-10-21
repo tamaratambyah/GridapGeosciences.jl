@@ -33,8 +33,8 @@ function helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSol
   U = TrialFESpace(V)
 
   f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  inv_metric_cf = CellField(analytic_inv_metric,Ω_panel)
-  meas_cf = CellField(sqrtg,Ω_panel)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
 
   rhs_cf = f_panel_cf + slap_panel_cf

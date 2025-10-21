@@ -2,7 +2,7 @@
 initial conditions from Lauritzen2012 paper
 doi:10.5194/gmd-5-887-2012
 """
-
+RADIUS = 1.0
 θϕc1 = Point(5*π/6,0)
 θϕc2 = Point(7*π/6,0)
 radius_func(θϕ,θϕc) = RADIUS*acos( sin(θϕc[2])*sin(θϕ[2]) + cos(θϕc[2])*cos(θϕ[2])*cos(θϕ[1]-θϕc[1])   )
@@ -19,7 +19,10 @@ end
 
 function cosine_bell(xyz)
   b,c = 0.1, 0.9
-  r = RADIUS/2
+
+  X,Y,Z = xyz
+  radius = sqrt(X^2 + Y^2 + Z^2)
+  r = radius/2
 
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,_r = θϕr
@@ -41,7 +44,10 @@ end
 
 function slotted_cylinders(xyz)
   b,c = 0.1, 1.0
-  r = RADIUS/2
+
+  X,Y,Z = xyz
+  radius = sqrt(X^2 + Y^2 + Z^2)
+  r = radius/2
 
   θ1,ϕ1 = θϕc1
   θ2,ϕ2 = θϕc2
@@ -51,13 +57,13 @@ function slotted_cylinders(xyz)
   r1 = radius_func(Point(θ,ϕ),θϕc1)
   r2 = radius_func(Point(θ,ϕ),θϕc2)
 
-  if (r1 <= r) && (abs(θ-θ1) >= r/(6*RADIUS) )
+  if (r1 <= r) && (abs(θ-θ1) >= r/(6*radius) )
     return c
-  elseif (r2 <= r) && (abs(θ-θ2) >= r/(6*RADIUS) )
+  elseif (r2 <= r) && (abs(θ-θ2) >= r/(6*radius) )
     return c
-  elseif (r1 <= r) && (abs(θ-θ1) < r/(6*RADIUS) ) && ( (ϕ-ϕ1) < -5/12*r/RADIUS)
+  elseif (r1 <= r) && (abs(θ-θ1) < r/(6*radius) ) && ( (ϕ-ϕ1) < -5/12*r/radius)
     return c
-  elseif (r2 <= r) && (abs(θ-θ2) < r/(6*RADIUS) ) && ( (ϕ-ϕ2) > 5/12*r/RADIUS)
+  elseif (r2 <= r) && (abs(θ-θ2) < r/(6*radius) ) && ( (ϕ-ϕ2) > 5/12*r/radius)
     return c
   else
     return b
@@ -67,7 +73,10 @@ end
 
 function cosine_bell_squared(xyz)
   b,c = 0.1, 0.9
-  r = RADIUS/2
+
+  X,Y,Z = xyz
+  radius = sqrt(X^2 + Y^2 + Z^2)
+  r = radius/2
 
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,_r = θϕr

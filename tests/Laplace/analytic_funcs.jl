@@ -1,3 +1,13 @@
+function rho(αβ)
+  α,β = αβ
+  sqrt(1 + (tan(α))^2 + (tan(β))^2 )
+end
+
+function rho3(αβ)
+  α,β = αβ
+  ( sqrt(1 + (tan(α))^2 + (tan(β))^2 ) )^3
+end
+
 """
 analytic functions defined in terms of the panel coordinates
 """
@@ -6,14 +16,17 @@ analytic functions defined in terms of the panel coordinates
 function f_sin(p)
   function _f(αβ)
     α,β = αβ
+    X,Y,Z = forward_map(p,αβ)
+    radius = sqrt(X^2 + Y^2 + Z^2)
+
     if p == 1 || p == 3
-      return RADIUS/rho(αβ)*tan(β)
+      return radius/rho(αβ)*tan(β)
     elseif p == 2
-      return RADIUS/rho(αβ)
+      return radius/rho(αβ)
     elseif p == 4 || p == 6
-      return RADIUS/rho(αβ)*tan(α)
+      return radius/rho(αβ)*tan(α)
     elseif p == 5
-      return -RADIUS/rho(αβ)
+      return -radius/rho(αβ)
     end
   end
 end
@@ -22,10 +35,13 @@ end
 function f_XYZ(p)
   function _f(αβ)
     α,β = αβ
+    X,Y,Z = forward_map(p,αβ)
+    radius = sqrt(X^2 + Y^2 + Z^2)
+
     if p == 1 || p == 5 || p == 6
-      return RADIUS^3/rho3(αβ)*tan(α)*tan(β)
+      return radius^3/rho3(αβ)*tan(α)*tan(β)
     else
-      return -RADIUS^3/rho3(αβ)*tan(α)*tan(β)
+      return -radius^3/rho3(αβ)*tan(α)*tan(β)
     end
   end
 end
