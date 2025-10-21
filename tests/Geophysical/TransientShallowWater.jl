@@ -353,8 +353,8 @@ function main(distribute,nprocs;octree=false)
     η = panel_to_cartesian(η₀(ζ))
     b = panel_to_cartesian(topography)
 
-    i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,dir,h,vX,f,η,b,lss,CFL)
+    i_am_main(ranks) && println("transient_shallow_water_convergence_func_z$i")
+    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,dir,h,vX,f,η,b,lss,CFL,true)
   end
 
   i_am_main(ranks) && println("WARNING! Error output is [p,u]")

@@ -83,8 +83,8 @@ plot_convergence_from_saved(dir,"convergence",["u","p","n"])
 
 
 include("plot_tools.jl")
-dir = datadir("TransientAdvectionSUPG/sol_p1_nref4")
+dir = datadir("gadi/TransientShallowWaterConvergence/sol_p1_nref4")
 n = 100
-plotName = "Advection"
-cf = "uh"
+plotName = "SW"
+cf = "vort"
 plot_latlon(dir,n,plotName,cf)
