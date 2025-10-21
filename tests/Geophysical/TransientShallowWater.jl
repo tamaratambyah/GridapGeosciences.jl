@@ -19,8 +19,11 @@ using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
 using GridapPETSc
 using GridapGeosciences
 using Test
+using CSV
+using DataFrames
 
 include("../convergence_tools.jl")
+include("../output_tools.jl")
 include("Williamson2Test.jl")
 # include("Williamson5Test.jl")
 
@@ -37,6 +40,8 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
   dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
+
+  (i_am_main(ranks) && return_vtk) &&  save_mesh(dir,panel_model)
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
@@ -69,11 +74,11 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
   h_h = interpolate(h_cf-b_cf,P)
 
-  # xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
-  _a((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
-  _l((v,q)) = ∫( u_contra_cf⋅v + (h_cf-b_cf)*q )dΩ
-  op = AffineFEOperator(_a,_l,X_prog(0.0),Y_prog)
-  xh0 = solve(LUSolver(),op)
+  xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
+  # _a((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
+  # _l((v,q)) = ∫( u_contra_cf⋅v + (h_cf-b_cf)*q )dΩ
+  # op = AffineFEOperator(_a,_l,X_prog(0.0),Y_prog)
+  # xh0 = solve(LUSolver(),op)
 
 
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
@@ -160,6 +165,8 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
     panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],qh,Fh,Φh,vort,b_cf]
     cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","bt"],panel_cfs)
     writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+
+    i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[xh0[2],qh,vort],["ph","qh","vort"])
   end
 
 
@@ -200,6 +207,8 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort]
       cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort"],panel_cfs)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+
+      i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[ph,qh,vort],["ph","qh","vort"])
     end
     counter = counter + 1
     it = iterate(solT, state)

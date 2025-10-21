@@ -70,8 +70,21 @@ include("convergence_tools.jl")
 # dir = datadir("gadi/HelmholtzConvergence/func_sin")
 # dir = datadir("gadi/WaveConvergence/func_z1")
 # dir = datadir("gadi/AdvectionSUPGConvergence")
-dir = datadir("gadi/AdvectionDGConvergence")
-# dir = datadir("gadi/TransientAdvectionSUPGConvergence_Octree_6")
-
+# dir = datadir("gadi/AdvectionDGConvergence")
+dir = datadir("gadi/TransientAdvectionSUPGConvergence_Octree")
+# dir = datadir("gadi/ShallowWaterConvergence/func_z1")
+# dir = datadir("gadi/TransientAdvectionDGUpwinding")
+dir = datadir("gadi/TransientShallowWaterConvergence")
 files = filter(x->endswith(x, ".jld2"), readdir((dir)))
-plot_convergence_from_saved(dir,"convergence",["u","p"])
+plot_convergence_from_saved(dir,"convergence",["u","p","n"])
+# plot_convergence_from_saved(dir,"convergence",["p","u","n"])
+
+
+
+
+include("plot_tools.jl")
+dir = datadir("TransientAdvectionSUPG/sol_p1_nref4")
+n = 100
+plotName = "Advection"
+cf = "uh"
+plot_latlon(dir,n,plotName,cf)

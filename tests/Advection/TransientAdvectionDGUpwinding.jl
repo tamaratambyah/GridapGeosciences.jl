@@ -64,12 +64,12 @@ function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
 
   # initial conditions
   # vel = interpolate(v_contr_cf,U)
-  # uh0 = interpolate(u_cf, P(0.0))
   vel = v_contr_cf
-  _a(u,v) = ∫( u*v )dΩ
-  _l(v) = ∫( u_cf*v )dΩ
-  op = AffineFEOperator(_a,_l,P(0.0),Q)
-  uh0 = solve(LUSolver(),op)
+  uh0 = interpolate(u_cf, P(0.0))
+  # _a(u,v) = ∫( u*v )dΩ
+  # _l(v) = ∫( u_cf*v )dΩ
+  # op = AffineFEOperator(_a,_l,P(0.0),Q)
+  # uh0 = solve(LUSolver(),op)
 
   meas_cf = CellField(sqrtg,Ω_panel)
 

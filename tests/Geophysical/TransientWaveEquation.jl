@@ -56,11 +56,11 @@ function transient_wave_solver(panel_model,p_fe::Int,_dir::String,
   ## initial conditions
   h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
   vec_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  # xh0 = interpolate([vec_contra_cf,h_cf],X)
-  _a((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
-  _l(v) = ∫( vec_contra_cf⋅v + h_cf*q )dΩ
-  op = AffineFEOperator(_a,_l,X,Y)
-  xh0 = solve(LUSolver(),op)
+  xh0 = interpolate([vec_contra_cf,h_cf],X)
+  # _a((u,p),(v,q)) = ∫( u⋅v + p*q )dΩ
+  # _l(v) = ∫( vec_contra_cf⋅v + h_cf*q )dΩ
+  # op = AffineFEOperator(_a,_l,X,Y)
+  # xh0 = solve(LUSolver(),op)
 
   ## transient weak form
   metric_cf = CellField(analytic_metric,Ω_panel)
