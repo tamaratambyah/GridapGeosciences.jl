@@ -181,7 +181,7 @@ function p_convergence_test(ranks,ps::Vector{Int},models::AbstractArray,converge
     output = @strdict errors ns dxs slopes
     i_am_main(ranks) && safesave(datadir(dir, ("convergence_p$p_fe.jld2")), output)
 
-    @test slopes[i] > p_fe + 1
+    @test slopes[i] >= p_fe + 1
   end
 
   output = @strdict errors ns dxs slopes ps

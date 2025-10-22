@@ -24,8 +24,8 @@ using DataFrames
 
 include("../convergence_tools.jl")
 include("../output_tools.jl")
-# include("Williamson2Test.jl")
-include("Williamson5Test.jl")
+include("Williamson2Test.jl")
+# include("Williamson5Test.jl")
 
 function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   h::Function,vX::Function,f::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
