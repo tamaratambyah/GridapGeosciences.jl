@@ -7,12 +7,12 @@ normal_vec(XYZ) = 1/sqrt(XYZ[1]*XYZ[1] + XYZ[2]*XYZ[2] + XYZ[3]*XYZ[3])*VectorVa
 
 function normal_vector_from_basis(p)
   function _func(αβ)
-    J = forward_jacobian(αβ,p)
+    J = forward_jacobian(p,αβ)
     a1 = VectorValue(J[1],J[2],J[3])
     a2 = VectorValue(J[4],J[5],J[6])
     n = cross(a1,a2)
 
-    _n = n*(1/sqrtg(αβ) )
+    _n = n*(1/sqrtg(p,αβ) )
     @check vector_length(_n) ≈ 1.0
     _n
   end
@@ -34,8 +34,8 @@ contra_v(vecX::Function) = p -> contra_v(vecX,p)
 contra_v_comp(vecX::Function,p::Int,comp::Int) = αβ -> (forward_pinv_jacobian(p)(αβ)⋅ vecX(p)(αβ))[comp]
 contra_v_comp(vecX::Function,comp::Int) = p -> contra_v_comp(vecX,p,comp)
 
-contra_v_perp(vecX::Function,p::Int) = αβ -> sqrtg(αβ)*(
-        analytic_inv_metric(αβ) ⋅ VectorValue( -contra_v_comp(vecX,p,2)(αβ), contra_v_comp(vecX,p,1)(αβ) ) )
+contra_v_perp(vecX::Function,p::Int) = αβ -> sqrtg(p,αβ)*(
+        inv_metric(p,αβ) ⋅ VectorValue( -contra_v_comp(vecX,p,2)(αβ), contra_v_comp(vecX,p,1)(αβ) ) )
 contra_v_perp(vecX::Function) = p -> contra_v_perp(vecX,p)
 
 

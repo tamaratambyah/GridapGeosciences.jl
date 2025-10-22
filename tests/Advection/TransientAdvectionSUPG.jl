@@ -59,7 +59,7 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  meas_cf = CellField(sqrtg,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
 
   # supg stabilisation parameter
   _dx = dx(nc(panel_model))

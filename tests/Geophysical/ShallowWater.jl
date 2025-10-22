@@ -64,11 +64,11 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   η_h = interpolate(η_cf,H)
 
   # mectrics required in weak forms
-  detg_cf = CellField(detg,Ω_panel)
-  metric_cf = CellField(analytic_metric,Ω_panel)
-  inv_metric_cf = CellField(analytic_inv_metric,Ω_panel)
-  meas_cf = CellField(sqrtg,Ω_panel)
-  grad_meas_cf = CellField(grad_meas,Ω_panel)
+  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
 
   #### DIAGNOSTIC VARIABLES
@@ -87,7 +87,7 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   Φh = solve(ls,op)
 
   # vorticity
-  perp_matrix_cf = CellField(analytic_perp_matrix,Ω_panel)
+  perp_matrix_cf = panelwise_cellfield(perp_matrix,Ω_panel,panel_ids)
   # biformq(q,r) = ∫( q*h_h*r*meas_cf  )dΩ
   biformq(q,r) = ∫( q*h_cf*r*meas_cf  )dΩ
   # liformq(r) = ∫( cor_cf*r*meas_cf  )dΩ + ∫( (perp_matrix_cf⋅u_contra_h)⋅∇(r)  )dΩ

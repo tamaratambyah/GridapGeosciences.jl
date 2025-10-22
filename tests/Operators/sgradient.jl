@@ -2,9 +2,9 @@
 test the computation of surface gradient
 """
 
-function sgrad(panel_model,func::Function,p_fe::Int)
+function sgrad(panel_model,p_fe::Int,dir::String,func::Function)
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  println("p_fe = $(p_fe); nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
@@ -12,7 +12,7 @@ function sgrad(panel_model,func::Function,p_fe::Int)
   f_panel_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
   contravarient_basis_cf = panelwise_cellfield(contravariant_basis,Ω_panel,panel_ids)
-  inv_metric_cf = CellField(analytic_inv_metric,Ω_panel)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
 
   ### analytic gradient -- need to define new function to trigger automatric differentiation
   gradf(p) = αβ -> gradient(func(p))(αβ)
@@ -30,33 +30,29 @@ function sgrad(panel_model,func::Function,p_fe::Int)
   grad_covarient_uh =  contravarient_basis_cf ⋅ gradient(f_uh)
   grad_contravarient_uh = covarient_basis_cf ⋅  (inv_metric_cf ⋅ gradient(f_uh))
 
-  return grad_covarient, grad_contravarient, grad_covarient_uh,grad_contravarient_uh
-
-end
-
-
-function sgrad_errors(panel_model,func::Function,p_fe::Int)
-
-  grad_covarient, grad_contravarient, grad_covarient_uh,grad_contravarient_uh = sgrad(panel_model,func,p_fe)
-
   e_con = grad_contravarient-grad_contravarient_uh
   e_cov = grad_covarient-grad_covarient_uh
 
-  dΩ = Measure(Triangulation(panel_model),4*p_fe)
+  dΩ = Measure(Ω_panel,4*p_fe)
   e1 = l2(e_con,dΩ)
   e2 = l2(e_cov,dΩ)
 
   return e1,e2,false
+
 end
 
-function sgrad_convergence_test(analytic_funcs,n_ref_lvls)
+
+function sgrad_convergence_test(ranks::AbstractArray,nprocs::Int,analytic_funcs,n_ref_lvls=4,ps=[1,2,3])
+  # serial models
+  models  = get_refined_models(n_ref_lvls)
+  dir = datadir("SgradConvergence")
+  !isdir(dir) && mkdir(dir)
 
   for (key, val) in analytic_funcs
-    plot()
-    for p_fe in [1,2,3]
-      errs,ns,dxs,slope = convergence_test(sgrad_errors,n_ref_lvls,val,p_fe)
-      plot_convergence(errs,ns,dxs,slope;leginf=["p=$(p_fe)_con","p=$(p_fe)_cov"],colors=palette(:tab10))
-    end
-    savefig(plotsdir()*"/sgrad_convergence_func_$(key)")
+    _dir = dir*"/func_$(key)"
+    !isdir(_dir) && mkdir(_dir)
+    p_convergence_test(ranks,ps,models,sgrad,_dir,val)
+    plot_convergence_from_saved(_dir,"convergence",["con","cov"])
   end
+
 end

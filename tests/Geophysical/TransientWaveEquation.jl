@@ -63,9 +63,9 @@ function transient_wave_solver(panel_model,p_fe::Int,_dir::String,
   # xh0 = solve(LUSolver(),op)
 
   ## transient weak form
-  metric_cf = CellField(analytic_metric,Ω_panel)
-  meas_cf = CellField(sqrtg,Ω_panel)
-  grad_meas_cf = CellField(grad_meas,Ω_panel)
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
   mass(t, (dtu,dtp), (v,q)) = ∫( (v⋅ (metric_cf⋅ dtu) )*meas_cf )dΩ + ∫( (q*dtp)*meas_cf )dΩ
   res(t,(u,p),(v,q)) =  ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ

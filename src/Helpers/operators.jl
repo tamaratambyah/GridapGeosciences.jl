@@ -1,7 +1,9 @@
 metric(p::Int) = αβ -> metric(p,αβ)
 inv_metric(p::Int) = αβ ->  inv_metric(p,αβ)
+detg(p::Int)  = αβ -> detg(p,αβ)
 sqrtg(p::Int) = αβ -> sqrtg(p,αβ)
 grad_meas(p::Int) = αβ -> gradient(sqrtg(p))(αβ)
+perp_matrix(p) = αβ -> perp_matrix(p,αβ)
 
 ####### surface laplacin
 W(f::Function,p::Int) = αβ ->  sqrtg(p,αβ)*( inv_metric(p,αβ) ⋅ gradient(f(p))(αβ))

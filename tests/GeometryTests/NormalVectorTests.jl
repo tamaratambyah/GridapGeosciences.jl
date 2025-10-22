@@ -114,8 +114,8 @@ end
 Λ = SkeletonTriangulation(panel_model)
 pts = get_cell_points(Λ)
 n_Λ = get_normal_vector(Λ)
-meas_cf = panelwise_cellfield(_sqrtg,Λ)
-inv_metric_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
+meas_cf = panelwise_cellfield(sqrtg,Λ)
+inv_metric_cf = panelwise_cellfield(inv_metric,Λ)
 jac_cf = panelwise_cellfield(forward_jacobian,Λ)
 area_form_cf = pullback_area_form(Λ)
 

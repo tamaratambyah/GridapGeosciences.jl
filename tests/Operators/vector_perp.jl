@@ -1,9 +1,11 @@
 ################################################################################
 #### Perp convergence
 ################################################################################
-function vector_perp(panel_model,vX::Function,p_fe::Int,return_vtk=false)
+
+
+function vector_perp(panel_model,p_fe::Int,dir::String,vX::Function,return_vtk=false)
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  println("p_fe = $(p_fe); nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
@@ -13,7 +15,7 @@ function vector_perp(panel_model,vX::Function,p_fe::Int,return_vtk=false)
   u_proj_cf = panelwise_cellfield(projection_v(vX),Ω_panel,panel_ids)
   u_perp = cross(norm_vec_from_basis_cf,u_proj_cf)
 
-  meas_cf = CellField(sqrtg,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   jacobian_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
   u_perp_contra = panelwise_cellfield(contra_v_perp(vX),Ω_panel,panel_ids)
 
@@ -27,7 +29,7 @@ function vector_perp(panel_model,vX::Function,p_fe::Int,return_vtk=false)
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
 
     panel_cfs = [u_perph, u_perp,u_proj_cf,u_perph-u_perp ]
     labels = ["u_perph","u_perp","u_proj", "e"]
@@ -36,26 +38,23 @@ function vector_perp(panel_model,vX::Function,p_fe::Int,return_vtk=false)
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  return e
-
-end
-
-
-
-function vector_perp_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
-  e  = vector_perp(panel_model,func,p_fe,return_vtk)
   return e,false,false
+
 end
 
-function vector_perp_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)
+
+function vector_perp_convergence_test(ranks::AbstractArray,nprocs::Int,analytic_funcs,
+  n_ref_lvls=4,ps=[1,2,3],return_vtk=false)
+  # serial models
+  models  = get_refined_models(n_ref_lvls)
+  dir = datadir("VectorPerpConvergence")
+  !isdir(dir) && mkdir(dir)
 
   for (key, val) in analytic_funcs
-    plot()
-    for p_fe in [1,2,3]
-      errs,ns,dxs,slope = convergence_test(vector_perp_errors,n_ref_lvls,val,p_fe,return_vtk)
-      plot_convergence(errs,ns,dxs,slope;leginf=["p=$p_fe"],colors=[palette(:tab10)[p_fe]])
-    end
-    savefig(plotsdir()*"/vector_perp_convergence_func_$(key)")
+    _dir = dir*"/func_$(key)"
+    !isdir(_dir) && mkdir(_dir)
+    p_convergence_test(ranks,ps,models,vector_perp,_dir,val,return_vtk)
+    plot_convergence_from_saved(_dir,"convergence",["p"])
   end
 
 end

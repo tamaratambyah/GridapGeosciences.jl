@@ -70,10 +70,10 @@ function linear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
 
 
   # weak forms
-  detg_cf = CellField(detg,Ω_panel)
-  metric_cf = CellField(analytic_metric,Ω_panel)
-  meas_cf = CellField(sqrtg,Ω_panel)
-  grad_meas_cf = CellField(grad_meas,Ω_panel)
+  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
   function vecPerp(u)
     # u   = (u1, u2)

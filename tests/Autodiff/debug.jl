@@ -94,4 +94,24 @@ function auto_perp_matrix(p::Int,αβ)
   m = auto_metric(p,αβ)
   TensorValue{2,2}( -m[1,2], m[1,1], -m[2,2], m[1,2] )
 end
-auto_perp_matrix(p,αβ) ≈ analytic_perp_matrix(αβ)
+auto_perp_matrix(p,αβ) ≈ perp_matrix(αβ)
+
+
+
+import Gridap.TensorValues: MultiValue
+function pinvJ(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
+  Jt = transpose(J)
+  inv(Jt⋅J)⋅Jt
+end
+auto_forward_pinv_jacobian(p) = αβ -> pinvJ(forward_jacobian(p)(αβ))
+auto_forward_pinv_jacobian(p)(αβ)  ≈ forward_pinv_jacobian(p)(αβ)
+
+include("../Advection/advection_funcs.jl")
+
+vX = panel_to_cartesian(tangent_vec(vecX))
+
+auto_contra_v(vecX::Function,p::Int) = αβ -> auto_forward_pinv_jacobian(p)(αβ)⋅ vecX(p)(αβ)
+auto_contra_v(vecX::Function) = p -> auto_contra_v(vecX,p)
+
+
+contra_v(vX)(p)(αβ) ≈ auto_contra_v(vX)(p)(αβ)

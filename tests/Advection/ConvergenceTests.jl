@@ -15,7 +15,7 @@ uvX = panel_to_cartesian(u0vecX)
 
 n_ref_lvls = 4
 CFL = 0.1
-ps = [1,2,3]
+ps = [1] #[1,2,3]
 
 ################################################################################
 #### Serial convergence test

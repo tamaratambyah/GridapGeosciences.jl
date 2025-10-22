@@ -1,5 +1,5 @@
 include("../Laplace/analytic_funcs.jl")
-include("../Geophysical/Williamson_functions_v2.jl")
+include("../Geophysical/Williamson2Test.jl")
 
 ### ambient vectors
 vecX_1(XYZ) = VectorValue(-1.0*XYZ[2],XYZ[1],0.0)

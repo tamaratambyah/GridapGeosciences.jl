@@ -29,6 +29,10 @@ function _my_mean(j::SkeletonPair,vel::CellField,u::CellField)
   0.5*( (j.plus⋅vel.plus)*u.plus + (j.minus⋅vel.minus)*u.minus )
 end
 
+function _my_other_mean(j::SkeletonPair,vel::CellField,u::CellField,meas)
+  0.5*( (j.plus⋅vel.plus)*u.plus*meas.plus + (j.minus⋅vel.minus)*u.minus*meas.minus )
+end
+
 function my_jump(j::SkeletonPair,ginv::SkeletonPair,n::SkeletonPair,u::CellField)
   u.plus*(j.plus⋅(ginv.plus⋅n.plus) ) + u.minus*(j.minus⋅(ginv.minus⋅n.minus) )
 end
@@ -79,26 +83,27 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   # vel = interpolate(v_contr_cf,U)
   vel = v_contr_cf
 
-  meas_cf = CellField(sqrtg,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
   ### volume stabilisation term
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
 
   # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
-  # ginv_cf = panelwise_cellfield(_analytic_inv_metric,Λ)
-  # a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf   )dΛ
-
+  # ginv_cf = panelwise_cellfield(inv_metric,Λ)
+  # a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf_skel.plus   )dΛ
+  # a_s1(u,v) = ∫( _my_other_mean(jac_cf,vel,u,meas_cf_skel)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)   )dΛ
 
   ### upwinding stabilisation term
-  upwind = abs((vel⋅ n_Λ).plus)
-  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
+  upwind = abs( (vel⋅ n_Λ).plus)
+  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus   )dΛ
 
   # cell_geo_map = geo_map_func(panel_ids)
-  # n = get_facet_normal(Λ,cell_geo_map)
-  ##    # n = pushforward_normal(Λ)
-  # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u*n)⋅jump(v*n)*meas_cf   )dΛ
+  # n = pushforward_normal(Λ,cell_geo_map)
+  # n = pushforward_normal(Λ)
+  # a_s2(u,v) = ∫(  (0.5*(upwind)*jump(u*n)⋅jump(v*n))*meas_cf_skel.plus   )dΛ
 
 
   biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)

@@ -6,9 +6,9 @@ for arbitray vector field u₀
 """
 
 
-function mass_conservation(panel_model,func::Function,p_fe::Int,scalar_field::Bool,return_vtk=false)
+function mass_conservation(panel_model,p_fe::Int,dir::String,func::Function,scalar_field::Bool,return_vtk=false)
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  println("p_fe = $(p_fe); nref = $lvl")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -20,9 +20,9 @@ function mass_conservation(panel_model,func::Function,p_fe::Int,scalar_field::Bo
     panelwise_cellfield(contra_v(func),Ω_panel,panel_ids)
   end
 
-  metric_cf = CellField(analytic_metric,Ω_panel)
-  meas_cf = CellField(sqrtg,Ω_panel)
-  grad_meas_cf = CellField(grad_meas,Ω_panel)
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
@@ -50,7 +50,7 @@ function mass_conservation(panel_model,func::Function,p_fe::Int,scalar_field::Bo
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
 
     u_proj = covarient_basis_cf ⋅ vec_contra_cf
     u_projh = covarient_basis_cf ⋅ uh
@@ -62,32 +62,26 @@ function mass_conservation(panel_model,func::Function,p_fe::Int,scalar_field::Bo
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  return s_div, s_div0, panel_div
-
-end
-
-
-function mass_conservation_errors(panel_model,func::Function,p_fe::Int,scalar_field::Bool,return_vtk=false)
-  s_div, s_div0, = mass_conservation(panel_model,func,p_fe,scalar_field,return_vtk )
   println("initial divergence: $s_div0")
-  return abs(s_div),false,false
+
+  return abs(s_div), false,false
+
 end
 
-function mass_conservation_convergence_test(analytic_funcs,n_ref_lvls,scalar_field::Bool,return_vtk=false)
+
+
+function mass_conservation_convergence_test(ranks::AbstractArray,nprocs::Int,analytic_funcs,scalar_field::Bool,
+  n_ref_lvls=4,ps=[1],return_vtk=false)
+  # serial models
+  models  = get_refined_models(n_ref_lvls)
+  dir = datadir("MassConservationConvergence")
+  !isdir(dir) && mkdir(dir)
 
   for (key, val) in analytic_funcs
-    plot()
-    for p_fe in [1,2]
-      errs,ns,dxs,slope = convergence_test(mass_conservation_errors,n_ref_lvls,val,p_fe,scalar_field,return_vtk)
-      plot_error(ns,errs;
-          leginf=["dM: p=$p_fe"],
-          colors=[palette(:tab10)[p_fe]],
-          ls=[:solid, :dot], )
-      plot!(yscale=:log10,framestyle=:box,
-          xscale=:log10,xlabel="n cells",ylabel="dM"
-          )
-    end
-    savefig(plotsdir()*"/darcy_mass_conservation_convergence_func_$(key)")
+    _dir = dir*"/func_$(key)"
+    !isdir(_dir) && mkdir(_dir)
+    p_convergence_test(ranks,ps,models,mass_conservation,_dir,val,scalar_field,return_vtk)
+    plot_convergence_from_saved(_dir,"convergence",["p"])
   end
 
 end

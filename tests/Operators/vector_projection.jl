@@ -2,9 +2,10 @@
 test the projection of ambient vector fields on the tangent space
 """
 
-function vector_proj(panel_model,vecX::Function,p_fe::Int,return_vtk=false)
+
+function vector_proj(panel_model,p_fe::Int,dir::String,vecX::Function,return_vtk=false)
   lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  println("p_fe = $(p_fe); nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,4*p_fe)
@@ -24,7 +25,7 @@ function vector_proj(panel_model,vecX::Function,p_fe::Int,return_vtk=false)
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
 
     panel_cfs = [vec_phys, vec_project, project_h, project_h - vec_project ]
     labels = ["u","u_proj", "u_projh", "e"]
@@ -33,26 +34,23 @@ function vector_proj(panel_model,vecX::Function,p_fe::Int,return_vtk=false)
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-  return e, project_h, vec_project
+  return e, false,false
 
 end
 
 
-
-function vector_proj_errors(panel_model,func::Function,p_fe::Int,return_vtk=false)
-  e,  = vector_proj(panel_model,func,p_fe,return_vtk)
-  return e,false,false
-end
-
-function vector_proj_convergence_test(analytic_funcs,n_ref_lvls,return_vtk=false)
+function vector_proj_convergence_test(ranks::AbstractArray,nprocs::Int,analytic_funcs,
+    n_ref_lvls=4,ps=[1,2,3],return_vtk=false)
+  # serial models
+  models  = get_refined_models(n_ref_lvls)
+  dir = datadir("VectorProjectionConvergence")
+  !isdir(dir) && mkdir(dir)
 
   for (key, val) in analytic_funcs
-    plot()
-    for p_fe in [1,2,3]
-      errs,ns,dxs,slope = convergence_test(vector_proj_errors,n_ref_lvls,val,p_fe,return_vtk)
-      plot_convergence(errs,ns,dxs,slope;leginf=["p=$p_fe"],colors=[palette(:tab10)[p_fe]])
-    end
-    savefig(plotsdir()*"/vector_proj_convergence_func_$(key)")
+    _dir = dir*"/func_$(key)"
+    !isdir(_dir) && mkdir(_dir)
+    p_convergence_test(ranks,ps,models,vector_proj,_dir,val,return_vtk)
+    plot_convergence_from_saved(_dir,"convergence",["p"])
   end
 
 end

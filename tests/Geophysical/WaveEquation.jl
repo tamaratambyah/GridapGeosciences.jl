@@ -53,9 +53,9 @@ function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,
   rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
 
 
-  metric_cf = CellField(analytic_metric,Ω_panel)
-  meas_cf = CellField(sqrtg,Ω_panel)
-  grad_meas_cf = CellField(grad_meas,Ω_panel)
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
   biform1((u,p),(v,q)) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
   biform2((u,p),(v,q)) = ∫( (p*q)*meas_cf )dΩ + ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ

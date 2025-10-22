@@ -71,16 +71,17 @@ function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
   # op = AffineFEOperator(_a,_l,P(0.0),Q)
   # uh0 = solve(LUSolver(),op)
 
-  meas_cf = CellField(sqrtg,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
 
   ## weak form
   a_mass(t,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
 
   a_Ω(u,v) =   ∫( -(u*(∇(v)⋅vel) )*meas_cf )dΩ
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
 
   upwind = abs((vel⋅ n_Λ).plus)/2
-  a_s2(u,v) = ∫(  upwind*jump(u)*jump(v)*meas_cf   )dΛ
+  a_s2(u,v) = ∫(  upwind*jump(u)*jump(v)*meas_cf_skel.plus   )dΛ
 
   res(t,u,v) =  a_Ω(u,v) + a_s1(u,v) + a_s2(u,v)
   jac(t,u,du,v) = a_Ω(du,v) + a_s1(du,v) + a_s2(du,v)

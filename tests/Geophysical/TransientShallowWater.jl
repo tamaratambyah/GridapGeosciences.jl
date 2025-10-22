@@ -86,14 +86,14 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
 
   # mectrics required in weak forms
-  metric_cf = CellField(analytic_metric,Ω_panel)
-  meas_cf = CellField(sqrtg,Ω_panel)
-  grad_meas_cf = CellField(grad_meas,Ω_panel)
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
 
   #### DIAGNOSTIC VARIABLES
   # vorticity
-  perp_matrix_cf = CellField(analytic_perp_matrix,Ω_panel)
+  perp_matrix_cf = panelwise_cellfield(perp_matrix,Ω_panel,panel_ids)
   resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (perp_matrix_cf⋅u)⋅∇(w)  )dΩ
 
   # mass flux
