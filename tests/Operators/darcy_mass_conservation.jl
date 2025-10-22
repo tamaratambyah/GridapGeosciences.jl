@@ -80,7 +80,19 @@ function mass_conservation_convergence_test(ranks::AbstractArray,nprocs::Int,ana
   for (key, val) in analytic_funcs
     _dir = dir*"/func_$(key)"
     !isdir(_dir) && mkdir(_dir)
-    p_convergence_test(ranks,ps,models,mass_conservation,_dir,val,scalar_field,return_vtk)
+
+    errors = Vector{Vector{Float64}}(undef,length(ps))
+    ns = Vector{Vector{Float64}}(undef,length(ps))
+    dxs = Vector{Vector{Float64}}(undef,length(ps))
+    slopes = Vector{Float64}(undef,length(ps))
+    for (i,p_fe) in enumerate(ps)
+      errors[i],ns[i],dxs[i],slopes[i] = h_convergence_test(models,mass_conservation,p_fe,_dir,val,scalar_field,return_vtk)
+    end
+
+    @test all(all.(map(x->x.< 1e-12,errors)))
+
+    output = @strdict errors ns dxs slopes ps
+    safesave(datadir(_dir, ("convergence.jld2")), output)
     plot_convergence_from_saved(_dir,"convergence",["p"])
   end
 

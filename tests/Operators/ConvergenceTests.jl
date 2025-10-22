@@ -30,6 +30,8 @@ for dict in [analytic_funcs] #williamson_funcs ]
   ### compute sgrad
   sgrad_convergence_test(ranks,nprocs,dict,n_ref_lvls,ps)
 
+  ### mass conversation with scalar fields
+  mass_conservation_convergence_test(ranks,nprocs,dict,true,n_ref_lvls,[1])
 
 end
 
@@ -40,13 +42,7 @@ for dict in [ambient_vecs] #williamson_vec ]
 
   ## perp operator
   vector_perp_convergence_test(ranks,nprocs,dict,n_ref_lvls,ps)
+
+  ## mass conversation with vector fields
+  mass_conservation_convergence_test(ranks,nprocs,dict,false,n_ref_lvls,[1])
 end
-
-
-### mass conversation with scalar fields
-mass_conservation_convergence_test(ranks,nprocs,analytic_funcs,true,n_ref_lvls,[1])
-mass_conservation_convergence_test(ranks,nprocs,williamson_funcs,true,n_ref_lvls,[1])
-
-### mass conversation with vector fields
-mass_conservation_convergence_test(ranks,nprocs,ambient_vecs,false,n_ref_lvls,[1])
-mass_conservation_convergence_test(ranks,nprocs,williamson_vec,false,n_ref_lvls,[1])
