@@ -13,7 +13,8 @@ function forward_map_3D(p::Int,γαβ)
   @check length(γαβ) == 3 "\n Not 3D point"
 
   #### recall the first coordinate in P6est is the extrusion!
-  γ,α,β = γαβ
+  # γ,α,β = γαβ
+  α,β,γ = γαβ
 
   #### compute XYZ point on surface of inner sphere using 2D forward_map
   αβ = Point(α,β)
@@ -23,7 +24,9 @@ function forward_map_3D(p::Int,γαβ)
   radius_surf = RADIUS
 
   #### extrude surface point in radial direction
-  XYZ_surf #+ (RADIUS_OUTER-radius_surf)*γ*normal_vec(XYZ_surf)
+  # XYZ_surf + (RADIUS_OUTER-radius_surf)*γ*normal_vec(XYZ_surf)
+  return XYZ_surf + abs(γ)* normal_vec(XYZ_surf)
+
 
 end
 
