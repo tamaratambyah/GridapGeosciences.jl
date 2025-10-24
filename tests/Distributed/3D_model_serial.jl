@@ -9,6 +9,19 @@ using DrWatson
 dir = datadir("Extruded_model")
 !isdir(dir) && mkdir(dir)
 
+extrusion(x) = x +  sqrt(3)*normal_vec(x)
+_intrusion(x) = x - sqrt(3)*normal_vec(x)
+
+a = π/4
+x = a*Point(1.0,-1.0,-1.0)
+ex = extrusion(x)
+_intrusion(ex)
+axis = Point(0.0,-1.0,0.0)
+proj = (ex⋅axis)
+γ = proj - a
+
+
+
 function generate_ptr(n)
   nvertices = 8
   ptr  = Vector{Int}(undef,n+1)
@@ -20,12 +33,13 @@ function generate_ptr(n)
 end
 
 npanels = 6
-data = [ 1,2,3,4,5,6,7,8,
-         3,4,9,10,7,8,11,12,
-         2,13,4,10,6,14,8,12,
-         15,9,13,10,16,11,14,12,
-         1,15,2,13,5,16,6,14,
-         1,3,15,9,5,7,16,11  ]
+
+data = [ 1,2,3,4,  9,10,11,12,
+         3,4,5,6,  11,12,13,14,
+         2,7,4,6,  10,15,12,14,
+         8,5,7,6,  16,13,15,14,
+         1,8,2,7,  9,16,10,15,
+         1,3,8,5,  9,11,16,13  ]
 ptr = generate_ptr(npanels)
 cell_node_ids = Table(data,ptr)
 
@@ -37,27 +51,11 @@ cell_reffes=[reffes]
 a = π/4 ### for testing, use a = 1.0
 cube_surface_nodes = _CCAM_cube_nodes_3d(a)
 
-extrusion(x) = x + normal_vec(x)
+extrusion(γ::Float64,x) = x + γ*sqrt(3)*normal_vec(x)
+_intrusion(γ::Float64,x) = x - γ*sqrt(3)*normal_vec(x)
 
-extrusion_nodes_3D = [
-  cube_surface_nodes[1]             #node 1
-  cube_surface_nodes[2]             #node 2
-  cube_surface_nodes[3]             #node 3
-  cube_surface_nodes[4]             #node 4
-  extrusion(cube_surface_nodes[1])  #node 5
-  extrusion(cube_surface_nodes[2])  #node 6
-  extrusion(cube_surface_nodes[3])  #node 7
-  extrusion(cube_surface_nodes[4])  #node 8
-  cube_surface_nodes[5]             #node 9
-  cube_surface_nodes[6]             #node 10
-  extrusion(cube_surface_nodes[5])  #node 11
-  extrusion(cube_surface_nodes[6])  #node 12
-  cube_surface_nodes[7]             #node 13
-  extrusion(cube_surface_nodes[7])  #node 14
-  cube_surface_nodes[8]             #node 15
-  extrusion(cube_surface_nodes[8])  #node 16
- ]
-
+extrusion_nodes_3D =  [extrusion.(0.0,cube_surface_nodes)
+                      extrusion.(1.0,cube_surface_nodes)]
 
 topo = UnstructuredGridTopology(extrusion_nodes_3D,cell_node_ids,cell_type,polytopes,Gridap.Geometry.NonOriented())
 labels = FaceLabeling(topo)
@@ -68,7 +66,7 @@ extruded_cube_model_ref = Adaptivity.refine(extruded_cube_model)
 writevtk(Triangulation(extruded_cube_model),dir*"/extruded_cube",append=false)
 writevtk(Triangulation(extruded_cube_model_ref),dir*"/extruded_cube_ref",append=false)
 
-panel_alignment_axis = a .* [ ## b_panel2cube
+panel_normal = [
   Point(1.0, 0.0, 0.0) #+X
   Point(0.0, 0.0, 1.0) #+Z
   Point(0.0, 1.0, 0.0) #+Y
@@ -76,99 +74,73 @@ panel_alignment_axis = a .* [ ## b_panel2cube
   Point(0.0, 0.0, -1.0) #-Z
   Point(0.0, -1.0, 0.0) #-Y
 ]
-panel_extrusion_component = [1,3,2,1,3,2] # component of 3D point that relates to extrusion variable
-## projection a onto b, where b is an axis
-projection(a::VectorValue{3},b::VectorValue{3}) = (a⋅b)*b
 
-x = extrusion_nodes_3D[1]
-ex = extrusion(x)
-p = 1
-posneg = sign(panel_alignment_axis[p][panel_extrusion_component[p]])
-projection(x,panel_alignment_axis[p])
 
-x - normal_vec(x)
-ex - normal_vec(x)
-
-projection(ex,panel_alignment_axis[p])
-
-function extrusion_variable(p::Int,x::VectorValue{3})
-   proj = projection(x,panel_alignment_axis[p])
-  #  posneg = sign(panel_alignment_axis[p][panel_extrusion_component[p]])
-  #  rescale = posneg*( proj - panel_alignment_axis[p] ) # rescale to start at 0.0
-    rescale = proj
-    ex = rescale[panel_extrusion_component[p]] # get component relative to panel
-    if abs(x[panel_extrusion_component[p]]) == a
-      return 0.0
-    else
-      return ex
-    end
+function extrusion_variable(p::Int,x::VectorValue{3};a=π/4)
+  n = panel_normal[p]
+  proj = (x⋅n)
+  γ = proj - a
+  return γ
 end
 
-extrusion_variable(p,x)
-extrusion_variable(p,ex)
-
+x = extrusion_nodes_3D[1:4]
+γ =  extrusion_variable.(1,x)
+_intrusion.(γ,x)
 
 function map_points_to_surface(p::Int,x::VectorValue{3})
   γ = extrusion_variable(p,x)
-  posneg = sign(panel_alignment_axis[p][panel_extrusion_component[p]])
-  if γ == 0.0
-    surf_point = x
-  else
-    surf_point = x - normal_vec(x)
-  end
-  array = [i for i in surf_point.data]
-  array[panel_extrusion_component[p]] = γ
-  VectorValue(array)
+  _intrusion(γ,x)
 end
 
-p = 4
-x = a*Point(-1,1,1)
 
-γ = extrusion_variable(p,x)
-posneg = sign(panel_alignment_axis[p][panel_extrusion_component[p]])
-if γ == 0.0
-  surf_point = x
-else
-  surf_point = x - normal_vec(x)
-end
-array = [i for i in surf_point.data]
-array[panel_extrusion_component[p]] = γ
-VectorValue(array)
+As = map(p->extruded_cube_to_αβγ(p),collect(1:6))
+b = VectorValue(0.0,0.0,1.0)
+p = 1
+f = Map2ExtrudedPanel(p,As[p],b)
+
+x = extrusion_nodes_3D[9]
+f(x)
 
 
-# Ax + b: multiplication by an invertible matrix and translation of a vector
-struct Map2Surface{A}  <: Field
+struct Map2ExtrudedPanel{A,B,C}  <: Field
   p::A
+  Apanel::B
+  b::C # z vector (0,0,1)
 end
 
 
-function Gridap.Arrays.return_cache(f::Map2Surface,cellx::AbstractArray{<:VectorValue{3}})
+function Gridap.Arrays.return_cache(f::Map2ExtrudedPanel,cellx::AbstractArray{<:VectorValue{3}})
   x = first(cellx)
   T = typeof(x)
   y = similar(cellx,T)
-  return y
+  γ = similar(cellx,Float64)
+  return y,γ
 end
 
 
-function Gridap.Arrays.evaluate!(cache,f::Map2Surface,cellx::AbstractArray{<:VectorValue{3}} )
+function Gridap.Arrays.evaluate!(cache,f::Map2ExtrudedPanel,cellx::AbstractArray{<:VectorValue{3}} )
   p = f.p
-  y = cache
+  y,γ = cache
   map!(x -> map_points_to_surface(p,x), y, cellx)
   return y
 end
 
 
-function Gridap.Arrays.return_cache(f::Map2Surface,x::VectorValue{3})
+function Gridap.Arrays.return_cache(f::Map2ExtrudedPanel,x::VectorValue{3})
   T = typeof(x)
   y = zero(T)
-  return y
+  γ = 0.0
+  return y,γ
 end
 
-function Gridap.Arrays.evaluate!(cache,f::Map2Surface,x::VectorValue{3})
+function Gridap.Arrays.evaluate!(cache,f::Map2ExtrudedPanel,x::VectorValue{3})
   p = f.p
-  y = cache
-  y = map_points_to_surface(p,x)
-  return y
+  Apanel = f.Apanel
+  b = f.b
+  y,γ = cache
+  γ = extrusion_variable(p,x)
+  y = _intrusion(γ,x) # surface points
+  return Apanel ⋅ y + γ*b
 end
 
 
@@ -176,27 +148,27 @@ function extruded_cube_to_αβγ(p::Int)
   if p == 1
     A = [0 1 0
         0 0 1
-        1 0 0] # γ is X component
+        0 0 0] # γ is X component
   elseif p == 2
     A = [0 1 0
         -1 0 0
-        0 0 1] # γ is Z component
+        0 0 0] # γ is Z component
   elseif p == 3
     A = [-1 0 0
           0 0 1
-          0 1 0]  # γ is Y component
+          0 0 0]  # γ is Y component
   elseif p == 4
     A = [0 0 1
          0 1 0
-         1 0 0] # γ is X component
+         0 0 0] # γ is X component
   elseif p == 5
     A = [-1 0 0
           0 1 0
-         0 0 1]  # γ is Z component
+         0 0 0]  # γ is Z component
   elseif p == 6
     A = [0 0 1
         -1 0 0
-         0 1 0]  # γ is Y component
+         0 0 0]  # γ is Y component
   end
 
   return TensorValue(A)
