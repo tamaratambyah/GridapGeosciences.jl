@@ -34,21 +34,16 @@ end
 # (see coarse_cube_surface_3D function)               
 function ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
 	coarse_model = _create_parametric_octree_dmodel_coarse_model()
-	octree_dmodel, cell_wise_vertex_2D_coordinates, cell_panels =
-	        _generate_octree_dmodel_2D_coordinates_and_panels(ranks, 
-			                                                  coarse_model, 
-															  num_initial_uniform_refinements, 
-															  setup_coarse_cell_vertices_2D_coordinates(), 
-															  collect(1:NPANELS))
-
-	
-	# Transform 2D coordinates to 3D coordinates on the cube surface
-	cell_wise_vertex_3D_coordinates = 
-	   _transform_cell_wise_coordinates_2D_to_3D(cell_wise_vertex_2D_coordinates, cell_panels)
+	octree_dmodel, cell_wise_vertex_alpha_beta_coordinates, cell_panels =
+	        _generate_octree_dmodel_alpha_beta_coordinates_and_panels(ranks, 
+			                                                     coarse_model, 
+															     num_initial_uniform_refinements, 
+															     setup_coarse_cell_vertices_alpha_beta_coordinates(), 
+															     collect(1:NPANELS))
 
 	# Build the proc-local ParametricDiscreteModels
 	parametric_models = _setup_parametric_models(octree_dmodel, 
-	                                             cell_wise_vertex_3D_coordinates,
+	                                             cell_wise_vertex_alpha_beta_coordinates,
 												 cell_panels)
 
 	# Build the GenericDistributedDiscreteModel
@@ -56,31 +51,15 @@ function ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_ref
 	ParametricOctreeDistributedDiscreteModel(octree_dmodel, generic_dmodel)
 end 
 
-function _transform_cell_wise_coordinates_2D_to_3D(cell_wise_vertex_2D_coordinates, cell_panels)
-    # Transform 2D coordinates to 3D coordinates on the cube surface
-	map_2D_to_3D_panels = setup_2D_to_3D_coarse_cell_map()
-    map_2D_to_3D_cells  = map(cell_panels) do cell_panels
-	   lazy_map(Reindex(map_2D_to_3D_panels), cell_panels)
-	end
-    cell_wise_vertex_3D_coordinates = 
-	  map(cell_wise_vertex_2D_coordinates, map_2D_to_3D_cells) do cell_wise_vertex_2D_coordinates,
-			                                                      map_2D_to_3D_cells
-	   lazy_map(evaluate, map_2D_to_3D_cells, cell_wise_vertex_2D_coordinates)
-	end
-	cell_wise_vertex_3D_coordinates
-end
-
-
 function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{2,2}, 
-	                             cell_wise_vertex_3D_coordinates,
+	                             cell_wise_vertex_alpha_beta_coordinates,
 								 cell_panels)
 
 	map(local_views(octree_dmodel.dmodel), 
-	                        cell_wise_vertex_3D_coordinates,
-							cell_panels) do omodel, cell_wise_vertex_3D_coordinates, cell_panels
+	                        cell_wise_vertex_alpha_beta_coordinates,
+							cell_panels) do omodel, cell_wise_vertex_alpha_beta_coordinates, cell_panels
 
-        cube_cmaps = setup_2D_to_3D_cell_map(cell_wise_vertex_3D_coordinates)
-		panel_cmaps = setup_panel_cmaps(cube_cmaps, cell_panels)
+        alpha_beta_cmap = setup_alpha_beta_cell_map(cell_wise_vertex_alpha_beta_coordinates)
 
         ogrid = get_grid(omodel)
 		otopo = get_grid_topology(omodel)
@@ -90,7 +69,7 @@ function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{
 											   get_cell_type(ogrid),
 											   OrientationStyle(ogrid),
                                                nothing,
-											   panel_cmaps)
+											   alpha_beta_cmap)
         panel_topo = UnstructuredGridTopology(get_node_coordinates(ogrid),
 		                                      get_cell_node_ids(ogrid),
 											  get_cell_type(ogrid),
@@ -133,35 +112,22 @@ end
 
 
 
-  # This info goes to P4est ...
-  function setup_coarse_cell_vertices_2D_coordinates()
-	# We use the reference coordinate system of the QUAD
-	# to build the 2D->3D map for each panel of the cube surface 
-    data = vcat([ QUAD.vertex_coords for i=1:6 ]...)
+ # This info goes to P4est ...
+ function setup_coarse_cell_vertices_alpha_beta_coordinates()
+    data = vcat([ [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)], 
+	         [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)], 
+			 [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)], 
+			 [Point(-π/4,-π/4),Point(-π/4,π/4),Point(-π/4,π/4),Point(π/4,π/4)], 
+			 [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)], 
+			 [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)] ]...)
     ptr = [1, 5, 9, 13, 17, 21, 25]
     Gridap.Arrays.Table(data,ptr)
-  end 
+ end 
 
-  # This info is required for the parametric model's map
-  function setup_coarse_cell_vertices_3D_coordinates(cell_node_ids, nodes_3d)
-     nodes_3d_cell_wise = [ nodes_3d[cell_node_ids.data[i]]  for i=1:length(cell_node_ids.data) ]
-     ptr = [1, 5, 9, 13, 17, 21, 25]
-     Gridap.Arrays.Table(nodes_3d_cell_wise,ptr)
-  end
-
-function setup_2D_to_3D_coarse_cell_map()
-  nodes_3d = _CCAM_cube_nodes_3d(CUBE_SURFACE_HALF_EDGE)
-  cell_node_ids = _CCAM_panel_wise_node_ids(NPANELS)
-  cell_vertices_3D = setup_coarse_cell_vertices_3D_coordinates(cell_node_ids,nodes_3d)
+function setup_alpha_beta_cell_map(cell_vertices_alpha_beta)
   scalar_reffe=Gridap.ReferenceFEs.ReferenceFE(QUAD,Gridap.ReferenceFEs.lagrangian,Float64,1)
-  cell_shape_funs = FillArrays.Fill( Gridap.ReferenceFEs.get_shapefuns(scalar_reffe), NPANELS) 
-  lazy_map(linear_combination,cell_vertices_3D,cell_shape_funs)
-end
-
-function setup_2D_to_3D_cell_map(cell_vertices_3D)
-  scalar_reffe=Gridap.ReferenceFEs.ReferenceFE(QUAD,Gridap.ReferenceFEs.lagrangian,Float64,1)
-  cell_shape_funs = FillArrays.Fill( Gridap.ReferenceFEs.get_shapefuns(scalar_reffe), length(cell_vertices_3D)) 
-  lazy_map(linear_combination,cell_vertices_3D,cell_shape_funs)
+  cell_shape_funs = FillArrays.Fill( Gridap.ReferenceFEs.get_shapefuns(scalar_reffe), length(cell_vertices_alpha_beta)) 
+  lazy_map(linear_combination,cell_vertices_alpha_beta,cell_shape_funs)
 end
 
 function generate_cube_grid_top(cell_vertex_lids_nlvertices)
@@ -287,7 +253,7 @@ function generate_cell_coordinates_and_panels(parts,
 end
 
 
-function _generate_octree_dmodel_2D_coordinates_and_panels(ranks, 
+function _generate_octree_dmodel_alpha_beta_coordinates_and_panels(ranks, 
 	                                                       coarse_model::DiscreteModel{2,2}, 
 														   num_uniform_refinements,
 														   coarse_cell_wise_vertex_coordinates,
@@ -511,22 +477,19 @@ end
 function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel, 
                                  refinement_and_coarsening_flags::MPIArray{<:Vector})
 
-	coarse_cell_vertices_2D = setup_coarse_cell_vertices_2D_coordinates()
+	coarse_cell_vertices_alpha_beta = setup_coarse_cell_vertices_alpha_beta_coordinates()
 	coarse_cell_panels_2D = collect(1:NPANELS)
 
-	adapted_octree_dmodel, cell_wise_vertex_2D_coordinates, cell_panels =
+	adapted_octree_dmodel, cell_wise_vertex_alpha_beta, cell_panels =
 	   _adapt_octree_dmodel(model.octree_dmodel,
-	                         coarse_cell_vertices_2D,
+	                         coarse_cell_vertices_alpha_beta,
 							 coarse_cell_panels_2D,
 							 refinement_and_coarsening_flags)
 
-	# Transform 2D coordinates to 3D coordinates on the cube surface
-	cell_wise_vertex_3D_coordinates = 
-	   _transform_cell_wise_coordinates_2D_to_3D(cell_wise_vertex_2D_coordinates, cell_panels)
 	   
 	# Build the proc-local ParametricDiscreteModels
 	parametric_models = _setup_parametric_models(adapted_octree_dmodel, 
-	                                             cell_wise_vertex_3D_coordinates,
+	                                             cell_wise_vertex_alpha_beta,
 												 cell_panels)
 												
 	adaptive_models = map(parametric_models, 
