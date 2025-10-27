@@ -84,13 +84,13 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   vel = v_contr_cf
 
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  # meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
-  meas_cf_skel = Cellfield(_sqrtg,Ω_panel)
+  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+  # meas_cf_skel = Cellfield(_sqrtg,Ω_panel)
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
   ### volume stabilisation term
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
 
   # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
   # ginv_cf = panelwise_cellfield(inv_metric,Λ)
@@ -99,7 +99,7 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
 
   ### upwinding stabilisation term
   upwind = abs( (vel⋅ n_Λ).plus)
-  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel   )dΛ
+  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus   )dΛ
 
   # cell_geo_map = geo_map_func(panel_ids)
   # n = pushforward_normal(Λ,cell_geo_map)
