@@ -46,7 +46,7 @@ end
 @publish Helpers spherical_to_cartesian_matrix
 @publish Helpers xyz2θϕ
 
-
+@publish Helpers _sqrtg
 @publish Helpers sqrtg
 @publish Helpers detg
 @publish Helpers grad_meas

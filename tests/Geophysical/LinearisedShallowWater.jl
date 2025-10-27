@@ -110,6 +110,15 @@ function linear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
+    ### convergence output for DrWatson
+    dir_convergence = dir*"/convergence"
+    (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+    n = nc(panel_model)
+    dxx = dx(nc(panel_model))
+    output = @strdict e_u e_p n dxx p_fe lvl
+    i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
+
   return e_u, e_p, false
 
 end

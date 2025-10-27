@@ -66,19 +66,31 @@ plot!(xlabel="t",ylabel="Ep")
 
 ## gadi convegence results
 include("convergence_tools.jl")
-# dir = datadir("gadi/LaplaceBeltramiConvergence/func_sin")
-# dir = datadir("gadi/HelmholtzConvergence/func_sin")
-# dir = datadir("gadi/WaveConvergence/func_z1")
-# dir = datadir("gadi/AdvectionSUPGConvergence")
-# dir = datadir("gadi/AdvectionDGConvergence")
-dir = datadir("gadi/TransientAdvectionSUPGConvergence_Octree")
-# dir = datadir("gadi/ShallowWaterConvergence/func_z1")
-# dir = datadir("gadi/TransientAdvectionDGUpwinding")
-dir = datadir("gadi/TransientShallowWaterConvergence")
-files = filter(x->endswith(x, ".jld2"), readdir((dir)))
-plot_convergence_from_saved(dir,"convergence",["u","p","n"])
-# plot_convergence_from_saved(dir,"convergence",["p","u","n"])
 
+_dirs = ["gadi/LaplaceBeltramiConvergence/func_sin",
+        "gadi/LaplaceBeltramiConvergence/func_XYZ",
+        "gadi/HelmholtzConvergence/func_sin",
+        "gadi/HelmholtzConvergence/func_XYZ",
+        "gadi/WaveConvergence/func_z1",
+        "gadi/AdvectionSUPGConvergence",
+        # "gadi/TransientAdvectionSUPGConvergence_Octree",
+        "gadi/ShallowWaterConvergence/func_z1",
+         "gadi/TransientShallowWaterConvergence"
+]
+# dir = datadir()
+# dir = datadir("gadi/AdvectionDGConvergence")
+# dir = datadir()
+# dir = datadir("gadi/TransientAdvectionDGUpwinding")
+for d in _dirs
+  dir = datadir(d)
+  files = filter(x->endswith(x, ".jld2"), readdir((dir)))
+  plot_convergence_from_saved(dir,"convergence",["u","p","n"])
+end
+
+using DataFrames
+dir = datadir("LaplaceBeltrami/convergence")
+df = collect_results(dir)
+sort!(df,:n)
 
 
 

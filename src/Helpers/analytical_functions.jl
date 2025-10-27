@@ -1,6 +1,7 @@
 ################################################################################
 #### analytic functions relating to metric, surflap
 ################################################################################
+RADIUS = 1.0
 function rho(αβ)
   α,β = αβ
   sqrt(1 + (tan(α))^2 + (tan(β))^2 )
@@ -45,25 +46,25 @@ E(αβ) = dXda(αβ)*dXda(αβ) + dYda(αβ)*dYda(αβ) + dZda(αβ)*dZda(αβ)
 F(αβ) = dXda(αβ)*dXdb(αβ) + dYda(αβ)*dYdb(αβ) + dZda(αβ)*dZdb(αβ)
 G(αβ) = dXdb(αβ)*dXdb(αβ) + dYdb(αβ)*dYdb(αβ) + dZdb(αβ)*dZdb(αβ)
 
-detg(p::Int,αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
-_detg(αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
-sqrtg(p::Int,αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
+# detg(p::Int,αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
+# _detg(αβ) = E(αβ)*G(αβ) - F(αβ)*F(αβ)
+# sqrtg(p::Int,αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
 _sqrtg(αβ) = sqrt( E(αβ)*G(αβ) - F(αβ)*F(αβ) )
 
 # grad_meas(αβ) = gradient(sqrtg)(αβ)
 
-metric(p::Int,αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
-_metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
+# metric(p::Int,αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
+# _metric(αβ) = TensorValue{2,2}(E(αβ),F(αβ),F(αβ),G(αβ))
 
-inv_metric(p::Int,αβ) =  TensorValue{2,2}(G(αβ)/detg(p,αβ),-F(αβ)/detg(p,αβ),-F(αβ)/detg(p,αβ),E(αβ)/detg(p,αβ))
-_inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/_detg(αβ),-F(αβ)/_detg(αβ),-F(αβ)/_detg(αβ),E(αβ)/_detg(αβ))
+# inv_metric(p::Int,αβ) =  TensorValue{2,2}(G(αβ)/detg(p,αβ),-F(αβ)/detg(p,αβ),-F(αβ)/detg(p,αβ),E(αβ)/detg(p,αβ))
+# _inv_metric(αβ) =  TensorValue{2,2}(G(αβ)/_detg(αβ),-F(αβ)/_detg(αβ),-F(αβ)/_detg(αβ),E(αβ)/_detg(αβ))
 # _analytic_inv_metric(p::Int) = αβ -> analytic_inv_metric(αβ)
 
 # analytic_J1(αβ) = RADIUS*TensorValue{3,2}(dXda(αβ),dYda(αβ),dZda(αβ), dXdb(αβ),dYdb(αβ),dZdb(αβ))
 
 ## A = [-g12 -g22; g11 g21] = [-F -G; E F]
 ## as a TensorValue, (-F,E,-G,F)
-perp_matrix(αβ) = TensorValue{2,2}( -F(αβ), E(αβ), -G(αβ), F(αβ) )
+# perp_matrix(αβ) = TensorValue{2,2}( -F(αβ), E(αβ), -G(αβ), F(αβ) )
 
 ### to compute surflap in components
 # dfda(f::Function,p::Int) = αβ -> (gradient(f(p))(αβ))[1]

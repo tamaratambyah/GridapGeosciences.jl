@@ -12,7 +12,7 @@ using FillArrays
 include("forward_map.jl")
 include("inverse_map.jl")
 # include("Helpers/overloads.jl")
-# include("analytical_functions.jl")
+include("analytical_functions.jl")
 include("analytical_functions_autodiff.jl")
 include("operators.jl")
 include("coordinate_mappings.jl")
@@ -21,6 +21,7 @@ include("vector_projection_analytic_functions.jl")
 export forward_map, forward_jacobian, covarient_basis, forward_pinv_jacobian
 export contravariant_basis
 
+export _sqrtg
 
 export sqrtg,  detg
 export grad_meas
