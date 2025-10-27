@@ -226,11 +226,16 @@ function _generate_octree_dmodel_alpha_beta_gamma_coordinates_and_panels(ranks,
                                                    coarse_model,
                                                    extrusion_vector)
    
-   ptr_pXest=GridapP4est.setup_pXest(pXest_type, 
-                                    comm, 
-                                    ptr_pXest_connectivity, 
-                                    num_horizontal_uniform_refinements,
-                                    num_vertical_uniform_refinements)
+   ptr_pXest=P4est_wrapper.p6est_new_ext(comm,
+                  ptr_pXest_connectivity,
+                  Cint(0), 
+                  Cint(num_horizontal_uniform_refinements), # min_level 
+                  Cint(num_vertical_uniform_refinements),   # min_zlevel
+                  Cint(1),                       # num_zroot
+                  Cint(1),                       # fill_uniform
+                  Cint(1),                       # data_size 
+                  C_NULL,                        # init_fn
+                  C_NULL)                        # user_pointer
 
 
     ptr_pXest_ghost=GridapP4est.setup_pXest_ghost(pXest_type,ptr_pXest)

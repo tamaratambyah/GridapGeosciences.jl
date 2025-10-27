@@ -12,7 +12,7 @@ dir = datadir("Distributed")
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-num_horizontal_uniform_refinements = 0
+num_horizontal_uniform_refinements = 2
 num_vertical_uniform_refinements = 0
 a = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
 	                                       num_horizontal_uniform_refinements=num_horizontal_uniform_refinements,
