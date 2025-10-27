@@ -25,7 +25,7 @@ function forward_map_3D(p::Int,γαβ)
 
   #### extrude surface point in radial direction
   # XYZ_surf + (RADIUS_OUTER-radius_surf)*γ*normal_vec(XYZ_surf)
-  return XYZ_surf + abs(γ)* normal_vec(XYZ_surf)
+  return XYZ_surf + γ* normal_vec(XYZ_surf)
 
 
 end
