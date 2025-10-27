@@ -231,32 +231,6 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
 
   return Es_u, Es_p
 
-  # ## plot casimirs
-
-
-
-  # ts = dt*collect(0:length(Masss)-1)
-
-  # ms_rel = abs.(Masss.-Masss[1])./Masss[1]
-  # Es_rel = abs.(Energys.-Energys[1])./Energys[1]
-  # Enst_rel = abs.(Enstropys.-Enstropys[1])./Enstropys[1]
-
-  # plot()
-  # plot!(ts[2:end],ms_rel[2:end],lw=3,label="mass")
-  # plot!(yaxis=:log,xlabel="t",ylabel=L"|x_t-x_0|/x_0")
-  # savefig(plotsdir()*"/sw_transient_mass_odes")
-
-  # plot()
-  # plot!(ts[2:end],Es_rel[2:end],lw=3,label="energy")
-  # plot!(yaxis=:log,xlabel="t",ylabel=L"|x_t-x_0|/x_0")
-  # savefig(plotsdir()*"/sw_transient_energy_odes")
-
-  # plot()
-  # plot!(ts[2:end],Enst_rel[2:end],lw=3,label="enstropy")
-  # plot!(yaxis=:log,xlabel="t",ylabel=L"|x_t-x_0|/x_0")
-  # savefig(plotsdir()*"/sw_transient_enstropy_odes")
-
-  # return Es_u[end], Es_p[end]
 end
 
 

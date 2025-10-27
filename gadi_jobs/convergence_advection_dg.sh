@@ -18,7 +18,7 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
 
     with_mpi() do distribute
         AdvectionDGUpwinding.main(distribute,4;octree=true)
-        TransientAdvectionDGUpwinding.main(distribute,4;octree=true)
+        # TransientAdvectionDGUpwinding.main(distribute,4;octree=true)
     end
 
 ' 

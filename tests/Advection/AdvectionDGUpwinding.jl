@@ -84,12 +84,23 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   vel = v_contr_cf
 
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+  # meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+
+  fields = map(local_views(panel_model)) do lmodel
+    CellField(_sqrtg,Triangulation(lmodel))
+  end
+  trians = map(local_views(panel_model)) do lmodel
+    Triangulation(lmodel)
+  end
+  trian = GridapDistributed.DistributedTriangulation(trians,panel_model)
+  meas_cf_skel = GridapDistributed.DistributedCellField(fields,trian)
+  # meas_cf_skel = Cellfield(_sqrtg,Ω_panel)
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
   ### volume stabilisation term
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel   )dΛ
+  # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
 
   # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
   # ginv_cf = panelwise_cellfield(inv_metric,Λ)
@@ -98,7 +109,8 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
 
   ### upwinding stabilisation term
   upwind = abs( (vel⋅ n_Λ).plus)
-  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus   )dΛ
+  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel   )dΛ
+  # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus   )dΛ
 
   # cell_geo_map = geo_map_func(panel_ids)
   # n = pushforward_normal(Λ,cell_geo_map)
@@ -131,6 +143,16 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe", cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
+
+    ### convergence output for DrWatson
+    dir_convergence = dir*"/convergence"
+    (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+    n = nc(panel_model)
+    dxx = dx(nc(panel_model))
+    output = @strdict eu n dxx p_fe lvl
+    i_am_main(ranks) && safesave(datadir(dir_convergence, ("advection_dg_nref$(lvl)_p$p_fe.jld2")), output)
+
   return eu,false,false
 end
 

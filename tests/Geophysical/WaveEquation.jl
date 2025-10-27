@@ -82,6 +82,15 @@ function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,
 
   end
 
+  ### convergence output for DrWatson
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+  n = nc(panel_model)
+  dxx = dx(nc(panel_model))
+  output = @strdict e_u e_p e_η n dxx p_fe lvl
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("wave_equation_nref$(lvl)_p$p_fe.jld2")), output)
+
   return e_u,e_p,false
 end
 

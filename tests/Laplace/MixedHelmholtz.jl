@@ -87,6 +87,14 @@ function mixed_helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+  n = nc(panel_model)
+  dxx = dx(nc(panel_model))
+  output = @strdict e_u e_gradu n dxx p_fe lvl
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("mixed_helmholtz_nref$(lvl)_p$p_fe.jld2")), output)
+
   return e_u,e_gradu,false
 
 end
