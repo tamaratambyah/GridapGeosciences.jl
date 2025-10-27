@@ -31,6 +31,7 @@ using GridapGeosciences.Visualisation
 import Gridap.Visualization: writevtk, createvtk, write_vtk_file, create_vtk_file, create_pvtk_file
 
 include("ParametricOctreeDistributedDiscreteModels.jl")
+include("Parametric3DOctreeDistributedDiscreteModels.jl")
 include("DistributedParametricDiscreteModel.jl")
 include("panelwise_cellfield.jl")
 include("panel_ids.jl")

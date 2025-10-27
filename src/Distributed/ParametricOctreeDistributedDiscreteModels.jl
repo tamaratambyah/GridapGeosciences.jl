@@ -188,7 +188,7 @@ function generate_cell_coordinates_and_panels(parts,
      ncells=pXest.local_num_quadrants+pXest_ghost.ghosts.elem_count
      panels = Vector{Int}(undef,ncells)
      data = Vector{Point{Dc,Float64}}(undef,ncells*PXEST_CORNERS)
-     ptr  = generate_ptr(ncells)
+     ptr  = generate_ptr(Dc,ncells)
      current=1
      current_cell=1
      vxy=Vector{Cdouble}(undef,Dc)
