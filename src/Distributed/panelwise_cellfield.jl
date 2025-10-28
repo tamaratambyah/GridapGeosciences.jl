@@ -83,7 +83,7 @@ function geo_map_func(owned_panel_ids::AbstractArray)
   @assert typeof(owned_panel_ids) <: DebugArray || typeof(owned_panel_ids) <: MPIArray "\n Not distributed panel ids"
 
   cell_geo_map = map(owned_panel_ids) do pid
-    return lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pid)
+    return lazy_map(p -> ForwardMap(p), pid)
   end
   return cell_geo_map
 end

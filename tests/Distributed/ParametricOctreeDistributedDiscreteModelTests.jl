@@ -26,7 +26,7 @@ Triangulation(parametric_octree_dmodel)
 
 map(local_views(parametric_octree_dmodel.parametric_dmodel)) do model
 	panel_ids = get_panel_ids(model)
-    cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+    cell_geo_map = lazy_map(p -> ForwardMap(p), panel_ids)
 	writevtk(Triangulation(model),"test", geo_map=cell_geo_map)
 end
 
@@ -41,6 +41,6 @@ get_panel_ids(parametric_octree_model_adapted)
 map(local_views(parametric_octree_model_adapted.parametric_dmodel)) do model
 	panel_ids = get_panel_ids(model)
 	println(typeof(model))
-	cell_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+	cell_geo_map = lazy_map(p -> ForwardMap(p), panel_ids)
 	writevtk(Triangulation(model),"test_adapted", geo_map=cell_geo_map)
 end

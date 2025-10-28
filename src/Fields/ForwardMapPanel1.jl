@@ -18,7 +18,7 @@ function Gridap.Arrays.evaluate!(cache,f::ForwardMapPanel1,cellx::AbstractArray{
 
   y = cache
 
-  map!(x-> forward_map(1,x),
+  map!(x-> forward_map_2D(1,x),
       y, cellx  )
 
   return y
@@ -33,7 +33,7 @@ end
 function Gridap.Arrays.evaluate!(cache,f::ForwardMapPanel1,x::VectorValue{2})
   y = cache
 
-  y = forward_map(1,x)
+  y = forward_map_2D(1,x)
 
   return y
 end
@@ -67,7 +67,7 @@ function Gridap.Arrays.evaluate!(c,f::FieldGradient{1,<:ForwardMapPanel1},
   y = cache
   # map!(x-> TensorValue{2,3}( dXda(x),dXdb(x),  dYda(x),dYdb(x),  dZda(x),dZdb(x) ),
       # y, cellx  )
-  map!(x-> transpose(forward_jacobian(1,x)),
+  map!(x-> transpose(forward_jacobian_2D(1,x)),
       y, cellx  )
   return y
 
@@ -80,7 +80,7 @@ end
 
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:ForwardMapPanel1},x::VectorValue{2})
   y = cache
-  y = transpose(forward_jacobian(1,x))
+  y = transpose(forward_jacobian_2D(1,x))
   # y = TensorValue{2,3}( dXda(x),dXdb(x),  dYda(x),dYdb(x),  dZda(x),dZdb(x) )
 
   return y

@@ -72,7 +72,11 @@ end
 @publish Helpers projection_v
 @publish Helpers normal_vector_from_basis
 
-@publish Helpers forward_map
+@publish Helpers ForwardMap
+@publish Helpers forward_map_2D
+@publish Helpers forward_jacobian_2D
+@publish Helpers forward_map_3D
+@publish Helpers forward_jacobian_3D
 @publish Helpers forward_jacobian
 @publish Helpers covarient_basis
 @publish Helpers forward_pinv_jacobian

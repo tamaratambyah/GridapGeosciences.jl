@@ -16,7 +16,7 @@ analytic functions defined in terms of the panel coordinates
 function f_sin(p)
   function _f(αβ)
     α,β = αβ
-    X,Y,Z = forward_map(p,αβ)
+    X,Y,Z = forward_map_2D(p,αβ)
     radius = sqrt(X^2 + Y^2 + Z^2)
 
     if p == 1 || p == 3
@@ -35,7 +35,7 @@ end
 function f_XYZ(p)
   function _f(αβ)
     α,β = αβ
-    X,Y,Z = forward_map(p,αβ)
+    X,Y,Z = forward_map_2D(p,αβ)
     radius = sqrt(X^2 + Y^2 + Z^2)
 
     if p == 1 || p == 5 || p == 6

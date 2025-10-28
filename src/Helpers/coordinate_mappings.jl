@@ -1,4 +1,4 @@
-panel_to_cartesian(fX::Function,p::Int) = αβ -> fX(forward_map(p)(αβ))
+panel_to_cartesian(fX::Function,p::Int) = x -> fX(forward_maps[p](x))
 panel_to_cartesian(fX::Function) = p -> panel_to_cartesian(fX,p)
 
 function cartesian_to_latlon(XYZ::VectorValue{3})
@@ -9,7 +9,7 @@ function cartesian_to_latlon(XYZ::VectorValue{3})
 end
 cartesian_to_latlon(fθϕ::Function) = XYZ -> fθϕ(cartesian_to_latlon(XYZ))
 
-panel_to_latlon(f::Function,p::Int) = αβ -> f(cartesian_to_latlon(forward_map(p)(αβ)))
+panel_to_latlon(f::Function,p::Int) = αβ -> f(cartesian_to_latlon(forward_map_2D(p)(αβ)))
 panel_to_latlon(f::Function) = p -> panel_to_latlon(f,p)
 
 ################################################################################

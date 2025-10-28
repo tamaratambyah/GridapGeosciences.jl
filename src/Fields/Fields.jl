@@ -9,9 +9,10 @@ using FillArrays
 
 
 using GridapGeosciences.Helpers
-import GridapGeosciences.Helpers: forward_map, forward_jacobian, inverse_map, inverse_jacobian
+import GridapGeosciences.Helpers: forward_map_2D, forward_map_3D
+import GridapGeosciences.Helpers: forward_jacobian_2D, forward_jacobian_3D, inverse_map, inverse_jacobian
 
-include("ForwardMap.jl")
+include("ForwardMapPanel1.jl")
 include("InverseMap.jl")
 include("MatMultField.jl")
 include("AffineField.jl")

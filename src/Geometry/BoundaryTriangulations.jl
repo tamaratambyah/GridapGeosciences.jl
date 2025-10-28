@@ -167,7 +167,7 @@ function _pushforward_normal(trian)
   face_panel_ids = get_panel_ids(trian)
   glue = get_glue(trian,Val(2))
 
-  face_geo_map = lazy_map(p -> MatMultField(R1p[p]) ∘ ForwardMapPanel1(), face_panel_ids)
+  face_geo_map = lazy_map(p -> ForwardMap(p), face_panel_ids)
   Jt = lazy_map(∇,face_geo_map)
   J = lazy_map(Operation(transpose),Jt)
 
