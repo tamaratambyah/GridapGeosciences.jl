@@ -18,13 +18,13 @@ include("../convergence_tools.jl")
 include("../Laplace/analytic_funcs.jl")
 
 ########### Forward jacobian
-auto_forward_jacobian(p::Int,αβ) = transpose( gradient(forward_map(p))(αβ) )
+auto_forward_jacobian(p::Int,αβ) = transpose( gradient(forward_map_2D(p))(αβ) )
 auto_forward_jacobian(p::Int) = αβ -> auto_forward_jacobian(p::Int,αβ)
 
 auto_forward_jacobian(p,αβ) ≈ forward_jacobian(αβ,p)
 auto_forward_jacobian(p)(αβ) ≈ forward_jacobian(p)(αβ)
 
-# auto_forward_jacobian(p) = αβ -> transpose( gradient(forward_map(p))(αβ) )
+# auto_forward_jacobian(p) = αβ -> transpose( gradient(forward_map_2D(p))(αβ) )
 
 ############### ONE VARIABLES ##################################################
 # J1(αβ) =  auto_forward_jacobian(1)(αβ)
@@ -55,7 +55,7 @@ auto_metric(p::Int,αβ) = Jt(p,αβ)⋅J(p,αβ)
 auto_inv_metric(p::Int,αβ) = inv(auto_metric(p,αβ))
 auto_detg(p::Int,αβ) = det(auto_metric(p,αβ))
 auto_sqrtg(p::Int,αβ) = sqrt(auto_detg(p,αβ))
-auto_sqrtg(p::Int) = αβ -> auto_detg(p,αβ)
+auto_sqrtg(p::Int) = αβ -> auto_sqrtg(p,αβ)
 auto_grad_meas(p::Int) = αβ -> gradient(auto_sqrtg(p))(αβ)
 
 auto_grad_meas(p)(αβ)
