@@ -84,7 +84,7 @@ end
 ## returns 2x3 jacobian
 function inverse_jacobian(p)
   function _inverse_jacobian(αβ)
-    XYZ = forward_map(p,αβ)
+    XYZ = forward_map_2D(p,αβ)
     inverse_jacobian(XYZ,p)
   end
 end
@@ -92,7 +92,7 @@ end
 ## returns 3x2 jacobian
 function contravariant_basis(p)
   function _contravariant_basis(αβ)
-    XYZ = forward_map(p,αβ)
+    XYZ = forward_map_2D(p,αβ)
     transpose(inverse_jacobian(XYZ,p))
   end
 end

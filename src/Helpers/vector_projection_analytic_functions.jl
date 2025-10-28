@@ -7,7 +7,7 @@ normal_vec(XYZ) = 1/sqrt(XYZ[1]*XYZ[1] + XYZ[2]*XYZ[2] + XYZ[3]*XYZ[3])*VectorVa
 
 function normal_vector_from_basis(p)
   function _func(αβ)
-    J = forward_jacobian(p,αβ)
+    J = forward_jacobian(p)(αβ)
     a1 = VectorValue(J[1],J[2],J[3])
     a2 = VectorValue(J[4],J[5],J[6])
     n = cross(a1,a2)

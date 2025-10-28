@@ -3,26 +3,31 @@ module  Helpers
 using Gridap
 using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.ReferenceFEs
 using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
-using Gridap.Algebra, Gridap.FESpaces
+using Gridap.Algebra, Gridap.FESpaces, Gridap.Helpers
 import Gridap.TensorValues: MultiValue
 using LinearAlgebra
 using FillArrays
 
 
-include("forward_map.jl")
+include("forward_map_2D.jl")
+include("forward_map_3D.jl")
 include("inverse_map.jl")
-# include("Helpers/overloads.jl")
+include("ForwardMap.jl")
+include("overloads.jl")
 include("analytical_functions.jl")
 include("analytical_functions_autodiff.jl")
 include("operators.jl")
 include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
 
-export forward_map, forward_jacobian, covarient_basis, forward_pinv_jacobian
+
+export ForwardMap
+export forward_map_2D, forward_jacobian_2D, covarient_basis, forward_pinv_jacobian
+export forward_map_3D, forward_jacobian_3D, forward_jacobian
 export contravariant_basis
 
 export _sqrtg
-
+export pinvJ
 export sqrtg,  detg
 export grad_meas
 export metric, inv_metric

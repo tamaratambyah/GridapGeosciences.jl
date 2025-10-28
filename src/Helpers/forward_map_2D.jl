@@ -1,5 +1,5 @@
 const RADIUS = 1.0
-function forward_map(p::Int,αβ)
+function forward_map_2D(p::Int,αβ)
   α,β = αβ
 
   rho = sqrt(1 + (tan(α))^2 + (tan(β))^2 )
@@ -34,17 +34,7 @@ function forward_map(p::Int,αβ)
   RADIUS*Point(X,Y,Z)
 end
 
-forward_map(p::Int) = αβ -> forward_map(p,αβ)
+forward_map_2D(p::Int) = αβ -> forward_map_2D(p,αβ)
 
-forward_jacobian(p::Int,αβ) = transpose( gradient(forward_map(p))(αβ) )
-forward_jacobian(p::Int) = αβ -> forward_jacobian(p,αβ)
-covarient_basis(p::Int) = αβ -> forward_jacobian(p,αβ)
-
-
-# return the left psudeo inverse
-function pinvJ(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
-  Jt = transpose(J)
-  inv(Jt⋅J)⋅Jt
-end
-
-forward_pinv_jacobian(p) = αβ -> pinvJ(forward_jacobian(p)(αβ))
+forward_jacobian_2D(p::Int,αβ) = transpose( gradient(forward_map_2D(p))(αβ) )
+forward_jacobian_2D(p::Int) = αβ -> forward_jacobian_2D(p,αβ)
