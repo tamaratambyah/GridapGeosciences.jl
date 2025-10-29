@@ -43,25 +43,18 @@ function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{
 
         ogrid = get_grid(omodel)
         otopo = get_grid_topology(omodel)
+        olabels = Gridap.Geometry.get_face_labeling(omodel)
         panel_grid = UnstructuredGrid(get_node_coordinates(ogrid),
-                                      get_cell_node_ids(ogrid),
-                                      get_reffes(ogrid),
-                                      get_cell_type(ogrid),
-                                      OrientationStyle(ogrid),
-                                      nothing,
-                                      alpha_beta_gamma_cmap)
-        panel_topo = UnstructuredGridTopology(get_node_coordinates(ogrid),
-                                              get_cell_node_ids(ogrid),
-                                              get_cell_type(ogrid),
-                                              get_polytopes(otopo),
-                                              OrientationStyle(ogrid))
-        
-        panel_labels = get_face_labeling(omodel)
-
+                                     get_cell_node_ids(ogrid),
+                                     get_reffes(ogrid),
+                                     get_cell_type(ogrid),
+                                     OrientationStyle(ogrid),
+                                     nothing,
+                                     alpha_beta_gamma_cmap)
         ParametricDiscreteModel(panel_grid,
-                                panel_topo,
-                                panel_labels,
-                                cell_panels)                                                  
+                                otopo,
+                                olabels,
+                                cell_panels)
     end
 end 
 
