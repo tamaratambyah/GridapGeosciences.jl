@@ -38,6 +38,7 @@ end
 
 parametric_octree_model_adapted = Gridap.Adaptivity.adapt(parametric_octree_dmodel,ref_coarse_flags)
 get_panel_ids(parametric_octree_model_adapted)
+get_panel_ids(parametric_octree_model_adapted.parametric_dmodel)
 map(local_views(parametric_octree_model_adapted.parametric_dmodel)) do model
 	panel_ids = get_panel_ids(model)
 	println(typeof(model))

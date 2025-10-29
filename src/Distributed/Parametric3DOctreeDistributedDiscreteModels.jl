@@ -257,4 +257,94 @@ function _generate_octree_alpha_beta_gamma_coordinates_and_panels(ranks,
     omodel, cell_coordinates, panels
 end
 
+function vertically_uniformly_refine(parametric_model::Parametric3DOctreeDistributedDiscreteModel)
+  ptr_new_pXest = GridapP4est._vertically_uniformly_refine!(parametric_model.octree_dmodel)
+   
+  pXest_type = parametric_model.octree_dmodel.pXest_type
+
+  # Extract ghost and lnodes
+  ptr_pXest_ghost  = GridapP4est.setup_pXest_ghost(pXest_type, ptr_new_pXest)
+  ptr_pXest_lnodes = GridapP4est.setup_pXest_lnodes_nonconforming(pXest_type, ptr_new_pXest, ptr_pXest_ghost)
+
+  pXest_refinement_rule_type = parametric_model.octree_dmodel.pXest_refinement_rule_type
+  ranks = parametric_model.octree_dmodel.parts
+  coarse_model = parametric_model.octree_dmodel.coarse_model
+  ptr_pXest_connectivity = parametric_model.octree_dmodel.ptr_pXest_connectivity
+  
+  fmodel,non_conforming_glue  = GridapP4est.setup_non_conforming_distributed_discrete_model(pXest_type,
+                                              parametric_model.octree_dmodel.pXest_refinement_rule_type,
+                                              ranks,
+                                              coarse_model,
+                                              ptr_pXest_connectivity,
+                                              ptr_new_pXest,
+                                              ptr_pXest_ghost,
+                                              ptr_pXest_lnodes;
+                                              grid_and_topology_function=dummy_grid_and_topology_function,
+                                              grid_and_topology_bottom_function=dummy_grid_and_topology_function)
+
+   cell_coordinates, panels=generate_cell_alpha_beta_gamma_coordinates_and_panels(ranks,
+                                          coarse_model,
+                                          setup_coarse_cell_vertices_alpha_beta_coordinates(),
+                                          collect(1:NPANELS),
+                                          ptr_pXest_connectivity,
+                                          ptr_new_pXest,
+                                          ptr_pXest_ghost)
+
+    GridapP4est.pXest_ghost_destroy(pXest_type,ptr_pXest_ghost)
+    GridapP4est.pXest_lnodes_destroy(pXest_type,ptr_pXest_lnodes)
+
+    pXest_refinement_rule_type = GridapP4est.PXestVerticalRefinementRuleType()
+    _refinement_and_coarsening_flags = map(partition(get_cell_gids(parametric_model.octree_dmodel))) do indices
+      flags  = Vector{Cint}(undef,length(local_to_global(indices)))
+      flags .= refine_flag
+    end
+
+    stride = GridapP4est.pXest_stride_among_children(pXest_type,
+                                                     pXest_refinement_rule_type,
+                                                     parametric_model.octree_dmodel.ptr_pXest)
+    adaptivity_glue = GridapP4est._compute_fine_to_coarse_model_glue(pXest_type,
+                                                       pXest_refinement_rule_type,
+                                                       ranks,
+                                                       parametric_model.octree_dmodel.dmodel,
+                                                       fmodel,
+                                                       _refinement_and_coarsening_flags,
+                                                       stride)
+     adaptive_models = map(local_views(parametric_model.octree_dmodel),
+                           local_views(fmodel),
+                           adaptivity_glue) do model, fmodel, glue 
+           Gridap.Adaptivity.AdaptedDiscreteModel(fmodel,model,glue)
+     end
+     fmodel = GridapDistributed.GenericDistributedDiscreteModel(adaptive_models,get_cell_gids(fmodel))
+     ref_model = OctreeDistributedDiscreteModel(3,3,
+                                                ranks,
+                                                fmodel,
+                                                non_conforming_glue,
+                                                coarse_model,
+                                                ptr_pXest_connectivity,
+                                                ptr_new_pXest,
+                                                pXest_type,
+                                                parametric_model.octree_dmodel.pXest_refinement_rule_type,
+                                                false,
+                                                parametric_model)
+
+    # Build the proc-local ParametricDiscreteModels
+    parametric_models = _setup_parametric_models(ref_model,
+                                                cell_coordinates,
+                                                panels)
+
+    adaptive_models = map(parametric_models,
+                         local_views(parametric_model.parametric_dmodel),
+                         local_views(ref_model.dmodel)) do parametric_model,
+                                                           parametric_model_parent,
+                                                           octree_dmodel_adapted_model
+      Gridap.Adaptivity.AdaptedDiscreteModel(parametric_model,
+                                             parametric_model_parent,
+                                             get_adaptivity_glue(octree_dmodel_adapted_model))
+   end
+   generic_dmodel = 
+      GenericDistributedDiscreteModel(adaptive_models, get_cell_gids(ref_model.dmodel))
+
+   Parametric3DOctreeDistributedDiscreteModel(ref_model, generic_dmodel)
+end
+
 
