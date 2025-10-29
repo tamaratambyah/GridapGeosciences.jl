@@ -4,6 +4,7 @@ using GridapGeosciences
 using GridapGeosciences.Distributed
 using GridapP4est
 using Gridap
+using GridapDistributed
 
 using DrWatson
 dir = datadir("Distributed")
@@ -27,15 +28,29 @@ panel_ids = get_panel_ids(panel_model)
 ## Try plotting in distributed
 cell_geo_map = geo_map_func(Ω_panel)
 writevtk(Ω_panel,dir*"/extruded_model",append=false,geo_map=cell_geo_map)
-
+writevtk(Ω_panel,dir*"/extruded_model",append=false)
 
 
 ##### testing boundary tags
 labels = panel_model.models.item.face_labeling
 labs = Gridap.Geometry.get_tag_name(labels)
 
+
+
 # tags = ["intermediate_boundary",  "bottom_boundary",  "top_boundary"]
+tags = ["bottom_boundary"]
+Γ = BoundaryTriangulation(panel_model,tags=tags)
+Γ.trians.item_ref[].parent.glue.face_to_bgface
+cell_geo_map = geo_map_func(Γ)
+writevtk(Γ,dir*"/boundary_bottom",append=false,geo_map=cell_geo_map)
+
+tags = ["top_boundary"]
+Γ = BoundaryTriangulation(panel_model,tags=tags)
+Γ.trians.item_ref[].parent.glue.face_to_bgface
+cell_geo_map = geo_map_func(Γ)
+writevtk(Γ,dir*"/boundary_top",append=false,geo_map=cell_geo_map)
+
 tags = ["intermediate_boundary"]
 Γ = BoundaryTriangulation(panel_model,tags=tags)
-# cell_geo_map = geo_map_func(Γ)
-writevtk(Γ,dir*"/boundary",append=false)
+cell_geo_map = geo_map_func(Γ)
+writevtk(Γ,dir*"/boundary_intermediate",append=false)#,geo_map=cell_geo_map)

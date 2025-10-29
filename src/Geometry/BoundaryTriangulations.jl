@@ -50,8 +50,8 @@ function Geometry.BoundaryTriangulation(
   _btrian = BodyFittedTriangulation(model,_face_grid,face_to_bgface)
   _glue = Geometry.FaceToCellGlue(topo,_cell_grid,_face_grid,face_to_bgface,bgface_to_lcell)
   _trian = BoundaryTriangulation(_btrian,_glue)
-  F2Fglue = Geometry.get_glue(_trian,Val(2),Val(2))
-
+  F2Fglue = Geometry.get_glue(_trian,Val(Dc),Val(Dc))
+  println(Dc)
   # tface_to_mface_map = Gridap.Geometry.compute_face_to_cell_reference_map(_cell_grid,_face_grid,_glue)
 
   ## get the face2cell_ids
