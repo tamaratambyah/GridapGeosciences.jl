@@ -52,18 +52,10 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
 
-  Ω_panel = Triangulation(panel_model)
-  if typeof(Ω_panel) <: GridapDistributed.DistributedTriangulation
-    i_am_main(ranks) && println("ghost vol mesh")
-    Ω_panel = Triangulation(with_ghost,panel_model)
-  end
+  Ω_panel = Triangulation(with_ghost,panel_model)
   dΩ = Measure(Ω_panel,degree)
 
-  Λ = SkeletonTriangulation(panel_model)
-  if typeof(Ω_panel) <: GridapDistributed.DistributedTriangulation
-    i_am_main(ranks) && println("ghost skel mesh")
-    Λ = SkeletonTriangulation(with_ghost,panel_model)
-  end
+  Λ = SkeletonTriangulation(with_ghost,panel_model)
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
 
@@ -80,21 +72,18 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  # _a(u,v) = ∫( u⋅v )dΩ
-  # _l(v) = ∫( v_contr_cf⋅v )dΩ
-  # op = AffineFEOperator(_a,_l,U,V)
-  # vel = solve(LUSolver(),op)
-  # vel = interpolate(v_contr_cf,U)
+
   vel = v_contr_cf
 
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+  _meas_cf = CellField(_sqrtg,Ω_panel )
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
   ### volume stabilisation term
   # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel   )dΛ
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*_meas_cf   )dΛ
 
   # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
   # ginv_cf = panelwise_cellfield(inv_metric,Λ)
@@ -104,7 +93,7 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   ### upwinding stabilisation term
   upwind = abs( (vel⋅ n_Λ).plus)
   # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel   )dΛ
-  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus   )dΛ
+  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*_meas_cf   )dΛ
 
   # cell_geo_map = geo_map_func(panel_ids)
   # n = pushforward_normal(Λ,cell_geo_map)
@@ -130,6 +119,7 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   i_am_main(ranks) && println("Error = ",eu)
 
   if return_vtk
+    Ω_panel = Triangulation(panel_model)
     lvl = nref(nc(panel_model))
     cell_geo_map = geo_map_func(Ω_panel)
     labels = ["uh","u","eu"]
@@ -171,7 +161,7 @@ function main(distribute,nprocs;octree=false)
 
   models  = get_refined_models(n_ref_lvls)
 
-  if prod(nprocs) > 1
+  # if prod(nprocs) > 1
     i_am_main(ranks) && println("Distributed test")
     if octree
       i_am_main(ranks) && println("Octrees")
@@ -181,7 +171,7 @@ function main(distribute,nprocs;octree=false)
       models,  = get_distributed_refined_models(ranks,nprocs,models)
     end
     # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1e-8,maxiter=5000,verbose=i_am_main(ranks))
-  end
+  # end
 
   i_am_main(ranks) && println("advection_dg_convergence_func")
   p_convergence_test(ranks,ps,models,advection_dg_solver,dir,u,vX,uvX,ls,true)
