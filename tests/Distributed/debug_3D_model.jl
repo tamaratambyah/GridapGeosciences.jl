@@ -16,7 +16,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 num_horizontal_uniform_refinements = 1
 num_vertical_uniform_refinements = 1
 o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
-	                                       num_horizontal_uniform_refinements=num_horizontal_uniform_refinements,
+                                           num_horizontal_uniform_refinements=num_horizontal_uniform_refinements,
                                            num_vertical_uniform_refinements=num_vertical_uniform_refinements);
 
 
@@ -66,10 +66,22 @@ panel_ids = get_panel_ids(panel_model)
 cell_geo_map = geo_map_func(Ω_panel)
 
 map(local_views(panel_model)) do model
-	println(typeof(model))
+    println(typeof(model))
     Ω_panel=Triangulation(model)
-	cell_geo_map = geo_map_func(Ω_panel)
-	writevtk(Ω_panel,dir*"/vrefined_extruded_model",append=false,geo_map=cell_geo_map)
+    cell_geo_map = geo_map_func(Ω_panel)
+    writevtk(Ω_panel,dir*"/vrefined_extruded_model",append=false,geo_map=cell_geo_map)
 end
+
+
+o3model = GridapGeosciences.Distributed.horizontally_uniformly_refine(o3model)
+panel_model = o3model.parametric_dmodel
+map(local_views(panel_model)) do model
+    println(typeof(model))
+    Ω_panel=Triangulation(model)
+    cell_geo_map = geo_map_func(Ω_panel)
+    writevtk(Ω_panel,dir*"/hrefined_extruded_model",append=false,geo_map=cell_geo_map)
+end
+
+
 # writevtk(Ω_panel,dir*"/vrefined_extruded_model",append=false,geo_map=cell_geo_map)
 # writevtk(Ω_panel,dir*"/verfined_extruded_model",append=false)
