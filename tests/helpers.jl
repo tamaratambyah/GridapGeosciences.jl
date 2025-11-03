@@ -5,6 +5,8 @@ nc(panel_model) = num_cells(panel_model)/6 ## nc = num cells per panel
 dx(nc) = sqrt( 4*π*RADIUS^2 / (6*sqrt(nc)^2) )
 nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
+nref(panel_model::GridapDistributed.DistributedDiscreteModel{3}) = Int(floor(log2(sqrt(nc(panel_model))))) ## level of refinement
+
 using Printf
 using GridapSolvers
 using GridapSolvers.SolverInterfaces: ConvergenceLog
