@@ -12,7 +12,7 @@ end
 
 function latlon_geo_map_func(panel_ids::AbstractArray{Int})
   println("latolon serial geo map")
-  return lazy_map(p -> Cartesian2SphereicalMap() ∘ MatMultField(R1p[p]) ∘ ForwardMapPanel1(), panel_ids)
+  return lazy_map(p -> Cartesian2SphereicalMap() ∘ ForwardMap(p), panel_ids)
 end
 
 function latlon_geo_map_func(trian::GridapDistributed.DistributedTriangulation)
@@ -29,7 +29,7 @@ function latlon_geo_map_func(owned_panel_ids::AbstractArray)
   @assert typeof(owned_panel_ids) <: DebugArray || typeof(owned_panel_ids) <: MPIArray "\n Not distributed panel ids"
 
   cell_geo_map = map(owned_panel_ids) do pid
-    return lazy_map(p -> Cartesian2SphereicalMap() ∘MatMultField(R1p[p]) ∘ ForwardMapPanel1(), pid)
+    return lazy_map(p -> Cartesian2SphereicalMap()  ∘ ForwardMap(p), pid)
   end
   return cell_geo_map
 end
