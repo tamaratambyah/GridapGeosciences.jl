@@ -5,91 +5,143 @@ using GridapGeosciences.Distributed
 using GridapP4est
 using Gridap
 using Gridap.Algebra
+using GridapDistributed
 
 using DrWatson
-dir = datadir("Distributed")
-!isdir(dir) && mkdir(dir)
+
+
+using Gridap.FESpaces
+using FillArrays
+function Gridap.FESpaces._convert_to_collectable(object::Union{<:CellField,<:Function,<:Number},ntags)
+  Gridap.FESpaces._convert_to_collectable(Fill(object,ntags),ntags)
+end
+
+function Gridap.FESpaces.TrialFESpace(f::GridapDistributed.DistributedSingleFieldFESpace,cf::GridapDistributed.DistributedCellField)
+  println("my overload")
+  spaces = map(f.spaces,cf.fields) do s, field
+    TrialFESpace(s,field)
+  end
+  GridapDistributed.DistributedSingleFieldFESpace(spaces,f.gids,f.trian,f.vector_type,f.metadata)
+end
+
+function Gridap.FESpaces.interpolate_dirichlet!(
+  u::GridapDistributed.DistributedCellField, free_values::AbstractVector,
+  dirichlet_values::AbstractArray{<:AbstractVector},
+  f::GridapDistributed.DistributedSingleFieldFESpace)
+  println("interpolate dirichlt")
+  map(local_views(u), f.spaces,local_views(free_values),dirichlet_values) do u,V,fvec,dvec
+    interpolate_dirichlet!(u,fvec,dvec,V)
+  end
+  FEFunction(f,free_values,dirichlet_values)
+end
+
+
+
+function laplace_beltrami_solver_3D(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+
+  lvl_h = nref(nc_horizontal(panel_model))
+  lvl_v = nref(nc_vertical(panel_model))
+  i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
+
+  tags = ["bottom_boundary",  "top_boundary"]
+
+  panel_ids = get_panel_ids(panel_model)
+  Ω_panel = Triangulation(with_ghost,panel_model)
+  dΩ = Measure(Ω_panel,2*p_fe+1)
+
+  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+
+  V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1,
+                dirichlet_tags=tags)
+  U = TrialFESpace(V,f_panel_cf)
+
+  println("made FE space")
+
+  # i_am_main(ranks) && println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
+  rhs_cf = - slap_panel_cf
+
+  poisson_biform(u,v) =  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
+  poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
+  op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+
+  println("made operator")
+
+  A = get_matrix(op)
+  b = get_vector(op)
+  ns = numerical_setup(symbolic_setup(ls,A),A)
+  x = allocate_in_domain(A); fill!(x,0.0)
+  solve!(x,ns,b)
+  uh = FEFunction(U,x)
+
+  e = l2(f_panel_cf-uh,dΩ)
+
+  if return_vtk
+    _Ω_panel = Triangulation(panel_model)
+    cell_geo_map = geo_map_func(_Ω_panel)
+    panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
+    labels = ["u","uh","eu"]
+    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+    writevtk(Ω_panel,dir*"/ambient_model_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  end
+
+  ### convergence output for DrWatson
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+  n = nc(panel_model)
+  n_h = nc_horizontal(panel_model)
+  n_v = nc_vertical(panel_model)
+  dxx = dx(n_h)
+  output = @strdict e n n_h n_v dxx p_fe lvl_h lvl_v
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
+
+  return e, false,false
+end
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-num_horizontal_uniform_refinements = 2
-num_vertical_uniform_refinements = 1
-model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
-	                                       num_horizontal_uniform_refinements=num_horizontal_uniform_refinements,
-                                           num_vertical_uniform_refinements=num_vertical_uniform_refinements);
-
-
 include("../convergence_tools.jl")
-panel_model = model.parametric_dmodel
+dir = datadir("Laplace3D")
+(i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
+n_ref_v = 4
+n_ref_h = 5
+
 p_fe = 1
 ls = LUSolver()
 return_vtk = true
 fXYZ(XYZ) =  XYZ[1]*XYZ[2]*XYZ[3]
 f = panel_to_cartesian(fXYZ)
 
-γαβ = Point(0.0,π/4,π/4)
-αβ = map(x->Point(x[2],x[3]),γαβ)
-
-surflap(f)(1)(γαβ)
-
-
+for v_lvl in n_ref_v:-1:1
+  models = get_3D_octree_refined_models(ranks,n_ref_h,v_lvl)
+  errors,ns,dxs,slopes = h_convergence_test(models,laplace_beltrami_solver_3D,p_fe,dir,f,ls,return_vtk)
+end
 
 
-panel_ids = get_panel_ids(panel_model)
-Ω_panel = Triangulation(panel_model)
-dΩ = Measure(Ω_panel,2*p_fe+1)
 
-V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1, constraint=:zeromean)
-U = TrialFESpace(V)
+# ### analysis
+# using DrWatson
+# using DataFrames
+# using GridapGeosciences
+# include("../convergence_tools.jl")
+# dir = datadir("Laplace3D/convergence")
+# df = collect_results(dir)
 
-f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+# nref_v = unique(df.lvl_v)
+# plot()
 
-cell_geo_map = geo_map_func(Ω_panel)
-writevtk(Ω_panel,dir*"/laplace_beltrami",
-cellfields=["u"=>f_panel_cf,"slapl"=>slap_panel_cf],
-append=false,geo_map=cell_geo_map)
+# for lvl_v in nref_v
+#   errors = df[(df.lvl_v .== lvl_v ),:e]
+#   dxs = df[(df.lvl_v .== lvl_v ),:dxx]
+#   ns = df[(df.lvl_v .== lvl_v ),:n]
 
-
-# i_am_main(ranks) && println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
-sum(∫(f_panel_cf*meas_cf)dΩ) < 1e-14
-rhs_cf = - slap_panel_cf
-
-poisson_biform(u,v) =  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
-poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
-op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
-
-# uh = solve(ls,op)
-
-## for pvectors, the ghost may not be in the prange of the get_matrix
-## This causes issues with GridapSolvers Krylov solvers, in the allocation of x
-## To avoid, allocate x based on the domain of A
-A = get_matrix(op)
-b = get_vector(op)
-ns = numerical_setup(symbolic_setup(ls,A),A)
-x = allocate_in_domain(A); fill!(x,0.0)
-solve!(x,ns,b)
-uh = FEFunction(U,x)
-
-# l2(e,dΩ) = sum(∫( e⋅e )dΩ)
-e = l2(f_panel_cf-uh,dΩ)
-
-panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
-labels = ["u","uh","eu"]
-cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Ω_panel,dir*"/laplace_beltrami_sol",cellfields=cellfields,append=false,geo_map=cell_geo_map)
-
-
-### convergence output for DrWatson
-dir_convergence = dir*"/convergence"
-(i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
-
-n = nc(panel_model)
-dxx = dx(nc(panel_model))
-output = @strdict e n dxx p_fe lvl
-i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nref$(lvl)_p$p_fe.jld2")), output)
-
-return e, false,false
+#   slope = convergence_rate(dxs,errors)
+#   plot_convergence(errors,ns,dxs,slope;leginf=["u"],colors=[palette(:tab10)[lvl_v],palette(:tab10)[lvl_v] ] )
+# end
+# plot!(show=true)
+# savefig(dir*"/convergence_laplace_3D")

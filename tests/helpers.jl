@@ -5,7 +5,71 @@ nc(panel_model) = num_cells(panel_model)/6 ## nc = num cells per panel
 dx(nc) = sqrt( 4*π*RADIUS^2 / (6*sqrt(nc)^2) )
 nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
-nref(panel_model::GridapDistributed.DistributedDiscreteModel{3}) = Int(floor(log2(sqrt(nc(panel_model))))) ## level of refinement
+
+function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+
+  grid = get_grid(model)
+  gids = get_cell_gids(model)
+
+  ## find the number of cells that are on the surface.
+  ## i.e. with γ = 0.0
+  ## make sure to extract only the owned
+  f = map(local_views(grid),partition(gids)) do grid, cids
+    cmap = get_cell_map(grid)
+    pts = get_cell_ref_coordinates(grid)
+    f = lazy_map(evaluate,cmap,pts)
+    g = lazy_map(FindSurfaceCells(),f)
+
+    owned_cells = own_to_local(cids)
+    sum(g[owned_cells])
+  end
+
+  nsurface = sum(f)
+  ncells_per_panel = Int(nsurface/6)
+  return ncells_per_panel
+end
+
+function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  ncells_per_panel = nc_horizontal(model)
+  n = num_cells(model)/6
+  _n =  n /ncells_per_panel
+  return _n^2 # return square here so vertical is 'like' horitzontal
+end
+
+using Gridap.Arrays
+using Gridap.Geometry
+
+"""
+find the cells at γ = 0.0
+"""
+struct FindSurfaceCells  <: Map
+end
+
+function Gridap.Arrays.return_cache(f::FindSurfaceCells,cellx::AbstractArray{<:VectorValue{3}})
+  y = similar(cellx,true)
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::FindSurfaceCells,cellx::AbstractArray{<:VectorValue{3}} )
+  y = cache
+  y = !isempty(findall(x->x[1]==0.0,cellx))
+  return y
+end
+
+function Gridap.Arrays.return_cache(f::FindSurfaceCells,x::VectorValue{3})
+  y = true
+  return y
+end
+
+function Gridap.Arrays.evaluate!(cache,f::FindSurfaceCells,x::VectorValue{3} )
+  y = cache
+  y = !isempty(findall(x[1]==0.0))
+  return y
+end
+
+
+
+
 
 using Printf
 using GridapSolvers
