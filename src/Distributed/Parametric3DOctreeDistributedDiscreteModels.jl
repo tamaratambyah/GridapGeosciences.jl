@@ -151,6 +151,7 @@ function generate_cell_alpha_beta_gamma_coordinates_and_panels(parts,
             p2est_quadrant = ptr_p2est_ghost_quadrants[m+1]
             coords=GridapP4est.pXest_cell_coords(pXest_type,p4est_quadrant,p2est_quadrant)
             levels=GridapP4est.pXest_get_quadrant_and_layer_levels(pXest_type,p4est_quadrant,p2est_quadrant)
+            push!(panels, coarse_cell_panel[i])
             for vertex=1:PXEST_CORNERS
                 GridapP4est.pXest_get_quadrant_vertex_coordinates(pXest_type,
                                                       ptr_pXest_connectivity,
