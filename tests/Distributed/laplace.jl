@@ -9,35 +9,10 @@ using GridapDistributed
 
 using DrWatson
 
-
-using Gridap.FESpaces
-using FillArrays
-function Gridap.FESpaces._convert_to_collectable(object::Union{<:CellField,<:Function,<:Number},ntags)
-  Gridap.FESpaces._convert_to_collectable(Fill(object,ntags),ntags)
-end
-
-function Gridap.FESpaces.TrialFESpace(f::GridapDistributed.DistributedSingleFieldFESpace,cf::GridapDistributed.DistributedCellField)
-  println("my overload")
-  spaces = map(f.spaces,cf.fields) do s, field
-    TrialFESpace(s,field)
-  end
-  GridapDistributed.DistributedSingleFieldFESpace(spaces,f.gids,f.trian,f.vector_type,f.metadata)
-end
-
-function Gridap.FESpaces.interpolate_dirichlet!(
-  u::GridapDistributed.DistributedCellField, free_values::AbstractVector,
-  dirichlet_values::AbstractArray{<:AbstractVector},
-  f::GridapDistributed.DistributedSingleFieldFESpace)
-  println("interpolate dirichlt")
-  map(local_views(u), f.spaces,local_views(free_values),dirichlet_values) do u,V,fvec,dvec
-    interpolate_dirichlet!(u,fvec,dvec,V)
-  end
-  FEFunction(f,free_values,dirichlet_values)
-end
-
-
+include("missing_overloads.jl")
 
 function laplace_beltrami_solver_3D(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+  ranks = get_ranks(panel_model)
 
   lvl_h = nref(nc_horizontal(panel_model))
   lvl_v = nref(nc_vertical(panel_model))
@@ -58,16 +33,12 @@ function laplace_beltrami_solver_3D(panel_model,p_fe::Int,dir::String,f::Functio
                 dirichlet_tags=tags)
   U = TrialFESpace(V,f_panel_cf)
 
-  println("made FE space")
-
   # i_am_main(ranks) && println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
   rhs_cf = - slap_panel_cf
 
   poisson_biform(u,v) =  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
   poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
   op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
-
-  println("made operator")
 
   A = get_matrix(op)
   b = get_vector(op)
@@ -113,7 +84,7 @@ n_ref_h = 5
 
 p_fe = 1
 ls = LUSolver()
-return_vtk = true
+return_vtk = false
 fXYZ(XYZ) =  XYZ[1]*XYZ[2]*XYZ[3]
 f = panel_to_cartesian(fXYZ)
 
