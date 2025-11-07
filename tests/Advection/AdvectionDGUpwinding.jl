@@ -15,6 +15,9 @@ using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
 
 using GridapGeosciences
 using Test
+using SparseArrays
+using DataFrames
+using CSV
 
 include("advection_funcs.jl")
 include("../convergence_tools.jl")
@@ -44,7 +47,12 @@ end
 function advection_dg_solver(panel_model,p_fe::Int,dir::String,
     u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
 
+  das = FullyAssembledRows()
+  # das = SubAssembledRows()
+
   ranks = get_ranks(panel_model)
+
+  i_am_main(ranks) && println("Assembly strategy: $das")
 
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nref = $lvl")
@@ -52,10 +60,10 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
 
-  Ω_panel = Triangulation(with_ghost,panel_model)
+  Ω_panel = Triangulation(das,panel_model)
   dΩ = Measure(Ω_panel,degree)
 
-  Λ = SkeletonTriangulation(with_ghost,panel_model)
+  Λ = SkeletonTriangulation(das,panel_model)
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
 
@@ -82,8 +90,8 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
   ### volume stabilisation term
-  # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel   )dΛ
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*_meas_cf   )dΛ
+  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
+  # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*_meas_cf   )dΛ
 
   # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
   # ginv_cf = panelwise_cellfield(inv_metric,Λ)
@@ -92,19 +100,19 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
 
   ### upwinding stabilisation term
   upwind = abs( (vel⋅ n_Λ).plus)
-  # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel   )dΛ
-  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*_meas_cf   )dΛ
+  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus   )dΛ
+  # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*_meas_cf   )dΛ
 
   # cell_geo_map = geo_map_func(panel_ids)
   # n = pushforward_normal(Λ,cell_geo_map)
   # n = pushforward_normal(Λ)
   # a_s2(u,v) = ∫(  (0.5*(upwind)*jump(u*n)⋅jump(v*n))*meas_cf_skel.plus   )dΛ
 
-
+  assem = SparseMatrixAssembler(P,Q,das)
   biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)
   liform_advection(q) = ∫( (rhs_cf*q)*meas_cf )dΩ
 
-  op = AffineFEOperator(biform_advection,liform_advection,P,Q)
+  op = AffineFEOperator(biform_advection,liform_advection,P,Q,assem)
 
   # uh = solve(ls,op)
   A = get_matrix(op)
@@ -114,14 +122,47 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
   solve!(x,ns,b)
   uh = FEFunction(P,x)
 
+  function save_sparse_matrix(M)
+    I, J, V = SparseArrays.findnz(M)
+    println("I = ", I)
+    df = DataFrame([:I => I, :J => J, :V => V])
+    CSV.write("M_nref$lvl.csv", df)
+  end
 
-  eu = l2((uh-u_cf)*meas_cf,dΩ)
+  function save_vector(v,name)
+    df = DataFrame(col=v)
+    CSV.write(name, df)
+  end
+
+  Atrivial = PartitionedArrays.to_trivial_partition(A)
+  btrivial = PartitionedArrays.to_trivial_partition(b, partition(axes(Atrivial,1)))
+
+  # if (i_am_main(ranks))
+  #   Aloc=partition(Atrivial).item_ref[]
+  #   println("Matrix size: ",size(Aloc))
+  #   save_sparse_matrix(Aloc)
+  # end
+
+  # if (i_am_main(ranks))
+  #   bloc=partition(btrivial).item_ref[]
+  #   save_vector(bloc,"b$(length(ranks)).csv")
+  # end
+
+  # if (i_am_main(ranks))
+  #   Aloc=partition(btrivial).item_ref[]
+  #   println("Matrix size: ",size(Aloc))
+  #   save_sparse_vector(Aloc)
+  # end
+
+  Ωo = Triangulation(panel_model)
+  dΩo = Measure(Ωo,degree)
+  eu = l2((uh-u_cf)*meas_cf,dΩo)
   i_am_main(ranks) && println("Error = ",eu)
 
   if return_vtk
-    Ω_panel = Triangulation(panel_model)
+    _Ω_panel = Triangulation(panel_model)
     lvl = nref(nc(panel_model))
-    cell_geo_map = geo_map_func(Ω_panel)
+    cell_geo_map = geo_map_func(_Ω_panel)
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -168,7 +209,7 @@ function main(distribute,nprocs;octree=false)
       models =  get_octree_refined_models(ranks,n_ref_lvls)
     else
       i_am_main(ranks) && println("Distributed models")
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
+      models  = get_distributed_refined_models(ranks,nprocs,models)
     end
     # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1e-8,maxiter=5000,verbose=i_am_main(ranks))
   # end

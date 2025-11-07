@@ -1,3 +1,14 @@
+using MPI
+using PartitionedArrays
+using GridapGeosciences
+using GridapGeosciences.Distributed
+using GridapP4est
+using Gridap
+using GridapDistributed
+
+using DrWatson
+
+
 using Gridap.CellData, Gridap.Geometry
 
 include("../convergence_tools.jl")
@@ -8,37 +19,48 @@ uvX = panel_to_cartesian(u0vecX)
 
 
 function my_mean( Bu_n::SkeletonPair)
-  plus  = ( Bu_n.plus)
-  minus = ( Bu_n.minus)
-  0.5*( plus - minus  )
+plus  = ( Bu_n.plus)
+minus = ( Bu_n.minus)
+0.5*( plus - minus  )
 end
 
 function _my_mean(j::SkeletonPair,vel::CellField,u::CellField)
-  0.5*( (j.plus⋅vel.plus)*u.plus + (j.minus⋅vel.minus)*u.minus )
+0.5*( (j.plus⋅vel.plus)*u.plus + (j.minus⋅vel.minus)*u.minus )
 end
 
 function _my_other_mean(j::SkeletonPair,vel::CellField,u::CellField,meas)
-  0.5*( (j.plus⋅vel.plus)*u.plus*meas.plus + (j.minus⋅vel.minus)*u.minus*meas.minus )
+0.5*( (j.plus⋅vel.plus)*u.plus*meas.plus + (j.minus⋅vel.minus)*u.minus*meas.minus )
 end
 
 function my_jump(j::SkeletonPair,ginv::SkeletonPair,n::SkeletonPair,u::CellField)
-  u.plus*(j.plus⋅(ginv.plus⋅n.plus) ) + u.minus*(j.minus⋅(ginv.minus⋅n.minus) )
+u.plus*(j.plus⋅(ginv.plus⋅n.plus) ) + u.minus*(j.minus⋅(ginv.minus⋅n.minus) )
 end
 ############ debug
-# models = get_refined_models(2)
-models =  get_octree_refined_models(ranks,3)
-panel_model = models[2]
-p_fe = 1
+# nprocs = 2
+# ranks = with_debug() do distribute
+#   distribute(LinearIndices((nprocs,)))
+# end
 
+
+MPI.Init()
+ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+models = get_octree_refined_models(ranks,3)
+# models = get_refined_models(2)
+# models =  get_distributed_refined_models(ranks,nprocs,2)
+
+panel_model = models[1]
+
+das = FullyAssembledRows()
+
+p_fe = 1
 panel_ids = get_panel_ids(panel_model)
 degree = 2*(p_fe + 1)
 
-# Ω_panel = Triangulation(panel_model)
-Ω_panel = Triangulation(with_ghost,panel_model)
+Ω_panel = Triangulation(das,panel_model)
 dΩ = Measure(Ω_panel,degree)
 
 # Λ = SkeletonTriangulation(panel_model)
-Λ = SkeletonTriangulation(with_ghost,panel_model)
+Λ = SkeletonTriangulation(das,panel_model)
 dΛ = Measure(Λ,degree)
 n_Λ = get_normal_vector(Λ)
 
@@ -68,73 +90,73 @@ n_Λ = get_normal_vector(Λ)
 
 # end
 
-  _rhs(p) = αβ -> u(p)(αβ) + surfdiv(contra_v(uvX))(p)(αβ)
+_rhs(p) = αβ -> u(p)(αβ) + surfdiv(contra_v(uvX))(p)(αβ)
 
-  v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
-  rhs_cf = panelwise_cellfield(_rhs,Ω_panel,panel_ids)
+v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
+rhs_cf = panelwise_cellfield(_rhs,Ω_panel,panel_ids)
 
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
-  P = TrialFESpace(Q)
+Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+P = TrialFESpace(Q)
 
-  # hard code RT space as order 1 -- for velocity
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
-  U = TrialFESpace(V)
+# hard code RT space as order 1 -- for velocity
+V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
+U = TrialFESpace(V)
 
-  # _a(u,v) = ∫( u⋅v )dΩ
-  # _l(v) = ∫( v_contr_cf⋅v )dΩ
-  # op = AffineFEOperator(_a,_l,U,V)
-  # vel = solve(LUSolver(),op)
-  # vel = interpolate(v_contr_cf,U)
-  vel = v_contr_cf
+vel = v_contr_cf
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
-  _meas_cf = CellField(_sqrtg,Ω_panel)
+meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+_meas_cf = CellField(_sqrtg,Ω_panel)
 
-  a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
+a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
-  ### volume stabilisation term
-  a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
-  # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
+### volume stabilisation term
+a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
+# a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
 
-  # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
-  # ginv_cf = panelwise_cellfield(inv_metric,Λ)
-  # a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf_skel.plus   )dΛ
-  # a_s1(u,v) = ∫( _my_other_mean(jac_cf,vel,u,meas_cf_skel)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)   )dΛ
+# jac_cf = panelwise_cellfield(forward_jacobian,Λ)
+# ginv_cf = panelwise_cellfield(inv_metric,Λ)
+# a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf_skel.plus   )dΛ
+# a_s1(u,v) = ∫( _my_other_mean(jac_cf,vel,u,meas_cf_skel)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)   )dΛ
 
-  ### upwinding stabilisation term
-  upwind = abs( (vel⋅ n_Λ).plus)
-  a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus  )dΛ
-  # a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
+### upwinding stabilisation term
+upwind = abs( (vel⋅ n_Λ).plus)
+a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf_skel.plus  )dΛ
+# a_s2(u,v) = ∫(  0.5*(upwind)*jump(u)*jump(v)*meas_cf   )dΛ
 
-  # cell_geo_map = geo_map_func(panel_ids)
-  # n = pushforward_normal(Λ,cell_geo_map)
-  # n = pushforward_normal(Λ)
-  # a_s2(u,v) = ∫(  (0.5*(upwind)*jump(u*n)⋅jump(v*n))*meas_cf_skel.plus   )dΛ
+# cell_geo_map = geo_map_func(panel_ids)
+# n = pushforward_normal(Λ,cell_geo_map)
+# n = pushforward_normal(Λ)
+# a_s2(u,v) = ∫(  (0.5*(upwind)*jump(u*n)⋅jump(v*n))*meas_cf_skel.plus   )dΛ
 
 
-  biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)
-  liform_advection(q) = ∫( (rhs_cf*q)*meas_cf )dΩ
+biform_advection(p,q) =  a_Ω(p,q) + a_s1(p,q) + a_s2(p,q)
+liform_advection(q) = ∫( (rhs_cf*q)*meas_cf )dΩ
 
-  op = AffineFEOperator(biform_advection,liform_advection,P,Q)
+assem = SparseMatrixAssembler(P,Q,das)
+op = AffineFEOperator(biform_advection,liform_advection,P,Q,assem)
 
-  ls = LUSolver()
-  # uh = solve(ls,op)
-  A = get_matrix(op)
-  b = get_vector(op)
-  ns = numerical_setup(symbolic_setup(ls,A),A)
-  x = Gridap.Algebra.allocate_in_domain(A); fill!(x,0.0)
-  solve!(x,ns,b)
-  uh = FEFunction(P,x)
+ls = LUSolver()
+# uh = solve(ls,op)
+A = get_matrix(op)
+b = get_vector(op)
+ns = numerical_setup(symbolic_setup(ls,A),A)
+x = Gridap.Algebra.allocate_in_domain(A); fill!(x,0.0)
+solve!(x,ns,b)
+uh = FEFunction(P,x)
 
 
-  eu = l2((uh-u_cf)*meas_cf,dΩ)
+eu = l2((uh-u_cf)*meas_cf,dΩ)
 
- dir = datadir("Advection_test")
- !isdir(dir) && mkdir(dir)
-    cell_geo_map = geo_map_func(Ω_panel)
-    labels = ["uh","u","eu"]
-    panel_cfs = [uh,u_cf,uh-u_cf]
-    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/advection", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+i_am_main(ranks) && println(num_cells(panel_model))
+i_am_main(ranks) && println(eu)
+
+dir = datadir("Advection_test")
+(i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+# cell_geo_map = geo_map_func(Ω_panel)
+cell_geo_map = geo_map_func(get_panel_ids(Ω_panel))
+labels = ["uh","u","eu"]
+panel_cfs = [uh,u_cf,uh-u_cf]
+cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+writevtk(Ω_panel,dir*"/advection", cellfields=cellfields,append=false,geo_map=cell_geo_map)

@@ -12,7 +12,12 @@ using DrWatson
 include("missing_overloads.jl")
 
 function laplace_beltrami_solver_3D(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+
+  das =  FullyAssembledRows()
+
   ranks = get_ranks(panel_model)
+
+  i_am_main(ranks) && println("Assembly strategy: $das")
 
   lvl_h = nref(nc_horizontal(panel_model))
   lvl_v = nref(nc_vertical(panel_model))
@@ -21,7 +26,7 @@ function laplace_beltrami_solver_3D(panel_model,p_fe::Int,dir::String,f::Functio
   tags = ["bottom_boundary",  "top_boundary"]
 
   panel_ids = get_panel_ids(panel_model)
-  Ω_panel = Triangulation(with_ghost,panel_model)
+  Ω_panel = Triangulation(das,panel_model)
   dΩ = Measure(Ω_panel,2*p_fe+1)
 
   f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
@@ -38,7 +43,8 @@ function laplace_beltrami_solver_3D(panel_model,p_fe::Int,dir::String,f::Functio
 
   poisson_biform(u,v) =  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
   poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
-  op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
+  assem = SparseMatrixAssembler(U,V,das)
+  op = AffineFEOperator(poisson_biform,poisson_liform,U,V,assem)
 
   A = get_matrix(op)
   b = get_vector(op)
@@ -51,7 +57,8 @@ function laplace_beltrami_solver_3D(panel_model,p_fe::Int,dir::String,f::Functio
 
   if return_vtk
     _Ω_panel = Triangulation(panel_model)
-    cell_geo_map = geo_map_func(_Ω_panel)
+    ## call geo_map_func on the panel ids that includes ghost+owned
+    cell_geo_map = geo_map_func(get_panel_ids(_Ω_panel))
     panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
     labels = ["u","uh","eu"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -84,7 +91,7 @@ n_ref_h = 5
 
 p_fe = 1
 ls = LUSolver()
-return_vtk = false
+return_vtk = true
 fXYZ(XYZ) =  XYZ[1]*XYZ[2]*XYZ[3]
 f = panel_to_cartesian(fXYZ)
 
@@ -96,23 +103,22 @@ end
 
 
 # ### analysis
-# using DrWatson
-# using DataFrames
-# using GridapGeosciences
-# include("../convergence_tools.jl")
-# dir = datadir("Laplace3D/convergence")
-# df = collect_results(dir)
+using DrWatson
+using DataFrames
+include("../convergence_tools.jl")
+dir = datadir("Laplace3D/convergence")
+df = collect_results(dir)
 
-# nref_v = unique(df.lvl_v)
-# plot()
+nref_v = unique(df.lvl_v)
+plot()
 
-# for lvl_v in nref_v
-#   errors = df[(df.lvl_v .== lvl_v ),:e]
-#   dxs = df[(df.lvl_v .== lvl_v ),:dxx]
-#   ns = df[(df.lvl_v .== lvl_v ),:n]
+for lvl_v in nref_v
+  errors = df[(df.lvl_v .== lvl_v ),:e]
+  dxs = df[(df.lvl_v .== lvl_v ),:dxx]
+  ns = df[(df.lvl_v .== lvl_v ),:n]
 
-#   slope = convergence_rate(dxs,errors)
-#   plot_convergence(errors,ns,dxs,slope;leginf=["u"],colors=[palette(:tab10)[lvl_v],palette(:tab10)[lvl_v] ] )
-# end
-# plot!(show=true)
-# savefig(dir*"/convergence_laplace_3D")
+  slope = convergence_rate(dxs,errors)
+  plot_convergence(errors,ns,dxs,slope;leginf=["u"],colors=[palette(:tab10)[lvl_v],palette(:tab10)[lvl_v] ] )
+end
+plot!(show=true)
+savefig(dir*"/convergence_laplace_3D")

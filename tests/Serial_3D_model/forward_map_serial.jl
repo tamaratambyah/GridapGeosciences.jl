@@ -18,7 +18,7 @@ function forward_map_3D(p::Int,γαβ)
 
   #### compute XYZ point on surface of inner sphere using 2D forward_map
   αβ = Point(α,β)
-  XYZ_surf = forward_map(p,αβ)
+  XYZ_surf = forward_map_2D(p,αβ)
 
   # radius_surf = radius(XYZ)
   radius_surf = RADIUS

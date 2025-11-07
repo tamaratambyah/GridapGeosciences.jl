@@ -116,12 +116,27 @@ function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
   return dmodels
 end
 
-function get_3D_octree_refined_models(ranks,n_ref_lvls_horiztontal::Int,num_vertical_uniform_refinements=3)
-  n_ref_lvls = n_ref_lvls_horiztontal
+function get_3D_octree_refined_models(ranks,n_ref_lvls::Int)
 
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
+    octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+                        num_horizontal_uniform_refinements=n,
+                        num_vertical_uniform_refinements=n);
+    dmodels[i] = octree3_model.parametric_dmodel
+  end
+
+  return dmodels
+
+end
+
+function get_3D_octree_horizontal_refined_models(ranks,n_ref_lvls_horiztontal::Int,num_vertical_uniform_refinements=3)
+  n_ref_lvls = n_ref_lvls_horiztontal
+
+  dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
+
+  for (i,n) in enumerate(n_ref_lvls:-1:2)
     octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
                         num_horizontal_uniform_refinements=n,
                         num_vertical_uniform_refinements=num_vertical_uniform_refinements);
@@ -132,6 +147,21 @@ function get_3D_octree_refined_models(ranks,n_ref_lvls_horiztontal::Int,num_vert
 
 end
 
+function get_3D_octree_vertical_refined_models(ranks,num_vertical_uniform_refinements::Int,n_ref_lvls_horiztontal=3)
+  n_ref_lvls = num_vertical_uniform_refinements
+
+  dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
+
+  for (i,n) in enumerate(n_ref_lvls:-1:1)
+    octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+                        num_horizontal_uniform_refinements=n_ref_lvls_horiztontal,
+                        num_vertical_uniform_refinements=n);
+    dmodels[i] = octree3_model.parametric_dmodel
+  end
+
+  return dmodels
+
+end
 
 
 function get_ranks(model::DiscreteModel)
@@ -167,6 +197,22 @@ function h_convergence_test(models::AbstractArray,f,p_fe::Int,dir::String,fargs.
 
   ns = map(x->nc(x),models)
   dxs = map(x->dx(nc(x)),models)
+  slope = convergence_rate(dxs,errs)
+
+  if typeof(errs_g[1]) == Bool
+    return errs,ns,dxs,slope
+  elseif typeof(errs_f[1]) == Bool
+    return [errs;errs_g],ns,dxs,slope
+  else
+    return [errs;errs_g;errs_f],ns,dxs,slope
+  end
+end
+
+function h_convergence_test_vertical(models::AbstractArray,f,p_fe::Int,dir::String,fargs...)
+  errs, errs_g, errs_f = _h_convergence_test(models,f,p_fe,dir,fargs...)
+
+  ns = map(x->_nc_vertical(x),models)
+  dxs = map(x->1/_nc_vertical(x),models)
   slope = convergence_rate(dxs,errs)
 
   if typeof(errs_g[1]) == Bool

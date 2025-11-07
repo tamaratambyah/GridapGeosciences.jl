@@ -29,10 +29,12 @@ function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*(p_fe+1))
 
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  ### See https://github.com/tamaratambyah/GridapGeosciences.jl/issues/5
+  ### use triangulation for FE space
+  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
 
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
+  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
   U = TrialFESpace(V)
 
   Y = MultiFieldFESpace([V, Q])
@@ -88,7 +90,7 @@ function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,
 
   n = nc(panel_model)
   dxx = dx(nc(panel_model))
-  output = @strdict e_u e_p e_η n dxx p_fe lvl
+  output = @strdict e_u e_p n dxx p_fe lvl
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("wave_equation_nref$(lvl)_p$p_fe.jld2")), output)
 
   return e_u,e_p,false

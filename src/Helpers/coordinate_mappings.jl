@@ -43,3 +43,10 @@ function spherical_to_cartesian_matrix(θϕr)
               -sin(ϕ)*cos(θ),-sin(ϕ)*sin(θ), cos(ϕ),
                cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
 end
+"""
+X = r cosθ cosϕ
+Y = r sinθ sinϕ
+Z = r sinϕ
+TensorValue = (  ?,?,dZdθ   dXdϕ,dYdϕ,dZdϕ  , dXdr,dYdr,dZdr)
+"""
+##

@@ -1,43 +1,39 @@
-struct Mapp  <: Field
+struct Mapp{A}  <: Field
+  n::A
 end
 
-function Gridap.Arrays.return_cache(f::Mapp,cellαβγ::AbstractArray{<:VectorValue{3}})
-  y = similar(cellαβγ,VectorValue{3,Float64})
+function Gridap.Arrays.return_cache(f::Mapp,cellX::AbstractArray{<:VectorValue{3}})
+  y = similar(cellX,VectorValue{3,Float64})
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::Mapp,cellαβγ::AbstractArray{<:VectorValue{3}} )
+function Gridap.Arrays.evaluate!(cache,f::Mapp,cellX::AbstractArray{<:VectorValue{3}} )
 
   y = cache
-  map!(x-> remove_extrusion(x),
-      y, cellαβγ  )
+  n = f.n
+
+  y = map(cellX) do X
+    γ = X⋅n - π/4# a
+    return _intrusion(γ,X) + γ*n
+  end
+
   return y
 end
 
-function Gridap.Arrays.return_cache(f::Mapp,αβγ::VectorValue{3})
+function Gridap.Arrays.return_cache(f::Mapp,X::VectorValue{3})
   T = typeof(x)
   y = zero(T)
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::Mapp,αβγ::VectorValue{3})
+function Gridap.Arrays.evaluate!(cache,f::Mapp,X::VectorValue{3})
 
   y = cache
-  y = remove_extrusion(x) # surface points
+  n = f.n
+
+  γ = X⋅n - π/4# a
+  y =  _intrusion(γ,X) + γ*n
   return y
 end
 
-function remove_extrusion(αβγ::VectorValue{3}; a=π/4)
-  α,β,γ = αβγ
-
-  α1 = sign(α)*(abs(α) - 1.0)
-  β1 = sign(β)*(abs(β) - 1.0)
-
-  if γ == 0.0
-    return αβγ
-  else
-    return Point(α1,β1,γ)
-  end
-
-
-end
+_intrusion(γ::Float64,x) = x - γ*sqrt(3)*normal_vec(x)

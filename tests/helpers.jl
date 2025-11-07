@@ -29,11 +29,18 @@ function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{
   return ncells_per_panel
 end
 
+# return square here so vertical is 'like' horitzontal
 function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  n = _nc_vertical(model)
+  return n^2
+end
+
+# the actual number of cells in vertical
+function _nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   ncells_per_panel = nc_horizontal(model)
   n = num_cells(model)/6
   _n =  n /ncells_per_panel
-  return _n^2 # return square here so vertical is 'like' horitzontal
+  return _n
 end
 
 using Gridap.Arrays
