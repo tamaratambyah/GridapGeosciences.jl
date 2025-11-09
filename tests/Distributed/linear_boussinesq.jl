@@ -108,7 +108,6 @@ _bn = panel_to_cartesian(bn)
 _un = panel_to_cartesian(un)
 
 
-l2(e,meas_cf,dΩ) = sum(∫( (e⋅e)*meas_cf )dΩ)
 
 function linear_boussineseq(panel_model,p_fe::Int,dir::String,
   h::Function,vX::Function,f::Function,b::Function,_bn::Function,_un::Function,

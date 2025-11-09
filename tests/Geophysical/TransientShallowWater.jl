@@ -135,7 +135,7 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
   opDAE = DAEFEOperator(opT,opFE,ls_diag)
 
   t0, tF = 0.0, _tF
-  _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
+  _dt = dx(panel_model)*CFL/(p_fe*sqrt(gravity*_H_0))
   dt = floor(_dt, sigdigits=1)
 
   τ = dt/2
@@ -190,8 +190,8 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
     i_am_main(ranks) && println(t)
 
     uh_proj = covarient_basis_cf ⋅ uh
-    e_u = l2( (u_proj_h - uh_proj)*meas_cf,dΩ)
-    e_p = l2((h_cf - ph)*meas_cf,dΩ)
+    e_u = l2( (u_proj_h - uh_proj),meas_cf,dΩ)
+    e_p = l2((h_cf - ph),meas_cf,dΩ)
     push!(Es_u,e_u)
     push!(Es_p,e_p)
 
@@ -225,7 +225,7 @@ function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
     end
   end
 
-  dxx =dx(nc(panel_model))
+  dxx =dx(panel_model)
   output = @strdict Masss Energys Enstropys dt CFL dxx
   i_am_main(ranks) && safesave(datadir(dir, ("shallow_water_casimirs.jld2")), output)
 

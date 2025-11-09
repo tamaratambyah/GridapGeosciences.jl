@@ -196,7 +196,7 @@ function h_convergence_test(models::AbstractArray,f,p_fe::Int,dir::String,fargs.
   errs, errs_g, errs_f = _h_convergence_test(models,f,p_fe,dir,fargs...)
 
   ns = map(x->nc(x),models)
-  dxs = map(x->dx(nc(x)),models)
+  dxs = map(x->dx(x),models)
   slope = convergence_rate(dxs,errs)
 
   if typeof(errs_g[1]) == Bool

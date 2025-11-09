@@ -8,6 +8,7 @@ using Gridap.Helpers
 
 # RADIUS = 1.0 # radius of inner sphere (hardcoded at moment)
 # RADIUS_OUTER = 2.0 # radius of outer sphere
+THICKNESS = 1.0
 
 function forward_map_3D(p::Int,γαβ)
   @check length(γαβ) == 3 "\n Not 3D point"
@@ -20,12 +21,8 @@ function forward_map_3D(p::Int,γαβ)
   αβ = Point(α,β)
   XYZ_surf = forward_map_2D(p,αβ)
 
-  # radius_surf = radius(XYZ)
-  # radius_surf = RADIUS
-
   #### extrude surface point in radial direction
-  # XYZ_surf + (RADIUS_OUTER-radius_surf)*γ*normal_vec(XYZ_surf)
-  return XYZ_surf + γ* normal_vec(XYZ_surf)
+  return XYZ_surf + THICKNESS*γ* normal_vec(XYZ_surf)
 
 
 end

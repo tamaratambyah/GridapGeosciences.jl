@@ -96,7 +96,7 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   qh = solve(ls,op)
 
   # e_η = l2((η_h - qh*h_h )*meas_cf,dΩ)
-  e_η = l2((η_cf - qh*h_cf )*meas_cf,dΩ)
+  e_η = l2((η_cf - qh*h_cf ),meas_cf,dΩ)
 
   #### PROGNOSTIC VARIABLES
 
@@ -109,7 +109,7 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
                 )
   op = AffineFEOperator(biform_p,liform_p,P,Q)
   ph = solve(ls,op)
-  e_p = l2((h_cf - ph)*meas_cf,dΩ) # error in depth
+  e_p = l2((h_cf - ph),meas_cf,dΩ) # error in depth
 
 
   # equation for velocity
@@ -136,8 +136,8 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
 
   uh_proj = covarient_basis_cf ⋅ uh
 
-  # e_u = l2( ( uh-u_contra_h  )*meas_cf,dΩ  )
-  e_u = l2( (u_proj_h - uh_proj)*meas_cf,dΩ) # error in physical velocity u
+  # e_u = l2( ( uh-u_contra_h  ),meas_cf,dΩ  )
+  e_u = l2( (u_proj_h - uh_proj),meas_cf,dΩ) # error in physical velocity u
 
   if return_vtk
     lvl = nref(nc(panel_model))
@@ -159,7 +159,7 @@ function nonlinear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
   n = nc(panel_model)
-  dxx = dx(nc(panel_model))
+  dxx = dx(panel_model)
   output = @strdict e_u e_p e_η n dxx p_fe lvl
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
 

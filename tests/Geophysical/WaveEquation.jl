@@ -70,8 +70,8 @@ function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,
 
   uh_proj = covarient_basis_cf ⋅ uh
 
-  e_u = l2( (u_proj_cf - uh_proj)*meas_cf,dΩ) # error in physical velocity u
-  e_p = l2((h_cf - ph)*meas_cf,dΩ) # error in depth
+  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ) # error in physical velocity u
+  e_p = l2((h_cf - ph),meas_cf,dΩ) # error in depth
 
   if return_vtk
     lvl = nref(nc(panel_model))
@@ -89,7 +89,7 @@ function wave_solver(panel_model,p_fe::Int,dir::String,h::Function,vX::Function,
   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
   n = nc(panel_model)
-  dxx = dx(nc(panel_model))
+  dxx = dx(panel_model)
   output = @strdict e_u e_p n dxx p_fe lvl
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("wave_equation_nref$(lvl)_p$p_fe.jld2")), output)
 

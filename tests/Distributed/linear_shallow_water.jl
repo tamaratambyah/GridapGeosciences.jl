@@ -127,7 +127,7 @@ e_geo_balance = sum(∫( geo_balance_con )dΩ)
   uh = FEFunction(U,x)
 
   uh_proj = covarient_basis_cf ⋅ uh
-  e_u = l2( (u_proj_cf - uh_proj)*meas_cf,dΩ) # error in physical velocity u
+  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ) # error in physical velocity u
 
 
 
@@ -144,7 +144,7 @@ e_geo_balance = sum(∫( geo_balance_con )dΩ)
   solve!(x,ns,b)
   ph = FEFunction(P,x)
 
-  e_p = l2((h_cf - ph)*meas_cf,dΩ) # error in depth
+  e_p = l2((h_cf - ph),meas_cf,dΩ) # error in depth
 
 
 cell_geo_map = geo_map_func(Ω_panel)

@@ -90,7 +90,7 @@ function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
 
   # solve with SSP RK 3
   t0 = 0.0
-  _dt = dx(nc(panel_model))*CFL/p_fe
+  _dt = dx(panel_model)*CFL/p_fe
   dt = floor(_dt,sigdigits=1)
 
 
@@ -119,7 +119,7 @@ function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
 
     i_am_main(ranks) && println(t)
 
-    eu = l2((uh-uh0)*meas_cf,dΩ)
+    eu = l2((uh-uh0),meas_cf,dΩ)
 
     push!(ts,t)
     push!(Es,eu)

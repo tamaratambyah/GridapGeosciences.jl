@@ -73,7 +73,7 @@ function laplace_beltrami_solver(panel_model,p_fe::Int,dir::String,f::Function,l
   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
   n = nc(panel_model)
-  dxx = dx(nc(panel_model))
+  dxx = dx(panel_model)
   output = @strdict e n dxx p_fe lvl
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nref$(lvl)_p$p_fe.jld2")), output)
 

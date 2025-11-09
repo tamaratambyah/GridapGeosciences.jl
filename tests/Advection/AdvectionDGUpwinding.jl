@@ -156,7 +156,7 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
 
   Ωo = Triangulation(panel_model)
   dΩo = Measure(Ωo,degree)
-  eu = l2((uh-u_cf)*meas_cf,dΩo)
+  eu = l2((uh-u_cf),meas_cf,dΩo)
   i_am_main(ranks) && println("Error = ",eu)
 
   if return_vtk
@@ -174,7 +174,7 @@ function advection_dg_solver(panel_model,p_fe::Int,dir::String,
     (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
     n = nc(panel_model)
-    dxx = dx(nc(panel_model))
+    dxx = dx(panel_model)
     output = @strdict eu n dxx p_fe lvl
     i_am_main(ranks) && safesave(datadir(dir_convergence, ("advection_dg_nref$(lvl)_p$p_fe.jld2")), output)
 

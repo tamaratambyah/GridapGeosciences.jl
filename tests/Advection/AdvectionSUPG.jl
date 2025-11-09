@@ -61,7 +61,7 @@ function advection_supg_solver(panel_model,p_fe::Int,dir::String,
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
 
   # supg stabilisation parameter
-  _dx = dx(nc(panel_model))
+  _dx = dx(panel_model)
   _dt = _dx*CFL/p_fe
   dt = floor(_dt,sigdigits=1)
   τ = 0.5*dt
@@ -85,7 +85,7 @@ function advection_supg_solver(panel_model,p_fe::Int,dir::String,
   solve!(x,ns,b)
   uh = FEFunction(P,x)
 
-  eu = l2((uh-u_cf)*meas_cf,dΩ)
+  eu = l2((uh-u_cf),meas_cf,dΩ)
 
   if return_vtk
     cell_geo_map = geo_map_func(Ω_panel)
@@ -100,7 +100,7 @@ function advection_supg_solver(panel_model,p_fe::Int,dir::String,
     (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
     n = nc(panel_model)
-    dxx = dx(nc(panel_model))
+    dxx = dx(panel_model)
     output = @strdict eu n dxx p_fe lvl
     i_am_main(ranks) && safesave(datadir(dir_convergence, ("advection_supg_nref$(lvl)_p$p_fe.jld2")), output)
 

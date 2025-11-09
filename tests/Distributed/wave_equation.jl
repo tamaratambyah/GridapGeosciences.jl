@@ -93,7 +93,7 @@ function wave_solver_3D(panel_model::GridapDistributed.GenericDistributedDiscret
 
   uh_proj = covarient_basis_cf ⋅ uh
 
-  e_u = l2( (u_proj_cf - uh_proj)*meas_cf,dΩ) # error in physical velocity u
+  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ) # error in physical velocity u
 
   ###### solve h
   biformP(p,q) = ∫( (p*q)*meas_cf )dΩ
@@ -108,7 +108,7 @@ function wave_solver_3D(panel_model::GridapDistributed.GenericDistributedDiscret
   solve!(x,ns,b)
   ph = FEFunction(P,x)
 
-  e_p = l2((h_cf - ph)*meas_cf,dΩ) # error in depth
+  e_p = l2((h_cf - ph),meas_cf,dΩ) # error in depth
 
   if return_vtk
     _Ω_panel = Triangulation(panel_model)

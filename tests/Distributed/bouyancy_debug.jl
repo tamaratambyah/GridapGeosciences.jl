@@ -54,8 +54,6 @@ end
 
 models = get_3D_octree_refined_models(ranks,4)
 
-
-
 # models = get_3D_octree_vertical_refined_models(ranks,5,3)
 panel_model = models[2]
 p_fe = 1

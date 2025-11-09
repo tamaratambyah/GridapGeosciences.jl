@@ -72,9 +72,9 @@ function mixed_helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls
 
   graduh = covarient_basis_cf ⋅sh
 
-  e_u = l2( (f_panel_cf - uh)*meas_cf,dΩ) # error in scalar u
-  e_s = l2((sigma_cf - sh)*meas_cf,dΩ) # error in contra compons of grad u
-  e_gradu = l2((gradu_cf - graduh)*meas_cf,dΩ) # error in grad u = physical sigma
+  e_u = l2( (f_panel_cf - uh),meas_cf,dΩ) # error in scalar u
+  e_s = l2((sigma_cf - sh),meas_cf,dΩ) # error in contra compons of grad u
+  e_gradu = l2((gradu_cf - graduh),meas_cf,dΩ) # error in grad u = physical sigma
 
   if return_vtk
     lvl = nref(nc(panel_model))
@@ -91,7 +91,7 @@ function mixed_helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls
   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
   n = nc(panel_model)
-  dxx = dx(nc(panel_model))
+  dxx = dx(panel_model)
   output = @strdict e_u e_gradu n dxx p_fe lvl
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("mixed_helmholtz_nref$(lvl)_p$p_fe.jld2")), output)
 

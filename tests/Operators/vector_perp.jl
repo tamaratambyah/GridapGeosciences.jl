@@ -25,7 +25,7 @@ function vector_perp(panel_model,p_fe::Int,dir::String,vX::Function,return_vtk=f
   u_perp_contrah = interpolate(u_perp_contra,U)
   u_perph = jacobian_cf ⋅ u_perp_contrah
 
-  e = l2((u_perp - u_perph)*meas_cf,dΩ)
+  e = l2((u_perp - u_perph),meas_cf,dΩ)
 
   if return_vtk
     lvl = nref(nc(panel_model))

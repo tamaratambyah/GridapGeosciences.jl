@@ -62,7 +62,7 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
 
   # supg stabilisation parameter
-  _dx = dx(nc(panel_model))
+  _dx = dx(panel_model)
   _dt = _dx*CFL/p_fe
   dt = floor(_dt,sigdigits=1)
   τ = 0.5*dt
@@ -136,7 +136,7 @@ function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
 
     i_am_main(ranks) && println("t = ", t)
 
-    eu = l2((uh-uh0)*meas_cf,dΩ)
+    eu = l2((uh-uh0),meas_cf,dΩ)
 
     push!(ts,t)
     push!(Es,eu)

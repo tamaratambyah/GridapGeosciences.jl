@@ -74,7 +74,7 @@ function transient_wave_solver(panel_model,p_fe::Int,_dir::String,
 
   # transient parameters
   t0 = 0.0
-  _dt = dx(nc(panel_model))*CFL/p_fe
+  _dt = dx(panel_model)*CFL/p_fe
   dt = floor(_dt, sigdigits=1)
 
   # solve with SSP RK 3

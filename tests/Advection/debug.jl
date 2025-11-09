@@ -147,7 +147,7 @@ solve!(x,ns,b)
 uh = FEFunction(P,x)
 
 
-eu = l2((uh-u_cf)*meas_cf,dΩ)
+eu = l2((uh-u_cf),meas_cf,dΩ)
 
 i_am_main(ranks) && println(num_cells(panel_model))
 i_am_main(ranks) && println(eu)
