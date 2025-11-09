@@ -9,6 +9,33 @@ using Test
 
 include("helpers.jl")
 
+function get_models(ranks,nprocs,n_ref_lvls::Int;threedims=false,octree=false)
+  s_models  = get_refined_models(n_ref_lvls)
+
+  if threedims
+    i_am_main(ranks) && println("3D models")
+    return get_3D_octree_refined_models(ranks,n_ref_lvls)
+  end
+
+  if octree
+    i_am_main(ranks) && println("Octree models")
+    return get_octree_refined_models(ranks,n_ref_lvls)
+  end
+
+  if nprocs > 1
+    i_am_main(ranks) && println("Distributed test")
+    models,  = get_distributed_refined_models(ranks,nprocs,s_models)
+    return models
+  else
+    i_am_main(ranks) && println("Serial test")
+    return s_models
+  end
+
+
+
+end
+
+
 """
 get_refined_models
 returns an array of refined models where

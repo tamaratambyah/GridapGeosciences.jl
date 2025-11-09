@@ -14,8 +14,13 @@ end
 
 function dx(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   horizontal = 4*π*RADIUS^2/nc_horizontal(model)
-  vertical = THICKNESS/nc_vertical(model)
+  vertical = THICKNESS/_nc_vertical(model)
   sqrt(horizontal*vertical)
+end
+
+function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  println("3D nc")
+  nc_horizontal(model) + _nc_vertical(model)
 end
 
 function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})

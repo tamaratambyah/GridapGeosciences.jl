@@ -93,6 +93,26 @@ df = collect_results(dir)
 sort!(df,:n)
 
 
+# ### analysis
+using DrWatson
+using DataFrames
+include("convergence_tools.jl")
+dir = datadir("LaplaceBeltramiConvergence_3D/func_XYZ/convergence")
+df = collect_results(dir)
+
+ps = unique(df.p_fe)
+plot()
+for p in ps
+  errors = df[(df.p_fe .== p ),:e]
+  dxs = df[(df.p_fe .== p ),:dxx]
+  ns = df[(df.p_fe .== p ),:n]
+
+  slope = convergence_rate(dxs,errors)
+  plot_convergence(errors,ns,dxs,slope;leginf=["u"],colors=[palette(:tab10)[p],palette(:tab10)[p] ] )
+end
+plot!(show=true)
+savefig(dir*"/convergence_laplace_3D")
+
 
 include("plot_tools.jl")
 dir = datadir("gadi/TransientShallowWater_W5_octree_supg/sol_p1_nref6")

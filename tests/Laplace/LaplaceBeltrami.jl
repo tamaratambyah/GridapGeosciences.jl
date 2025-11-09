@@ -17,6 +17,7 @@ using Test
 
 include("analytic_funcs.jl")
 include("../convergence_tools.jl")
+include("../missing_overloads.jl")
 
 function laplace_beltrami_solver(
   panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
@@ -60,7 +61,9 @@ function laplace_beltrami_solver(
   solve!(x,ns,b)
   uh = FEFunction(U,x)
 
-  e = l2(f_panel_cf-uh,dΩ)
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
+  e = l2(f_panel_cf-uh,meas_cf,dΩ_error)
 
   if return_vtk
     lvl = nref(nc(panel_model))
@@ -83,32 +86,115 @@ function laplace_beltrami_solver(
   return e, false,false
 end
 
+### 3D solver
+function laplace_beltrami_solver(
+  panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
+  p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+
+  f = panel_to_cartesian(fX) ### force XYZ in 3D
+
+  das =  FullyAssembledRows()
+
+  ranks = get_ranks(panel_model)
+
+  i_am_main(ranks) && println("Assembly strategy: $das")
+
+  lvl_h = nref(nc_horizontal(panel_model))
+  lvl_v = nref(nc_vertical(panel_model))
+  i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
+
+  tags = ["bottom_boundary",  "top_boundary"]
+
+  panel_ids = get_panel_ids(panel_model)
+  Ω_panel = Triangulation(das,panel_model)
+  dΩ = Measure(Ω_panel,2*p_fe+1)
+
+  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+
+  V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1,
+                dirichlet_tags=tags)
+  U = TrialFESpace(V,f_panel_cf)
+
+  # i_am_main(ranks) && println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
+  rhs_cf = - slap_panel_cf
+
+  poisson_biform(u,v) =  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
+  poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
+  assem = SparseMatrixAssembler(U,V,das)
+  op = AffineFEOperator(poisson_biform,poisson_liform,U,V,assem)
+
+  A = get_matrix(op)
+  b = get_vector(op)
+  ns = numerical_setup(symbolic_setup(ls,A),A)
+  x = allocate_in_domain(A); fill!(x,0.0)
+  solve!(x,ns,b)
+  uh = FEFunction(U,x)
+
+  Ω_error = Triangulation(no_ghost,panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
+  e = l2(f_panel_cf-uh,meas_cf,dΩ_error)
+
+  if return_vtk
+    _Ω_panel = Triangulation(panel_model)
+    ## call geo_map_func on the panel ids that includes ghost+owned
+    cell_geo_map = geo_map_func(get_panel_ids(_Ω_panel))
+    panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
+    labels = ["u","uh","eu"]
+    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+    writevtk(Ω_panel,dir*"/ambient_model_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  end
+
+  ### convergence output for DrWatson
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+  n = nc(panel_model)
+  n_h = nc_horizontal(panel_model)
+  n_v = nc_vertical(panel_model)
+  dxx = dx(n_h)
+  output = @strdict e n n_h n_v dxx p_fe lvl_h lvl_v
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
+
+  return e, false,false
+end
+
+function foldername(name,octree=false,threedims=false)
+  dir = datadir(name)
+
+  if threedims
+    return dir*"_3D"
+  end
+
+  if octree
+    return dir*"_Octree"
+  end
+
+  return dir
+end
+
 ################################################################################
 #### Auto convergence test
+#### threedims = 3D test -> overrides all other
 ################################################################################
-function main(distribute,nprocs;octree=false)
+function main(distribute,nprocs;octree=false,threedims=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Auto conference test: Laplace Beltrami")
 
-  n_ref_lvls = 4
-  ps = [1,2,3]
-  ls = LUSolver()
-  models  = get_refined_models(n_ref_lvls)
-
-  dir = datadir("LaplaceBeltramiConvergence")
+  dir = foldername("LaplaceBeltramiConvergence",octree,threedims)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
+  n_ref_lvls = 4
+  ps = [1,2,3]
 
+  models = get_models(ranks,nprocs,n_ref_lvls;threedims=threedims,octree=octree)
+
+  ls = LUSolver()
   if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
-      i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
-    end
     ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
