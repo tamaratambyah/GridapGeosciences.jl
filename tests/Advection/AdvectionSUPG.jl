@@ -86,7 +86,9 @@ function advection_supg_solver(
   solve!(x,ns,b)
   uh = FEFunction(P,x)
 
-  eu = l2((uh-u_cf),meas_cf,dΩ)
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
+  eu = l2((uh-u_cf),meas_cf,dΩ_error)
 
   if return_vtk
     cell_geo_map = geo_map_func(Ω_panel)

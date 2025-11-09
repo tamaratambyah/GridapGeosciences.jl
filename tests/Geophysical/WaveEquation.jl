@@ -73,8 +73,10 @@ function wave_solver(
 
   uh_proj = covarient_basis_cf ⋅ uh
 
-  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ) # error in physical velocity u
-  e_p = l2((h_cf - ph),meas_cf,dΩ) # error in depth
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
+  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
+  e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
 
   if return_vtk
     lvl = nref(nc(panel_model))

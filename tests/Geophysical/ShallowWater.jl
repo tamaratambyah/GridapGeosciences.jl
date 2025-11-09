@@ -36,6 +36,8 @@ function nonlinear_shallow_water_solver(
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*(p_fe+1))
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
 
   R = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe+1); conformity=:H1)
   H = TrialFESpace(R)
@@ -97,7 +99,7 @@ function nonlinear_shallow_water_solver(
   qh = solve(ls,op)
 
   # e_η = l2((η_h - qh*h_h )*meas_cf,dΩ)
-  e_η = l2((η_cf - qh*h_cf ),meas_cf,dΩ)
+  e_η = l2((η_cf - qh*h_cf ),meas_cf,dΩ_error)
 
   #### PROGNOSTIC VARIABLES
 
@@ -110,7 +112,7 @@ function nonlinear_shallow_water_solver(
                 )
   op = AffineFEOperator(biform_p,liform_p,P,Q)
   ph = solve(ls,op)
-  e_p = l2((h_cf - ph),meas_cf,dΩ) # error in depth
+  e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
 
 
   # equation for velocity
@@ -138,7 +140,7 @@ function nonlinear_shallow_water_solver(
   uh_proj = covarient_basis_cf ⋅ uh
 
   # e_u = l2( ( uh-u_contra_h  ),meas_cf,dΩ  )
-  e_u = l2( (u_proj_h - uh_proj),meas_cf,dΩ) # error in physical velocity u
+  e_u = l2( (u_proj_h - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
 
   if return_vtk
     lvl = nref(nc(panel_model))

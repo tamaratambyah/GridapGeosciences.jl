@@ -148,7 +148,8 @@ function transient_shallow_water_solver(
   it = iterate(solT)
 
 
-
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
 
   Enstropys = Float64[]
   Energys = Float64[]
@@ -192,8 +193,8 @@ function transient_shallow_water_solver(
     i_am_main(ranks) && println(t)
 
     uh_proj = covarient_basis_cf ⋅ uh
-    e_u = l2( (u_proj_h - uh_proj),meas_cf,dΩ)
-    e_p = l2((h_cf - ph),meas_cf,dΩ)
+    e_u = l2( (u_proj_h - uh_proj),meas_cf,dΩ_error)
+    e_p = l2((h_cf - ph),meas_cf,dΩ_error)
     push!(Es_u,e_u)
     push!(Es_p,e_p)
 

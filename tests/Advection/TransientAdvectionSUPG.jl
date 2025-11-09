@@ -133,11 +133,14 @@ function transient_advection_supg_solver(
   counter = 1
   eu = 0.0
   t = 0.0
+
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
   for (t,uh) in solT
 
     i_am_main(ranks) && println("t = ", t)
 
-    eu = l2((uh-uh0),meas_cf,dΩ)
+    eu = l2((uh-uh0),meas_cf,dΩ_error)
 
     push!(ts,t)
     push!(Es,eu)

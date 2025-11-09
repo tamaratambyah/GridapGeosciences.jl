@@ -75,9 +75,11 @@ function mixed_helmholtz_solver(
 
   graduh = covarient_basis_cf ⋅sh
 
-  e_u = l2( (f_panel_cf - uh),meas_cf,dΩ) # error in scalar u
-  e_s = l2((sigma_cf - sh),meas_cf,dΩ) # error in contra compons of grad u
-  e_gradu = l2((gradu_cf - graduh),meas_cf,dΩ) # error in grad u = physical sigma
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
+  e_u = l2( (f_panel_cf - uh),meas_cf,dΩ_error) # error in scalar u
+  e_s = l2((sigma_cf - sh),meas_cf,dΩ_error) # error in contra compons of grad u
+  e_gradu = l2((gradu_cf - graduh),meas_cf,dΩ_error) # error in grad u = physical sigma
 
   if return_vtk
     lvl = nref(nc(panel_model))
