@@ -23,8 +23,9 @@ include("../convergence_tools.jl")
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-function advection_supg_solver(panel_model,p_fe::Int,dir::String,
-    u::Function,vX::Function,CFL=0.1,ls=LUSolver(),return_vtk=false)
+function advection_supg_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,dir::String,u::Function,vX::Function,CFL=0.1,ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
 

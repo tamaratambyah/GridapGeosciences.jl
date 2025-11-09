@@ -27,8 +27,9 @@ include("../output_tools.jl")
 ################################################################################
 #### Transient
 ################################################################################
-function transient_advection_supg_solver(panel_model,p_fe::Int,_dir::String,
-      u::Function,v::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+function transient_advection_supg_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,_dir::String,u::Function,v::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
 
   # get the ranks to help with storing/saving solution
   ranks = get_ranks(panel_model)

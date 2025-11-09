@@ -26,8 +26,9 @@ vecX(XYZ) = zero(XYZ)
 depth(XYZ) = 1.0 + 0.01*exp(-5*((1-XYZ[1])^2+(0-XYZ[2])^2+(0-XYZ[3])^2))
 
 
-function transient_wave_solver(panel_model,p_fe::Int,_dir::String,
-    h::Function,vX::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+function transient_wave_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,_dir::String,h::Function,vX::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
 
   # get the ranks to help with storing/saving solution
   ranks = get_ranks(panel_model)

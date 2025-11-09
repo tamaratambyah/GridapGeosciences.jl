@@ -20,8 +20,10 @@ include("../convergence_tools.jl")
 include("Williamson2Test.jl")
 
 
-function linear_shallow_water_solver(panel_model,p_fe::Int,dir::String,
-    h::Function,vX::Function,f::Function,ls=LUSolver(),return_vtk=false,check_geo_balance=false)
+function linear_shallow_water_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,dir::String,h::Function,vX::Function,f::Function,ls=LUSolver(),
+  return_vtk=false,check_geo_balance=false)
 
   lvl = nref(nc(panel_model))
   println("nref = $lvl")

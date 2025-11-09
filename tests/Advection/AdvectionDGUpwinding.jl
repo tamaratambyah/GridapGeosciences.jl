@@ -44,8 +44,9 @@ end
 ################################################################################
 #### Steady with manufactured solutions
 ################################################################################
-function advection_dg_solver(panel_model,p_fe::Int,dir::String,
-    u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
+function advection_dg_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,dir::String,u::Function,vX::Function,uvX::Function,ls=LUSolver(),return_vtk=false)
 
   das = FullyAssembledRows()
   # das = SubAssembledRows()

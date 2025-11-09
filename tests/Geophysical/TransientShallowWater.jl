@@ -27,8 +27,10 @@ include("../output_tools.jl")
 include("Williamson2Test.jl")
 # include("Williamson5Test.jl")
 
-function transient_shallow_water_solver(panel_model,p_fe::Int,_dir::String,
-  h::Function,vX::Function,f::Function,b::Function,lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
+function transient_shallow_water_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,_dir::String,h::Function,vX::Function,f::Function,b::Function,
+  lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
 
   ls_ode, ls_diag = lss
 

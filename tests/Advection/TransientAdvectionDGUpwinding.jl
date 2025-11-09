@@ -26,8 +26,9 @@ function my_mean( Bu_n::SkeletonPair)
   0.5*( plus - minus  )
 end
 
-function transient_advection_dg_solver(panel_model,p_fe::Int,_dir::String,
-      u::Function,vX::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
+function transient_advection_dg_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,_dir::String,u::Function,vX::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
 
   # get the ranks to help with storing/saving solution
   ranks = get_ranks(panel_model)

@@ -18,7 +18,10 @@ using Test
 include("analytic_funcs.jl")
 include("../convergence_tools.jl")
 
-function mixed_helmholtz_solver(panel_model,p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+function mixed_helmholtz_solver(
+  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
+  p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+
   ranks = get_ranks(panel_model)
 
   lvl = nref(nc(panel_model))
