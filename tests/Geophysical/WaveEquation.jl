@@ -145,6 +145,9 @@ function wave_solver(panel_model::GridapDistributed.GenericDistributedDiscreteMo
   U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
   # U = TrialFESpace(V,b_cf)
 
+  Y = MultiFieldFESpace([V, Q])
+  X = MultiFieldFESpace([U, P])
+
   h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
   h_h = interpolate(h_cf,P)
 
@@ -168,38 +171,26 @@ function wave_solver(panel_model::GridapDistributed.GenericDistributedDiscreteMo
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
-  ####### solve u
-  assem = SparseMatrixAssembler(U,V,das)
+  ####### solve as multifield
+  biform1((u,p),(v,q)) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
+  biform2((u,p),(v,q)) = ∫( (p*q)*meas_cf )dΩ + ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ
 
-  biformU(u,v) =∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ
-  liformU(v) = ( ∫(  rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ
-                + ∫( h_h*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ )
-  op = AffineFEOperator(biformU,liformU,U,V,assem)
+  biformX((u,p),(v,q)) = biform1((u,p),(v,q)) + biform2((u,p),(v,q))
+  liformX((v,q)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ + ∫( (rhs_scalar*q)*meas_cf )dΩ
 
+  assem = SparseMatrixAssembler(X,Y,das)
+  op = AffineFEOperator(biformX,liformX,X,Y,assem)
   A = get_matrix(op)
   b = get_vector(op)
   ns = numerical_setup(symbolic_setup(ls,A),A)
   x = allocate_in_domain(A); fill!(x,0.0)
   solve!(x,ns,b)
-  uh = FEFunction(U,x)
+  xh = FEFunction(X,x)
+  uh,ph = xh
 
   uh_proj = covarient_basis_cf ⋅ uh
 
   e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
-
-  ###### solve h
-  biformP(p,q) = ∫( (p*q)*meas_cf )dΩ
-  liformP(q) = ( ∫( (rhs_scalar*q)*meas_cf )dΩ
-                - ∫( q*(u_contra_h⋅grad_meas_cf + meas_cf*(∇⋅u_contra_h) )  )dΩ )
-  op = AffineFEOperator(biformP,liformP,P,Q)
-
-  A = get_matrix(op)
-  b = get_vector(op)
-  ns = numerical_setup(symbolic_setup(ls,A),A)
-  x = allocate_in_domain(A); fill!(x,0.0)
-  solve!(x,ns,b)
-  ph = FEFunction(P,x)
-
   e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
 
   if return_vtk
