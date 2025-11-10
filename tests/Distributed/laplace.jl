@@ -9,7 +9,7 @@ using GridapDistributed
 
 using DrWatson
 
-include("missing_overloads.jl")
+include("../missing_overloads.jl")
 
 
 
@@ -20,8 +20,8 @@ include("../convergence_tools.jl")
 dir = datadir("Laplace3D")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-n_ref_v = 4
-n_ref_h = 5
+
+n_ref_lvl = 4
 
 p_fe = 1
 ls = LUSolver()
@@ -30,6 +30,6 @@ fXYZ(XYZ) =  XYZ[1]*XYZ[2]*XYZ[3]
 f = panel_to_cartesian(fXYZ)
 
 for v_lvl in n_ref_v:-1:1
-  models = get_3D_octree_refined_models(ranks,n_ref_h,v_lvl)
+  models = get_3D_octree_refined_models(ranks,n_ref_lvl)
   errors,ns,dxs,slopes = h_convergence_test(models,laplace_beltrami_solver_3D,p_fe,dir,f,ls,return_vtk)
 end

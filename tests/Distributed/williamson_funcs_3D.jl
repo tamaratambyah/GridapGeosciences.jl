@@ -5,30 +5,10 @@ function u₀(ζ)
   θ,ϕ,r = θϕr
   u     = _u0*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
   v     = - _u0*sin(θ)*sin(ζ)
-  ## in P6est, the radial component is first
-  spherical_to_cartesian_matrix_3D(θϕr)⋅VectorValue(0.0,u,v)
+
+  spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0.0)
   end
 end
-
-"""
-X = r cosθ cosϕ
-Y = r sinθ sinϕ
-Z = r sinϕ
-J = [dXdr dXdθ dXdϕ
-     dYdr dYdθ dYdϕ
-     dZdr dZdθ dZdϕ ]
-As a TensorValue:
-TensorValue = (dXdr,dYdr,dZdr,  dXdθ,dYdθ,dZdθ,  dXdϕ,dYdϕ,dZdϕ)
-"""
-function spherical_to_cartesian_matrix_3D(θϕr)
-  θ,ϕ,r = θϕr
-  TensorValue(cos(θ)*cos(ϕ),     sin(θ)*cos(ϕ), sin(ϕ),
-             -r*sin(θ)*cos(ϕ), r*cos(θ)*cos(ϕ), 0,
-             -r*cos(θ)*sin(ϕ), -r*sin(θ)*sin(ϕ), r*cos(ϕ) )
-end
-
-
-
 
 # Initial fluid depth
 function h₀(ζ)

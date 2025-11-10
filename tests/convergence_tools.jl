@@ -9,6 +9,21 @@ using Test
 
 include("helpers.jl")
 
+function foldername(name,octree=false,threedims=false)
+  dir = datadir(name)
+
+  if threedims
+    return dir*"_3D"
+  end
+
+  if octree
+    return dir*"_Octree"
+  end
+
+  return dir
+end
+
+
 function get_models(ranks,nprocs,n_ref_lvls::Int;threedims=false,octree=false)
   s_models  = get_refined_models(n_ref_lvls)
 
@@ -30,8 +45,6 @@ function get_models(ranks,nprocs,n_ref_lvls::Int;threedims=false,octree=false)
     i_am_main(ranks) && println("Serial test")
     return s_models
   end
-
-
 
 end
 

@@ -49,7 +49,7 @@ end
 # return square here so vertical is 'like' horitzontal
 function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   n = _nc_vertical(model)
-  return n^2
+  return Int(n^2)
 end
 
 # the actual number of cells in vertical
@@ -57,7 +57,7 @@ function _nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3
   ncells_per_panel = nc_horizontal(model)
   n = num_cells(model)/6
   _n =  n /ncells_per_panel
-  return _n
+  return Int(_n)
 end
 
 using Gridap.Arrays

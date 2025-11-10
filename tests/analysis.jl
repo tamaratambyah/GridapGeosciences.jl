@@ -87,13 +87,8 @@ for d in _dirs
   plot_convergence_from_saved(dir,"convergence",["u","p","n"])
 end
 
-using DataFrames
-dir = datadir("LaplaceBeltrami/convergence")
-df = collect_results(dir)
-sort!(df,:n)
 
-
-# ### analysis
+# ### analysis: Laplace
 using DrWatson
 using DataFrames
 include("convergence_tools.jl")
@@ -112,6 +107,37 @@ for p in ps
 end
 plot!(show=true)
 savefig(dir*"/convergence_laplace_3D")
+
+
+
+# ### analysis: Wave equation
+using DrWatson
+using DataFrames
+# using GridapGeosciences
+include("convergence_tools.jl")
+dir = datadir("Wave3D/convergence")
+df = collect_results(dir)
+
+ps = unique(df.p_fe)
+
+plot()
+for p in ps
+  e_u = df[(df.p_fe .== p ),:e_u]
+  e_p = df[(df.p_fe .== p ),:e_p]
+
+  dxs = df[(df.p_fe .== p ),:dxx]
+  ns = df[(df.p_fe .== p ),:n]
+
+  slope_u = convergence_rate(dxs,e_u)
+  slope_p = convergence_rate(dxs,e_p)
+  errors = [e_u;e_p]
+  plot_convergence(errors,ns,dxs,slope_u;leginf=["u","p"],colors=[palette(:tab10)[p],palette(:tab10)[p] ] )
+end
+
+plot!(show=true)
+savefig(dir*"/wave_equation_3D")
+
+
 
 
 include("plot_tools.jl")

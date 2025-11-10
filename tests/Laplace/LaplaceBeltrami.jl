@@ -153,27 +153,15 @@ function laplace_beltrami_solver(
 
   n = nc(panel_model)
   n_h = nc_horizontal(panel_model)
-  n_v = nc_vertical(panel_model)
-  dxx = dx(n_h)
+  n_v = _nc_vertical(panel_model)
+  dxx = dx(panel_model)
   output = @strdict e n n_h n_v dxx p_fe lvl_h lvl_v
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
 
   return e, false,false
 end
 
-function foldername(name,octree=false,threedims=false)
-  dir = datadir(name)
 
-  if threedims
-    return dir*"_3D"
-  end
-
-  if octree
-    return dir*"_Octree"
-  end
-
-  return dir
-end
 
 ################################################################################
 #### Auto convergence test
