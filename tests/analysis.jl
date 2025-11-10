@@ -115,7 +115,7 @@ using DrWatson
 using DataFrames
 # using GridapGeosciences
 include("convergence_tools.jl")
-dir = datadir("Wave3D/convergence")
+dir = datadir("WaveConvergence_3D/func_z1/convergence")
 df = collect_results(dir)
 
 ps = unique(df.p_fe)
