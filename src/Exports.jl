@@ -59,7 +59,7 @@ end
 @publish Helpers surfdiv
 @publish Helpers contr_gradf
 @publish Helpers sgrad
-
+@publish Helpers g_star
 @publish Helpers panel_to_cartesian
 @publish Helpers panel_to_latlon
 
@@ -71,6 +71,8 @@ end
 @publish Helpers contra_v_perp
 @publish Helpers projection_v
 @publish Helpers normal_vector_from_basis
+@publish Helpers contra_v_comp3D
+@publish Helpers contra_v_perp3D
 
 @publish Helpers ForwardMap
 @publish Helpers forward_map_2D

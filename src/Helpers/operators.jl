@@ -36,3 +36,7 @@ sgrad(f::Function) = p -> sgrad(f,p)
 _sdiv(vec::Function,p) = αβ ->  sqrtg(p,αβ)*( vec(p)(αβ))
 surfdiv(vec::Function,p::Int) = αβ -> 1/sqrtg(p,αβ) * ( divergence(_sdiv(vec,p))(αβ) )
 surfdiv(vec::Function) = p -> surfdiv(vec,p)
+
+
+##### g⋅n for 3D thick sphere
+g_star(p::Int) = αβ -> metric(p,αβ) ⋅ VectorValue(1.0,0.0,0.0)

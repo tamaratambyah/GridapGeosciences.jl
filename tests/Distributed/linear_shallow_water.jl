@@ -14,7 +14,7 @@ MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 include("../convergence_tools.jl")
-include("williamson_funcs_3D.jl")
+include("../Geophysical/Williamson2Test.jl")
 
 models = get_3D_octree_refined_models(ranks,3)
 panel_model = models[1]

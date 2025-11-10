@@ -42,3 +42,13 @@ contra_v_perp(vecX::Function) = p -> contra_v_perp(vecX,p)
 # projection of 3D vector vecX
 projection_v(vecX::Function,p::Int) = αβ -> forward_jacobian(p)(αβ) ⋅ contra_v(vecX,p)(αβ)
 projection_v(vecX::Function) = p -> projection_v(vecX,p)
+
+
+#### contravariant components for 3D thick shere
+contra_v_comp3D(vecX::Function,p::Int,comp::Int) = αβ -> (forward_pinv_jacobian(p)(αβ)⋅ vecX(p)(αβ))[comp]
+contra_v_comp3D(vecX::Function,comp::Int) = p -> contra_v_comp3D(vecX,p,comp)
+
+#### contravariant components of perp for 3D thick shere
+contra_v_perp3D(vecX::Function,p::Int) = αβ -> sqrtg(p,αβ)*(
+        inv_metric(p,αβ) ⋅ VectorValue(0.0, -contra_v_comp3D(vecX,p,3)(αβ), contra_v_comp3D(vecX,p,2)(αβ) ) )
+contra_v_perp3D(vecX::Function) = p -> contra_v_perp3D(vecX,p)

@@ -16,7 +16,7 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
     include("tests/Laplace/LaplaceBeltrami.jl") 
 
     with_mpi() do distribute
-        LaplaceBeltrami.main(distribute,4;octree=true)
+        LaplaceBeltrami.main(distribute,4;threedims=true)
     end
 
 ' 

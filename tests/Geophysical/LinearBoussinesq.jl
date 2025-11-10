@@ -1,20 +1,36 @@
+"""
+solve the linear Boussineq equations in 3D in steady form using manufactured solutions
+u + f(̂n×u) + ∇ᵧ(φ) - bn̂ = f₁
+φ + c² ∇ᵧ⋅u = f₂
+b + N² u⋅̂n = f₃
+"""
+
+module LinearBoussineseq
+
 using MPI
 using PartitionedArrays
+
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using PartitionedArrays
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+
 using GridapGeosciences
 using GridapGeosciences.Distributed
 using GridapP4est
-using Gridap
-using Gridap.Algebra
+using Test
 
-using DrWatson
-dir = datadir("DistributedLinearisedBoussinesq")
-!isdir(dir) && mkdir(dir)
 
-MPI.Init()
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+
+# dir = datadir("DistributedLinearisedBoussinesq_nprocs$(length(ranks))")
+# (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 include("../convergence_tools.jl")
-include("missing_overloads.jl")
+include("../missing_overloads.jl")
 
 a_e = 6.37e6 # m
 d = 5000 #m
@@ -57,7 +73,6 @@ function b0(xyz)
   s = _d^2/(_d^2 + r^2)
   b = dΘ*s*sin( 2*π*k/_Lz  )
   b
-  # sin(x) + sin(y)*sin(z)
 end
 
 function bn(xyz)
@@ -93,31 +108,15 @@ function omega(xyz)
   2*_Ωr*sin(ϕ)
 end
 
-models = get_3D_octree_refined_models(ranks,4)
-panel_model = models[3]
-p_fe = 1
-ls = LUSolver()
-return_vtk = true
 
-
-h = panel_to_cartesian(p0)
-vX = panel_to_cartesian(tangent_vec(u0))
-f = panel_to_cartesian(omega)
-b = panel_to_cartesian(b0)
-_bn = panel_to_cartesian(bn)
-_un = panel_to_cartesian(un)
-
-
-
-function linear_boussineseq(panel_model,p_fe::Int,dir::String,
+function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
+  p_fe::Int,dir::String,
   h::Function,vX::Function,f::Function,b::Function,_bn::Function,_un::Function,
   ls=LUSolver(),return_vtk=false)
 
   das =  FullyAssembledRows()
 
-  Dc = num_cell_dims(panel_model)
-  println("Dc = $Dc")
-  println(num_cells(panel_model))
+  i_am_main(ranks) && println("Assembly strategy: $das")
 
   lvl_h = nref(nc_horizontal(panel_model))
   lvl_v = nref(nc_vertical(panel_model))
@@ -127,8 +126,8 @@ function linear_boussineseq(panel_model,p_fe::Int,dir::String,
   Ω_panel = Triangulation(das,panel_model)
   dΩ = Measure(Ω_panel,4*(p_fe+1))
 
-  _Ω_panel = Triangulation(das,panel_model)
-  _dΩ = Measure(_Ω_panel,6*(p_fe+1))
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
 
 
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
@@ -149,17 +148,6 @@ function linear_boussineseq(panel_model,p_fe::Int,dir::String,
 
   R = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2,dirichlet_tags=tags)
   B = TrialFESpace(R,b_cf)
-
-  # extract compoents 1 or 2 of contravariat vector, and construct contravariat components of vec perp
-  contra_v_comp3D(vecX::Function,p::Int,comp::Int) = αβ -> (forward_pinv_jacobian(p)(αβ)⋅ vecX(p)(αβ))[comp]
-  contra_v_comp3D(vecX::Function,comp::Int) = p -> contra_v_comp3D(vecX,p,comp)
-
-  contra_v_perp3D(vecX::Function,p::Int) = αβ -> sqrtg(p,αβ)*(
-          inv_metric(p,αβ) ⋅ VectorValue(0.0, -contra_v_comp3D(vecX,p,3)(αβ), contra_v_comp3D(vecX,p,2)(αβ) ) )
-  contra_v_perp3D(vecX::Function) = p -> contra_v_perp3D(vecX,p)
-
-  g_star(p::Int) = αβ -> metric(p,αβ) ⋅ VectorValue(1.0,0.0,0.0)
-
 
   u_perp_contra = panelwise_cellfield(contra_v_perp3D(vX),Ω_panel,panel_ids)
   u_perp = covarient_basis_cf ⋅ u_perp_contra
@@ -210,7 +198,7 @@ function linear_boussineseq(panel_model,p_fe::Int,dir::String,
   uh = FEFunction(U,x)
 
   uh_proj = covarient_basis_cf ⋅ uh
-  e_u = l2( (u_proj_cf - uh_proj),meas_cf,_dΩ) # error in physical velocity u
+  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
 
 
 
@@ -227,7 +215,7 @@ function linear_boussineseq(panel_model,p_fe::Int,dir::String,
   solve!(x,ns,b_vec)
   ph = FEFunction(P,x)
 
-  e_p = l2((h_cf - ph),meas_cf,_dΩ) # error in depth
+  e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
 
 
   ### bouyancy
@@ -249,7 +237,7 @@ function linear_boussineseq(panel_model,p_fe::Int,dir::String,
   solve!(x,ns,b_vec)
   bh = FEFunction(B,x)
 
-  e_b = l2((b_cf - bh),meas_cf,_dΩ) # error in bouyancy
+  e_b = l2((b_cf - bh),meas_cf,dΩ_error) # error in bouyancy
 
   if return_vtk
     cell_geo_map = geo_map_func(get_panel_ids(Ω_panel))
@@ -259,17 +247,80 @@ function linear_boussineseq(panel_model,p_fe::Int,dir::String,
     writevtk(Ω_panel,dir*"/ambient_model_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
+  ### convergence output for DrWatson
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+  n = nc(panel_model)
+  n_h = nc_horizontal(panel_model)
+  n_v = _nc_vertical(panel_model)
+  dxx = dx(panel_model)
+  output = @strdict e_u e_p e_b n n_h n_v dxx p_fe lvl_h lvl_v
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("linear_boussineseq_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
+
   return e_u,e_p,e_b
+end
+
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Auto conference test: Linear Boussineq")
+
+  dir = datadir("LinearBoussineseqConvergence")
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
+  n_ref_lvls = 4
+  ps = [1,2]
+  ls = LUSolver()
+
+  models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+
+  h = panel_to_cartesian(p0)
+  vX = panel_to_cartesian(tangent_vec(u0))
+  f = panel_to_cartesian(omega)
+  b = panel_to_cartesian(b0)
+  _bn = panel_to_cartesian(bn)
+  _un = panel_to_cartesian(un)
+
+  p_convergence_test(ranks,ps,models,linear_boussineseq,dir,h,vX,f,b,_bn,_un,ls,true)
+
+
+  i_am_main(ranks) && println("--DONE--")
 end
 
 
 
-errors,ns,dxs,slopes = h_convergence_test(models,linear_boussineseq,p_fe,dir,
-                h,vX,f,b,_bn,_un,ls,true)
+
+# using DrWatson
+# using DataFrames
+# include("../convergence_tools.jl")
+# dir = datadir("DistributedLinearisedBoussinesq_nprocs1/convergence")
+# df = collect_results(dir)
+
+# ps = unique(df.p_fe)
+
+# plot()
+# for p in ps
+#   e_u = df[(df.p_fe .== p ),:e_u]
+#   e_p = df[(df.p_fe .== p ),:e_p]
+#   e_b = df[(df.p_fe .== p ),:e_b]
+
+#   dxs = df[(df.p_fe .== p ),:dxx]
+#   ns = df[(df.p_fe .== p ),:n]
+
+#   slope_u = convergence_rate(dxs,e_u)
+#   slope_p = convergence_rate(dxs,e_p)
+#   errors = [e_u;e_p;e_b]
+#   plot_convergence(errors,ns,dxs,slope_u;leginf=["u","p","b"],
+#     colors=[palette(:tab10)[p],palette(:tab10)[p],palette(:tab10)[p] ] )
+# end
+
+# plot!(show=true)
 
 
 
-plot()
-plot_convergence(errors,ns,dxs,slopes;leginf=["u","p","b"],colors=[palette(:tab10)[p_fe],palette(:tab10)[p_fe],palette(:tab10)[p_fe] ] )
-plot!(show=true)
-savefig(dir*"/convergence_linear_boussineseq_3D")
+end ## module
