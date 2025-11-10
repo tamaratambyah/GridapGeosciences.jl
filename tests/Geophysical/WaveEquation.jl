@@ -137,11 +137,11 @@ function wave_solver(panel_model::GridapDistributed.GenericDistributedDiscreteMo
 
   tags = ["bottom_boundary",  "top_boundary"]
 
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
 
   b_cf = CellField(VectorValue(0.0,0.0,0.0),Ω_panel)
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv, dirichlet_tags=tags)
+  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv, dirichlet_tags=tags)
   U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
   # U = TrialFESpace(V,b_cf)
 

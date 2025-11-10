@@ -32,10 +32,10 @@ function linear_shallow_water_solver(
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*(p_fe+1))
 
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
 
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
+  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
   U = TrialFESpace(V)
 
   Y = MultiFieldFESpace([V, Q])
@@ -105,11 +105,9 @@ function linear_shallow_water_solver(
   e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
 
   if return_vtk
-
     cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [ph, uh_proj, uh_proj-u_proj_cf,ph-h_cf]
     labels = ["p","u_proj","eu","ep"]
-
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
@@ -151,10 +149,10 @@ function linear_shallow_water_solver(panel_model::GridapDistributed.DistributedD
 
   tags = ["bottom_boundary",  "top_boundary"]
 
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
 
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
+  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
   U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
 
   Y = MultiFieldFESpace([V, Q])
@@ -196,37 +194,25 @@ function linear_shallow_water_solver(panel_model::GridapDistributed.DistributedD
   Rperp = TensorValue(Aperp)
   Rperp_cf = CellField(Rperp,Ω_panel)
 
-  #### Velocity
-  assem = SparseMatrixAssembler(U,V,das)
+  #### Solve as multifield
+  biform1((u,p),(v,q)) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( ( cor_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
+  biform2((u,p),(v,q)) = ∫( (p*q)*meas_cf )dΩ + ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ
 
-  biformU(u,v) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( ( cor_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ
-  liformU(v) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ + ∫( h_h*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-  op = AffineFEOperator(biformU,liformU,U,V,assem)
+  biformX((u,p),(v,q)) = biform1((u,p),(v,q)) + biform2((u,p),(v,q))
+  liformX((v,q)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ + ∫( (rhs_scalar*q)*meas_cf )dΩ
+
+  assem = SparseMatrixAssembler(X,Y,das)
+  op = AffineFEOperator(biformX,liformX,X,Y,assem)
   A = get_matrix(op)
   b = get_vector(op)
   ns = numerical_setup(symbolic_setup(ls,A),A)
   x = allocate_in_domain(A); fill!(x,0.0)
   solve!(x,ns,b)
-  uh = FEFunction(U,x)
+  xh = FEFunction(X,x)
+  uh,ph = xh
 
   uh_proj = covarient_basis_cf ⋅ uh
   e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
-
-
-  #### Pressure
-  assem = SparseMatrixAssembler(P,Q,das)
-
-  biformP(p,q) = ∫( (p*q)*meas_cf )dΩ
-  liformP(q) =  ∫( (rhs_scalar*q)*meas_cf )dΩ - ∫( q*(u_contra_h⋅grad_meas_cf + meas_cf*(∇⋅u_contra_h) )  )dΩ
-  op = AffineFEOperator(biformP,liformP,P,Q,das)
-
-  A = get_matrix(op)
-  b = get_vector(op)
-  ns = numerical_setup(symbolic_setup(ls,A),A)
-  x = allocate_in_domain(A); fill!(x,0.0)
-  solve!(x,ns,b)
-  ph = FEFunction(P,x)
-
   e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
 
 
@@ -279,7 +265,7 @@ function main(distribute,nprocs;octree=false,threedims=false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   n_ref_lvls = 4
-  ps = [1,2]
+  ps = [1]
   ζs = [0.0]
   ls = LUSolver()
 

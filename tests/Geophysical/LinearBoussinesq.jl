@@ -5,7 +5,7 @@ u + f(̂n×u) + ∇ᵧ(φ) - bn̂ = f₁
 b + N² u⋅̂n = f₃
 """
 
-module LinearBoussineseq
+module LinearBoussinesq
 
 using MPI
 using PartitionedArrays
@@ -32,7 +32,7 @@ using Test
 include("../convergence_tools.jl")
 include("../missing_overloads.jl")
 
-a_e = 6.37e6 # m
+a_e = 6.37e6#/125 # m
 d = 5000 #m
 Lz = 20e3 #m
 R = a_e # m radius
@@ -50,9 +50,9 @@ LV = ztop
 _d = d/LV
 _Lz = Lz/LV
 _R = R/LH
-_u_0 = u_0/LH*τ
+_u_0 = u_0*τ/LH
 _Ωr = Ωr*τ
-_c = c/LH*τ
+_c = c*τ/LH
 _N = N*τ
 _ztop = ztop/LV
 
@@ -115,6 +115,9 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   ls=LUSolver(),return_vtk=false)
 
   das =  FullyAssembledRows()
+  # das =  SubAssembledRows()
+
+  ranks = get_ranks(panel_model)
 
   i_am_main(ranks) && println("Assembly strategy: $das")
 
@@ -129,7 +132,6 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   Ω_error = Triangulation(panel_model)
   dΩ_error = Measure(Ω_error,6*p_fe+1)
 
-
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
   pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω_panel,panel_ids)
 
@@ -140,14 +142,17 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
 
   tags = ["bottom_boundary",  "top_boundary"]
 
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
 
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
+  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
   U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
 
-  R = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2,dirichlet_tags=tags)
+  R = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2,dirichlet_tags=tags)
   B = TrialFESpace(R,b_cf)
+
+  Y = MultiFieldFESpace([V, Q, R])
+  X = MultiFieldFESpace([U, P, B])
 
   u_perp_contra = panelwise_cellfield(contra_v_perp3D(vX),Ω_panel,panel_ids)
   u_perp = covarient_basis_cf ⋅ u_perp_contra
@@ -164,79 +169,52 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   rhs_vector = u_proj_cf + omega_cf*u_perp + sgrad_cf -bn_cf
   rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
 
-
   # weak forms
   detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_contra_h = interpolate(u_contra_cf,U)
-  h_h = interpolate(h_cf,P)
-  b_h = interpolate(b_cf,B)
-
+  #### Velocity
   Aperp = [0 0 0
-          0 0 -1
-          0 1 0]
+           0 0 -1
+           0 1 0]
   Rperp = TensorValue(Aperp)
   Rperp_cf = CellField(Rperp,Ω_panel)
 
-  #### Velocity
-  assem = SparseMatrixAssembler(U,V,das)
-  biformU(u,v) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( ( omega_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ
-  liformU(v) = ( ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ
-               + ∫( h_h*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-               + ∫( b_h*(g_star_cf⋅v )*meas_cf )dΩ
-                      )
-  op = AffineFEOperator(biformU,liformU,U,V,assem)
+  biform1((u,p,b),(v,q,r)) = ( ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( ( omega_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ
+                             - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
+                             - ∫( b*(g_star_cf⋅v )*meas_cf )dΩ )
+  liform1((v,q,r)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ
+
+  #### Pressure
+  biform2((u,p,b),(v,q,r)) = ∫( (p*q)*meas_cf )dΩ + ∫( _c^2*( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) ) ) )dΩ
+  liform2((v,q,r)) =  ∫( (rhs_pressure*q)*meas_cf )dΩ
+
+  #### Bouyancy
+  n_cf = CellField(VectorValue(1,0,0),Ω_panel)
+  biform3((u,p,b),(v,q,r)) = ∫( (b*r)*meas_cf )dΩ + ∫( _N^2*( r*(g_star_cf⋅u)*meas_cf)   )dΩ
+                                                  # ∫( _N^2*( r*( n_cf⋅(metric_cf⋅u))*meas_cf)   )dΩ
+  liform3((v,q,r)) =  ∫( (rhs_bouyancy*r)*meas_cf )dΩ
+
+
+  #### Multifield problem
+  assem = SparseMatrixAssembler(X,Y,das)
+  biformX((u,p,b),(v,q,r)) = biform1((u,p,b),(v,q,r)) + biform2((u,p,b),(v,q,r)) + biform3((u,p,b),(v,q,r))
+  liformX((v,q,r)) = liform1((v,q,r)) + liform2((v,q,r)) + liform3((v,q,r))
+
+  op = AffineFEOperator(biformX,liformX,X,Y,assem)
   A = get_matrix(op)
   b_vec = get_vector(op)
   ns = numerical_setup(symbolic_setup(ls,A),A)
   x = allocate_in_domain(A); fill!(x,0.0)
   solve!(x,ns,b_vec)
-  uh = FEFunction(U,x)
+  xh = FEFunction(X,x)
+  uh,ph,bh = xh
 
   uh_proj = covarient_basis_cf ⋅ uh
   e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
-
-
-
-  ## pressure
-  assem = SparseMatrixAssembler(P,Q,das)
-  biformP(p,q) = ∫( (p*q)*meas_cf )dΩ
-  liformP(q) =  ∫( (rhs_pressure*q)*meas_cf )dΩ - ∫( _c^2*( q*(u_contra_h⋅grad_meas_cf + meas_cf*(∇⋅u_contra_h) ) ) )dΩ
-  op = AffineFEOperator(biformP,liformP,P,Q,assem)
-
-  A = get_matrix(op)
-  b_vec = get_vector(op)
-  ns = numerical_setup(symbolic_setup(ls,A),A)
-  x = allocate_in_domain(A); fill!(x,0.0)
-  solve!(x,ns,b_vec)
-  ph = FEFunction(P,x)
-
   e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
-
-
-  ### bouyancy
-  rhs_bouyancy = b_cf + _N^2*un_cf
-
-  n_cf = CellField(VectorValue(1,0,0),Ω_panel)
-
-  assem = SparseMatrixAssembler(B,R,das)
-
-  biformB(b,r) = ∫( (b*r)*meas_cf )dΩ
-  liformB(r) =  ∫( (rhs_bouyancy*r)*meas_cf )dΩ - ∫( _N^2*( r*(g_star_cf⋅u_contra_h)*meas_cf)   )dΩ
-  # liformB(r) =  ∫( (rhs_bouyancy*r)*meas_cf )dΩ - ∫( _N^2*( r*( n_cf⋅(metric_cf⋅u_contra_cf))*meas_cf)   )dΩ
-  op = AffineFEOperator(biformB,liformB,B,R,assem)
-
-  A = get_matrix(op)
-  b_vec = get_vector(op)
-  ns = numerical_setup(symbolic_setup(ls,A),A)
-  x = allocate_in_domain(A); fill!(x,0.0)
-  solve!(x,ns,b_vec)
-  bh = FEFunction(B,x)
-
   e_b = l2((b_cf - bh),meas_cf,dΩ_error) # error in bouyancy
 
   if return_vtk
@@ -273,8 +251,8 @@ function main(distribute,nprocs)
   dir = datadir("LinearBoussineseqConvergence")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  n_ref_lvls = 4
-  ps = [1,2]
+  n_ref_lvls = 3
+  ps = [1]
   ls = LUSolver()
 
   models = get_3D_octree_refined_models(ranks,n_ref_lvls)
@@ -291,35 +269,6 @@ function main(distribute,nprocs)
 
   i_am_main(ranks) && println("--DONE--")
 end
-
-
-
-
-# using DrWatson
-# using DataFrames
-# include("../convergence_tools.jl")
-# dir = datadir("DistributedLinearisedBoussinesq_nprocs1/convergence")
-# df = collect_results(dir)
-
-# ps = unique(df.p_fe)
-
-# plot()
-# for p in ps
-#   e_u = df[(df.p_fe .== p ),:e_u]
-#   e_p = df[(df.p_fe .== p ),:e_p]
-#   e_b = df[(df.p_fe .== p ),:e_b]
-
-#   dxs = df[(df.p_fe .== p ),:dxx]
-#   ns = df[(df.p_fe .== p ),:n]
-
-#   slope_u = convergence_rate(dxs,e_u)
-#   slope_p = convergence_rate(dxs,e_p)
-#   errors = [e_u;e_p;e_b]
-#   plot_convergence(errors,ns,dxs,slope_u;leginf=["u","p","b"],
-#     colors=[palette(:tab10)[p],palette(:tab10)[p],palette(:tab10)[p] ] )
-# end
-
-# plot!(show=true)
 
 
 
