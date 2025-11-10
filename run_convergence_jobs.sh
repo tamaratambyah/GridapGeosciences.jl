@@ -2,6 +2,8 @@
 files=(
     gadi_jobs/convergence_laplace.sh
     gadi_jobs/convergence_wave.sh
+    gadi_jobs/convergence_linear_shallow_water.sh
+    gadi_jobs/convergence_boussinesq.sh
 )
 
 # for file in gadi_jobs/convergence*.sh; do
