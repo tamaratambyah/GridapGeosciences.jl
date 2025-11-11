@@ -115,8 +115,8 @@ using DrWatson
 using DataFrames
 # using GridapGeosciences
 include("convergence_tools.jl")
-# dir = datadir("WaveConvergence_3D/func_z1/convergence")
-dir = datadir("LinearisedShallowWater_3D/func_z1/convergence")
+dir = datadir("WaveConvergence_3D/func_z1/convergence")
+# dir = datadir("LinearisedShallowWater_3D/func_z1/convergence")
 df = collect_results(dir)
 
 ps = unique(df.p_fe)
@@ -140,6 +140,31 @@ savefig(dir*"/wave_equation_3D")
 
 
 
+using DrWatson
+using DataFrames
+include("convergence_tools.jl")
+dir = datadir("LinearBoussineseqConvergence/convergence")
+df = collect_results(dir)
+
+ps = unique(df.p_fe)
+
+plot()
+for p in ps
+  e_u = df[(df.p_fe .== p ),:e_u]
+  e_p = df[(df.p_fe .== p ),:e_p]
+  e_b = df[(df.p_fe .== p ),:e_b]
+
+  dxs = df[(df.p_fe .== p ),:dxx]
+  ns = df[(df.p_fe .== p ),:n]
+
+  slope_u = convergence_rate(dxs,e_u)
+  slope_p = convergence_rate(dxs,e_p)
+  errors = [e_u;e_p;e_b]
+  plot_convergence(errors,ns,dxs,slope_u;leginf=["u","p","b"],
+    colors=[palette(:tab10)[p],palette(:tab10)[p],palette(:tab10)[p] ] )
+end
+
+plot!(show=true)
 
 include("plot_tools.jl")
 dir = datadir("gadi/TransientShallowWater_W5_octree_supg/sol_p1_nref6")
