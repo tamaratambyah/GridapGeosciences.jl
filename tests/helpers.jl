@@ -1,5 +1,5 @@
-RADIUS = 1.0
-THICKNESS = 1.0
+import GridapGeosciences.Helpers: RADIUS
+import GridapGeosciences.Helpers: THICKNESS
 
 l2(e,dΩ) = sum(∫( e⋅e )dΩ)
 l2(e,meas,dΩ) = sum(∫( (e⋅e)*meas )dΩ)
