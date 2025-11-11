@@ -5,7 +5,7 @@
 #### Return owned in get_owned_panel_ids
 #### Implemenet the interface of GridapDistributed.GenericDistributedDiscreteModel
 ################################################################################
-const DistributedParametricDiscreteModel{Dc,Dp} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{<:ParametricDiscreteModel{Dc,Dp}}}
+const DistributedParametricDiscreteModel{Dc,Dp} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:ParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
 
 
 function DistributedParametricDiscreteModel(
