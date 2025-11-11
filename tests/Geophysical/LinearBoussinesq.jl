@@ -88,8 +88,8 @@ function u0(xyz)
 
   # u = _u_0*cos(ϕ) #
   # v = 0.0#
-  u = -_u_0*y
-  v = _u_0*x
+  u = -_u_0*y/_R
+  v = _u_0*x/_R
 
   VectorValue(u,v,0.0)
 end
@@ -114,8 +114,7 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   h::Function,vX::Function,f::Function,b::Function,_bn::Function,_un::Function,
   ls=LUSolver(),return_vtk=false)
 
-  das =  FullyAssembledRows()
-  # das =  SubAssembledRows()
+  das =  FullyAssembledRows() # must have FullyAssembledRows to use b_cf on boundary
 
   ranks = get_ranks(panel_model)
 
