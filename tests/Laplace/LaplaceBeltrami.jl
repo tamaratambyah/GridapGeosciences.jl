@@ -91,8 +91,6 @@ function laplace_beltrami_solver(
   panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
 
-  f = panel_to_cartesian(fX) ### force XYZ in 3D
-
   das =  FullyAssembledRows()
 
   ranks = get_ranks(panel_model)
@@ -186,7 +184,7 @@ function main(distribute,nprocs;octree=false,threedims=false)
     ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
   end
 
-  for (key, val) in analytic_funcs
+  for (key, val) in mapped_funcs
     i_am_main(ranks) && println("laplace_beltrami_convergence_func_$(key)")
     _dir = dir*"/func_$(key)"
     (i_am_main(ranks) && !isdir(_dir) ) && mkdir(_dir)

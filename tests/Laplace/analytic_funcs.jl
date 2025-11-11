@@ -9,7 +9,7 @@ function rho3(αβ)
 end
 
 """
-analytic functions defined in terms of the panel coordinates
+analytic functions defined in terms of the panel coordinates in 2D
 """
 
 ### f = sin(ϕ) = Z
