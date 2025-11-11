@@ -7,41 +7,39 @@ using Gridap
 using GridapDistributed
 
 ## should return ghost+owned panel ids
-function GridapGeosciences.get_panel_ids(omodel::ParametricOctreeDistributedDiscreteModel)
-  panel_ids = map(local_views(omodel.parametric_dmodel)) do model
-    return get_panel_ids(model)
-  end
-  return panel_ids
-end
-
-model   = coarse_parametric_model()
-fmodel  = refine(model)
-
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
-get_panel_ids(parametric_octree_dmodel)
-Triangulation(parametric_octree_dmodel)
+omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
+panel_model = omodel.parametric_dmodel
+Ω_panel = Triangulation(panel_model)
+get_panel_ids(panel_model)
+get_panel_ids(Ω_panel)
 
-map(local_views(parametric_octree_dmodel.parametric_dmodel)) do model
-	panel_ids = get_panel_ids(model)
-    cell_geo_map = lazy_map(p -> ForwardMap(p), panel_ids)
-	writevtk(Triangulation(model),"test", geo_map=cell_geo_map)
-end
+cell_geo_map = geo_map_func(Ω_panel)
+writevtk(Ω_panel,"test",append=false, geo_map=cell_geo_map)
 
-ref_coarse_flags=map(ranks,partition(get_cell_gids(parametric_octree_dmodel.octree_dmodel))) do rank,indices
+
+ref_coarse_flags=map(ranks,partition(get_cell_gids(omodel.octree_dmodel))) do rank,indices
 	flags=zeros(Cint,length(indices))
 	flags.=refine_flag
 	flags
 end
 
-parametric_octree_model_adapted = Gridap.Adaptivity.adapt(parametric_octree_dmodel,ref_coarse_flags)
-get_panel_ids(parametric_octree_model_adapted)
-get_panel_ids(parametric_octree_model_adapted.parametric_dmodel)
-map(local_views(parametric_octree_model_adapted.parametric_dmodel)) do model
-	panel_ids = get_panel_ids(model)
-	println(typeof(model))
-	cell_geo_map = lazy_map(p -> ForwardMap(p), panel_ids)
-	writevtk(Triangulation(model),"test_adapted", geo_map=cell_geo_map)
-end
+omodel_adapted = Gridap.Adaptivity.adapt(omodel,ref_coarse_flags)
+panel_model_adapted = omodel_adapted.parametric_dmodel
+Ω_panel_adapted = Triangulation(panel_model_adapted)
+
+get_panel_ids(panel_model_adapted)
+get_panel_ids(Ω_panel_adapted)
+
+cell_geo_map = geo_map_func(get_panel_ids(Ω_panel_adapted))
+writevtk(Ω_panel_adapted,"test_adapted",append=false, geo_map=cell_geo_map)
+
+using Gridap.Adaptivity
+model = panel_model_adapted.models.item
+get_panel_ids(model) ### incorrect
+
+glue = get_adaptivity_glue(model)
+pids = get_panel_ids(model.parent)
+Gridap.Adaptivity.o2n_reindex(pids,glue)

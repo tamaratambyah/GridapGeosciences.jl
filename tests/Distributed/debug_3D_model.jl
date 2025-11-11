@@ -62,7 +62,17 @@ panel_model = o3model.parametric_dmodel
 
 Ω_panel =  Triangulation(panel_model)
 panel_ids = get_panel_ids(Ω_panel)
-panel_ids = get_panel_ids(panel_model)
+panel_ids = get_panel_ids(panel_model) ## Incorrect
+
+using Gridap.Adaptivity
+model = panel_model.models.item
+get_panel_ids(model) ### incorrect
+
+glue = get_adaptivity_glue(model)
+pids = get_panel_ids(model.parent)
+Gridap.Adaptivity.o2n_reindex(pids,glue)
+
+
 
 ## Try plotting in distributed
 cell_geo_map = geo_map_func(Ω_panel)
@@ -79,6 +89,10 @@ end
 ################################################################################
 o3model = GridapGeosciences.Distributed.horizontally_uniformly_refine(o3model)
 panel_model = o3model.parametric_dmodel
+Ω_panel =  Triangulation(panel_model)
+panel_ids = get_panel_ids(Ω_panel)
+panel_ids = get_panel_ids(panel_model)
+
 map(local_views(panel_model)) do model
     println(typeof(model))
     Ω_panel=Triangulation(model)
