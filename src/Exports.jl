@@ -75,6 +75,7 @@ end
 @publish Helpers contra_v_perp3D
 
 @publish Helpers ForwardMap
+@publish Helpers forward_maps
 @publish Helpers forward_map_2D
 @publish Helpers forward_jacobian_2D
 @publish Helpers forward_map_3D
