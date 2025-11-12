@@ -153,7 +153,9 @@ function laplace_beltrami_solver(
   n_h = nc_horizontal(panel_model)
   n_v = _nc_vertical(panel_model)
   dxx = dx(panel_model)
-  output = @strdict e n n_h n_v dxx p_fe lvl_h lvl_v
+  dxH = dx_horizontal(panel_model)
+  dxV = dx_vertical(panel_model)
+  output = @strdict e n n_h n_v dxx dxH dxV p_fe lvl_h lvl_v
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
 
   return e, false,false
@@ -174,7 +176,7 @@ function main(distribute,nprocs;octree=false,threedims=false)
   dir = foldername("LaplaceBeltramiConvergence",octree,threedims)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  n_ref_lvls = 4
+  n_ref_lvls = 5
   ps = [1,2,3]
 
   models = get_models(ranks,nprocs,n_ref_lvls;threedims=threedims,octree=octree)
