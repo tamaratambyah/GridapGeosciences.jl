@@ -13,9 +13,19 @@ function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDis
 end
 
 function dx(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
-  horizontal = 4*π*RADIUS^2/nc_horizontal(model)
+  horizontal = dx_horizontal(model)
+  vertical = dx_vertical(model)
+  horizontal*vertical
+end
+
+function dx_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  horizontal = 4*π*RADIUS^2/(nc_horizontal(model)*6)
+  sqrt(horizontal) ## quads so have to sqrt
+end
+
+function dx_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   vertical = THICKNESS/_nc_vertical(model)
-  sqrt(horizontal*vertical)
+  vertical ### single layer, so no sqrt
 end
 
 function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
@@ -23,6 +33,7 @@ function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   nc_horizontal(model) + _nc_vertical(model)
 end
 
+## nc = num cells per panel in horizontal
 function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
 
   grid = get_grid(model)
@@ -52,7 +63,7 @@ function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,
   return Int(n^2)
 end
 
-# the actual number of cells in vertical
+# the actual number of cells in vertical per panel
 function _nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   ncells_per_panel = nc_horizontal(model)
   n = num_cells(model)/6
