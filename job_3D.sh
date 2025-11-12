@@ -12,6 +12,6 @@ source $HOME/scripts/load-intel.sh
 
 mpiexec -n 6 julia --project=$PBS_O_WORKDIR -e'
     using DrWatson
-    include(projectdir("tests/Geophysical/mpi/LinearBoussinesqTests.jl"))
+    include(projectdir("tests/Geophysical/TransientLinearBoussinesq.jl"))
 
 ' 

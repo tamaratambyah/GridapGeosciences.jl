@@ -27,6 +27,8 @@ RADIUS
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
+i_am_main(ranks) && println(length(ranks))
+
 dir = datadir("TransientLinearisedBoussinesq")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
@@ -119,8 +121,8 @@ _un = panel_to_cartesian(un)
 
 n_ref_lvls = 2
 p_fe = 1
-CFL = 0.5 # horizontal Courant number [1 - 10]
-ls = LUSolver()
+CFL = 0.1 # horizontal Courant number [1 - 10]
+ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
 tF = _tF
 return_vtk = true
 
@@ -225,28 +227,29 @@ dxx_vertical = dx_vertical(panel_model)
 dxx_horizontal/dxx_vertical
 
 # solve with SSP RK 3
-nls = NLSolver(ls, show_trace=true, method=:newton, iterations=10)
+# nls = NLSolver(ls, show_trace=true, method=:newton, iterations=10)
+nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls;verbose=i_am_main(ranks))
 solver =  BackwardEuler(nls, dt)
 # solver = RungeKutta(ls,ls, dt,:EXRK_SSP_3_3)
 solT = solve(solver, opT, t0, tF, xh0)
 
 cell_geo_map = geo_map_func(Ω_panel)
-panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2], xh0[3]]
+panel_cfs0 = [covarient_basis_cf⋅xh0[1], xh0[2], xh0[3]]
 labels = ["uh","ph", "bh"]
-cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Ω_panel,dir*"/solT_0",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+cellfields0 = map((x,y) -> x=>y, labels,panel_cfs0)
+writevtk(Ω_panel,dir*"/solT_0",cellfields=cellfields0,append=false,geo_map=cell_geo_map)
 
-counter = counter = 1
+# counter = counter = 1
 for (t, xh) in solT
   uh,ph,bh = xh
   i_am_main(ranks) && println("t = ", t)
 
-  if return_vtk && (mod(counter,10) == 0)
+  if return_vtk #&& (mod(counter,10) == 0)
     panel_cfs = [covarient_basis_cf⋅uh, ph, bh]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,dir*"/solT_$t",cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
-  counter = counter + 1
+  # counter = counter + 1
 end
 
 # _make_pvd_distributed(dir,"solT",1)
