@@ -1,5 +1,10 @@
 const RADIUS = 1.0
-function forward_map_2D(p::Int,αβ)
+# const RADIUS = 6.37e6/125
+
+println("radius = $RADIUS")
+
+function forward_map_2D(p::Int,αβ)#;radius=RADIUS)
+  @check length(αβ) == 2 "\n Not 2D point"
   α,β = αβ
 
   rho = sqrt(1 + (tan(α))^2 + (tan(β))^2 )
@@ -34,7 +39,7 @@ function forward_map_2D(p::Int,αβ)
   RADIUS*Point(X,Y,Z)
 end
 
-forward_map_2D(p::Int) = αβ -> forward_map_2D(p,αβ)
+forward_map_2D(p::Int) = αβ -> forward_map_2D(p,αβ)#;radius=RADIUS)
 
 forward_jacobian_2D(p::Int,αβ) = transpose( gradient(forward_map_2D(p))(αβ) )
 forward_jacobian_2D(p::Int) = αβ -> forward_jacobian_2D(p,αβ)

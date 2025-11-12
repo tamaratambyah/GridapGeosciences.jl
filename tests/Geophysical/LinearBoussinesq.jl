@@ -22,6 +22,9 @@ using GridapGeosciences.Distributed
 using GridapP4est
 using Test
 
+import GridapGeosciences.Helpers: RADIUS, THICKNESS
+THICKNESS
+RADIUS
 
 # MPI.Init()
 # ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
@@ -32,7 +35,7 @@ using Test
 include("../convergence_tools.jl")
 include("../missing_overloads.jl")
 
-a_e = 6.37e6#/125 # m
+a_e = 6.37e6/125 # m
 d = 5000 #m
 Lz = 20e3 #m
 R = a_e # m radius
@@ -44,7 +47,7 @@ ztop = 10e3 #m
 dΘ = 1 #K
 
 LH = a_e # m
-LV = ztop
+LV = ztop/THICKNESS
 τ = 1/Ωr # s
 
 _d = d/LV
@@ -147,10 +150,10 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
   U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
 
-  R = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2,dirichlet_tags=tags)
-  B = TrialFESpace(R,b_cf)
+  W = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2,dirichlet_tags=tags)
+  B = TrialFESpace(W,b_cf)
 
-  Y = MultiFieldFESpace([V, Q, R])
+  Y = MultiFieldFESpace([V, Q, W])
   X = MultiFieldFESpace([U, P, B])
 
   u_perp_contra = panelwise_cellfield(contra_v_perp3D(vX),Ω_panel,panel_ids)
@@ -216,6 +219,16 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
   e_b = l2((b_cf - bh),meas_cf,dΩ_error) # error in bouyancy
 
+  ### solve bouyancy as single field
+  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+  u_contra_h = interpolate(u_contra_cf,U)
+  biformB(b,r) = ∫( (b*r)*meas_cf )dΩ
+  liformB(r) =  ∫( (rhs_bouyancy*r)*meas_cf )dΩ - ∫( _N^2*( r*( n_cf⋅(metric_cf⋅u_contra_h))*meas_cf)   )dΩ
+  op = AffineFEOperator(biformB,liformB,B,W,SparseMatrixAssembler(B,W,das))
+  bh = solve(ls,op)
+  e_b = l2((b_cf - bh),meas_cf,dΩ_error)
+
+
   if return_vtk
     cell_geo_map = geo_map_func(get_panel_ids(Ω_panel))
     panel_cfs = [h_cf, u_proj_cf, b_cf, ph, uh_proj, bh, h_cf-ph, u_proj_cf-uh_proj , b_cf-bh]
@@ -232,7 +245,9 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   n_h = nc_horizontal(panel_model)
   n_v = _nc_vertical(panel_model)
   dxx = dx(panel_model)
-  output = @strdict e_u e_p e_b n n_h n_v dxx p_fe lvl_h lvl_v
+  dxx_horizontal = dx_horizontal(panel_model)
+  dxx_vertical = dx_vertical(panel_model)
+  output = @strdict e_u e_p e_b n n_h n_v dxx dxx_horizontal dxx_vertical p_fe lvl_h lvl_v
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("linear_boussineseq_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
 
   return e_u,e_p,e_b

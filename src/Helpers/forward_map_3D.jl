@@ -4,13 +4,14 @@ using GridapGeosciences
 using Gridap.Fields
 using Gridap.Helpers
 
-# radius(XYZ) = sqrt(XYZ[1]*XYZ[1] + XYZ[2]*XYZ[2] + XYZ[3]*XYZ[3])
+radius(XYZ) = sqrt(XYZ[1]*XYZ[1] + XYZ[2]*XYZ[2] + XYZ[3]*XYZ[3])
 
-# RADIUS = 1.0 # radius of inner sphere (hardcoded at moment)
-# RADIUS_OUTER = 2.0 # radius of outer sphere
-THICKNESS = 1.0
+# const THICKNESS = 1.0
+const THICKNESS = 0.19
+# const THICKNESS = 10e3
+println("thickness = $THICKNESS")
 
-function forward_map_3D(p::Int,γαβ)
+function forward_map_3D(p::Int,γαβ)#;radius=RADIUS,thickness=THICKNESS)
   @check length(γαβ) == 3 "\n Not 3D point"
 
   #### recall the first coordinate in P6est is the extrusion!
@@ -19,7 +20,7 @@ function forward_map_3D(p::Int,γαβ)
 
   #### compute XYZ point on surface of inner sphere using 2D forward_map
   αβ = Point(α,β)
-  XYZ_surf = forward_map_2D(p,αβ)
+  XYZ_surf = forward_map_2D(p,αβ)#;radius=radius)
 
   #### extrude surface point in radial direction
   return XYZ_surf + THICKNESS*γ* normal_vec(XYZ_surf)
@@ -27,7 +28,7 @@ function forward_map_3D(p::Int,γαβ)
 
 end
 
-forward_map_3D(p::Int) = γαβ -> forward_map_3D(p,γαβ)
+forward_map_3D(p::Int) = γαβ -> forward_map_3D(p,γαβ)#;radius=RADIUS,thickness=THICKNESS)
 forward_jacobian_3D(p::Int,γαβ) = transpose( gradient(forward_map_3D(p))(γαβ) )
 forward_jacobian_3D(p::Int) = γαβ -> forward_jacobian_3D(p,γαβ)
 
