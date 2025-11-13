@@ -11,7 +11,7 @@ using DrWatson
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-dir = datadir("Distributed")
+dir = datadir("Omodel_3D")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 num_horizontal_uniform_refinements = 3
@@ -57,49 +57,72 @@ writevtk(Γ,dir*"/boundary_intermediate",append=false,geo_map=cell_geo_map)
 ################################################################################
 #### Vertical refinement
 ################################################################################
+
+# level 0
+o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  num_horizontal_uniform_refinements=0, num_vertical_uniform_refinements=0);
+panel_model = o3model.parametric_dmodel
+num_cells(panel_model)
+Ω_panel = Triangulation(panel_model)
+get_panel_ids(panel_model)
+get_panel_ids(Ω_panel)
+cell_geo_map = geo_map_func(Ω_panel)
+writevtk(Ω_panel,dir*"/vmodel0",append=false, geo_map=cell_geo_map)
+
+# level 1
 o3model = GridapGeosciences.Distributed.vertically_uniformly_refine(o3model)
 panel_model = o3model.parametric_dmodel
-
-Ω_panel =  Triangulation(panel_model)
-panel_ids = get_panel_ids(Ω_panel)
-panel_ids = get_panel_ids(panel_model) ## Incorrect
-
-using Gridap.Adaptivity
-model = panel_model.models.item
-get_panel_ids(model) ### incorrect
-
-glue = get_adaptivity_glue(model)
-pids = get_panel_ids(model.parent)
-Gridap.Adaptivity.o2n_reindex(pids,glue)
-
-
-
-## Try plotting in distributed
+num_cells(panel_model)
+Ω_panel = Triangulation(panel_model)
+get_panel_ids(panel_model)
+get_panel_ids(Ω_panel)
 cell_geo_map = geo_map_func(Ω_panel)
+writevtk(Ω_panel,dir*"/vmodel1",append=false, geo_map=cell_geo_map)
 
-map(local_views(panel_model)) do model
-    println(typeof(model))
-    Ω_panel=Triangulation(model)
-    cell_geo_map = geo_map_func(Ω_panel)
-    writevtk(Ω_panel,dir*"/vrefined_extruded_model",append=false,geo_map=cell_geo_map)
-end
+
+# level 2
+o3model = GridapGeosciences.Distributed.vertically_uniformly_refine(o3model)
+panel_model = o3model.parametric_dmodel
+num_cells(panel_model)
+Ω_panel = Triangulation(panel_model)
+get_panel_ids(panel_model)
+get_panel_ids(Ω_panel)
+cell_geo_map = geo_map_func(Ω_panel)
+writevtk(Ω_panel,dir*"/vmodel2",append=false, geo_map=cell_geo_map)
+
+
 
 ################################################################################
 #### Horizontal refinement
 ################################################################################
+# level 0
+o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
+panel_model = o3model.parametric_dmodel
+num_cells(panel_model)
+Ω_panel = Triangulation(panel_model)
+get_panel_ids(panel_model)
+get_panel_ids(Ω_panel)
+cell_geo_map = geo_map_func(Ω_panel)
+writevtk(Ω_panel,dir*"/hmodel0",append=false, geo_map=cell_geo_map)
+
+# level 1
 o3model = GridapGeosciences.Distributed.horizontally_uniformly_refine(o3model)
 panel_model = o3model.parametric_dmodel
-Ω_panel =  Triangulation(panel_model)
-panel_ids = get_panel_ids(Ω_panel)
-panel_ids = get_panel_ids(panel_model)
-
-map(local_views(panel_model)) do model
-    println(typeof(model))
-    Ω_panel=Triangulation(model)
-    cell_geo_map = geo_map_func(Ω_panel)
-    writevtk(Ω_panel,dir*"/hrefined_extruded_model",append=false,geo_map=cell_geo_map)
-end
+num_cells(panel_model)
+Ω_panel = Triangulation(panel_model)
+get_panel_ids(panel_model)
+get_panel_ids(Ω_panel)
+cell_geo_map = geo_map_func(Ω_panel)
+writevtk(Ω_panel,dir*"/hmodel1",append=false, geo_map=cell_geo_map)
 
 
-# writevtk(Ω_panel,dir*"/vrefined_extruded_model",append=false,geo_map=cell_geo_map)
-# writevtk(Ω_panel,dir*"/verfined_extruded_model",append=false)
+# level 2
+o3model = GridapGeosciences.Distributed.horizontally_uniformly_refine(o3model)
+panel_model = o3model.parametric_dmodel
+num_cells(panel_model)
+Ω_panel = Triangulation(panel_model)
+get_panel_ids(panel_model)
+get_panel_ids(Ω_panel)
+cell_geo_map = geo_map_func(Ω_panel)
+writevtk(Ω_panel,dir*"/hmodel2",append=false, geo_map=cell_geo_map)
