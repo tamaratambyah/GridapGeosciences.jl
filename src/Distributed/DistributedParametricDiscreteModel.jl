@@ -5,7 +5,7 @@
 #### Return owned in get_owned_panel_ids
 #### Implemenet the interface of GridapDistributed.GenericDistributedDiscreteModel
 ################################################################################
-const DistributedParametricDiscreteModel{Dc,Dp} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:ParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
+const DistributedParametricDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:ParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
 
 
 function DistributedParametricDiscreteModel(
@@ -39,8 +39,18 @@ function DistributedParametricDiscreteModel(
 end
 
 ## these are local+ghost panel ids
-function get_panel_ids(dmodel::DistributedParametricDiscreteModel)
+## for dmodels where the local model is ParametricDiscreteModel
+function get_panel_ids(dmodel::DistributedParametricDiscreteModel{Dc,Dp,<:ParametricDiscreteModel{Dc,Dp}}) where {Dc,Dp}
   return map(get_panel_ids,local_views(dmodel))
+end
+
+## these are local+ghost panel ids
+## for omodels where the local model is AdaptedDiscreteModel
+function get_panel_ids(dmodel::DistributedParametricDiscreteModel{Dc,Dp,<:AdaptedDiscreteModel{Dc,Dp}}) where {Dc,Dp}
+  panel_ids = map(local_views(dmodel)) do lmodel
+    get_panel_ids(lmodel.model)
+  end
+  return panel_ids
 end
 
 # return owned here to assist with triangulations
