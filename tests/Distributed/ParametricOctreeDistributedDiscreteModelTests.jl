@@ -30,7 +30,7 @@ function adapt_model(ranks,model::ParametricOctreeDistributedDiscreteModel)
       flags=zeros(Cint,length(indices))
       flags.=refine_flag
   end
-  Gridap.Adaptivity.adapt(omodel,ref_flags)
+  Gridap.Adaptivity.adapt(model,ref_flags)
 end
 
 # level 1
