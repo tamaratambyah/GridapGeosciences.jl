@@ -113,16 +113,26 @@ el2 = l2(e,meas_cfH,dΩH)
 ################################################################################
 ### Redistribution
 ################################################################################
-function Gridap.Adaptivity.get_model(model::GridapDistributed.DistributedAdaptedDiscreteModel)
-  println("my func ")
-  GridapDistributed.GenericDistributedDiscreteModel(
-    map(get_model,local_views(model)),
-    get_cell_gids(model);
-    metadata = nothing
-  )
-end
-fmodel_red, red_glue = GridapDistributed.redistribute(fine_model)
-# fmodel_red, red_glue = GridapDistributed.redistribute(omodelh)
+fmodel_red, red_glue = GridapDistributed.redistribute(omodelh.octree_dmodel)
+# fmodel_red, red_glue = GridapDistributed.redistribute(fine_model)
+# function Gridap.Adaptivity.get_model(model::DistributedParametricDiscreteModel)
+#   println("my func ")
+#   GridapDistributed.GenericDistributedDiscreteModel(
+#     map(get_model,local_views(model)),
+#     get_cell_gids(model);
+#     metadata = nothing
+#   )
+# end
+
+# function GridapDistributed.redistribute(model::GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{<:ParametricDiscreteModel{Dc,Dp}}},args...;kwargs...) where  {Dc,Dp}
+#   println("redistribute")
+#   # Local cmodels are AdaptedDiscreteModels. To correctly dispatch, we need to
+#   # extract the underlying models, then redistribute.
+#   _model = get_model(model)
+#   return redistribute(_model,args...;kwargs...)
+# end
+
+
 
 # panel_idred = get_panel_ids(fmodel_red)
 # Ωhred  = Triangulation(fmodel_red)
