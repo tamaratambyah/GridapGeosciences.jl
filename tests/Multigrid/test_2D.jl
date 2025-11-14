@@ -7,7 +7,6 @@ using Gridap
 using GridapDistributed
 using DrWatson
 using Test
-import GridapDistributed: i_am_in
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
@@ -26,13 +25,13 @@ end
 
 include("../Laplace/analytic_funcs.jl")
 include("../helpers.jl")
-p_fe = 1
+p_fe = 2
 f = panel_to_cartesian(fX)
-tol = 1e-6
+tol = 1e-10
 ls = LUSolver()
 
 #### coarse model
-omodelH = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+omodelH = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
 coarse_model = omodelH.parametric_dmodel
 panel_idsH = get_panel_ids(coarse_model)
 ΩH = Triangulation(coarse_model)
@@ -75,9 +74,14 @@ el2 = l2(e,meas_cfh,dΩh)
 # prolongation via interpolation:
 uHh = interpolate(uH,Uh)
 e = uh - uHh
+# e = f_cfh - uHh
 el2 = l2(e,dΩh)
 el2 = l2(e,meas_cfh,dΩh)
 @test el2 < tol
+
+cell_geo_map = geo_map_func(Ωh)
+writevtk(Ωh,dir*"/prolongation",cellfields=["u"=>uHh, "eu"=>uh - uHh],append=false,geo_map=cell_geo_map)
+
 
 # prolongation via L2-projection
 ahp(u,v) = ∫(v⋅u)*dΩh
@@ -85,6 +89,7 @@ lhp(v) = ∫(v⋅uH)*dΩh
 oph = AffineFEOperator(ahp,lhp,Uh,Vh)
 uHh = solve(ls,oph)
 e = uh - uHh
+# e = f_cfh - uHh
 el2 = l2(e,dΩh)
 el2 = l2(e,meas_cfh,dΩh)
 @test el2 < tol
@@ -95,6 +100,7 @@ el2 = l2(e,meas_cfh,dΩh)
 # restriction via interpolation
 uhH = interpolate(uh,UH)
 e = uH - uhH
+# e = f_cfH - uhH
 el2 = l2(e,dΩh)
 el2 = l2(e,meas_cfh,dΩh)
 @test el2 < tol
@@ -106,51 +112,10 @@ lHp(v) = ∫(v⋅uh)*dΩhH
 oph = AffineFEOperator(aHp,lHp,UH,VH)
 uhH = solve(ls,oph)
 e = uH - uhH
+# e = f_cfH - uhH
 el2 = l2(e,dΩH)
 el2 = l2(e,meas_cfH,dΩH)
 @test el2 < tol
 
-################################################################################
-### Redistribution
-################################################################################
-fmodel_red, red_glue = GridapDistributed.redistribute(omodelh.octree_dmodel)
-# fmodel_red, red_glue = GridapDistributed.redistribute(fine_model)
-# function Gridap.Adaptivity.get_model(model::DistributedParametricDiscreteModel)
-#   println("my func ")
-#   GridapDistributed.GenericDistributedDiscreteModel(
-#     map(get_model,local_views(model)),
-#     get_cell_gids(model);
-#     metadata = nothing
-#   )
-# end
-
-# function GridapDistributed.redistribute(model::GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{<:ParametricDiscreteModel{Dc,Dp}}},args...;kwargs...) where  {Dc,Dp}
-#   println("redistribute")
-#   # Local cmodels are AdaptedDiscreteModels. To correctly dispatch, we need to
-#   # extract the underlying models, then redistribute.
-#   _model = get_model(model)
-#   return redistribute(_model,args...;kwargs...)
-# end
-
-
-
-# panel_idred = get_panel_ids(fmodel_red)
-# Ωhred  = Triangulation(fmodel_red)
-# dΩhred = Measure(Ωhred,degree)
-
-# Vhred = TestFESpace(fmodel_red, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
-# Uhred = TrialFESpace(Vhred)
-
-# f_cfred = panelwise_cellfield(f,Ωred,panel_idsred)
-# meas_cfred = panelwise_cellfield(sqrtg,Ωred,panel_idsred)
-
-# uhred = interpolate(f_cfred,Uhred)
-# e = uhred-f_cfhred
-# el2 = l2(e,dΩhred)
-# el2 = l2(e,meas_cfred,dΩhred)
-
-
-# uhred2 = GridapDistributed.redistribute_fe_function(uh,Vhred,fmodel_red,red_glue)
-# e = f_cfh - uhred2
-# el2 = l2(e,dΩhred)
-# el2 = l2(e,meas_cfred,dΩhred)
+cell_geo_map = geo_map_func(ΩH)
+writevtk(ΩH,dir*"/restriction",cellfields=["uhH"=>uhH, "eu"=>uH - uhH],append=false,geo_map=cell_geo_map)
