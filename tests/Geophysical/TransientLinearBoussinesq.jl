@@ -40,7 +40,8 @@ TF = (3600*24)*10 # s
 
 LH = a_e # m
 LV = ztop/THICKNESS
-τ = 1/Ωr # s
+c2 = c/LH # 1/s
+τ = 1/c2#1/Ωr # s
 
 _R = R/LH
 _ztop = ztop/LV
@@ -231,7 +232,7 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk
 
   panel_model = o3model.parametric_dmodel
 
-  dir = datadir("TransientLinearisedBoussinesq_CN")
+  dir = datadir("TransientLinearisedBoussinesq_CN_acoustic_timescale")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   transient_linear_boussinesq_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,return_vtk)
