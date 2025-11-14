@@ -3,7 +3,7 @@
 #PBS -q normal
 #PBS -l walltime=1:00:00
 #PBS -l ncpus=4
-#PBS -l mem=16gb
+#PBS -l mem=64gb
 #PBS -N laplace_beltrami
 #PBS -l wd
 
@@ -17,6 +17,7 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
 
     with_mpi() do distribute
         LaplaceBeltrami.main(distribute,4;threedims=true)
+        # LaplaceBeltrami.main(distribute,4;octree=true)
     end
 
 ' 

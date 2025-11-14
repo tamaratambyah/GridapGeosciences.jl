@@ -115,16 +115,16 @@ function transient_linear_boussinesq_solver(
   tags = ["bottom_boundary",  "top_boundary"]
 
   Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
-  P = TransientTrialFESpace(Q)
+  P = TrialFESpace(Q)
 
   V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
-  U = TransientTrialFESpace(V,VectorValue(0.0,0.0,0.0))
+  U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
 
   W = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
-  B = TransientTrialFESpace(W)
+  B = TrialFESpace(W)
 
   Y = MultiFieldFESpace([V, Q, W])
-  X = TransientMultiFieldFESpace([U, P, B])
+  X = MultiFieldFESpace([U, P, B])
 
   h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
   u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
@@ -180,8 +180,9 @@ function transient_linear_boussinesq_solver(
 
   # solve with SSP RK 3
   nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls;verbose=i_am_main(ranks))
-  solver =  BackwardEuler(nls, dt)
+  # solver =  BackwardEuler(nls, dt)
   # solver = RungeKutta(ls,ls, dt,:EXRK_SSP_3_3)
+  solver = ThetaMethod(nls, dt, 0.5)
   solT = solve(solver, opT, t0, tF, xh0)
 
   cell_geo_map = geo_map_func(Ω_panel)
@@ -230,7 +231,7 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk
 
   panel_model = o3model.parametric_dmodel
 
-  dir = datadir("TransientLinearisedBoussinesq")
+  dir = datadir("TransientLinearisedBoussinesq_CN")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   transient_linear_boussinesq_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,return_vtk)

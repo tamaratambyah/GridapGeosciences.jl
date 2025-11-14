@@ -111,14 +111,14 @@ using GridapSolvers
 using GridapSolvers.SolverInterfaces: ConvergenceLog
 
 
-function GridapSolvers.SolverInterfaces.update!(log::ConvergenceLog{T},r::T) where T
-  log.num_iters += 1
-  log.residuals[log.num_iters+1] = r
-  r_rel = r / log.residuals[1]
-  # if log.verbose > SOLVER_VERBOSE_LOW
-    # t = get_tabulation(log)
-    # msg = @sprintf("> Iteration %3i - Residuals: %.2e,   %.2e ", log.num_iters, r, r_rel)
-    # println(t,msg)
-  # end
-  return GridapSolvers.SolverInterfaces.finished(log.tols,log.num_iters,r,r_rel)
-end
+# function GridapSolvers.SolverInterfaces.update!(log::ConvergenceLog{T},r::T) where T
+#   log.num_iters += 1
+#   log.residuals[log.num_iters+1] = r
+#   r_rel = r / log.residuals[1]
+#   # if log.verbose > SOLVER_VERBOSE_LOW
+#     # t = get_tabulation(log)
+#     # msg = @sprintf("> Iteration %3i - Residuals: %.2e,   %.2e ", log.num_iters, r, r_rel)
+#     # println(t,msg)
+#   # end
+#   return GridapSolvers.SolverInterfaces.finished(log.tols,log.num_iters,r,r_rel)
+# end

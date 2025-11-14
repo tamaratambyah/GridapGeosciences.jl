@@ -183,7 +183,7 @@ function main(distribute,nprocs;octree=false,threedims=false)
 
   ls = LUSolver()
   if prod(nprocs) > 1
-    ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
+    ls = CGSolver(JacobiLinearSolver();maxiter=3000,rtol=1e-9,verbose=i_am_main(ranks))
   end
 
   for (key, val) in mapped_funcs

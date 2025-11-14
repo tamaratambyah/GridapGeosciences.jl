@@ -241,9 +241,10 @@ function main(distribute,nprocs;octree=false,threedims=false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   n_ref_lvls = 4
-  ps = [1,2]
+  ps = [2]#[1,2]
   ζs = [0.0]
   ls = LUSolver()
+  # ls = CGSolver(JacobiLinearSolver();maxiter=3000,rtol=1e-8,verbose=i_am_main(ranks))
 
   models = get_models(ranks,nprocs,n_ref_lvls;threedims=threedims,octree=octree)
 

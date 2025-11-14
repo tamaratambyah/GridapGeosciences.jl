@@ -3,7 +3,7 @@
 #PBS -q normal
 #PBS -l walltime=1:00:00
 #PBS -l ncpus=4
-#PBS -l mem=16gb
+#PBS -l mem=128gb
 #PBS -N wave_equation
 #PBS -l wd
 
@@ -16,7 +16,8 @@ mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
     include("tests/Geophysical/WaveEquation.jl")
   
     with_mpi() do distribute
-        WaveEquation.main(distribute,4;octree=true)
+        # WaveEquation.main(distribute,4;octree=true)
+        WaveEquation.main(distribute,4;threedims=true)
     end
 
 ' 
