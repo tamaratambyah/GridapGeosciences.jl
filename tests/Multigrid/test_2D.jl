@@ -86,8 +86,8 @@ writevtk(Ωh,dir*"/prolongation",cellfields=["u"=>uHh, "eu"=>uh - uHh],append=fa
 
 
 # prolongation via L2-projection
-ahp(u,v) = ∫(v⋅u)*dΩh
-lhp(v) = ∫(v⋅uH)*dΩh
+ahp(u,v) = ∫( (v*u)*meas_cfh )dΩh
+lhp(v) = ∫( (v*uH)*meas_cfh)dΩh
 oph = AffineFEOperator(ahp,lhp,Uh,Vh)
 uHh = solve(ls,oph)
 e = uh - uHh
@@ -109,8 +109,8 @@ el2 = l2(e,meas_cfh,dΩh_error)
 
 # restriction via L2-projection
 dΩhH = Measure(ΩH,Ωh,4*p_fe+1)
-aHp(u,v) = ∫(v⋅u)*dΩH_error
-lHp(v) = ∫(v⋅uh)*dΩhH
+aHp(u,v) = ∫( (v*u)*meas_cfH)dΩH_error
+lHp(v) = ∫( (v*uh)*meas_cfH)dΩhH
 oph = AffineFEOperator(aHp,lHp,UH,VH)
 uhH = solve(ls,oph)
 e = uH - uhH
