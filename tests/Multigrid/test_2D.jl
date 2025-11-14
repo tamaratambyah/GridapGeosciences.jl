@@ -35,7 +35,8 @@ omodelH = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_re
 coarse_model = omodelH.parametric_dmodel
 panel_idsH = get_panel_ids(coarse_model)
 ΩH = Triangulation(coarse_model)
-dΩH = Measure(ΩH,2*p_fe+1)
+dΩH = Measure(ΩH,4*p_fe+1)
+dΩH_error = Measure(ΩH,8*p_fe+1)
 
 VH = TestFESpace(coarse_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
 UH = TrialFESpace(VH)
@@ -45,8 +46,8 @@ meas_cfH = panelwise_cellfield(sqrtg,ΩH,panel_idsH)
 
 uH = interpolate(f_cfH,UH)
 e = uH-f_cfH
-el2 = l2(e,dΩH)
-el2 = l2(e,meas_cfH,dΩH)
+el2 = l2(e,dΩH_error)
+el2 = l2(e,meas_cfH,dΩH_error)
 
 
 ### fine model
@@ -54,7 +55,8 @@ omodelh = adapt_model(ranks,omodelH)
 fine_model = omodelh.parametric_dmodel
 panel_idsh = get_panel_ids(fine_model)
 Ωh = Triangulation(fine_model)
-dΩh = Measure(Ωh,2*p_fe+1)
+dΩh = Measure(Ωh,4*p_fe+1)
+dΩh_error = Measure(Ωh,8*p_fe+1)
 
 Vh = TestFESpace(fine_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
 Uh = TrialFESpace(Vh)
@@ -64,8 +66,8 @@ meas_cfh = panelwise_cellfield(sqrtg,Ωh,panel_idsh)
 
 uh = interpolate(f_cfh,Uh)
 e = uh-f_cfh
-el2 = l2(e,dΩh)
-el2 = l2(e,meas_cfh,dΩh)
+el2 = l2(e,dΩh_error)
+el2 = l2(e,meas_cfh,dΩh_error)
 
 
 ################################################################################
@@ -75,8 +77,8 @@ el2 = l2(e,meas_cfh,dΩh)
 uHh = interpolate(uH,Uh)
 e = uh - uHh
 # e = f_cfh - uHh
-el2 = l2(e,dΩh)
-el2 = l2(e,meas_cfh,dΩh)
+el2 = l2(e,dΩh_error)
+el2 = l2(e,meas_cfh,dΩh_error)
 @test el2 < tol
 
 cell_geo_map = geo_map_func(Ωh)
@@ -90,8 +92,8 @@ oph = AffineFEOperator(ahp,lhp,Uh,Vh)
 uHh = solve(ls,oph)
 e = uh - uHh
 # e = f_cfh - uHh
-el2 = l2(e,dΩh)
-el2 = l2(e,meas_cfh,dΩh)
+el2 = l2(e,dΩh_error)
+el2 = l2(e,meas_cfh,dΩh_error)
 @test el2 < tol
 
 ################################################################################
@@ -101,20 +103,20 @@ el2 = l2(e,meas_cfh,dΩh)
 uhH = interpolate(uh,UH)
 e = uH - uhH
 # e = f_cfH - uhH
-el2 = l2(e,dΩh)
-el2 = l2(e,meas_cfh,dΩh)
+el2 = l2(e,dΩh_error)
+el2 = l2(e,meas_cfh,dΩh_error)
 @test el2 < tol
 
 # restriction via L2-projection
-dΩhH = Measure(ΩH,Ωh,2*p_fe+1)
-aHp(u,v) = ∫(v⋅u)*dΩH
+dΩhH = Measure(ΩH,Ωh,4*p_fe+1)
+aHp(u,v) = ∫(v⋅u)*dΩH_error
 lHp(v) = ∫(v⋅uh)*dΩhH
 oph = AffineFEOperator(aHp,lHp,UH,VH)
 uhH = solve(ls,oph)
 e = uH - uhH
 # e = f_cfH - uhH
-el2 = l2(e,dΩH)
-el2 = l2(e,meas_cfH,dΩH)
+el2 = l2(e,dΩH_error)
+el2 = l2(e,meas_cfH,dΩH_error)
 @test el2 < tol
 
 cell_geo_map = geo_map_func(ΩH)
