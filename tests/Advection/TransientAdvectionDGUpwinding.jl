@@ -30,8 +30,12 @@ function transient_advection_dg_solver(
   panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
   p_fe::Int,_dir::String,u::Function,vX::Function,CFL=0.1,ls=LUSolver(),tF=2*π,return_vtk=false)
 
+  das = FullyAssembledRows()
+
   # get the ranks to help with storing/saving solution
   ranks = get_ranks(panel_model)
+
+  i_am_main(ranks) && println("Assembly strategy: $das")
 
   lvl = nref(nc(panel_model))
   i_am_main(ranks) && println("nlevl = $lvl")
@@ -42,14 +46,11 @@ function transient_advection_dg_solver(
   panel_ids = get_panel_ids(panel_model)
   degree = 2*(p_fe + 1)
 
-  Ω_panel = Triangulation(panel_model)
+  Ω_panel = Triangulation(das,panel_model)
   dΩ = Measure(Ω_panel,degree)
 
-  Λ = SkeletonTriangulation(panel_model)
-  if typeof(Ω_panel) <: GridapDistributed.DistributedTriangulation
-    i_am_main(ranks) && println("ghost skel mesh")
-    Λ = SkeletonTriangulation(with_ghost,panel_model)
-  end
+  # Λ = SkeletonTriangulation(panel_model)
+  Λ = SkeletonTriangulation(das,panel_model)
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
 
@@ -87,7 +88,10 @@ function transient_advection_dg_solver(
   res(t,u,v) =  a_Ω(u,v) + a_s1(u,v) + a_s2(u,v)
   jac(t,u,du,v) = a_Ω(du,v) + a_s1(du,v) + a_s2(du,v)
   jac_t(t,u,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
-  opT = TransientSemilinearFEOperator(a_mass, res, (jac,jac_t), P, Q, constant_mass=true)
+  assem = SparseMatrixAssembler(P,Q,das)
+
+  opT = TransientSemilinearFEOperator(a_mass, res, (jac,jac_t), P, Q,
+     constant_mass=true,assembler=assem)
 
   # solve with SSP RK 3
   t0 = 0.0
@@ -100,7 +104,9 @@ function transient_advection_dg_solver(
 
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
-  cell_geo_map = geo_map_func(Ω_panel)
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
+  cell_geo_map = geo_map_func(get_panel_ids(Ω_error))
   if return_vtk
     writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covarient_basis_cf⋅ vel],append=false,geo_map=cell_geo_map)
   end
@@ -108,24 +114,26 @@ function transient_advection_dg_solver(
   ## store errors
   ts = Float64[]
   Es = Float64[]
-
+  Ms = Float64[]
   counter = 1
   eu = 0.0
   t = 0.0
+  mm = mass_conservation(uh0,meas_cf,dΩ_error)
 
   push!(ts,t)
   push!(Es,eu)
+  push!(Ms,mm)
 
-  Ω_error = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_error,6*p_fe+1)
   for (t,uh) in solT
 
     i_am_main(ranks) && println(t)
 
     eu = l2((uh-uh0),meas_cf,dΩ_error)
+    mm = mass_conservation(uh,meas_cf,dΩ_error)
 
     push!(ts,t)
     push!(Es,eu)
+    push!(Ms,mm)
 
     if return_vtk  && (mod(counter,10) == 0)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh],append=false,geo_map=cell_geo_map)
@@ -135,14 +143,25 @@ function transient_advection_dg_solver(
 
   push!(ts,t)
   push!(Es,eu)
+  push!(Ms,mm)
 
-  if return_vtk
-    if length(ranks) > 1
-      _make_pvd_distributed(dir,"solT",1)
-    else
-      make_pvd(dir,"solT",1)
-    end
-  end
+  ### convergence output for DrWatson
+  dir_convergence = _dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+  n = nc(panel_model)
+  dxx = dx(panel_model)
+  output = @strdict n dxx p_fe lvl ts Es Ms
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("transient_advection_dg_nref$(lvl)_p$p_fe.jld2")), output)
+
+
+  # if return_vtk
+  #   if length(ranks) > 1
+  #     _make_pvd_distributed(dir,"solT",1)
+  #   else
+  #     make_pvd(dir,"solT",1)
+  #   end
+  # end
 
 
 
@@ -165,8 +184,8 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Auto conference test: Transient AdvectionDGUpwinding")
 
-  n_ref_lvls = 4
-  ps = [1,2]#[1,2,3]
+  n_ref_lvls = 5
+  ps = [1]#[1,2,3]
   ls = LUSolver()
   CFL = 0.1
 
@@ -174,22 +193,10 @@ function main(distribute,nprocs;octree=false)
   u = panel_to_cartesian(u0)
   tF = 2*π
 
-  models  = get_refined_models(n_ref_lvls)
-
-  dir = datadir("TransientAdvectionDGUpwinding")
+  dir = foldername("TransientAdvectionDGUpwinding",octree,false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
-      i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
-    end
-    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
-  end
-
+  models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
 
   i_am_main(ranks) && println("transient_advection_dg_convergence")
   p_convergence_test(ranks,ps,models,transient_advection_dg_errors,dir,u,v,CFL,ls,tF,true)

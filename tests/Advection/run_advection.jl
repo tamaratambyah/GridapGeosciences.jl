@@ -11,32 +11,40 @@ using DrWatson
 
 using Gridap.CellData, Gridap.Geometry
 
-include("AdvectionDGUpwinding.jl")
-include("../convergence_tools.jl")
-include("advection_funcs.jl")
+# include("AdvectionDGUpwinding.jl")
+# include("../convergence_tools.jl")
+# include("advection_funcs.jl")
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 
-n_ref_lvls = 4
-ps = [1]#,2,3]
-ls = LUSolver()
-
-vX = panel_to_cartesian(tangent_vec(vecX))
-u = panel_to_cartesian(u0)
-uvX = panel_to_cartesian(u0vecX)
-
-dir = datadir("AdvectionDGConvergence")
-(i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
-
-
-models =  get_octree_refined_models(ranks,n_ref_lvls)
-# models  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
+include("TransientAdvectionDGUpwinding.jl")
+with_mpi() do distribute
+  TransientAdvectionDGUpwinding.main(distribute,nprocs;octree=true)
+end
 
 
 
-p_convergence_test(ranks,ps,models,AdvectionDGUpwinding.advection_dg_solver,dir,u,vX,uvX,ls,false)
+
+# n_ref_lvls = 4
+# ps = [1]#,2,3]
+# ls = LUSolver()
+
+# vX = panel_to_cartesian(tangent_vec(vecX))
+# u = panel_to_cartesian(u0)
+# uvX = panel_to_cartesian(u0vecX)
+
+# dir = datadir("AdvectionDGConvergence")
+# (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
+
+# models =  get_octree_refined_models(ranks,n_ref_lvls)
+# # models  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
+
+
+
+# p_convergence_test(ranks,ps,models,AdvectionDGUpwinding.advection_dg_solver,dir,u,vX,uvX,ls,false)
 
 
 # using CSV
