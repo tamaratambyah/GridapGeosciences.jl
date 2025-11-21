@@ -14,8 +14,15 @@ function u₀(ζ)
   θ,ϕ,r = θϕr
   u     = _u0*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
   v     = - _u0*sin(θ)*sin(ζ)
-  spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
+  _spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
   end
+end
+
+function _spherical_to_cartesian_matrix(θϕr)
+  θ,ϕ,r = θϕr
+  TensorValue(-sin(θ)       , cos(θ)       ,      0,
+              -sin(ϕ)*cos(θ),-sin(ϕ)*sin(θ), cos(ϕ),
+               cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
 end
 
 
