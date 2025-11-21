@@ -1,24 +1,24 @@
 #!/bin/bash
 #PBS -P zg98
 #PBS -q normal
-#PBS -l walltime=1:00:00
-#PBS -l ncpus=4
-#PBS -l mem=16gb
+#PBS -l walltime=16:00:00
+#PBS -l ncpus=24
+#PBS -l mem=96gb
 #PBS -N advection_supg
 #PBS -l wd
 
 source $HOME/scripts/load-configs-zg98.sh
 source $HOME/scripts/load-intel.sh
 
-mpiexec -n 4 julia --project=$PBS_O_WORKDIR -e'
+mpiexec -n 24 julia --project=$PBS_O_WORKDIR -e'
     using MPI
     using PartitionedArrays
     include("tests/Advection/AdvectionSUPG.jl")
     include("tests/Advection/TransientAdvectionSUPG.jl")
 
     with_mpi() do distribute
-        AdvectionSUPG.main(distribute,4;octree=true)
-        TransientAdvectionSUPG.main(distribute,4;octree=true)
+        # AdvectionSUPG.main(distribute,24;octree=true)
+        TransientAdvectionSUPG.main(distribute,24;octree=true)
     end
 
 ' 
