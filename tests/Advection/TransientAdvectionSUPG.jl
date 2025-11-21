@@ -24,6 +24,23 @@ include("Lauritzen_functions.jl")
 include("../convergence_tools.jl")
 include("../output_tools.jl")
 
+using GridapPETSc
+function petsc_mumps_setup(ksp)
+  pc       = Ref{GridapPETSc.PETSC.PC}()
+  mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
+  @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
+  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
+  @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
+  @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
+  @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
+  # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
+  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+end
+
 ################################################################################
 #### Transient
 ################################################################################
@@ -64,8 +81,13 @@ function transient_advection_supg_solver(
 
   # supg stabilisation parameter
   _dx = dx(panel_model)
-  _dt = _dx*CFL/p_fe
-  dt = floor(_dt,sigdigits=1)
+  _dt = _dx*CFL/p_fe^2
+  # dt = floor(_dt,sigdigits=1)
+  dt = _dt
+
+  # nsteps = sqrt(π)*p_fe^2*sqrt(num_cells(panel_model))/CFL
+  # dt = tF/nsteps
+
   τ = 0.5*dt
 
   function get_velocity(t)
@@ -76,7 +98,7 @@ function transient_advection_supg_solver(
     # interpolate(v_contr_cf,U)
   end
 
-
+  # vel = get_velocity(0.0)
   # a_mass_Ω(dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
   # a_mass_s(dtu,v) = ∫( (dtu*(vel⋅∇(v)))*meas_cf )dΩ
   # a_Ω(u,v) = ∫( ((vel⋅∇(u))*v )*meas_cf )dΩ
@@ -115,55 +137,71 @@ function transient_advection_supg_solver(
   cell_geo_map = geo_map_func(Ω_panel)
   labels = ["uh","v"]
 
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*p_fe+1)
   if return_vtk
     panel_cfs = [uh0, covarient_basis_cf⋅ get_velocity(0.0)]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-
     writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-    i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[uh0],["uh"])
+    # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[uh0],["uh"])
   end
 
   ## store errors
   ts = Float64[]
   Es = Float64[]
+  Ms = Float64[]
+  eu = 0.0
+  t = 0.0
+  mm = mass_conservation(uh0,meas_cf,dΩ_error)
 
   push!(ts,0.0)
   push!(Es,0.0)
+  push!(Ms,mm)
 
   counter = 1
-  eu = 0.0
-  t = 0.0
 
-  Ω_error = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_error,6*p_fe+1)
+
   for (t,uh) in solT
 
     i_am_main(ranks) && println("t = ", t)
 
     eu = l2((uh-uh0),meas_cf,dΩ_error)
+    mm = mass_conservation(uh,meas_cf,dΩ_error)
 
     push!(ts,t)
     push!(Es,eu)
+    push!(Ms,mm)
+
     if return_vtk && (mod(counter,10) == 0)
       panel_cfs = [uh, covarient_basis_cf⋅ get_velocity(t)]
       cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-      i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[uh],["uh"])
+      # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[uh],["uh"])
     end
     counter = counter + 1
   end
 
   push!(ts,t)
   push!(Es,eu)
+  push!(Ms,mm)
 
-  if return_vtk
-    if length(ranks) > 1
-      _make_pvd_distributed(dir,"solT",1)
-    else
-      make_pvd(dir,"solT",1)
-    end
-  end
+  # if return_vtk
+  #   if length(ranks) > 1
+  #     _make_pvd_distributed(dir,"solT",1)
+  #   else
+  #     make_pvd(dir,"solT",1)
+  #   end
+  # end
+
+    ### convergence output for DrWatson
+    dir_convergence = _dir*"/convergence"
+    (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+    n = nc(panel_model)
+    dxx = dx(panel_model)
+    output = @strdict n dxx p_fe lvl ts Es Ms
+    i_am_main(ranks) && safesave(datadir(dir_convergence, ("transient_advection_dg_nref$(lvl)_p$p_fe.jld2")), output)
 
 
   return ts, Es
@@ -189,9 +227,11 @@ function main_transient(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_
   u = panel_to_cartesian(u0)
   v = nondivergent_velocity
 
-  panel_model = get_distributed_panel_model(ranks,nprocs,n_ref_lvls)
+  parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  panel_model = parametric_octree_dmodel.parametric_dmodel
+  # panel_model = get_distributed_panel_model(ranks,nprocs,n_ref_lvls)
 
-  dir = datadir("Transient_advection_supg")
+  dir = datadir("TransientAdvectionSUPG_Laurentz_Octree_$p_fe")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   GridapPETSc.Init(args=split(options))
@@ -219,34 +259,28 @@ end
 function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  n_ref_lvls = 4
-  ps = [1,2]#[1,2,3]
+  n_ref_lvls = 5
+  ps = [2]#[1,2,3]
   ls = LUSolver()
-  CFL = 0.1
+  CFL = 0.05
 
   v = vt
   u = panel_to_cartesian(u0)
   tF = 2*π
 
-  models  = get_refined_models(n_ref_lvls)
-
-  dir = datadir("TransientAdvectionSUPGConvergence_Octree")
+  dir = foldername("TransientAdvectionSUPG_olddt_CFL_mumps",octree,false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
-      i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
-    end
-    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
-  end
+  models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
+
+  GridapPETSc.Init()
+  ls = PETScLinearSolver(petsc_mumps_setup)
 
   i_am_main(ranks) && println("transient_advection_supg_convergence")
-  p_convergence_test(ranks,ps,models,transient_advection_supg_errors,dir,u,v,CFL,ls,tF,true)
+  p_convergence_test(ranks,ps,models,transient_advection_supg_errors,dir,u,v,CFL,ls,tF,false)
 
+  GridapPETSc.Finalize()
+  GridapPETSc.gridap_petsc_gc()
 end
 
 ################################################################################

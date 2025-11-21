@@ -95,9 +95,12 @@ function transient_advection_dg_solver(
 
   # solve with SSP RK 3
   t0 = 0.0
-  _dt = dx(panel_model)*CFL/p_fe
-  dt = floor(_dt,sigdigits=1)
+  _dt = dx(panel_model)*CFL/p_fe^2
+  dt = _dt
+  # dt = floor(_dt,sigdigits=1)
 
+  # nsteps = sqrt(π)*p_fe^2*sqrt(num_cells(panel_model))/CFL
+  # dt = tF/nsteps
 
   solver = RungeKutta(ls, ls, dt, :EXRK_SSP_3_3)
   solT = solve(solver, opT, t0, tF, uh0)
@@ -185,7 +188,7 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("Auto conference test: Transient AdvectionDGUpwinding")
 
   n_ref_lvls = 5
-  ps = [1]#[1,2,3]
+  ps = [3]#[1,2,3]
   ls = LUSolver()
   CFL = 0.1
 
@@ -199,7 +202,7 @@ function main(distribute,nprocs;octree=false)
   models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
 
   i_am_main(ranks) && println("transient_advection_dg_convergence")
-  p_convergence_test(ranks,ps,models,transient_advection_dg_errors,dir,u,v,CFL,ls,tF,true)
+  p_convergence_test(ranks,ps,models,transient_advection_dg_errors,dir,u,v,CFL,ls,tF,false)
 
   i_am_main(ranks) && println("--DONE--")
 end
