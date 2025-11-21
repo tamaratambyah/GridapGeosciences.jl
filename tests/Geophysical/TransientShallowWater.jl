@@ -43,20 +43,20 @@ function transient_shallow_water_solver(
   dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
-  (i_am_main(ranks) && return_vtk) &&  save_mesh(dir,panel_model)
+  # (i_am_main(ranks) && return_vtk) &&  save_mesh(dir,panel_model)
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*(p_fe+1))
 
-  R = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe+1); conformity=:H1)
+  R = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe+1); conformity=:H1)
   H = TransientTrialFESpace(R)
 
-  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TransientTrialFESpace(Q)
 
-  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
+  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
   U = TransientTrialFESpace(V)
 
   X_prog = TransientMultiFieldFESpace([U,P]) # u, p
@@ -137,7 +137,8 @@ function transient_shallow_water_solver(
   opDAE = DAEFEOperator(opT,opFE,ls_diag)
 
   t0, tF = 0.0, _tF
-  _dt = dx(panel_model)*CFL/(p_fe*sqrt(gravity*_H_0))
+  # _dt = dx(panel_model)*CFL/(p_fe*sqrt(gravity*_H_0))
+  _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
   dt = floor(_dt, sigdigits=1)
 
   τ = dt/2
@@ -169,15 +170,18 @@ function transient_shallow_water_solver(
     cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","bt"],panel_cfs)
     writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
 
-    i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[xh0[2],qh,vort],["ph","qh","vort"])
+    # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[xh0[2],qh,vort],["ph","qh","vort"])
   end
 
+  l2_vec(e,dΩ) = sum(∫( (e⋅(metric_cf⋅ e))*meas_cf )dΩ)
 
   Es_u = Float64[]
   Es_p = Float64[]
-  e_u,e_p = 0.0, 0.0
+  Es_u_vec = Float64[]
+  e_u,e_p,e_vecu = 0.0, 0.0, 0.0
   push!(Es_u,e_u)
   push!(Es_p,e_p)
+  push!(Es_u_vec,e_vecu)
 
   counter = 1
   while !isnothing(it)
@@ -195,8 +199,10 @@ function transient_shallow_water_solver(
     uh_proj = covarient_basis_cf ⋅ uh
     e_u = l2( (u_proj_h - uh_proj),meas_cf,dΩ_error)
     e_p = l2((h_cf - ph),meas_cf,dΩ_error)
+    e_vecu =   l2_vec( (uh-u_contra_cf)  ,dΩ_error)
     push!(Es_u,e_u)
     push!(Es_p,e_p)
+    push!(Es_u_vec,e_vecu)
 
     ens = sum(∫( (qh*qh*xh[2])*meas_cf  )dΩ)
     energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
@@ -206,12 +212,12 @@ function transient_shallow_water_solver(
     push!(Energys,energy)
     push!(Masss,_mass)
 
-    if return_vtk  && (mod(counter,50) == 0)
+    if return_vtk  && (mod(counter,20) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort]
       cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort"],panel_cfs)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
 
-      i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[ph,qh,vort],["ph","qh","vort"])
+      # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[ph,qh,vort],["ph","qh","vort"])
     end
     counter = counter + 1
     it = iterate(solT, state)
@@ -219,18 +225,32 @@ function transient_shallow_water_solver(
 
   push!(Es_u,e_u)
   push!(Es_p,e_p)
+  push!(Es_u_vec,e_vecu)
 
-  if return_vtk
-    if length(ranks) > 1
-      _make_pvd_distributed(dir,"solT",1)
-    else
-      make_pvd(dir,"solT",1)
-    end
-  end
+  # if return_vtk
+  #   if length(ranks) > 1
+  #     _make_pvd_distributed(dir,"solT",1)
+  #   else
+  #     make_pvd(dir,"solT",1)
+  #   end
+  # end
+
+  ### convergence output for DrWatson
+  dir_convergence = _dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
+  n = nc(panel_model)
+  dxx = dx(panel_model)
+  output = @strdict Es_u Es_p Es_u_vec n dxx p_fe lvl
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
+
+  ## save casimirs
+  dir_casimirs = _dir*"/casimirs"
+  (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
 
   dxx =dx(panel_model)
   output = @strdict Masss Energys Enstropys dt CFL dxx
-  i_am_main(ranks) && safesave(datadir(dir, ("shallow_water_casimirs.jld2")), output)
+  i_am_main(ranks) && safesave(datadir(dir_casimirs, ("shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
 
   return Es_u, Es_p
 
@@ -306,28 +326,28 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Auto conference test: Transient Shallow Water")
 
-  n_ref_lvls = 4
+  n_ref_lvls = 5
   ps = [1]
   ζs = [0.0]
   lss = (LUSolver(),LUSolver())
-  CFL = 0.1
-  models  = get_refined_models(n_ref_lvls)
+  return_vtk = true
 
-  dir = datadir("TransientShallowWaterConvergence")
+  # ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
+  # ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=i_am_main(ranks),name="ode_solver")
+  # lss = (ls_ode,ls_diag)
+
+  CFL = 0.1
+  # models  = get_refined_models(n_ref_lvls)
+
+
+  dir = foldername("TransientShallowWaterConvergence_newIC",octree,false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
-      i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
-    end
-    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
-  end
+  models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
 
   for (i,ζ) in enumerate(ζs)
+    _dir = dir*"/func_z$i"
+    (i_am_main(ranks) && !isdir(_dir) ) && mkdir(_dir)
 
     h = panel_to_cartesian(h₀(ζ))
     vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
@@ -336,7 +356,7 @@ function main(distribute,nprocs;octree=false)
     b = panel_to_cartesian(topography)
 
     i_am_main(ranks) && println("transient_shallow_water_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,dir,h,vX,f,η,b,lss,CFL,true)
+    p_convergence_test(ranks,ps,models,transient_shallow_water_errors,_dir,h,vX,f,η,b,lss,CFL,return_vtk)
   end
 
   i_am_main(ranks) && println("WARNING! Error output is [p,u]")
