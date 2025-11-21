@@ -16,6 +16,24 @@ using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
 using GridapGeosciences
 using Test
 
+using GridapPETSc
+function petsc_mumps_setup(ksp)
+  pc       = Ref{GridapPETSc.PETSC.PC}()
+  mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
+  @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
+  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
+  @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
+  @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
+  @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
+  # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
+  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+end
+
+
 include("../convergence_tools.jl")
 include("Williamson2Test.jl")
 
@@ -29,7 +47,7 @@ function wave_solver(
   ranks = get_ranks(panel_model)
 
   lvl = nref(nc(panel_model))
-  i_am_main(ranks) && println("nref = $lvl")
+  i_am_main(ranks) && println("nref = $(lvl); p = $p_fe")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(das,panel_model)
@@ -243,8 +261,11 @@ function main(distribute,nprocs;octree=false,threedims=false)
   n_ref_lvls = 4
   ps = [2]#[1,2]
   ζs = [0.0]
-  ls = LUSolver()
+  # ls = LUSolver()
   # ls = CGSolver(JacobiLinearSolver();maxiter=3000,rtol=1e-8,verbose=i_am_main(ranks))
+
+  GridapPETSc.Init()
+  ls = PETScLinearSolver(petsc_mumps_setup)
 
   models = get_models(ranks,nprocs,n_ref_lvls;threedims=threedims,octree=octree)
 
@@ -258,6 +279,9 @@ function main(distribute,nprocs;octree=false,threedims=false)
     i_am_main(ranks) && println("wave_equation_convergence_func_z$i")
     p_convergence_test(ranks,ps,models,wave_solver,_dir,h,vX,ls,true)
   end
+
+  GridapPETSc.Finalize()
+  GridapPETSc.gridap_petsc_gc()
 
   i_am_main(ranks) && println("--DONE--")
 end
