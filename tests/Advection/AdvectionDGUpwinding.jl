@@ -135,8 +135,8 @@ function advection_dg_solver(
     CSV.write(name, df)
   end
 
-  Atrivial = PartitionedArrays.to_trivial_partition(A)
-  btrivial = PartitionedArrays.to_trivial_partition(b, partition(axes(Atrivial,1)))
+  # Atrivial = PartitionedArrays.to_trivial_partition(A)
+  # btrivial = PartitionedArrays.to_trivial_partition(b, partition(axes(Atrivial,1)))
 
   # if (i_am_main(ranks))
   #   Aloc=partition(Atrivial).item_ref[]
@@ -163,7 +163,7 @@ function advection_dg_solver(
   if return_vtk
     _Ω_panel = Triangulation(panel_model)
     lvl = nref(nc(panel_model))
-    cell_geo_map = geo_map_func(_Ω_panel)
+    cell_geo_map = geo_map_func(get_panel_ids(_Ω_panel))
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -190,7 +190,7 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Auto conference test: AdvectionDGUpwinding")
 
-  n_ref_lvls = 4
+  n_ref_lvls = 5
   ps = [1,2,3]
   ls = LUSolver()
 
@@ -198,22 +198,10 @@ function main(distribute,nprocs;octree=false)
   u = panel_to_cartesian(u0)
   uvX = panel_to_cartesian(u0vecX)
 
-  dir = datadir("AdvectionDGConvergence")
+  dir = foldername("AdvectionDGConvergence",octree,false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  models  = get_refined_models(n_ref_lvls)
-
-  # if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
-      i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      i_am_main(ranks) && println("Distributed models")
-      models  = get_distributed_refined_models(ranks,nprocs,models)
-    end
-    # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1e-8,maxiter=5000,verbose=i_am_main(ranks))
-  # end
+  models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
 
   i_am_main(ranks) && println("advection_dg_convergence_func")
   p_convergence_test(ranks,ps,models,advection_dg_solver,dir,u,vX,uvX,ls,true)

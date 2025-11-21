@@ -98,14 +98,14 @@ function advection_supg_solver(
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe", cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
-    ### convergence output for DrWatson
-    dir_convergence = dir*"/convergence"
-    (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+  ### convergence output for DrWatson
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-    n = nc(panel_model)
-    dxx = dx(panel_model)
-    output = @strdict eu n dxx p_fe lvl
-    i_am_main(ranks) && safesave(datadir(dir_convergence, ("advection_supg_nref$(lvl)_p$p_fe.jld2")), output)
+  n = nc(panel_model)
+  dxx = dx(panel_model)
+  output = @strdict eu n dxx p_fe lvl
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("advection_supg_nref$(lvl)_p$p_fe.jld2")), output)
 
   return eu,false,false
 end
@@ -118,7 +118,7 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Auto conference test: AdvectionSUPG")
 
-  n_ref_lvls = 4
+  n_ref_lvls = 5
   ps = [1,2,3]
   ls = LUSolver()
   CFL = 0.1
@@ -126,21 +126,10 @@ function main(distribute,nprocs;octree=false)
   vX = panel_to_cartesian(tangent_vec(vecX))
   u = panel_to_cartesian(u0)
 
-  models  = get_refined_models(n_ref_lvls)
-
-  dir = datadir("AdvectionSUPGConvergence")
+  dir = foldername("AdvectionSUPGConvergence",octree,false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
-      i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
-    end
-    # ls = CGSolver(JacobiLinearSolver();maxiter=2000,verbose=i_am_main(ranks))
-  end
+  models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
 
   i_am_main(ranks) && println("advection_supg_convergence_func")
   p_convergence_test(ranks,ps,models,advection_supg_solver,dir,u,vX,CFL,ls,true)
