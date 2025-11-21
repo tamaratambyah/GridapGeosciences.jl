@@ -110,7 +110,7 @@ function nondivergent_velocity(t::Float64)
     θ,ϕ,_r = θϕr
     u     = 10*R/T*( sin(θ-2*π*t/T) )^2*sin(2*ϕ)*cos(π*t/T) + 2*π*R/T*cos(ϕ)
     v     = 10*R/T*sin(2*(θ-2*π*t/T))*cos(ϕ)*cos(π*t/T)
-    spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
+    _spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
   end
 end
 
@@ -121,6 +121,13 @@ function divergent_velocity(t::Float64)
     θ,ϕ,_r = θϕr
     u     = -5*R/T*( sin( (θ-2*π*t/T))/2 )^2*sin(2*ϕ)*(cos(ϕ))^2*cos(π*t/T) + 2*π*R/T*cos(ϕ)
     v     = (5/2)*R/T*sin(θ-2*π*t/T)*(cos(ϕ))^3*cos(π*t/T)
-    spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
+    _spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
   end
+end
+
+function _spherical_to_cartesian_matrix(θϕr)
+  θ,ϕ,r = θϕr
+  TensorValue(-sin(θ)       , cos(θ)       ,      0,
+              -sin(ϕ)*cos(θ),-sin(ϕ)*sin(θ), cos(ϕ),
+               cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
 end
