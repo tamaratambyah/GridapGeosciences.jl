@@ -99,10 +99,10 @@ function _create_parametric_octree_dmodel_coarse_model()
                                           cell_types,
                                           Gridap.Geometry.NonOriented())
   m=Gridap.Geometry.UnstructuredDiscreteModel(grid)
-  
-  # Assign all vertices, edges, and cells of the coarse model to the 
+
+  # Assign all vertices, edges, and cells of the coarse model to the
   # same entity. A single tag "boundary" is associated to this entity.
-  # The name of such tag is not relevant. What it is important is that 
+  # The name of such tag is not relevant. What it is important is that
   # all faces are associated with a positive entity identifier. This is
   # a precondition for the discrete model grounded on p6est
   face_labeling=Gridap.Geometry.get_face_labeling(m)
@@ -110,8 +110,8 @@ function _create_parametric_octree_dmodel_coarse_model()
     face_labeling.d_to_dface_to_entity[i].=1
   end
   add_tag!(face_labeling, "boundary", [1])
-  
-  return m 
+
+  return m
 end
 
  # This info goes to P4est ...
@@ -237,11 +237,11 @@ function generate_cell_coordinates_and_panels(parts,
   end |> tuple_of_arrays
 end
 
-function dummy_grid_and_topology_function(pXest_type::GridapP4est.P4P8estType, 
-                                            cell_corner_lids, 
+function dummy_grid_and_topology_function(pXest_type::GridapP4est.P4P8estType,
+                                            cell_corner_lids,
                                             ptr_pXest_connectivity,
-                                            ptr_pXest, 
-                                            ptr_pXest_ghost)                                        
+                                            ptr_pXest,
+                                            ptr_pXest_ghost)
   grid,topology=_generate_topology_grid_and_topology(pXest_type, cell_corner_lids)
 end
 
@@ -355,7 +355,7 @@ function _adapt_octree_dmodel(octree_dmodel::OctreeDistributedDiscreteModel,
                                                     ptr_pXest_ghost,
                                                     ptr_pXest_lnodes;
                                                     grid_and_topology_function=dummy_grid_and_topology_function)
-  
+
   cell_coordinates, panels=generate_cell_coordinates_and_panels(ranks,
                                               coarse_model,
                                               coarse_cell_wise_vertex_coordinates,
@@ -400,7 +400,7 @@ function _adapt_octree_dmodel(octree_dmodel::OctreeDistributedDiscreteModel,
                                   GridapP4est.PXestUniformRefinementRuleType(),
                                   false,
                                   octree_dmodel)
-  adapted_omodel, cell_coordinates, panels
+  adapted_omodel, cell_coordinates, panels, adaptivity_glue
 end
 
 function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel,
@@ -409,7 +409,7 @@ function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel
    coarse_cell_vertices_alpha_beta = setup_coarse_cell_vertices_alpha_beta_coordinates()
    coarse_cell_panels_2D = collect(1:NPANELS)
 
-   adapted_octree_dmodel, cell_wise_vertex_alpha_beta, cell_panels =
+   adapted_octree_dmodel, cell_wise_vertex_alpha_beta, cell_panels, adaptivity_glue =
       _adapt_octree_dmodel(model.octree_dmodel,
                            coarse_cell_vertices_alpha_beta,
                            coarse_cell_panels_2D,
@@ -431,5 +431,5 @@ function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel
                                              get_adaptivity_glue(octree_dmodel_adapted_model))
    end
    generic_dmodel = GenericDistributedDiscreteModel(adaptive_models, get_cell_gids(adapted_octree_dmodel.dmodel))
-   ParametricOctreeDistributedDiscreteModel(adapted_octree_dmodel, generic_dmodel)
+   ParametricOctreeDistributedDiscreteModel(adapted_octree_dmodel, generic_dmodel), adaptivity_glue
 end
