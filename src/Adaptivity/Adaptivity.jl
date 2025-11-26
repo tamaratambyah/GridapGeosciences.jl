@@ -15,5 +15,6 @@ import GridapGeosciences.Fields: MyAffineField
 include("Refinement.jl")
 
 export refine
+export is_child
 
 end

@@ -83,3 +83,11 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::ParametricD
   ref_model = ParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids)
   return AdaptedDiscreteModel(ref_model,model,glue)
 end
+
+
+### return true if the number of cells is the same, since === will not return
+### true in the case of ParametricDiscreteModel
+function Gridap.Adaptivity.is_child(m1::AdaptedDiscreteModel,m2::ParametricDiscreteModel)
+  println("parametric is child")
+  return num_cells(get_parent(m1)) === num_cells(m2)
+end
