@@ -68,7 +68,7 @@ function Gridap.Visualization.create_pvtk_file(
   geo_map=nothing,
   compress=false, append=true, ascii=false, vtkversion=:default
 )
-  println("my distributed vis")
+  # println("my distributed vis")
 
 
   # compute the regular visualisation points

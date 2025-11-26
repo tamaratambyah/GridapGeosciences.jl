@@ -28,7 +28,7 @@ function Geometry.BoundaryTriangulation(
   bgface_to_lcell::AbstractVector{<:Integer}
   )
 
-  println("my boundary trian")
+  # println("my boundary trian")
   # println(bgface_to_lcell)
 
   topo = get_grid_topology(model)
@@ -51,7 +51,7 @@ function Geometry.BoundaryTriangulation(
   _glue = Geometry.FaceToCellGlue(topo,_cell_grid,_face_grid,face_to_bgface,bgface_to_lcell)
   _trian = BoundaryTriangulation(_btrian,_glue)
   F2Fglue = Geometry.get_glue(_trian,Val(Dc),Val(Dc))
-  println(Dc)
+  # println(Dc)
   # tface_to_mface_map = Gridap.Geometry.compute_face_to_cell_reference_map(_cell_grid,_face_grid,_glue)
 
   ## get the face2cell_ids
@@ -119,7 +119,7 @@ function get_mapped_facet_normal(
   face_to_cell_glue::FaceToCellGlue,
   cell_geo_map::AbstractArray
 )
-  println("mapped normal")
+  # println("mapped normal")
 
   @check length(cell_geo_map) == num_cells(cell_grid) "\n cell_geo_map must be a cell-wise array
   "

@@ -19,7 +19,7 @@ function panelwise_cellfield(f::Function,
   trian::GridapDistributed.DistributedTriangulation,
   panel_ids::AbstractArray)
 
-  println("new panelwise cellfield")
+  # println("new panelwise cellfield")
 
   panel_model = trian.model
 
@@ -38,7 +38,7 @@ end
 
 function panelwise_cellfield(f::Function,
   trian::GridapDistributed.DistributedTriangulation)
-  println("old panelwise cellfield -- skeleton")
+  # println("old panelwise cellfield -- skeleton")
   fields = map(trian.trians) do t
     panelwise_cellfield(f,t)
   end
@@ -69,7 +69,7 @@ end
 
 
 function geo_map_func(trian::DistributedTriangulation)
-  println("distributed geo map")
+  # println("distributed geo map")
 
   model = get_background_model(trian)
   owned_panel_ids = get_owned_panel_ids(model)
@@ -78,7 +78,7 @@ end
 
 
 function geo_map_func(owned_panel_ids::AbstractArray)
-  println("distributed geo map")
+  # println("distributed geo map")
 
   @assert typeof(owned_panel_ids) <: DebugArray || typeof(owned_panel_ids) <: MPIArray "\n Not distributed panel ids"
 

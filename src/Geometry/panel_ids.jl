@@ -36,6 +36,6 @@ function geo_map_func(trian::Triangulation)
 end
 
 function geo_map_func(panel_ids::AbstractArray{Int})
-  println("serial geo map")
+  # println("serial geo map")
   return lazy_map(p -> ForwardMap(p), panel_ids)
 end

@@ -9,17 +9,17 @@ function get_panel_ids(trian::Triangulation)
 end
 
 function get_panel_ids(trian::BodyFittedTriangulation,panel_ids::AbstractArray)
-  println("body fitted triangulation")
+  # println("body fitted triangulation")
   return panel_ids
 end
 
 function get_panel_ids(trian::BoundaryTriangulation,panel_ids::AbstractArray)
-  println("boundary triangulation")
+  # println("boundary triangulation")
   get_face_panel_ids(trian,panel_ids)
 end
 
 function get_panel_ids(trian::TriangulationView,panel_ids::AbstractArray)
-  println("trian view panel ids")
+  # println("trian view panel ids")
   get_face_panel_ids(trian,panel_ids)
 end
 

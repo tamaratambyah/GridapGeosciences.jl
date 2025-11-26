@@ -11,7 +11,7 @@ function pushforward_normal(trian::SkeletonTriangulation,cell_geo_map::AbstractA
 end
 
 function Geometry.get_facet_normal(trian::SkeletonTriangulation,cell_geo_map::AbstractArray)
-  println("skeleton facet normal")
+  # println("skeleton facet normal")
   plus = get_facet_normal(trian.plus,cell_geo_map)
   minus = get_facet_normal(trian.minus,cell_geo_map)
   SkeletonPair(plus,minus)

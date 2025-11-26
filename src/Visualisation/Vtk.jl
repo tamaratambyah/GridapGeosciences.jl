@@ -50,7 +50,7 @@ function Gridap.Visualization.create_vtk_file(
   geo_map=nothing,
   compress=false, append=true, ascii=false, vtkversion=:default
 )
-  println("my vis")
+  # println("my vis")
 
   # compute the regular visualisation points
   points = Gridap.Visualization._vtkpoints(trian)
@@ -86,7 +86,7 @@ end
 ## This is because these coords are evaluated from the cell maps on the ref points
 ## See https://github.com/gridap/Gridap.jl/blob/b75e623687b6df5de2b49952bbd794e85193c70a/src/Visualization/VisualizationData.jl#L78
 function mapped_vtkpoints(trian,geo_map::AbstractArray)
-  println("mapped vkpoints")
+  # println("mapped vkpoints")
 
   # apply the geo_map to cell_coords on trian, then convert to nodes
   cellx = get_cell_coordinates(trian)

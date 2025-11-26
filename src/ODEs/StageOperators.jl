@@ -21,7 +21,7 @@ end
 
 ## helper for nonPvectors
 function PartitionedArrays.consistent!(a::Vector)
-  println("my consistent")
+  # println("my consistent")
   a
 end
 
@@ -31,7 +31,7 @@ function Gridap.Algebra.solve!(
   ls::LinearSolver, lop::LinearStageOperator,
   ns::Nothing
 )
-  println("regular linear stage solver")
+  # println("regular linear stage solver")
 
   J = lop.J
   ss = symbolic_setup(ls, J)
@@ -55,7 +55,7 @@ function Gridap.Algebra.solve!(
   ls::LinearSolver, lop::LinearStageOperator,
   ns
 )
-  println("regular linear stage solver")
+  # println("regular linear stage solver")
 
   J = lop.J
   if !lop.reuse

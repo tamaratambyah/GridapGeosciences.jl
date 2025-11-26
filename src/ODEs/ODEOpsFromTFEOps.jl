@@ -97,7 +97,7 @@ function Gridap.ODEs.allocate_odeopcache(
   odeop::DAEODEOpFromTFEOp,
   t::Real, us::Tuple{Vararg{AbstractVector}}
 )
-  println("allocating my cache")
+  # println("allocating my cache")
 
   ### DIAGNOSTICS
 
@@ -115,7 +115,7 @@ function Gridap.ODEs.allocate_odeopcache(
   # set initial diagnostics to be uh
   diagnostics = zero(Ys[1])
   diagnostics0 = zero(Ys[1])
-  println("set diagnostics")
+  # println("set diagnostics")
 
   # Allocate FE spaces for derivatives
   order = get_order(odeop)
@@ -193,7 +193,7 @@ function Gridap.ODEs.allocate_odeopcache(
 end
 
 function Gridap.ODEs.update_odeopcache!(odeopcache, odeop::DAEODEOpFromTFEOp, t::Real,diagnostics,diagnostics0)
-  println("updating my cache with initial diagnostics")
+  # println("updating my cache with initial diagnostics")
 
   Us = ()
   for k in 0:get_order(odeop)
@@ -218,7 +218,7 @@ function Gridap.ODEs.update_odeopcache!(odeopcache, odeop::DAEODEOpFromTFEOp, t:
 end
 
 function Gridap.ODEs.update_odeopcache!(odeopcache, odeop::DAEODEOpFromTFEOp, t::Real,diagnostics)
-  println("updating my cache")
+  # println("updating my cache")
 
   Us = ()
   for k in 0:get_order(odeop)

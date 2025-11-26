@@ -267,7 +267,7 @@ function Gridap.Algebra.solve!(x::AbstractVector,
                 ls::LinearSolver,
                 op::DAENonlinearOperator,
                 cache)
-  println("my DAE linear solver")
+  # println("my DAE linear solver")
   fill!(x,zero(eltype(x)))
   b = cache.b
   A = cache.A
