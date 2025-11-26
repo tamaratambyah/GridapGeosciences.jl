@@ -24,6 +24,8 @@ include("Visualisation/Visualisation.jl")
 
 include("Distributed/Distributed.jl")
 
+include("MultilevelTools/MultilevelTools.jl")
+
 include("Exports.jl")
 
 end
