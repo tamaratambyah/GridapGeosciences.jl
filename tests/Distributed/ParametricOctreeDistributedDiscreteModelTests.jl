@@ -24,17 +24,9 @@ get_panel_ids(Ω_panel)
 cell_geo_map = geo_map_func(Ω_panel)
 writevtk(Ω_panel,dir*"/model0",append=false, geo_map=cell_geo_map)
 
-function adapt_model(ranks,model::ParametricOctreeDistributedDiscreteModel)
-  cell_partition=get_cell_gids(model.octree_dmodel)
-  ref_flags=map(ranks,partition(cell_partition)) do rank,indices
-      flags=zeros(Cint,length(indices))
-      flags.=refine_flag
-  end
-  Gridap.Adaptivity.adapt(model,ref_flags)
-end
 
 # level 1
-omodel = adapt_model(ranks,omodel)
+omodel, = GridapGeosciences.MultilevelTools.adapt_model(ranks,omodel)
 panel_model = omodel.parametric_dmodel
 num_cells(panel_model)
 Ω_panel = Triangulation(panel_model)
