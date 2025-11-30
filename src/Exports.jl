@@ -14,6 +14,7 @@ end
 
 @publish Geometry get_panel_ids
 @publish Geometry geo_map_func
+@publish Geometry latlon_geo_map_func
 @publish Geometry pullback_area_form
 @publish Geometry pushforward_normal
 @publish Geometry get_facet_normal
@@ -88,6 +89,7 @@ end
 @publish Distributed ParametricOctreeDistributedDiscreteModel
 @publish Distributed DistributedParametricDiscreteModel
 @publish Distributed geo_map_func
+@publish Distributed latlon_geo_map_func
 @publish Distributed panelwise_cellfield
 
 @publish Distributed writevtk
