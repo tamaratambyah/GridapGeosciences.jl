@@ -13,18 +13,18 @@ source $HOME/scripts/load-intel.sh
 mpiexec -n 24 julia --project=$PBS_O_WORKDIR -e'
   using MPI
   using PartitionedArrays
-  include("tests/Advection/TransientAdvectionSUPG.jl")
+  include("tests/Advection/TransientAdvectionSUPG_Lauentz.jl")
 
   options = """
     -ksp_type gmres
-    -ksp_rtol 1.0e-10
+    -ksp_rtol 1.0e-16
     -ksp_converged_reason
     -ksp_monitor
     """
 
    with_mpi() do distribute
-      TransientAdvectionSUPG.main_transient(distribute;nprocs=24,options=options,
-        n_ref_lvls=6,p_fe=1,CFL=0.1,tF=5,return_vtk=true)
+      TransientAdvectionSUPG_Lauentz.main_transient(distribute;nprocs=24,options=options,
+        n_ref_lvls=6,p_fe=1,CFL=0.5,tF=5,return_vtk=true)
   end                  
 
 ' 

@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -P zg98
 #PBS -q normal
-#PBS -l walltime=3:00:00
+#PBS -l walltime=16:00:00
 #PBS -l ncpus=24
 #PBS -l mem=96gb
 #PBS -N advection_dg
@@ -17,8 +17,8 @@ mpiexec -n 24 julia --project=$PBS_O_WORKDIR -e'
     include("tests/Advection/TransientAdvectionDGUpwinding.jl")
 
     with_mpi() do distribute
-        AdvectionDGUpwinding.main(distribute,24;octree=true)
-        # TransientAdvectionDGUpwinding.main(distribute,24;octree=true)
+        # AdvectionDGUpwinding.main(distribute,24;octree=true)
+        TransientAdvectionDGUpwinding.main(distribute,24;octree=true)
     end
 
 ' 
