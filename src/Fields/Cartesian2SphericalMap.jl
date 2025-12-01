@@ -17,41 +17,36 @@ The forward map goes 3D -> 2D.
 
 function Gridap.Arrays.return_cache(f::Cartesian2SphereicalMap,cellx::AbstractArray{<:VectorValue{3}})
   out = similar(cellx,VectorValue{2,Float64})
-  x = similar(cellx,Float64)
-  y = similar(cellx,Float64)
-  z = similar(cellx,Float64)
-  r = similar(cellx,Float64)
-  θ = similar(cellx,Float64)
-  ϕ = similar(cellx,Float64)
-  return out,x,y,z,r,θ,ϕ
+  return out
 end
 
 
 function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap,cellx::AbstractArray{<:VectorValue{3}} )
   # println("cell map")
-  out,x,y,z,r,θ,ϕ = cache
-  # map!(x-> xyz2θϕ(x,p), y, cellx  )
-
-  # map!(q->q[1], x,cellx)
-  # map!(q->q[2], y,cellx)
-  # map!(q->q[3], z,cellx)
-  # map!(x-> sqrt(x[1]^2 + x[2]^2 + x[3]^2) ,  r, cellx)
-
-  # map!((x,y)->rem2pi(atan(y, x),RoundDown) ,  θ, x,y)
-  # map!((z,r)-> asin(z/r), ϕ, z,r)
+  out = cache
 
   x = map(x->x[1],cellx)
   y = map(x->x[2],cellx)
   z = map(x->x[3],cellx)
+
+  ## This hack is because sometimes at higher refinements, the y is slightly negative/positive
+  ## when it really should be zero. It is numerical error. So to overcome, set
+  ## the abs(y) <1e-16 (machine eps) to be zero
+  idx = abs.(y) .<1e-16
+  if any(idx)
+    y[idx].= 0.0
+  end
+
   r = sqrt.(x.^2 + y.^2 + z.^2)
   θ = rem2pi.(atan.(y, x),RoundDown)
   ϕ = asin.(z./r)
 
   # if there are negative ys and positive xs
   if any(y .< 0 ) && any(x .> 0)
-    # map!((x,y)-> 2*π + rem2pi(atan(y, x),RoundUp) ,  θ, x,y)
     θ = 2*π .+  rem2pi.(atan.(y, x),RoundUp)
   end
+
+
 
   # map!((x,y)->VectorValue(x,y)  ,out, θ,ϕ)
   out = map(θ,ϕ) do θ,ϕ
