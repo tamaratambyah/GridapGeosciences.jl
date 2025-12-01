@@ -24,8 +24,8 @@ using DataFrames
 
 include("../convergence_tools.jl")
 include("../output_tools.jl")
-include("Williamson2Test.jl")
-# include("Williamson5Test.jl")
+# include("Williamson2Test.jl")
+include("Williamson5Test.jl")
 
 function transient_shallow_water_solver(
   panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
@@ -42,6 +42,9 @@ function transient_shallow_water_solver(
 
   dir = _dir*"/sol_p$(p_fe)_nref$lvl"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
+
+  dir_latlon = _dir*"/latlon_sol_p$(p_fe)_nref$lvl"
+  (i_am_main(ranks) && !isdir(dir_latlon) && return_vtk) && mkdir(dir_latlon)
 
   # (i_am_main(ranks) && return_vtk) &&  save_mesh(dir,panel_model)
 
@@ -155,20 +158,33 @@ function transient_shallow_water_solver(
   Enstropys = Float64[]
   Energys = Float64[]
   Masss = Float64[]
+  Vorts = Float64[]
 
   ens0 = sum(∫( (qh*qh*xh0[2])*meas_cf  )dΩ)
   energy0 = sum(∫( (0.5*xh0[2]*( xh0[1] ⋅(metric_cf⋅xh0[1])) + 0.5*gravity*xh0[2]*xh0[2] )*meas_cf )dΩ)
   mass0 = sum( ∫( xh0[2]*meas_cf )dΩ  )
+  vort0 = sum( ∫( vort*meas_cf )dΩ  )
   push!(Enstropys,ens0)
   push!(Energys,energy0)
   push!(Masss,mass0)
+  push!(Vorts,vort0)
+
+  ## save casimirs
+  dir_casimirs = _dir*"/casimirs"
+  (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
+  dxx =dx(panel_model)
+  output = @strdict Masss Energys Enstropys dt CFL dxx
+  i_am_main(ranks) && safesave(datadir(dir_casimirs, ("casimirs_0.jld2")), output)
 
 
   cell_geo_map = geo_map_func(Ω_panel)
+  latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)
+  owned_panel_ids = get_owned_panel_ids(panel_model)
   if return_vtk
-    panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],qh,Fh,Φh,vort,b_cf]
-    cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","bt"],panel_cfs)
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],qh,Fh,Φh,vort,b_cf, owned_panel_ids]
+    cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","bt","pid"],panel_cfs)
+    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map,order=2)
+    writevtk(Ω_panel,dir_latlon*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map,order=2)
 
     # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[xh0[2],qh,vort],["ph","qh","vort"])
   end
@@ -207,17 +223,24 @@ function transient_shallow_water_solver(
     ens = sum(∫( (qh*qh*xh[2])*meas_cf  )dΩ)
     energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
     _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
+    _vort = sum( ∫( vort*meas_cf )dΩ  )
 
     push!(Enstropys,ens)
     push!(Energys,energy)
     push!(Masss,_mass)
+    push!(Vorts,_vort)
 
-    if return_vtk  && (mod(counter,20) == 0)
-      panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort]
-      cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort"],panel_cfs)
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    if return_vtk  && (mod(counter,50) == 0)
+      panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort,owned_panel_ids]
+      cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","pid"],panel_cfs)
+      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map,order=2)
+      writevtk(Ω_panel,dir_latlon*"/latlon_solT_$t.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map,order=2)
 
       # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[ph,qh,vort],["ph","qh","vort"])
+
+      output = @strdict Masss Energys Enstropys Vorts dt CFL dxx
+      i_am_main(ranks) && safesave(datadir(dir_casimirs, ("casimirs_$(counter).jld2")), output)
+
     end
     counter = counter + 1
     it = iterate(solT, state)
@@ -249,7 +272,7 @@ function transient_shallow_water_solver(
   (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
 
   dxx =dx(panel_model)
-  output = @strdict Masss Energys Enstropys dt CFL dxx
+  output = @strdict Masss Energys Enstropys Vorts dt CFL dxx
   i_am_main(ranks) && safesave(datadir(dir_casimirs, ("shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
 
   return Es_u, Es_p
@@ -278,26 +301,16 @@ function main_transient(distribute,nprocs;octree=false,options="",n_ref_lvls=4,p
   f = panel_to_cartesian(f₀(ζ))
   b = panel_to_cartesian(topography)
 
-  models  = get_refined_models(n_ref_lvls)
-  ls_diag = LUSolver()
-  ls_ode = LUSolver()
 
-  if prod(nprocs) > 1
-    i_am_main(ranks) && println("Distributed test")
-    if octree
-      i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
-    else
-      models,  = get_distributed_refined_models(ranks,nprocs,models)
-    end
-    ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
-    ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,verbose=i_am_main(ranks),name="ode_solver")
-  end
+  models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="ode_solver")
+
 
   panel_model = models[1]
   lss = (ls_ode,ls_diag)
 
-  dir = datadir("TransientShallowWater_W5_octree_supg")
+  dir = datadir("TransientShallowWater_W5_octree_supg_latlon")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   # GridapPETSc.Init(args=split(options))
