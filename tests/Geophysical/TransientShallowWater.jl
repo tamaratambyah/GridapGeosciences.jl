@@ -183,8 +183,8 @@ function transient_shallow_water_solver(
   if return_vtk
     panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],qh,Fh,Φh,vort,b_cf, owned_panel_ids]
     cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","bt","pid"],panel_cfs)
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-    writevtk(Ω_panel,dir_latlon*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+    # writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir_latlon*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
 
     # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[xh0[2],qh,vort],["ph","qh","vort"])
   end
@@ -233,8 +233,8 @@ function transient_shallow_water_solver(
     if return_vtk  && (mod(counter,50) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort,owned_panel_ids]
       cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","pid"],panel_cfs)
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-      writevtk(Ω_panel,dir_latlon*"/latlon_solT_$t.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+      # writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+      writevtk(Ω_panel,dir_latlon*"/latlon_solT_$t.vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
 
       # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[ph,qh,vort],["ph","qh","vort"])
 
@@ -303,8 +303,8 @@ function main_transient(distribute,nprocs;octree=false,options="",n_ref_lvls=4,p
 
 
   models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=false,name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=false,name="ode_solver")
 
 
   panel_model = models[1]

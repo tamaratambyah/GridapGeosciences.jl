@@ -22,7 +22,7 @@ end
 
 
 function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap,cellx::AbstractArray{<:VectorValue{3}} )
-  # println("cell map")
+  println("cell map")
   out = cache
 
   x = map(x->x[1],cellx)

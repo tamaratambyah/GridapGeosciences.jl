@@ -16,5 +16,5 @@ include("TransientShallowWater.jl")
 # end
 
 with_mpi() do distribute
-  TransientShallowWater.main_transient(distribute,2;octree=true,n_ref_lvls=2,return_vtk=true)
+  TransientShallowWater.main_transient(distribute,1;octree=true,n_ref_lvls=2,return_vtk=true)
 end

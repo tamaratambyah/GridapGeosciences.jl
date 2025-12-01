@@ -49,7 +49,7 @@ end
 ### here we have to compose separate maps so vtk uses the cellwise-version of
 ### Cartesian2SphereicalMap()
 function latlon_geo_map_func(panel_ids::AbstractArray{Int})
-  # println("latolon serial geo map")
+  println("latlon serial geo map")
 
   cell_geo_map = geo_map_func(panel_ids)
   fi = lazy_map(p->Cartesian2SphereicalMap(),panel_ids)
