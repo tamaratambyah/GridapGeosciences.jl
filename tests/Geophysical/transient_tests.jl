@@ -15,6 +15,6 @@ include("TransientShallowWater.jl")
 #   TransientWaveEquation.main_transient(distribute,1;n_ref_lvls=3,options=options_cg,return_vtk=true)
 # end
 
-with_debug() do distribute
-  TransientShallowWater.main_transient(distribute,6;n_ref_lvls=2,return_vtk=true)
+with_mpi() do distribute
+  TransientShallowWater.main_transient(distribute,2;octree=true,n_ref_lvls=2,return_vtk=true)
 end
