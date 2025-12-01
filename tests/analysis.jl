@@ -92,7 +92,8 @@ end
 using DrWatson
 using DataFrames
 include("convergence_tools.jl")
-dir = datadir("LaplaceBeltramiConvergence_3D/func_XYZ/convergence")
+dir = datadir("LaplaceBeltramiConvergence_3D/func_MXYZ/convergence")
+# dir = datadir("LaplaceBeltramiConvergence_3D/func_Msin/convergence")
 df = collect_results(dir)
 
 ps = unique(df.p_fe)
@@ -163,8 +164,13 @@ for p in ps
   plot_convergence(errors,ns,dxs,slope_u;leginf=["u","p","b"],
     colors=[palette(:tab10)[p],palette(:tab10)[p],palette(:tab10)[p] ] )
 end
-
 plot!(show=true)
+savefig(dir*"/linear_boussineseq_3D")
+
+
+dir = datadir("gadi/sol_p1_nref_h3_nref_v3")
+# τ = (1/7.292e-5)/(3600*24)
+_make_pvd_distributed(dir,"solT",1.0)
 
 include("plot_tools.jl")
 dir = datadir("gadi/TransientShallowWater_W5_octree_supg/sol_p1_nref6")

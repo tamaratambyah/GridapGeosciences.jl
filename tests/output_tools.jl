@@ -5,35 +5,6 @@ using GridapGeosciences
 using GridapDistributed
 
 
-function latlon_geo_map_func(trian::Triangulation)
-  panel_ids = get_panel_ids(trian)
-  latlon_geo_map_func(panel_ids)
-end
-
-function latlon_geo_map_func(panel_ids::AbstractArray{Int})
-  println("latolon serial geo map")
-  return lazy_map(p -> Cartesian2SphereicalMap() ∘ ForwardMap(p), panel_ids)
-end
-
-function latlon_geo_map_func(trian::GridapDistributed.DistributedTriangulation)
-  println("distributed latlon geo map")
-
-  model = get_background_model(trian)
-  owned_panel_ids = get_owned_panel_ids(model)
-  return geo_map_func(owned_panel_ids)
-end
-
-function latlon_geo_map_func(owned_panel_ids::AbstractArray)
-  println("distributed latlon geo map")
-
-  @assert typeof(owned_panel_ids) <: DebugArray || typeof(owned_panel_ids) <: MPIArray "\n Not distributed panel ids"
-
-  cell_geo_map = map(owned_panel_ids) do pid
-    return lazy_map(p -> Cartesian2SphereicalMap()  ∘ ForwardMap(p), pid)
-  end
-  return cell_geo_map
-end
-
 """
 save the mesh of the model
 """

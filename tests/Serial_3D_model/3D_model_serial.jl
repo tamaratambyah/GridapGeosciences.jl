@@ -51,8 +51,8 @@ grid = Gridap.Geometry.UnstructuredGrid(extrusion_nodes_3D,cell_node_ids,cell_re
 extruded_cube_model = UnstructuredDiscreteModel(grid,topo,labels)
 extruded_cube_model_ref = Adaptivity.refine(extruded_cube_model)
 
-writevtk(Triangulation(extruded_cube_model),dir*"/extruded_cube",append=false)
-writevtk(Triangulation(extruded_cube_model_ref),dir*"/extruded_cube_ref",append=false)
+writevtk((extruded_cube_model),dir*"/extruded_cube",append=false)
+writevtk((extruded_cube_model_ref),dir*"/extruded_cube_ref",append=false)
 
 ############### map to extruded panel
 function extruded_cube_to_αβγ(p::Int)
