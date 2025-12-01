@@ -1,6 +1,7 @@
 function _make_pvd_distributed(dir_loc,simName,convert2seconds)
 
-  files = filter(x->endswith(x, ".vtu.pvtu"), readdir((dir_loc)))
+  # files = filter(x->endswith(x, ".vtu.pvtu"), readdir((dir_loc)))
+  files = filter(x->endswith(x, ".pvtu"), readdir((dir_loc)))
 
     top = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
           "<VTKFile type=\"Collection\" version=\"1.0\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\">\n",
@@ -14,7 +15,8 @@ function _make_pvd_distributed(dir_loc,simName,convert2seconds)
 
     for f in files
       str = f
-      time = str[length(simName)+2:length(str)-9]
+      # time = str[length(simName)+2:length(str)-9]
+       time = str[length(simName)+2:length(str)-5]
       println(time)
       t = parse(Float64,time)/(convert2seconds)
       t2 = string(t)
