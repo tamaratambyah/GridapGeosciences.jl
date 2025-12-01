@@ -90,7 +90,7 @@ end
 
 ### latlong geo map func
 function latlon_geo_map_func(trian::GridapDistributed.DistributedTriangulation)
-  println("distributed trian latlon geo map")
+  # println("distributed trian latlon geo map")
 
   model = get_background_model(trian)
   owned_panel_ids = get_owned_panel_ids(model)
@@ -98,7 +98,7 @@ function latlon_geo_map_func(trian::GridapDistributed.DistributedTriangulation)
 end
 
 function latlon_geo_map_func(owned_panel_ids::AbstractArray)
-  println("distributed latlon geo map")
+  # println("distributed latlon geo map")
 
   @assert typeof(owned_panel_ids) <: DebugArray || typeof(owned_panel_ids) <: MPIArray "\n Not distributed panel ids"
 
