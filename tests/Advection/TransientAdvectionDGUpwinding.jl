@@ -105,8 +105,9 @@ function transient_advection_dg_solver(
   nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls;rtol=1.e-12,verbose=i_am_main(ranks))
     # solver = RungeKutta(nls, ls, dt, :DIRK_CrankNicolson_2_2)
   # solver = RungeKutta(nls, ls, dt, :SDIRK_3_2)
-  solver = RungeKutta(nls, ls, dt, :SDIRK_3_3)
+  # solver = RungeKutta(nls, ls, dt, :SDIRK_3_3)
   # solver = RungeKutta(ls, ls, dt, :EXRK_SSP_3_3)
+  solver = RungeKutta(nls, ls, dt, :SDIRK_Crouzeix_3_4)
   solT = solve(solver, opT, t0, tF, uh0)
 
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
@@ -197,7 +198,7 @@ function main(distribute,nprocs;octree=false)
   n_ref_lvls = 5
   ps = [1,2]#[1,2,3]
   ls = LUSolver()
-  CFL = 0.5
+  CFL = 0.1
 
   v = panel_to_cartesian(tangent_vec(vecX))
   u = panel_to_cartesian(u0)

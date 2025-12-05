@@ -144,7 +144,8 @@ function transient_advection_supg_solver(
   nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls;rtol=1.e-12,verbose=i_am_main(ranks))
   # solver = ThetaMethod(nls,dt,0.5)
   # solver = RungeKutta(nls, ls, dt, :DIRK_CrankNicolson_2_2)
-  solver = RungeKutta(nls, ls, dt, :SDIRK_3_2)
+  # solver = RungeKutta(nls, ls, dt, :SDIRK_3_2)
+  solver = RungeKutta(nls, ls, dt, :SDIRK_Crouzeix_3_4)
   # solver = RungeKutta(nls, ls, dt, :EXRK_SSP_3_3)
   solT = solve(solver, opT, t0, tF, uh0)
 
@@ -286,9 +287,9 @@ function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 5
-  ps = [3]#[1,2,3]
+  ps = [1,2,3]
   ls = LUSolver()
-  CFL = 0.5
+  CFL = 0.1
 
   v = vt
   u = panel_to_cartesian(u0)
