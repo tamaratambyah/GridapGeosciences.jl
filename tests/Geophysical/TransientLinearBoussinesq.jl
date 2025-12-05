@@ -19,6 +19,7 @@ using GridapGeosciences
 using GridapGeosciences.Distributed
 using GridapP4est
 using Test
+using GridapPETSc
 
 import GridapGeosciences.Helpers: RADIUS, THICKNESS
 
@@ -192,17 +193,17 @@ function transient_linear_boussinesq_solver(
   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
   writevtk(Ω_panel,dir*"/solT_0",cellfields=cellfields,append=false,geo_map=cell_geo_map)
 
-  # counter = counter = 1
+  counter = 1
   for (t, xh) in solT
     uh,ph,bh = xh
     i_am_main(ranks) && println("t = ", t)
 
-    if return_vtk #&& (mod(counter,10) == 0)
+    if return_vtk && (mod(counter,50) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph, bh]
       cellfields = map((x,y) -> x=>y, labels,panel_cfs)
       writevtk(Ω_panel,dir*"/solT_$t",cellfields=cellfields,append=false,geo_map=cell_geo_map)
     end
-    # counter = counter + 1
+    counter = counter + 1
   end
 
   # _make_pvd_distributed(dir,"solT",1)
@@ -224,7 +225,16 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk
   f = panel_to_cartesian(omega)
   b = panel_to_cartesian(b0)
 
-  ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
+  options = """
+      -g_ksp_type gmres
+      -g_ksp_converged_reason
+      -g_ksp_monitor
+      """
+
+  GridapPETSc.Init(args=split(options))
+  ls = PETScLinearSolver(petsc_gmres_amg_setup)
+
+  # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
 
   o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
           num_horizontal_uniform_refinements=n_ref_lvls,
@@ -232,11 +242,31 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk
 
   panel_model = o3model.parametric_dmodel
 
-  dir = datadir("TransientLinearisedBoussinesq_CN_acoustic_timescale")
+  dir = datadir("TransientLinearisedBoussinesq_CN_acoustic_timescale_96_amg")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   transient_linear_boussinesq_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,return_vtk)
 
+  GridapPETSc.Finalize()
+  GridapPETSc.gridap_petsc_gc()
+
   i_am_main(ranks) && println("--DONE--")
 
+end
+
+function petsc_gmres_amg_setup(ksp)
+  rtol = GridapPETSc.PETSC.PETSC_DEFAULT
+  atol = GridapPETSc.PETSC.PETSC_DEFAULT
+  dtol = GridapPETSc.PETSC.PETSC_DEFAULT
+  maxits = GridapPETSc.PETSC.PETSC_DEFAULT
+
+  @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"g_")
+  @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])
+  # @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPGMRES)
+
+  pc = Ref{GridapPETSc.PETSC.PC}()
+  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCGAMG)
+  @check_error_code GridapPETSc.PETSC.KSPSetTolerances(ksp[], rtol, atol, dtol, maxits)
+  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
 end
