@@ -17,10 +17,11 @@ include("InverseMap.jl")
 include("MatMultField.jl")
 include("AffineField.jl")
 include("Cartesian2SphericalMap.jl")
+include("Cartesian2SphereicalMap3D.jl")
 
 export ForwardMapPanel1
 export MatMultField, MyAffineField
 export Cartesian2SphereicalMap
-
+export Cartesian2SphereicalMap3D
 
 end
