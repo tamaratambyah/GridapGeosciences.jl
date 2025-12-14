@@ -10,7 +10,7 @@ using PartitionedArrays
 include("../convergence_tools.jl")
 
 nprocs = 2
-ranks = with_debug() do distribute
+ranks = with_mpi() do distribute
   distribute(LinearIndices((nprocs,)))
 end
 
@@ -22,7 +22,7 @@ depth(XYZ) = 1.0 + 0.01*exp(-5*((1-XYZ[1])^2+(0-XYZ[2])^2+(0-XYZ[3])^2))
 h = panel_to_cartesian(depth)
 vX = panel_to_cartesian(tangent_vec(vecX))
 
-models  = get_distributed_refined_models(ranks,nprocs,2)
+models  = get_distributed_refined_models(ranks,nprocs,1)
 panel_model = models[1]
 p_fe = 1
 
@@ -84,14 +84,31 @@ writevtk(Ω_panel,dir*"/solT_test" * ".vtu", cellfields= ["uh"=>covarient_basis_
 p_vec =  ph.metadata.free_values
 u_vec = uh.metadata.free_values
 
-## save free values to file
 
+## save free values to file
+p_mass(p,q) = ∫( p*q )dΩ
+p_matrix = assemble_matrix(p_mass, P, Q)
+p_trivial = PartitionedArrays.to_trivial_partition(p_vec, partition(axes(p_matrix,1)))
+
+using CSV
+using DataFrames
+function save_vector(v,name)
+  df = DataFrame(col=v)
+  CSV.write(name, df)
+end
+
+if (i_am_main(ranks))
+  ploc = partition(p_trivial).item_ref[]
+  save_vector(ploc,dir*"/p.csv")
+end
 
 ## load free values from file
-# p_free_vals =
+p_free_vals = CSV.read(dir*"/p.csv", DataFrame)
 # u_free_vals =
 
 ## interpoalte onto space
-# ph_load = interpolate(p_free_vals, P)
+ph_load = interpolate(p_free_vals, P)
 # uh_load = interpolate(u_free_vals,U)
 # xh_load = interpolate([uh_load,ph_load],X) ## mutlifield
+
+writevtk(Ω_panel,dir*"/solT_loaded" * ".vtu", cellfields= ["uh"=>covarient_basis_cf⋅uh, "ph"=>ph, "eh"=>ph-ph_load],append=false,geo_map=cell_geo_map)
