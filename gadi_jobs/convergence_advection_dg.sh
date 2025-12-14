@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -P zg98
+#PBS -P bt62
 #PBS -q normal
 #PBS -l walltime=16:00:00
 #PBS -l ncpus=24
@@ -7,7 +7,7 @@
 #PBS -N advection_dg
 #PBS -l wd
 
-source $HOME/scripts/load-configs-zg98.sh
+source $HOME/scripts/load-configs.sh
 source $HOME/scripts/load-intel.sh
 
 mpiexec -n 24 julia --project=$PBS_O_WORKDIR -e'

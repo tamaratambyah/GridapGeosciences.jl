@@ -108,6 +108,9 @@ function transient_linear_boussinesq_solver(
   dir = _dir*"/sol_p$(p_fe)_nref_h$(lvl_h)_nref_v$(lvl_v)"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
+  dir_latlon = _dir*"/latlon_sol_p$(p_fe)_nref_h$(lvl_h)_nref_v$(lvl_v)"
+  (i_am_main(ranks) && !isdir(dir_latlon) && return_vtk) && mkdir(dir_latlon)
+
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,4*(p_fe+1))
@@ -187,21 +190,32 @@ function transient_linear_boussinesq_solver(
   solver = ThetaMethod(nls, dt, 0.5)
   solT = solve(solver, opT, t0, tF, xh0)
 
+  owned_panel_ids = get_owned_panel_ids(panel_model)
+
+  latlon_cell_geo_map = map(owned_panel_ids) do pid
+    cell_geo_map = lazy_map(p -> ForwardMap(p), pid)
+    fi = lazy_map(p->Cartesian2SphereicalMap3D(),pid)
+    return lazy_map(∘, fi, cell_geo_map)
+  end
+
   cell_geo_map = geo_map_func(Ω_panel)
-  panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2], xh0[3]]
-  labels = ["uh","ph", "bh"]
+  panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2], xh0[3], owned_panel_ids]
+  labels = ["uh","ph", "bh","pid"]
   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
   writevtk(Ω_panel,dir*"/solT_0",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  writevtk(Ω_panel,dir_latlon*"/solT_0",cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+
 
   counter = 1
   for (t, xh) in solT
     uh,ph,bh = xh
     i_am_main(ranks) && println("t = ", t)
 
-    if return_vtk && (mod(counter,50) == 0)
-      panel_cfs = [covarient_basis_cf⋅uh, ph, bh]
+    if return_vtk && (mod(counter,25) == 0)
+      panel_cfs = [covarient_basis_cf⋅uh, ph, bh, owned_panel_ids]
       cellfields = map((x,y) -> x=>y, labels,panel_cfs)
       writevtk(Ω_panel,dir*"/solT_$t",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+      writevtk(Ω_panel,dir_latlon*"/solT_$t",cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
     end
     counter = counter + 1
   end
@@ -242,7 +256,7 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk
 
   panel_model = o3model.parametric_dmodel
 
-  dir = datadir("TransientLinearisedBoussinesq_CN_acoustic_timescale_96_amg")
+  dir = datadir("TransientLinearisedBoussinesq_CN_acoustic_timescale_192_amg")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   transient_linear_boussinesq_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,return_vtk)
@@ -258,7 +272,7 @@ function petsc_gmres_amg_setup(ksp)
   rtol = GridapPETSc.PETSC.PETSC_DEFAULT
   atol = GridapPETSc.PETSC.PETSC_DEFAULT
   dtol = GridapPETSc.PETSC.PETSC_DEFAULT
-  maxits = GridapPETSc.PETSC.PETSC_DEFAULT
+  maxits = PetscInt(1000)
 
   @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"g_")
   @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])

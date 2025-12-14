@@ -287,7 +287,7 @@ function main(distribute,nprocs;octree=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 5
-  ps = [1,2,3]
+  ps = [3]
   ls = LUSolver()
   CFL = 0.1
 

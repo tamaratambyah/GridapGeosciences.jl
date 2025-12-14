@@ -196,7 +196,7 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("Auto conference test: Transient AdvectionDGUpwinding")
 
   n_ref_lvls = 5
-  ps = [1,2]#[1,2,3]
+  ps = [3]#[1,2,3]
   ls = LUSolver()
   CFL = 0.1
 
@@ -210,7 +210,7 @@ function main(distribute,nprocs;octree=false)
   models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
 
   i_am_main(ranks) && println("transient_advection_dg_convergence")
-  p_convergence_test(ranks,ps,models,transient_advection_dg_errors,dir,u,v,CFL,ls,tF,false)
+  p_convergence_test(ranks,ps,models,transient_advection_dg_errors,dir,u,v,CFL,ls,tF,true)
 
   i_am_main(ranks) && println("--DONE--")
 end
