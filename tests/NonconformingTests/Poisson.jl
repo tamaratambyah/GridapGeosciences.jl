@@ -14,18 +14,17 @@ np = MPI.Comm_size(MPI.COMM_WORLD)
 ranks = distribute_with_mpi(LinearIndices((np,)))
 
 order = 2
-function u_ex(x)
+function u_ex(x) ### this exact solution is zero mean + periodic on [0,1]^2
   if x[1] < 0.5
     return x[1]*(0.5-x[1])
   else
     return (x[1]-0.5)*(x[1]-1)
   end
 end
-f_ex(x) = u_ex(x) + Δ(u_ex)(x)
-sum(∫( f_ex)dΩ  ) # check compatibility
+f_ex(x) = -1.0*Δ(u_ex)(x)
 
-coarse_model = CartesianDiscreteModel((0,1,0,1),(4,4),isperiodic=(true,true))
-dmodel = OctreeDistributedDiscreteModel(ranks,coarse_model,2)
+coarse_model = CartesianDiscreteModel((0,1,0,1),(10,10),isperiodic=(true,true))
+dmodel = OctreeDistributedDiscreteModel(ranks,coarse_model)#,2)
 
 ref_coarse_flags=map(partition(get_cell_gids(dmodel.dmodel)), local_views(dmodel) ) do indices,lmodel
     flags=zeros(Cint,length(indices))
@@ -38,60 +37,86 @@ ref_coarse_flags=map(partition(get_cell_gids(dmodel.dmodel)), local_views(dmodel
     for (i,xy) in enumerate(coords)
       x = map(x->x[1],xy)
       y = map(x->x[2],xy)
-      if any(x .> 0.3 ) && any(x .< 0.7 ) && any(y .> 0.3) && any(y .< 0.7)
+      if any(x .> 0.4 ) && any(x .< 0.6 ) && any(y .> 0.4) && any(y .< 0.6)
           flags[i] = refine_flag
       end
     end
     flags
 end
 fmodel,glue=Gridap.Adaptivity.adapt(dmodel,ref_coarse_flags);
-writevtk(Triangulation(fmodel),dir*"/fmodel",append=false)
 
-
-model = fmodel.dmodel
+##### Choose a model
+model = fmodel
+# model = dmodel
 # model = coarse_model
 
+
+#### Triangulate and check compatibility
 Ω = Triangulation(model)
 degree = 2*(order+1)
 dΩ = Measure(Ω,degree)
 
+# check zero mean
+sum(∫(u_ex)dΩ  )
 
-V = FESpace(Ω,ReferenceFE(lagrangian,Float64,order);conformity=:H1)
+# check compatibility
+sum(∫( laplacian(u_ex))dΩ  )
+
+################################################################################
+####### use zeromean constraint in FE space
+V = FESpace(model,ReferenceFE(lagrangian,Float64,order);conformity=:H1,constraint=:zeromean)
 U = TrialFESpace(V)
 
-a(u,v) = ∫( u*v )dΩ - ∫( ∇(u)⋅∇(v)  )dΩ
-b(v) = ∫( v*f_ex )dΩ
+map(V.spaces) do space
+  typeof(space)<: Gridap.FESpaces.FESpaceWithLinearConstraints
+end
 
-op = AffineFEOperator(a,b,U,V)
-uh = solve(op)
+biform(u,v) = ∫( ∇(u)⋅∇(v)  )dΩ
+liform(v) = ∫( v*f_ex )dΩ
+op = AffineFEOperator(biform,liform,U,V)
+A = get_matrix(op)
+b = get_vector(op)
 
+using LinearAlgebra
+evals = eigvals(Array(partition(A).item))
+# # println(A*(3*ones(size(b))))
+sum(b)
+
+uh = solve(LUSolver(),op)
 
 l2(v) = sqrt(sum(∫(v⋅v)*dΩ))
 eu = u_ex - uh
 eu_l2 = l2(eu)
 
-writevtk(Ω,dir*"/sol",cellfields=["u"=>u_ex,"uh"=>uh,"eu"=>uh-u_ex],append=false)
+writevtk(Ω,dir*"/poisson_sol",cellfields=["u"=>u_ex,"uh"=>uh,"eu"=>uh-u_ex],append=false)
 
-
-########### dual form
-V = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,order); conformity=:L2)
+################################################################################
+####### use lagrange multiplers to enforce zeromean
+V = TestFESpace(model, ReferenceFE(lagrangian,Float64,order); conformity=:H1)
 U = TrialFESpace(V)
 
-T = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,order); conformity=:Hdiv)
-S = TrialFESpace(T)
+Λ = ConstantFESpace(model) ### broken on trian, must use model
+M = TrialFESpace(Λ)
 
-X = MultiFieldFESpace([S,U])
-Y = MultiFieldFESpace([T,V])
+X = MultiFieldFESpace([U,M])
+Y = MultiFieldFESpace([V,Λ])
 
+###
+poisson_biformX((u,μ),(v,λ)) = ∫( ∇(u)⋅∇(v)  )dΩ  + ∫(v*μ)dΩ + ∫(λ*u)dΩ
+poisson_liformY((v,λ)) =  ∫( f_ex*v )dΩ  + ∫(λ*u_ex)dΩ
 
-biformX((s,u),(t,v)) = (  ∫( s⋅t)dΩ + ∫( (∇⋅t)*u )dΩ
-                        + ∫( u*v )dΩ   + ∫( (∇⋅s)*v  )dΩ
-                      )
-liformY((t,v)) = ∫( f_ex*v )dΩ
+op = AffineFEOperator(poisson_biformX,poisson_liformY,X,Y)
 
-op = AffineFEOperator(biformX,liformY,X,Y)
-sh,uh = solve(LUSolver(),op)
+## hack around the issue https://github.com/tamaratambyah/GridapGeosciences.jl/issues/5
+function Gridap.CellData.get_triangulation(a::GridapDistributed.DistributedMultiFieldCellField)
+  trians = map(get_triangulation,a.field_fe_fun)
+  # @check all(map(t -> t === first(trians), trians))
+  return first(trians)
+end
 
-e = uh - u_ex
-l2(e)
-writevtk(Ω,dir*"/sol",cellfields=["u"=>u_ex,"uh"=>uh,"eu"=>uh-u_ex],append=false)
+uh,μh = solve(LUSolver(),op)
+
+#### Compute errors
+e = uh-u_ex
+sqrt(sum(∫(e⊙e)dΩ))
+writevtk(Ω,dir*"/poisson_sol_lagrange",cellfields=["u"=>u_ex,"uh"=>uh,"eu"=>uh-u_ex],append=false)
