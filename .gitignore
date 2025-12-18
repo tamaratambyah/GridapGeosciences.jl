@@ -15,3 +15,5 @@ nswe_eq_ncells*/*
 plots/
 data/
 LocalPreferences.toml
+*.e*
+*.o*

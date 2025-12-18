@@ -43,6 +43,9 @@ function tsw_solver(
   p_fe::Int,_dir::String,h::Function,vX::Function,f::Function,B::Function,
   lss=(LUSolver(),LUSolver()),CFL=0.1,return_vtk=false)
 
+  # das = FullyAssembledRows()
+
+
 ls_ode, ls_diag = lss
 
 # get the ranks to help with storing/saving solution
@@ -107,6 +110,8 @@ meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
 grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
 
+# assem_prog = SparseMatrixAssembler(X_prog,Y_prog,das)
+# assem_diag = SparseMatrixAssembler(X_diag,Y_diag,das)
 
 #### DIAGNOSTIC VARIABLES
 # vorticity
@@ -149,14 +154,7 @@ nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls_diag,verbose=i_am_main(rank
 qh,Fh,Φh,Th,bh = solve(nls,_opFE)
 vort = qh*xh0[2] - cor_cf
 
-cell_geo_map = geo_map_func(Ω_panel)
-latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)
-if return_vtk
-  panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2], xh0[3],  qh,covarient_basis_cf⋅Fh,Φh,vort,Th,bh]
-  cellfields = map((x,y) -> x=>y, ["uh","ph", "Bh",  "qh","Fh","Phih","vort", "Th","bh"],panel_cfs)
-  writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map,order=2)
-  writevtk(Ω_panel,dir_latlon*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
-end
+
 
 
 #### PROGNOSTIC VARIABLES
@@ -220,11 +218,11 @@ B_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w)) = ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ)
 res_x(t,((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
     res_u(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
   + u_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
-  + u_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
+  # + u_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
   + res_p(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
   + res_B(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
   + B_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
-  + B_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
+  # + B_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
 )
 jac_x(t,((u,p,B),(q,F,Φ,T,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,T0,b0)) =  ∫( VectorValue(0,0)⋅(du⋅v) + 0*dp*r + 0*dB*w   )dΩ
 jac_xt(t,((u,p,B),(q,F,Φ,T,b)),(dut,dpt,dBt),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
@@ -232,6 +230,7 @@ jac_xt(t,((u,p,B),(q,F,Φ,T,b)),(dut,dpt,dBt),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
    + ∫( (dpt*r)*meas_cf )dΩ
    + ∫( (dBt*w)*meas_cf )dΩ
 )
+
 
 
 opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog)
@@ -259,6 +258,16 @@ push!(Es_u,e_u)
 push!(Es_p,e_p)
 push!(Es_B,e_B)
 
+cell_geo_map = geo_map_func(Ω_error)
+latlon_cell_geo_map = latlon_geo_map_func(Ω_error)
+if return_vtk
+  panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2], xh0[3],  qh,covarient_basis_cf⋅Fh,Φh,vort,Th,bh]
+  cellfields = map((x,y) -> x=>y, ["uh","ph", "Bh",  "qh","Fh","Phih","vort", "Th","bh"],panel_cfs)
+  writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  writevtk(Ω_panel,dir_latlon*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+end
+
+
 counter = 1
 while !isnothing(it)
   data, state = it
@@ -280,7 +289,7 @@ while !isnothing(it)
   push!(Es_p,e_p)
   push!(Es_B,e_B)
 
-  if return_vtk  #&& (mod(counter,50) == 0)
+  if return_vtk  && (mod(counter,50) == 0)
     panel_cfs = [covarient_basis_cf⋅uh, ph, Bh, bh,  qh,Fh,Φh,vort]
     cellfields = map((x,y) -> x=>y, ["uh","ph", "Bh", "bh", "qh","Fh","Phih","vort"],panel_cfs)
     writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
@@ -346,7 +355,7 @@ function main(distribute,nprocs;octree=false)
   f = panel_to_cartesian(f₀(ζ))
   B = panel_to_cartesian(B₀(ζ))
 
-  p_convergence_test(ranks,ps,models,transient_shallow_water_errors,dir,h,vX,f,B,lss,CFL,return_vtk)
+  p_convergence_test(ranks,ps,models,transient_tsw_errors,dir,h,vX,f,B,lss,CFL,return_vtk)
 
 
   i_am_main(ranks) && println("WARNING! Error output is [p,u,B]")
