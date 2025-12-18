@@ -65,19 +65,21 @@ sum(∫( laplacian(u_ex))dΩ  )
 ################################################################################
 ####### use zeromean constraint in FE space
 V0 = FESpace(model,ReferenceFE(lagrangian,Float64,order);conformity=:H1)
-V = Gridap.FESpaces.ZeroMeanFESpace(V0,dΩ)
+# V = Gridap.FESpaces.ZeroMeanFESpace(V0,dΩ)
+V = FESpace(model,ReferenceFE(lagrangian,Float64,order);conformity=:H1,constraint=:zeromean)
 U = TrialFESpace(V)
 
 map(V.spaces) do space
   typeof(space)<: Gridap.FESpaces.FESpaceWithLinearConstraints
 end
 
-Gridap.FESpaces.get_cell_constraints(f::Gridap.FESpaces.FESpaceWithConstantFixed,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_constraints(f.space,x)
-Gridap.FESpaces.get_cell_constraints(f::Gridap.FESpaces.FESpaceWithLinearConstraints,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_constraints(f)
-Gridap.FESpaces.get_cell_isconstrained(f::Gridap.FESpaces.FESpaceWithConstantFixed,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_isconstrained(f.space,x)
-Gridap.FESpaces.get_cell_isconstrained(f::Gridap.FESpaces.FESpaceWithLinearConstraints,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_isconstrained(f)
+# Gridap.FESpaces.get_cell_constraints(f::Gridap.FESpaces.FESpaceWithConstantFixed,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_constraints(f.space,x)
+# Gridap.FESpaces.get_cell_constraints(f::Gridap.FESpaces.FESpaceWithLinearConstraints,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_constraints(f)
+# Gridap.FESpaces.get_cell_isconstrained(f::Gridap.FESpaces.FESpaceWithConstantFixed,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_isconstrained(f.space,x)
+# Gridap.FESpaces.get_cell_isconstrained(f::Gridap.FESpaces.FESpaceWithLinearConstraints,x::Gridap.FESpaces.Constrained) = Gridap.FESpaces.get_cell_isconstrained(f)
 
-
+Gridap.FESpaces.get_cell_constraints(f::Gridap.FESpaces.FESpaceWithConstantFixed) = Gridap.FESpaces.get_cell_constraints(f.space)
+Gridap.FESpaces.get_cell_isconstrained(f::Gridap.FESpaces.FESpaceWithConstantFixed) = Gridap.FESpaces.get_cell_isconstrained(f.space)
 
 biform(u,v) = ∫( ∇(u)⋅∇(v)  )dΩ
 liform(v) = ∫( v*f_ex )dΩ
