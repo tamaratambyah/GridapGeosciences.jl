@@ -32,3 +32,9 @@ function get_face_panel_ids(trian,panel_ids)
   face_panel_ids = panel_ids[face_2_cell]
   return face_panel_ids
 end
+
+function get_panel_ids(ptrian::PatchTriangulation)
+  # println("patch triangulation")
+  bg_model = get_background_model(ptrian)
+  get_panel_ids(bg_model)
+end
