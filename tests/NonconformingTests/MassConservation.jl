@@ -42,7 +42,8 @@ Y = MultiFieldFESpace([V,W])
 biform((u,p),(v,q)) = ( ∫( u⋅v - p*(∇⋅v)   )dΩ
                   + ∫(  (∇⋅u)*q )dΩ )
 # liform((v,q)) = ∫( u_rhs⋅v  )dΩ  + ∫( q*p_rhs )dΩ
-f(x) = VectorValue(x[1]*x[2],0.0)
+# f(x) = VectorValue(x[1]*x[2],0.0)
+f(x) = VectorValue(cos(x[1]*x[2]),0.0)
 sum(∫(∇⋅f)dΩ)
 liform((v,q)) = ∫( f⋅v  )dΩ
 
