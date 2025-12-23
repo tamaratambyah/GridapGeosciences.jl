@@ -137,7 +137,7 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
 
 end
 
-#### get array of octree models
+#### get array of dmodel - octree models
 function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
 
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
@@ -154,6 +154,25 @@ function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
   end
 
   return dmodels
+end
+
+#### get array of octree models
+function _get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
+
+  omodels = Vector{ParametricOctreeDistributedDiscreteModel}(undef,n_ref_lvls)
+
+  for (i,n) in enumerate(n_ref_lvls:-1:1)
+    parametric_octree_model = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n)
+    omodels[i] = parametric_octree_model
+  end
+
+
+  if coarse_model
+    parametric_octree_model = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+    push!(omodels,parametric_octree_model)
+  end
+
+  return omodels
 end
 
 function get_3D_octree_refined_models(ranks,n_ref_lvls::Int)

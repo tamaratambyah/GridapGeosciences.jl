@@ -8,6 +8,9 @@ nc(panel_model) = num_cells(panel_model)/6 ## nc = num cells per panel
 dx(nc) = sqrt( 4*π*RADIUS^2 / (6*sqrt(nc)^2) )
 nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
+nc(model::ParametricOctreeDistributedDiscreteModel) = nc(model.parametric_dmodel)
+dx(model::ParametricOctreeDistributedDiscreteModel) = dx(model.parametric_dmodel)
+
 function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
   tmp =  4*π*RADIUS^2/num_cells(model)
   sqrt(tmp)
