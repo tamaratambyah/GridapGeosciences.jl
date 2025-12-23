@@ -222,11 +222,11 @@ function tsw_solver(
   res_x(t,((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
       res_u(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
     + u_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
-    # + u_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
+    + u_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
     + res_p(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
     + res_B(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
     + B_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
-    # + B_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
+    + B_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
   )
   jac_x(t,((u,p,B),(q,F,Φ,T,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,T0,b0)) =  ∫( VectorValue(0,0)⋅(du⋅v) + 0*dp*r + 0*dB*w   )dΩ
   jac_xt(t,((u,p,B),(q,F,Φ,T,b)),(dut,dpt,dBt),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
@@ -337,7 +337,7 @@ function main(distribute,nprocs;octree=false)
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Auto conference test: Thermal Shallow Water")
 
-  n_ref_lvls = 1
+  n_ref_lvls = 5
   ps = [1]
   lss = (LUSolver(),LUSolver())
   return_vtk = true
@@ -349,7 +349,7 @@ function main(distribute,nprocs;octree=false)
 
   CFL = 0.1
 
-  dir = datadir("ThermalShallowWaterConvergence")
+  dir = foldername("ThermalShallowWaterConvergence_upwinded",octree,false)
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
