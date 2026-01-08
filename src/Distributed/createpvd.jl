@@ -15,8 +15,8 @@ function _make_pvd_distributed(dir_loc,simName,convert2seconds)
 
     for f in files
       str = f
-      # time = str[length(simName)+2:length(str)-9]
-       time = str[length(simName)+2:length(str)-5]
+      time = str[length(simName)+2:length(str)-9]
+      #  time = str[length(simName)+2:length(str)-5]
       println(time)
       t = parse(Float64,time)/(convert2seconds)
       t2 = string(t)

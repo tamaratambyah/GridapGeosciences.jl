@@ -112,3 +112,6 @@ end
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model
+
+@publish Checkpointing psave
+@publish Checkpointing pload
