@@ -189,7 +189,7 @@ function transient_shallow_water_solver_3D(
     vort = qh*ph - cor_cf
     i_am_main(ranks) && println(t)
 
-    if return_vtk
+    if return_vtk && (mod(counter,25) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort,owned_panel_ids]
       cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","pid"],panel_cfs)
       writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map,order=2)

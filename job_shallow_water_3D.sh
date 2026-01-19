@@ -7,7 +7,7 @@
 #PBS -N shallow_water_3D
 #PBS -l wd
 
-source $HOME/scripts/load-configs-$PROJECT.sh
+source $HOME/scripts/load-configs.sh
 source $HOME/scripts/load-intel.sh
 
 mpiexec -n $PBS_NCPUS julia --project=$PBS_O_WORKDIR -e'
