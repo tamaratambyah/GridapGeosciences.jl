@@ -40,9 +40,15 @@ function psave(dir::AbstractString, x::Union{PVector,PSparseMatrix})
   ranks = get_parts(x)
   i_am_main(ranks) && mkpath(dir)
   arr = to_local_storage(x)
+  i_am_main(ranks) && println("saving solution")
   map(ranks,arr) do id, arr
+    println(id)
     filename = joinpath(dir,basename(dir)*"_$id.jld2")
-    save_object(filename,arr)
+    # save_object(filename,arr)
+    # jldsave(filename; arr)
+    jldopen(filename, "w+") do f
+      f["$id"] = arr
+    end
   end
 end
 
@@ -55,7 +61,11 @@ indexed by MPI ranks `ranks`.
 function pload(dir::AbstractString, ranks::AbstractArray{<:Integer})
   arr = map(ranks) do id
     filename = joinpath(dir,basename(dir)*"_$id.jld2")
-    load_object(filename)
+    # load_object(filename)
+    _A = jldopen(filename, "r") do _f
+      _f["$r"]
+    end
+    return _A
   end
   y = from_local_storage(arr)
   GridapDistributed.DistributedFEFunctionData(y).free_values

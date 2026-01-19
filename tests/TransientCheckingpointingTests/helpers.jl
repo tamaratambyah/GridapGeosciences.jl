@@ -6,7 +6,7 @@ function load_last(ranks,X,sim_dir::String,simName::String)
 
   @assert !isempty(folders) "/n No saved solutions"
 
-  f = folders[end]
+  f = folders[end-1]
   t = parse(Float64,f[length(simName)+2:length(f)])
   i_am_main(ranks) && println("restart t = $(t)")
   x =  pload(joinpath(sim_dir,f),ranks)
