@@ -187,7 +187,7 @@ function transient_shallow_water_solver_3D(
     qh,Fh,Φh = yh
 
     vort = qh*ph - cor_cf
-    i_am_main(ranks) && println(t)
+    i_am_main(ranks) && println("t = $t")
 
     if return_vtk && (mod(counter,25) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort,owned_panel_ids]
@@ -223,20 +223,53 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,ret
   num_horizontal_uniform_refinements=n_ref_lvls,num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="ode_solver")
+  # options = """
+  # -g_ksp_type gmres
+  # -g_ksp_converged_reason
+  # -g_ksp_monitor
+  # -g2_ksp_type gmres
+  # -g2_ksp_converged_reason
+  # -g2_ksp_monitor
+  # """
+  # GridapPETSc.Init(args=split(options))
+  # ls_diag = PETScLinearSolver(petsc_gmres_amg_setup)
+  # ls_ode = PETScLinearSolver(petsc_gmres_amg_setup)
+
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-8,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-8,verbose=i_am_main(ranks),name="ode_solver")
 
   lss = (ls_ode,ls_diag)
 
-  dir = datadir("TransientShallowWater_W5_3D")
+  dir = datadir("TransientShallowWater_W5_3D_amg")
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   transient_shallow_water_solver_3D(panel_model,p_fe,dir,h,vX,f,b,lss,CFL,return_vtk)
+
+  # GridapPETSc.Finalize()
+  # GridapPETSc.gridap_petsc_gc()
 
 
   i_am_main(ranks) && println("--DONE--")
 
 end
+
+function petsc_gmres_amg_setup(ksp)
+  rtol = GridapPETSc.PETSC.PETSC_DEFAULT
+  atol = GridapPETSc.PETSC.PETSC_DEFAULT
+  dtol = GridapPETSc.PETSC.PETSC_DEFAULT
+  maxits = PetscInt(1000)
+
+  @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"g_")
+  @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])
+  # @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPGMRES)
+
+  pc = Ref{GridapPETSc.PETSC.PC}()
+  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCGAMG)
+  @check_error_code GridapPETSc.PETSC.KSPSetTolerances(ksp[], rtol, atol, dtol, maxits)
+  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+end
+
 
 
 # with_mpi() do distribute

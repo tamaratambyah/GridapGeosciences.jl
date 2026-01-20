@@ -41,6 +41,12 @@ function psave(dir::AbstractString, x::Union{PVector,PSparseMatrix})
   i_am_main(ranks) && mkpath(dir)
   arr = to_local_storage(x)
   i_am_main(ranks) && println("saving solution")
+
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
+
+  # write each file
   map(ranks,arr) do id, arr
     println(id)
     filename = joinpath(dir,basename(dir)*"_$id.jld2")
@@ -50,7 +56,7 @@ function psave(dir::AbstractString, x::Union{PVector,PSparseMatrix})
       f["$id"] = arr
     end
   end
-  PartitionedArrays.barrier(ranks)
+  # PartitionedArrays.barrier(ranks)
 end
 
 """

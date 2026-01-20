@@ -10,7 +10,7 @@ function load_last(ranks,X,sim_dir::String,simName::String)
   file_times = [(stat(path).mtime, path) for path in folders]
   sort!(file_times)
 
-  f = basename(file_times[end][2])
+  f = basename(file_times[end-1][2])
   t = parse(Float64,f[length(simName)+2:length(f)])
   i_am_main(ranks) && println("restart t = $(t)")
   x =  pload(joinpath(sim_dir,f),ranks)

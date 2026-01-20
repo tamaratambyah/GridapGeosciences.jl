@@ -162,7 +162,7 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
 
 end
 
-function unwrap_sw(it,ranks,solT,dir,tF,freq=10)
+function unwrap_sw(it,ranks,solT,dir,tF,freq=25)
   sim_dir = dir*"/sim_data"
   final_dir = dir*"/final_solution"
   prog_dir = sim_dir*"/prognostics"
@@ -386,12 +386,10 @@ function main_transient(distribute,nprocs;
   f = panel_to_cartesian(f₀(ζ))
   b = panel_to_cartesian(topography)
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=false,name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=false,name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
 
-  # models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
-  # panel_model = models[1]
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
@@ -410,10 +408,10 @@ function main_transient(distribute,nprocs;
 end
 
 
-MPI.Init()
-nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+# # ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-with_mpi() do distribute
-  main_transient(distribute,nprocs;restart=false,n_ref_lvls=4)
-end
+# with_mpi() do distribute
+#   main_transient(distribute,nprocs;restart=false,n_ref_lvls=4)
+# end
