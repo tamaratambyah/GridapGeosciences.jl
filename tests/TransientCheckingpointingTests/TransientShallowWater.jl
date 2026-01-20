@@ -207,7 +207,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   vtk_dir = dir*"/vtk_data"
   (i_am_main(ranks) && !isdir(vtk_dir) ) && mkdir(vtk_dir)
 
-  dir_casimirs = _dir*"/casimirs"
+  dir_casimirs = dir*"/casimirs"
   (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
 
   lvl = nref(nc(panel_model))
@@ -415,5 +415,5 @@ nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 # ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 with_mpi() do distribute
-  main_transient(distribute,nprocs;restart=false,n_ref_lvls=2)
+  main_transient(distribute,nprocs;restart=false,n_ref_lvls=4)
 end

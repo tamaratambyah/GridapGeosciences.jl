@@ -50,6 +50,7 @@ function psave(dir::AbstractString, x::Union{PVector,PSparseMatrix})
       f["$id"] = arr
     end
   end
+  PartitionedArrays.barrier(ranks)
 end
 
 """
@@ -63,7 +64,7 @@ function pload(dir::AbstractString, ranks::AbstractArray{<:Integer})
     filename = joinpath(dir,basename(dir)*"_$id.jld2")
     # load_object(filename)
     _A = jldopen(filename, "r") do _f
-      _f["$r"]
+      _f["$id"]
     end
     return _A
   end
