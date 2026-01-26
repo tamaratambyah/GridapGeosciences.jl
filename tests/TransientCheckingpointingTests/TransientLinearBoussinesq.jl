@@ -52,8 +52,7 @@ _u_0 = u_0*τ/LH
 _Ωr = Ωr*τ
 _c = c*τ/LH
 _N = N*τ
-# tF = TF/τ
-tF = 0.05
+tF = TF/τ
 
 p0(xyz) = 0.0
 
@@ -332,10 +331,10 @@ function main_transient(distribute,nprocs;
       -g_ksp_monitor
       """
 
-  # GridapPETSc.Init(args=split(options))
-  # ls = PETScLinearSolver(petsc_gmres_amg_setup)
+  GridapPETSc.Init(args=split(options))
+  ls = PETScLinearSolver(petsc_gmres_amg_setup)
 
-  ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
+  # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
 
   o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
           num_horizontal_uniform_refinements=n_ref_lvls,
@@ -352,8 +351,8 @@ function main_transient(distribute,nprocs;
   transient_linear_boussinesq_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,restart)
   post_process(panel_model,p_fe,dir,return_vtk)
 
-  # GridapPETSc.Finalize()
-  # GridapPETSc.gridap_petsc_gc()
+  GridapPETSc.Finalize()
+  GridapPETSc.gridap_petsc_gc()
 
   i_am_main(ranks) && println("--DONE--")
 
