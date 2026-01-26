@@ -386,8 +386,8 @@ function main_transient(distribute,nprocs;
   f = panel_to_cartesian(f₀(ζ))
   b = panel_to_cartesian(topography)
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
 
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
