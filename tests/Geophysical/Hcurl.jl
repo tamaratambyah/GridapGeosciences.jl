@@ -20,6 +20,7 @@ dir = datadir("SW_3D")
 include("../convergence_tools.jl")
 include("Williamson2Test.jl")
 include(srcdir("Helpers/overloads.jl"))
+include("CurlConformingFESpacesFixes.jl")
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
@@ -47,16 +48,27 @@ p_fe = 1
 
 R = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
 # R = TestFESpace(panel_model, ReferenceFE(lagrangian,VectorValue{3,Float64},p_fe);conformity=:H1,dirichlet_tags=tags)
-H = TrialFESpace(R,VectorValue(0.0,0.0,0.0))
+H = TrialFESpace(R,VectorValue(1.0,0.0,0.0))
 
 ## normal vector in the chart
 f_cf = CellField(VectorValue(1,0.0,0.0),Ω_panel)
 f_h = interpolate(f_cf,H)
 
+eh = f_cf-f_h
+Ω = Triangulation(panel_model)
+dΩ = Measure(Ω,2*p_fe+1)
+print("error", sum(∫( eh⋅eh )*dΩ)); print("\n");
+@assert sum(∫( eh⋅eh )*dΩ)/sum(∫( f_cf⋅f_cf )*dΩ) < 1.e-12
+
 grad = gradient(f_cf)
 gradh = gradient(f_h)
 
-latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)
+eh = grad-gradh
+@assert sum(∫( eh⊙eh )*dΩ) < 1.e-12
+
+latlon_geo_map = latlon_geo_map_func(Ω)
 panel_cfs = [f_h, f_cf,  gradh, grad,    ]
 cellfields = map((x,y) -> x=>y, ["f_h", "f", "grad_h", "grad" ],panel_cfs)
-writevtk(Ω_panel,dir*"/sol.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+writevtk(Ω,dir*"/sol.vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map)
+
+
