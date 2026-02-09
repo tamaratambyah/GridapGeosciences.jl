@@ -171,8 +171,8 @@ function transient_shallow_water_solver_3D(
   if return_vtk
     panel_cfs = [covarient_basis_cf⋅xh0[1], xh0[2],qh,Fh,Φh,vort,b_cf, owned_panel_ids]
     cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","bt","pid"],panel_cfs)
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map,order=2)
-    writevtk(Ω_panel,dir_latlon*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map,order=2)
+    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir_latlon*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
   end
 
 
@@ -192,8 +192,8 @@ function transient_shallow_water_solver_3D(
     if return_vtk && (mod(counter,25) == 0)
       panel_cfs = [covarient_basis_cf⋅uh, ph,qh,Fh,Φh,vort,owned_panel_ids]
       cellfields = map((x,y) -> x=>y, ["uh","ph","qh","Fh","Phih","vort","pid"],panel_cfs)
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map,order=2)
-      writevtk(Ω_panel,dir_latlon*"/latlon_solT_$t.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map,order=2)
+      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+      writevtk(Ω_panel,dir_latlon*"/latlon_solT_$t.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
 
     end
     counter = counter + 1
