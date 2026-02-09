@@ -87,9 +87,12 @@ writevtk(Ω,dir*"/sol.vtu", cellfields=cellfields,append=false,geo_map=latlon_ge
 function fV(p)
   function f(γαβ)
     xyz = forward_map_3D(p)(γαβ)
-    VectorValue(-xyz[2],xyz[1],0)
+    VectorValue(-xyz[2],xyz[1],0.0)
   end
 end
+
+# f(xyz) = VectorValue(-xyz[2],xyz[1],0)
+# _fV = panel_to_cartesian(f)
 
 f_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
 H = TrialFESpace(R,f_cf)
@@ -107,7 +110,10 @@ sum(∫( eh⋅eh )*dΩ_error)/sum(∫( f_cf⋅f_cf )*dΩ_error)
 eh_grad = grad-gradh
 sum(∫( eh⊙eh )*dΩ_error)
 
+covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
+# latlon_geo_map = geo_map_func(Ω)
 latlon_geo_map = latlon_geo_map_func(Ω)
-panel_cfs = [f_h, f_cf, eh, gradh, grad, eh_grad   ]
+panel_cfs = [covarient_basis_cf⋅f_h, covarient_basis_cf⋅f_cf, eh,
+            covarient_basis_cf⋅gradh, covarient_basis_cf⋅grad, eh_grad   ]
 cellfields = map((x,y) -> x=>y, ["f_h", "f", "ef", "grad_h", "grad", "egrad" ],panel_cfs)
 writevtk(Ω,dir*"/sol.vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map)
