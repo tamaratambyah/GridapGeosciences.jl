@@ -17,3 +17,4 @@ data/
 LocalPreferences.toml
 *.e*
 *.o*
+gmg_jobs/
