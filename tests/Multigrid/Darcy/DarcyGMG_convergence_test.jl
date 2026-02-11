@@ -15,8 +15,8 @@ using LinearAlgebra
 using FillArrays, BlockArrays
 
 
-include("../convergence_tools.jl")
-include("../Geophysical/Williamson2Test.jl")
+include("../../convergence_tools.jl")
+include("../../Geophysical/Williamson2Test.jl")
 
 function get_patch_smoothers(sh,biform,qdegree)
   nlevs = num_levels(sh)

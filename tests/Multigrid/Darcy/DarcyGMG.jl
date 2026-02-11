@@ -72,8 +72,8 @@ dΩ = Measure(Ω,qdegree)
 panel_ids = get_panel_ids(model)
 
 
-include("../helpers.jl")
-include("../Geophysical/Williamson2Test.jl")
+include("../../helpers.jl")
+include("../../Geophysical/Williamson2Test.jl")
 h = panel_to_cartesian(h₀(0.0))
 vX = panel_to_cartesian(tangent_vec(u₀(0.0)))
 
