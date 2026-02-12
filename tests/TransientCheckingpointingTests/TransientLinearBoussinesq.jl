@@ -348,6 +348,10 @@ function main_transient(distribute,nprocs;
   dir = _dir*"/sol_p$(p_fe)_nref_h$(n_ref_lvls)_nref_v$(n_ref_lvls)"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
+  ## if restarted, post process the existing files
+  restart && post_process(panel_model,p_fe,dir,return_vtk)
+  i_am_main(ranks) && println("finished post processing existing data")
+
   transient_linear_boussinesq_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,restart)
   post_process(panel_model,p_fe,dir,return_vtk)
 
