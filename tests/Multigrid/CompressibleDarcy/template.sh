@@ -11,19 +11,18 @@
 
 source $HOME/scripts/load-configs-zg98.sh
 source $HOME/scripts/load-intel.sh
-
-julia --project={{{projectdir}}} -O3 -e\
-
-
-mpiexec -n {{ncpus}} julia --project={{{projectdir}}} -O3 -e\
-  '
+ 
+mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
+  using PartitionedArrays
   using MPI
-
- include({{{driver}}})
 
   MPI.Init()
   np = MPI.Comm_size(MPI.COMM_WORLD)
   ranks = distribute_with_mpi(LinearIndices((np,)))
+
+  i_am_main(ranks) && println("--START--")
+
+  include("{{{driver}}}")
   
   MPI.Barrier(MPI.COMM_WORLD)
 
@@ -35,10 +34,11 @@ mpiexec -n {{ncpus}} julia --project={{{projectdir}}} -O3 -e\
       iters = {{iters}},
       itu = {{itu}},
       itp = {{itp}},
-      dir = {{{dir}}},
+      dir = "{{{dir}}}",
       return_vtk = {{return_vtk}},
       simName = "{{simName}}",
     )
 
+  i_am_main(ranks) && println("--DONE--")
 
-  '
+'

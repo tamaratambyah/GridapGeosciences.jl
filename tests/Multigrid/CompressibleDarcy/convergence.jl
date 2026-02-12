@@ -76,28 +76,8 @@ p_exact(x) = 1 + x[1]*(1-x[1])
 # p_exact(x) = 1 + 0.1*sin(2*π*x[1])
 
 
-# MPI.Init()
-# np = MPI.Comm_size(MPI.COMM_WORLD)
-# ranks = distribute_with_mpi(LinearIndices((np,)))
-
-
-
-
-# for parms in dicts
-#   fparms = clean_params(parms)
-#   simName = jobname(fparms)
-#   (; c, α, n, order, iters, itu, itp, dir, return_vtk ) = (; fparms...)
-#   convergence(ranks;c=c,α=α,n=n,order=order,
-#   iters=iters,itu=itu,itp=itp,dir=dir,return_vtk=return_vtk,simName=simName)
-#   # convergence(ranks,fparms,simName)
-# end
-
-
-# df = collect_results(dir*"/convergence")
 
 function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
-
-  # (; c, α, n, order, iters, itu, itp, dir, return_vtk ) = (; dict...)
 
   dir_convergence = dir*"/convergence"
   !isdir(dir_convergence) && mkdir(dir_convergence)
@@ -158,7 +138,7 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
     atol=1.0e-14, rtol=1.0e-08
   )
 
-  cg = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-8,verbose=1)
+  cg = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-8,verbose=i_am_main(ranks))
 
   ##### solvers for the blocks of the preconditioner
   solver_u = Bool(itu) ? gmg : LUSolver()
@@ -174,16 +154,16 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   # P = JacobiLinearSolver()
 
   ##### Preconditioned external solver
-  ls = FGMRESSolver(20,P;maxiter=iters,atol=1e-14,rtol=1.e-8,verbose=true)
-  # ls = GMRESSolver(40;Pr=JacobiLinearSolver(),Pl=nothing,maxiter=2000,rtol=1.e-8,verbose=true)
+  ls = FGMRESSolver(20,P;maxiter=iters,atol=1e-14,rtol=1.e-8,verbose=i_am_main(ranks))
+  # ls = GMRESSolver(40;Pr=JacobiLinearSolver(),Pl=nothing,maxiter=2000,rtol=1.e-8,verbose=i_am_main(ranks))
   # ls = LUSolver()
   ns = numerical_setup(symbolic_setup(ls,A),A)
 
   x = allocate_in_domain(A); fill!(x,0.0)
   solve!(x,ns,b)
 
-  gmg_iters = solver_u.log.num_iters
-  cg_iters = solver_p.log.num_iters
+  gmg_iters = Bool(itu) ? solver_u.log.num_iters : 0
+  cg_iters = Bool(itp) ? solver_p.log.num_iters : 0
   kylov_iters = ls.log.num_iters
 
   xh = FEFunction(X,x)
@@ -202,7 +182,7 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
       append=false)
   end
 
-  output = @strdict Eu Ep gmg_iters cg_iters kylov_iters n order c α
+  output = @strdict Eu Ep gmg_iters cg_iters kylov_iters n order c α itu itp
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("$(simName).jld2")), output)
 
 end
