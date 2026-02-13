@@ -235,7 +235,13 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
 
   # transient parameters
   _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
-  dt = floor(_dt, sigdigits=1)
+  Ddt = floor(_dt, sigdigits=1)
+
+  nsteps = _tF/ Ddt
+  dt = _tF/floor(nsteps)
+
+  i_am_main(ranks) && println("nsteps = $nsteps")
+  i_am_main(ranks) && println("dt = $dt, other dt = $Ddt")
 
   # solve with SSP RK 3
   ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
