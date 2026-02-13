@@ -30,7 +30,7 @@ _a = a_e/L
 _rₑ = rₑ/L
 _g = g*_τ^2/L
 _Ωₑ = Ωₑ*_τ
-_H₀ = H₀/L
+_H_0 = H₀/L
 _h0 = h0/L
 _umax  = umax /L*_τ
 _tF = TF/_τ
@@ -70,7 +70,7 @@ function h₀(xyz)
   θϕr   = xyz2θϕr(xyz)
   x,y,z = xyz
   θ,ϕ,r = θϕr
-  h     = _H₀
+  h     = _H_0
   hh    = _h0
   α     = 1.0/3.0
   β     = 1.0/15.0
