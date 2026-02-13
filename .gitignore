@@ -18,3 +18,5 @@ LocalPreferences.toml
 *.e*
 *.o*
 gmg_jobs/
+tsw_jobs/
+tsw_p2_jobs/

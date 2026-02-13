@@ -63,6 +63,9 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   diag_dir = sim_dir*"/diagnostics"
   (i_am_main(ranks) && !isdir(diag_dir) ) && mkdir(diag_dir)
 
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
 
   ## finite element solver
   degree = 2*(p_fe+1)
@@ -324,7 +327,8 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
   gravity = _g
 
-  cell_geo_map = geo_map_func(Ω_panel)
+  _Ω_panel = Triangulation(panel_model)
+  cell_geo_map = geo_map_func(_Ω_panel)
 
   labels = ["uh","ph","Bh","bh","qh","Fh","Phih","vort"]
   function make_vtk(t::Float64,xh,yh,cell_geo_map)
@@ -334,7 +338,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     panel_cfs = [covarient_basis_cf⋅uh, ph, Bh, bh, qh, Fh, Φh, vort]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
 
   function casimirs(xh,yh,dΩ)
@@ -477,8 +481,8 @@ function main_transient(distribute,nprocs;
   f = panel_to_cartesian(f₀(ζ))
   B = panel_to_cartesian(B₀(ζ))
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,atol=1e-10,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,atol=1e-10,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
 
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
@@ -499,10 +503,10 @@ function main_transient(distribute,nprocs;
 end
 
 
-MPI.Init()
-nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-with_mpi() do distribute
-  main_transient(distribute,nprocs;restart=true,n_ref_lvls=3)
-end
+# with_mpi() do distribute
+#   main_transient(distribute,nprocs;restart=true,n_ref_lvls=3)
+# end

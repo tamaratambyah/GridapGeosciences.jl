@@ -51,8 +51,8 @@ function jobdict(name,params,q)
   Dict(
     "project" => project,
     "q" => queue,
-    "o" => jobsdir*"/$(name)",
-    "e" => jobsdir*"/$(name)",
+    "o" => jobsdir*"/$(name).o",
+    "e" => jobsdir*"/$(name).e",
     "walltime" => walltime,
     "ncpus" => ncpus,
     "mem" => "$(mem)G",
@@ -86,16 +86,16 @@ end
 
 ############################################
 
-jobsdir = projectdir("tsw_jobs")
+jobsdir = projectdir("tsw_p2_jobs")
 !isdir(jobsdir) && mkdir(jobsdir)
 wdir = projectdir("tests/TransientCheckingpointingTests")
 
 
 queue = :normal
-orders = [1,2]
-
+orders = [2]
 nlevels = [1,2,3,4,5]
 nprocs  = [24,48,48,96,192]
+
 
 dicts = generate_dictionaries(orders,nlevels,nprocs)
 
