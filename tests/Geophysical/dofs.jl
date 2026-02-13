@@ -49,13 +49,14 @@ end
 
 f_cf = panelwise_cellfield(contra_v(fV),Ω,panel_ids)
 
+### True L2 values
 RL2 = TestFESpace(panel_model, ReferenceFE(lagrangian,VectorValue{2,Float64},p_fe);conformity=:L2)
 HL2 = TrialFESpace(RL2,f_cf)
 f_h = interpolate(f_cf,HL2)
 dL2 = collect(get_cell_dof_values(f_h.fields.item_ref[]))
 map(x->round.(x,sigdigits=2),dL2)
 
-
+### Incorrect H1 values
 RH1 = TestFESpace(panel_model, ReferenceFE(lagrangian,VectorValue{2,Float64},p_fe);conformity=:H1)
 HH1 = TrialFESpace(RH1,f_cf)
 f_h = interpolate(f_cf,HH1)
