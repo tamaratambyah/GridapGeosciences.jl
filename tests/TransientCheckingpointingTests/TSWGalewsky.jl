@@ -333,7 +333,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   gravity = _g
 
   _Ω_panel = Triangulation(panel_model)
-
+  cell_geo_map = geo_map_func(_Ω_panel)
   labels = ["uh","ph","Bh","bh","qh","Fh","Phih","vort"]
   function make_vtk(t::Float64,xh,yh,cell_geo_map)
     uh,ph,Bh = xh
@@ -427,13 +427,38 @@ function main_transient(distribute,nprocs;
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
-  _dir = datadir("TransientThermalShallowWater_checkpointing")
+  _dir = datadir("TransientThermalShallowWater_Galewsky")
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
   transient_tsw_solver(panel_model,p_fe,dir,h,vX,f,B,CFL,lss,restart)
+  post_process(panel_model,p_fe,dir,f,return_vtk)
+
+  i_am_main(ranks) && println("--DONE--")
+  @test true
+end
+
+
+
+function main_visualise(distribute,nprocs;
+  n_ref_lvls=5,p_fe=1,return_vtk=true)
+
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Galewsky_visualise")
+
+  f = panel_to_cartesian(f₀)
+
+  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  panel_model = omodel.parametric_dmodel
+
+  _dir = datadir("TransientThermalShallowWater_checkpointing")
+
+  dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
+
   post_process(panel_model,p_fe,dir,f,return_vtk)
 
   i_am_main(ranks) && println("--DONE--")
