@@ -455,7 +455,9 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(das,panel_model)
-  dΩ_error = Measure(Ω_panel,6*(p_fe+1))
+
+  Ω_error = Triangulation(panel_model)
+  dΩ_error = Measure(Ω_error,6*(p_fe+1))
 
   R = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe+1); conformity=:H1)
   H = TransientTrialFESpace(R)
