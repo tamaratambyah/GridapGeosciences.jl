@@ -24,22 +24,41 @@ function my_mean( Bu_n::SkeletonPair)
   0.5*( plus - minus  )
 end
 
-function upwinding_sign(Fn)
-  c = 0.0
+# function upwinding_sign(Fn)
+#   c = 0.0
 
-  if Fn < 0.0
-    c = -0.5
-  elseif Fn > 0.0
-    c = 0.5
-  end
-  return c
-end
+#   if Fn < 0.0
+#     c = -0.5
+#   elseif Fn > 0.0
+#     c = 0.5
+#   end
+#   return c
+# end
 
 
 function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,B::Function,
+  ε=1e-4,soft=false,
   CFL=0.1,lss=(LUSolver(),LUSolver()),restart=false
   )
+
+  # upwinding function
+  function upwinding_sign(Fn)
+    c = 0.0
+
+    if Fn < -ε
+      c = -0.5
+    elseif Fn > ε
+      c = 0.5
+    end
+
+    if soft
+      c = 0.5*Fn/(sqrt(Fn^2 + (ε)^2 ) )
+    end
+
+    return c
+
+  end
 
   ls_ode, ls_diag = lss
 
@@ -89,8 +108,8 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   X_prog = TransientMultiFieldFESpace([U,P,P]) # u, p, B
   Y_prog = MultiFieldFESpace([V,Q,Q]) # u, p, B
 
-  X_diag = TransientMultiFieldFESpace([H,U,P,P,P]) # q, F, Φ, T, b
-  Y_diag = MultiFieldFESpace([R,V,Q,Q,Q]) # q, F, Φ, T, b
+  X_diag = TransientMultiFieldFESpace([H,U,P,P]) # q, F, Φ, b
+  Y_diag = MultiFieldFESpace([R,V,Q,Q]) # q, F, Φ, b
 
   ## initial conditions
   function initial_condition()
@@ -126,42 +145,39 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
 
   #### DIAGNOSTIC VARIABLES
+  #### T = 0.5p
   assem_diag = SparseMatrixAssembler(X_diag,Y_diag,das)
 
   # vorticity
   perp_matrix_cf = panelwise_cellfield(perp_matrix,Ω_panel,panel_ids)
-  resq(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (perp_matrix_cf⋅u)⋅∇(w)  )dΩ
+  resq(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (perp_matrix_cf⋅u)⋅∇(w)  )dΩ
 
   # mass flux
-  resF(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r)) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(u⋅(metric_cf⋅v))*meas_cf   )dΩ
+  resF(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(u⋅(metric_cf⋅v))*meas_cf   )dΩ
 
   # Bernoulli potential
-  resΦ(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( 0.5*B*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*meas_cf  )dΩ
-
-  # Temperature
-  resT(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r)) = ∫( T*s*meas_cf  )dΩ - ∫( 0.5*p*s*meas_cf  )dΩ
+  resΦ(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( 0.5*B*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*meas_cf  )dΩ
 
   # Bouyancy
-  resb(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r)) = ∫( b*p*r*meas_cf  )dΩ - ∫( B*r*meas_cf  )dΩ
+  resb(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( b*p*r*meas_cf  )dΩ - ∫( B*r*meas_cf  )dΩ
 
 
-  res_y(t,((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r)) = (
-      resq(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r))
-    + resF(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r))
-    + resΦ(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r))
-    + resT(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r))
-    + resb(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r))
+  res_y(t,((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = (
+      resq(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
+    + resF(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
+    + resΦ(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
+    + resT(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
+    + resb(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
   )
-  jac_y(t,((u,p,B),(q,F,Φ,T,b)),(dq,dF,dΦ,dT,db),(w,v,ψ,s,r)) = (
+  jac_y(t,((u,p,B),(q,F,Φ,b)),(dq,dF,dΦ,db),(w,v,ψ,r)) = (
       ∫( dq*p*w*meas_cf  )dΩ
     + ∫( (dF⋅ (metric_cf⋅v))*meas_cf )dΩ
     + ∫( dΦ*ψ*meas_cf  )dΩ
-    + ∫( dT*s*meas_cf  )dΩ
     + ∫( db*p*r*meas_cf  )dΩ
   )
 
-  _res_y((q,F,Φ,T,b),(w,v,ψ,s,r))  = res_y(0.0,(xh0,(q,F,Φ,T,b)),(w,v,ψ,s,r))
-  _jac_y((q,F,Φ,T,b),(dq,dF,dΦ,dT,db),(w,v,ψ,s,r)) = jac_y(0.0,(xh0,(q,F,Φ,T,b)),(dq,dF,dΦ,dT,db),(w,v,ψ,s,r))
+  _res_y((q,F,Φ,b),(w,v,ψ,r))  = res_y(0.0,(xh0,(q,F,Φ,b)),(w,v,ψ,r))
+  _jac_y((q,F,Φ,b),(dq,dF,dΦ,db),(w,v,ψ,r)) = jac_y(0.0,(xh0,(q,F,Φ,b)),(dq,dF,dΦ,db),(w,v,ψ,r))
   _opFE = FEOperator(_res_y,_jac_y,X_diag,Y_diag,assem_diag)
   nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls_diag,verbose=i_am_main(ranks))
   yh0 = solve(nls,_opFE)
@@ -178,25 +194,25 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
     + ∫( (dBt*w)*meas_cf )dΩ
   )
 
-  res_p(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0)) = ∫( r*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
+  res_p(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = ∫( r*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
 
-  res_u(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
+  res_u(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = (
             ∫( q*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
           - ∫( Φ*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-          + ∫( 0.5*(b*(∇(T)⋅v) )*meas_cf )dΩ
-          + ∫( -0.5*(b*T)*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )  )dΩ
-          + ∫( -0.5*(T*(∇(b)⋅v) )*meas_cf )dΩ
+          + ∫( 0.5*(b*(∇(0.5*p)⋅v) )*meas_cf )dΩ
+          + ∫( -0.5*(b*(0.5*p))*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )  )dΩ
+          + ∫( -0.5*((0.5*p)*(∇(b)⋅v) )*meas_cf )dΩ
       )
 
-  u_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w)) = (
-      ∫( -0.5*my_mean((v*b)⋅n_Λ)*jump(T)*meas_cf_skel.plus   )dΛ
-    + ∫( 0.5*my_mean((v*T)⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
+  u_s1(((u,p,B),(q,F,Φ,b)),(v,r,w)) = (
+      ∫( -0.5*my_mean((v*b)⋅n_Λ)*jump(0.5*p)*meas_cf_skel.plus   )dΛ
+    + ∫( 0.5*my_mean((v*(0.5*p))⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
   )
 
-  u_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w)) = ∫( -0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(v⋅n_Λ).plus )*jump(b)*jump(T)*meas_cf_skel.plus   )dΛ
+  u_s2(((u,p,B),(q,F,Φ,b)),(v,r,w)) = ∫( -0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(v⋅n_Λ).plus )*jump(b)*jump(0.5*p)*meas_cf_skel.plus   )dΛ
 
 
-  res_B(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
+  res_B(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = (
       ∫( -0.5*(b*(∇(w)⋅F) )*meas_cf )dΩ
     + ∫( 0.5*(b*w)*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
     + ∫( 0.5*(w*(∇(b)⋅F) )*meas_cf )dΩ
@@ -204,29 +220,47 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
 
 
 
-  B_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w)) = (
+  B_s1(((u,p,B),(q,F,Φ,b)),(v,r,w)) = (
       ∫( 0.5*my_mean((F*b)⋅n_Λ)*jump(w)*meas_cf_skel.plus   )dΛ
     + ∫( 0.5*my_mean((F*w)⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
   )
 
-  B_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w)) = ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(F⋅n_Λ).plus )*jump(b)*jump(w)*meas_cf_skel.plus   )dΛ
+  B_s2(((u,p,B),(q,F,Φ,b)),(v,r,w)) = ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(F⋅n_Λ).plus )*jump(b)*jump(w)*meas_cf_skel.plus   )dΛ
 
 
-  res_x(t,((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
-      res_u(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
-    + u_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
-    + u_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
-    + res_p(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
-    + res_B(((u,p,B),(q,F,Φ,T,b)),(v,r,w),(q0,F0,Φ0,T0,b0))
-    + B_s1(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
-    + B_s2(((u,p,B),(q,F,Φ,T,b)),(v,r,w))
+  res_x(t,((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = (
+      res_u(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0))
+    + u_s1(((u,p,B),(q,F,Φ,b)),(v,r,w))
+    + u_s2(((u,p,B),(q,F,Φ,b)),(v,r,w))
+    + res_p(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0))
+    + res_B(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0))
+    + B_s1(((u,p,B),(q,F,Φ,b)),(v,r,w))
+    + B_s2(((u,p,B),(q,F,Φ,b)),(v,r,w))
   )
-  jac_x(t,((u,p,B),(q,F,Φ,T,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,T0,b0)) =  ∫( VectorValue(0,0)⋅(du⋅v) + 0*dp*r + 0*dB*w   )dΩ
-  jac_xt(t,((u,p,B),(q,F,Φ,T,b)),(dut,dpt,dBt),(v,r,w),(q0,F0,Φ0,T0,b0)) = (
+  jac_xt(t,((u,p,B),(q,F,Φ,b)),(dut,dpt,dBt),(v,r,w),(q0,F0,Φ0,b0)) = (
       ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ
     + ∫( (dpt*r)*meas_cf )dΩ
     + ∫( (dBt*w)*meas_cf )dΩ
   )
+
+  c = 0.5 # for jacobian
+  jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+       ∫( du⋅(metric_cf⋅v)*meas_cf )dΩ
+     + ∫( (dp*r)*meas_cf )dΩ
+     + ∫( (dB*w)*meas_cf )dΩ
+    )
+  # function jac_prog(dΩ,c)
+  #   _jac_prog((t,dt),(u0,h0,B0),(u,h,B),(du,dh,dB),(v,w,r),(b),(F,Φ,q,ω),b3,b1) = (
+  #       ∫( du⋅v  )dΩ
+  #     + ∫( (c*dt)*(ω*(vecPerp∘(du)⋅v) )  )dΩ
+  #     - ∫( ((c*dt)*(1/2))*dB*(∇⋅v) )dΩ
+  #     - ∫( ((c*dt)*(1/2)*b1*dh)*(∇⋅v )  )dΩ
+  #     + ∫( dh*w   )dΩ
+  #     + ∫( (c*dt)*h0*(∇⋅du)*w  )dΩ
+  #     + ∫( dB*r )dΩ
+  #     + ∫( ((c*dt)*b1*h0)*(∇⋅du)*r )dΩ
+  #   )
+  # end
 
 
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog,assembler=assem_prog)
@@ -324,8 +358,8 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   X_prog = TransientMultiFieldFESpace([U,P,P]) # u, p, B
   Y_prog = MultiFieldFESpace([V,Q,Q]) # u, p, B
 
-  X_diag = TransientMultiFieldFESpace([H,U,P,P,P]) # q, F, Φ, T, b
-  Y_diag = MultiFieldFESpace([R,V,Q,Q,Q]) # q, F, Φ, T, b
+  X_diag = TransientMultiFieldFESpace([H,U,P,P]) # q, F, Φ, b
+  Y_diag = MultiFieldFESpace([R,V,Q,Q]) # q, F, Φ, b
 
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
@@ -339,7 +373,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   labels = ["uh","ph","Bh","bh","qh","Fh","Phih","vort"]
   function make_vtk(t::Float64,xh,yh,cell_geo_map)
     uh,ph,Bh = xh
-    qh,Fh,Φh,Th,bh = yh
+    qh,Fh,Φh,bh = yh
     vort = qh*ph - cor_cf
     panel_cfs = [covarient_basis_cf⋅uh, ph, Bh, bh, qh, Fh, Φh, vort]
 
@@ -349,7 +383,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
 
   function casimirs(xh,yh,dΩ)
     uh,ph,Bh = xh
-    qh,Fh,Φh,Th,bh = yh
+    qh,Fh,Φh,bh = yh
     vort = qh*ph - cor_cf
 
     ens = sum(∫( 0.5*(bh*bh*xh[2])*meas_cf  )dΩ)
@@ -475,7 +509,7 @@ end
 #### Main run for transient solution
 ################################################################################
 function main_transient(distribute,nprocs;
-  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=true)
+  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=true,_ε=1e-4,_soft=false)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
@@ -487,8 +521,8 @@ function main_transient(distribute,nprocs;
   f = panel_to_cartesian(f₀(ζ))
   B = panel_to_cartesian(B₀(ζ))
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-12,atol=1e-10,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-12,atol=1e-10,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
 
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
@@ -500,7 +534,7 @@ function main_transient(distribute,nprocs;
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
-  transient_tsw_solver(panel_model,p_fe,dir,h,vX,f,B,CFL,lss,restart)
+  transient_tsw_solver(panel_model,p_fe,dir,h,vX,f,B,_ε,_soft,CFL,lss,restart)
   convergence_post_process(panel_model,p_fe,dir)
   post_process(panel_model,p_fe,dir,f,return_vtk)
 
