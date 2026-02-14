@@ -16,7 +16,7 @@ using Test
 
 include("../convergence_tools.jl")
 include("helpers.jl")
-include("../Geophysical/ThermogeostrophicBalanceTest.jl")
+
 
 function my_mean( Bu_n::SkeletonPair)
   plus  = ( Bu_n.plus)
@@ -166,7 +166,6 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
       resq(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
     + resF(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
     + resΦ(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
-    + resT(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
     + resb(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r))
   )
   jac_y(t,((u,p,B),(q,F,Φ,b)),(dq,dF,dΦ,db),(w,v,ψ,r)) = (
@@ -269,13 +268,11 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
 
   # transient parameters
   _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
-  Ddt = floor(_dt, sigdigits=1)
-
-  nsteps = _tF/ Ddt
+  nsteps = _tF/ _dt
   dt = _tF/floor(nsteps)
 
-  i_am_main(ranks) && println("nsteps = $nsteps")
-  i_am_main(ranks) && println("dt = $dt, other dt = $Ddt")
+  i_am_main(ranks) && println("nsteps = $nsteps, other nsteps = ", floor(nsteps))
+  i_am_main(ranks) && println("dt = $dt, other dt = ", _dt)
 
   # solve with SSP RK 3
   ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
@@ -336,6 +333,9 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   vtk_dir = dir*"/vtk_data"
   (i_am_main(ranks) && !isdir(vtk_dir) ) && mkdir(vtk_dir)
 
+  latlon_dir = dir*"/latlon_data"
+  (i_am_main(ranks) && !isdir(latlon_dir) ) && mkdir(latlon_dir)
+
   dir_casimirs = dir*"/casimirs"
   (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
 
@@ -378,7 +378,9 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     panel_cfs = [covarient_basis_cf⋅uh, ph, Bh, bh, qh, Fh, Φh, vort]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    # writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(_Ω_panel))
+    writevtk(_Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(_Ω_panel))
   end
 
   function casimirs(xh,yh,dΩ)
@@ -505,48 +507,3 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
 
 
 end
-################################################################################
-#### Main run for transient solution
-################################################################################
-function main_transient(distribute,nprocs;
-  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=true,_ε=1e-4,_soft=false)
-
-  ranks = distribute(LinearIndices((nprocs,)))
-
-  i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("transient_tsw_equation")
-
-  h = panel_to_cartesian(h₀(ζ))
-  vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-  f = panel_to_cartesian(f₀(ζ))
-  B = panel_to_cartesian(B₀(ζ))
-
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=i_am_main(ranks),name="ode_solver")
-  lss = (ls_ode,ls_diag)
-
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
-  panel_model = omodel.parametric_dmodel
-
-  _dir = datadir("TransientThermalShallowWater_checkpointing")
-  (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
-
-  dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
-  (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
-
-  transient_tsw_solver(panel_model,p_fe,dir,h,vX,f,B,_ε,_soft,CFL,lss,restart)
-  convergence_post_process(panel_model,p_fe,dir)
-  post_process(panel_model,p_fe,dir,f,return_vtk)
-
-  i_am_main(ranks) && println("--DONE--")
-  @test true
-end
-
-
-# MPI.Init()
-# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-# with_mpi() do distribute
-#   main_transient(distribute,nprocs;restart=true,n_ref_lvls=3)
-# end

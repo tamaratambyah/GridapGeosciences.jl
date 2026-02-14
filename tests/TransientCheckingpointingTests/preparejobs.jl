@@ -92,7 +92,7 @@ wdir = projectdir("tests/TransientCheckingpointingTests")
 
 
 queue = :normal
-orders = [1,2]
+orders = [1]
 nlevels = [1,2,3,4,5]
 nprocs  = [24,48,48,96,192]
 
