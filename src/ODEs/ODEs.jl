@@ -26,25 +26,27 @@ import Gridap.ODEs: TransientFEOperator
 import Gridap.Algebra: NonlinearSolver
 import Gridap.FESpaces: FEOperatorFromWeakForm
 import Gridap.FESpaces: FEOperator
-import Gridap.ODEs: EXRungeKutta
+import Gridap.ODEs: EXRungeKutta, DIMRungeKutta
 import Gridap.ODEs: AbstractTableau
-import Gridap.ODEs: AbstractQuasilinearODE
+import Gridap.ODEs: AbstractQuasilinearODE, AbstractSemilinearODE
 using LinearAlgebra
 import Gridap.ODEs: get_weights, get_nodes,get_matrix
 import Gridap.ODEs: RungeKutta
 import Gridap.ODEs: ODESolver
-import Gridap.ODEs: TableauType, ExplicitTableau
+import Gridap.ODEs: TableauType, ExplicitTableau, ImplicitTableau
 
 import Gridap.ODEs: StageOperator
-import Gridap.ODEs: LinearStageOperator
+import Gridap.ODEs: LinearStageOperator, NonlinearStageOperator
 
 include("DAE.jl")
 include("ODEOperators.jl")
 include("ODEOpsFromTFEOps.jl")
 include("RungeKuttaEX.jl")
+include("RungeKuttaDIM.jl")
 include("StageOperators.jl")
 
 export DAEFEOperator
 export LinearStageOperator
+export NonlinearStageOperator
 
 end
