@@ -36,6 +36,41 @@ end
 # end
 
 
+# using MPI
+# using PartitionedArrays
+# MPI.Init()
+# np = MPI.Comm_size(MPI.COMM_WORLD)
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+
+
+# include("../Geophysical/ThermogeostrophicBalanceTest.jl")
+
+# ζ = 0.0
+# n_ref_lvls = 1
+# p_fe = 1
+
+#   h = panel_to_cartesian(h₀(ζ))
+#   vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+#   f = panel_to_cartesian(f₀(ζ))
+#   B = panel_to_cartesian(B₀(ζ))
+
+#   ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=false,name="diagnostic_solver")
+#   ls_ode = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1-14,verbose=1,name="ode_solver")
+#   lss = (ls_ode,ls_diag)
+
+#   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+#   panel_model = omodel.parametric_dmodel
+
+#   _dir = datadir("TransientThermalShallowWater_checkpointing")
+#   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
+
+#   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
+#   (i_am_main(ranks) && !isdir(dir) ) && mkdir(dir)
+
+#   ε = 0.0
+#   soft = false
+#   CFL = 0.1
+#   restart = false
 function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,B::Function,
   ε=1e-4,soft=false,
@@ -268,14 +303,18 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
 
   # transient parameters
   _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
-  nsteps = _tF/ _dt
-  dt = _tF/floor(nsteps)
+  _nsteps = _tF/_dt
+  nsteps = ceil(_nsteps)
+  dt = _tF/nsteps
 
-  i_am_main(ranks) && println("nsteps = $nsteps, other nsteps = ", floor(nsteps))
+  i_am_main(ranks) && println("nsteps = $nsteps, other nsteps = ", _nsteps)
   i_am_main(ranks) && println("dt = $dt, other dt = ", _dt)
 
   # solve with SSP RK 3
-  ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
+  # ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
+
+  nls_ode = GridapSolvers.NonlinearSolvers.NewtonSolver(ls_ode,verbose=i_am_main(ranks))
+  ode_solver = RungeKutta(nls_ode, ls_ode, dt, :SDIRK_Crouzeix_3_4)
   solT  = solve(ode_solver,opDAE,t0,_tF,xh0)
 
   ## iterate solution

@@ -29,8 +29,8 @@ function main_transient(distribute,nprocs;
   f = panel_to_cartesian(f₀(ζ))
   B = panel_to_cartesian(B₀(ζ))
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=false,name="diagnostic_solver")
+  ls_ode = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1-14,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
 
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
