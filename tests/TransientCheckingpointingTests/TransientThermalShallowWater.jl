@@ -277,12 +277,26 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
     + ∫( (dBt*w)*meas_cf )dΩ
   )
 
-  c = 0.5 # for jacobian
-  jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-       ∫( du⋅(metric_cf⋅v)*meas_cf )dΩ
-     + ∫( (dp*r)*meas_cf )dΩ
-     + ∫( (dB*w)*meas_cf )dΩ
+  #### Linearised jacobian
+  jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+     ∫( r*((_H_0*u)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
     )
+
+  jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+            ∫( _ω*( (perp_matrix_cf⋅(du)) ⋅(metric_cf ⋅v))   )dΩ
+          - ∫( (0.5*dB)*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
+          + ∫( -0.5*(_g*(0.5*dp))*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )  )dΩ
+      )
+
+  jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+    + ∫( (_g*w)*((_H_0*u)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
+  )
+
+  jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  (
+    jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  + jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  + jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  )
   # function jac_prog(dΩ,c)
   #   _jac_prog((t,dt),(u0,h0,B0),(u,h,B),(du,dh,dB),(v,w,r),(b),(F,Φ,q,ω),b3,b1) = (
   #       ∫( du⋅v  )dΩ
@@ -295,7 +309,10 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   #     + ∫( ((c*dt)*b1*h0)*(∇⋅du)*r )dΩ
   #   )
   # end
+###
 
+
+  ####
 
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog,assembler=assem_prog)
   opFE = FEOperator(res_y,jac_y,X_diag,Y_diag,assem_diag)
