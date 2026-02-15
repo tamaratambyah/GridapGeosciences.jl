@@ -279,23 +279,50 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
 
   #### Linearised jacobian
   jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-     ∫( r*((_H_0*u)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
+     ∫( r*((_H_0*du)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
     )
 
   jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-            ∫( _ω*( (perp_matrix_cf⋅(du)) ⋅(metric_cf ⋅v))   )dΩ
+            ∫( q0*( (perp_matrix_cf⋅(_H_0*du)) ⋅(metric_cf ⋅v))   )dΩ
           - ∫( (0.5*dB)*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-          + ∫( -0.5*(_g*(0.5*dp))*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )  )dΩ
+          + ∫( 0.5*(b*(∇(0.5*dp)⋅v) )*meas_cf )dΩ
+          + ∫( -0.5*(b*(0.5*dp))*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )  )dΩ
+          + ∫( -0.5*((0.5*dp)*(∇(b)⋅v) )*meas_cf )dΩ
       )
 
   jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-    + ∫( (_g*w)*((_H_0*u)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
+    ∫( -0.5*(b*(∇(w)⋅(_H_0*du)) )*meas_cf )dΩ
+    + ∫( 0.5*(b*w)*((_H_0*du)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
+    + ∫( 0.5*(w*(∇(b)⋅(_H_0*du)) )*meas_cf )dΩ
+  )
+
+
+  jac_u_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+      ∫( -0.5*my_mean((v*b)⋅n_Λ)*jump(0.5*dp)*meas_cf_skel.plus   )dΛ
+    + ∫( 0.5*my_mean((v*(0.5*dp))⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
+  )
+
+  jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+    ∫( -0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(v⋅n_Λ).plus )*jump(b)*jump(0.5*dp)*meas_cf_skel.plus   )dΛ
+  )
+
+  jac_B_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+      ∫( 0.5*my_mean(((_H_0*du)*b)⋅n_Λ)*jump(w)*meas_cf_skel.plus   )dΛ
+    + ∫( 0.5*my_mean(((_H_0*du)*w)⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
+  )
+
+  jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
+    ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*((_H_0*du)⋅n_Λ).plus )*jump(b)*jump(w)*meas_cf_skel.plus   )dΛ
   )
 
   jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  (
     jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  + jac_u_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  + jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   + jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   + jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  + jac_B_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  + jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   )
   # function jac_prog(dΩ,c)
   #   _jac_prog((t,dt),(u0,h0,B0),(u,h,B),(du,dh,dB),(v,w,r),(b),(F,Φ,q,ω),b3,b1) = (
