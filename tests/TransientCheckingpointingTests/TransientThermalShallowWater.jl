@@ -437,7 +437,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   i_am_main(ranks) && safesave(datadir(dir_casimirs, ("casimirs.jld2")), output)
 
   _make_pvd_distributed(vtk_dir,"solT",1)
-
+  _make_pvd_distributed(latlon_dir,"solT",1)
 end
 
 function convergence_post_process(panel_model,p_fe::Int,dir::String)

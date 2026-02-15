@@ -16,8 +16,8 @@ mpiexec -n $PBS_NCPUS julia --project=$PBS_O_WORKDIR -e'
     include("tests/TransientCheckingpointingTests/TSWGalewsky.jl") 
 
     with_mpi() do distribute
-        main_transient(distribute,192;restart=false,n_ref_lvls=5,p_fe=1)
-        # main_visualise(distribute,192;n_ref_lvls=5,p_fe=1)
+        # main_transient(distribute,192;restart=false,n_ref_lvls=5,p_fe=1)
+        main_visualise(distribute,192;n_ref_lvls=5,p_fe=1)
     end
 
 ' > /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.out.${PBS_JOBID} 2> /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.err.${PBS_JOBID}
