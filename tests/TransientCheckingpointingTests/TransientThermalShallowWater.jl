@@ -355,10 +355,10 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   i_am_main(ranks) && println("dt = $dt, other dt = ", _dt)
 
   # solve with SSP RK 3
-  # ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
-
-  nls_ode = GridapSolvers.NonlinearSolvers.NewtonSolver(ls_ode,verbose=i_am_main(ranks))
-  ode_solver = RungeKutta(nls_ode, ls_ode, dt, :SDIRK_Crouzeix_3_4)
+  ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
+#
+  # nls_ode = GridapSolvers.NonlinearSolvers.NewtonSolver(ls_ode,verbose=i_am_main(ranks))
+  # ode_solver = RungeKutta(nls_ode, ls_ode, dt, :SDIRK_Crouzeix_3_4)
   solT  = solve(ode_solver,opDAE,t0,_tF,xh0)
 
   ## iterate solution
