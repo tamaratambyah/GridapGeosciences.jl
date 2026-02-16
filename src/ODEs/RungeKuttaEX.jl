@@ -108,16 +108,8 @@ function Gridap.ODEs.ode_march!(
     usx = (ui_pre, x)
     ws = (0, 1)
 
-
-    # # Create and solve stage operator
-    # stageop = LinearStageOperator(
-    #   odeop, odeopcache,
-    #   tx, usx, ws,
-    #   J, r, reuse, sysslvrcache
-    # )
-
     # Create and solve stage operator
-    stageop = NonlinearStageOperator(
+    stageop = DAENonlinearStageOperator(
           odeop, odeopcache,
           tx, usx, ws
         )

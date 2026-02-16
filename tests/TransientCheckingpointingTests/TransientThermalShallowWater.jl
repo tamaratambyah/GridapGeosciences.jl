@@ -54,12 +54,14 @@ end
 #   f = panel_to_cartesian(f₀(ζ))
 #   B = panel_to_cartesian(B₀(ζ))
 
-#   ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=false,name="diagnostic_solver")
-#   ls_ode = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1-14,verbose=1,name="ode_solver")
+#   ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=1,name="diagnostic_solver")
+#   ls_diag.log.depth = 4
+#   ls_ode = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1-14,atol=1e-12,verbose=1,name="ode_solver")
 #   lss = (ls_ode,ls_diag)
 
 #   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
-#   panel_model = omodel.parametric_dmodel
+#   _panel_model = omodel.parametric_dmodel
+#   panel_model = _panel_model.models.item
 
 #   _dir = datadir("TransientThermalShallowWater_checkpointing")
 #   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
@@ -265,11 +267,11 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   res_x(t,((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = (
       res_u(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0))
     + u_s1(((u,p,B),(q,F,Φ,b)),(v,r,w))
-    + u_s2(((u,p,B),(q,F,Φ,b)),(v,r,w))
+    # + u_s2(((u,p,B),(q,F,Φ,b)),(v,r,w))
     + res_p(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0))
     + res_B(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0))
     + B_s1(((u,p,B),(q,F,Φ,b)),(v,r,w))
-    + B_s2(((u,p,B),(q,F,Φ,b)),(v,r,w))
+    # + B_s2(((u,p,B),(q,F,Φ,b)),(v,r,w))
   )
   jac_xt(t,((u,p,B),(q,F,Φ,b)),(dut,dpt,dBt),(v,r,w),(q0,F0,Φ0,b0)) = (
       ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ
@@ -318,11 +320,11 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  (
     jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   + jac_u_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   + jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   + jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   + jac_B_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
   )
   # function jac_prog(dΩ,c)
   #   _jac_prog((t,dt),(u0,h0,B0),(u,h,B),(du,dh,dB),(v,w,r),(b),(F,Φ,q,ω),b3,b1) = (

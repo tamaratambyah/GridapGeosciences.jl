@@ -1,9 +1,60 @@
 ##########################
-# NonlinearStageOperator #
+# DAENonlinearStageOperator #
 ##########################
+
+struct DAENonlinearStageOperator <: StageOperator
+  odeop::ODEOperator
+  odeopcache
+  tx::Real
+  usx::Tuple{Vararg{AbstractVector}}
+  ws::Tuple{Vararg{Real}}
+end
+
+# NonlinearOperator interface
+function Algebra.allocate_residual(
+  nlop::DAENonlinearStageOperator, x::AbstractVector
+)
+  odeop, odeopcache = nlop.odeop, nlop.odeopcache
+  tx = nlop.tx
+  usx = nlop.usx
+  allocate_residual(odeop, tx, usx, odeopcache)
+end
+
+function Algebra.residual!(
+  r::AbstractVector,
+  nlop::DAENonlinearStageOperator, x::AbstractVector
+)
+  odeop, odeopcache = nlop.odeop, nlop.odeopcache
+  tx = nlop.tx
+  usx = nlop.usx
+  residual!(r, odeop, tx, usx, odeopcache)
+end
+
+function Algebra.allocate_jacobian(
+  nlop::DAENonlinearStageOperator, x::AbstractVector
+)
+  odeop, odeopcache = nlop.odeop, nlop.odeopcache
+  tx = nlop.tx
+  usx = nlop.usx
+  allocate_jacobian(odeop, tx, usx, odeopcache)
+end
+
+function Algebra.jacobian!(
+  J::AbstractMatrix,
+  nlop::DAENonlinearStageOperator, x::AbstractVector
+)
+  odeop, odeopcache = nlop.odeop, nlop.odeopcache
+  tx = nlop.tx
+  usx = nlop.usx
+  ws = nlop.ws
+  jacobian!(J, odeop, tx, usx, ws, odeopcache)
+  J
+end
+
+
 function Gridap.Algebra.solve!(x::AbstractVector,
   ls::LinearSolver,
-  op::NonlinearStageOperator,
+  op::DAENonlinearStageOperator,
   cache::Nothing)
 
   fill!(x,zero(eltype(x)))
@@ -25,7 +76,7 @@ end
 
 function Gridap.Algebra.solve!(x::AbstractVector,
   ls::LinearSolver,
-  op::NonlinearStageOperator,
+  op::DAENonlinearStageOperator,
   cache)
 
   println("Non linear stage solve ")

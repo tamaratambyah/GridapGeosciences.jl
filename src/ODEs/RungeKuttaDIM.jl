@@ -78,7 +78,7 @@ function Gridap.ODEs.ode_march!(
       axpy!(A[i, j] * dt, slopes[j], ui_pre)
     end
 
-    # solve or stage diagnostics, and store in the ODE operator cache
+    # solve for stage diagnostics, and store in the ODE operator cache
     update!(daeop,ui_pre,tx)
     dae_cache = solve!(diagnostics,dae_nl,daeop,dae_cache)
     Gridap.ODEs.update_odeopcache!(odeopcache, odeop, tx, diagnostics)
@@ -86,44 +86,23 @@ function Gridap.ODEs.ode_march!(
     # Update ODE operator cache
     update_odeopcache!(odeopcache, odeop, tx)
 
-    # Decide whether the stage is explicit or implicit
-    # The stage becomes explicit when aii = 0 and the operator is quasilinear,
-    # which is precomputed in has_explicit
     aii = A[i, i]
-    explicit_stage = iszero(aii) && has_explicit
 
-    if explicit_stage
-      # Define scheme
-      # Set x to zero to split jacobian and residual
-      fill!(x, zero(eltype(x)))
-      usx = (ui_pre, x)
-      ws = (0, 1)
-
-      # Create and solve stage operator
-      stageop = LinearStageOperator(
-        odeop, odeopcache,
-        tx, usx, ws,
-        J, r, reuse, sysslvrcache_l
-      )
-
-      sysslvrcache_l = solve!(x, sysslvr_l, stageop, sysslvrcache_l)
-    else
-      # Define scheme
-      function usx(x)
-        copy!(ui, ui_pre)
-        axpy!(aii * dt, x, ui)
-        (ui, x)
-      end
-      ws = (aii * dt, 1)
-
-      # Create and solve stage operator
-      stageop = DAENonlinearStageOperator(
-        odeop, odeopcache,
-        tx, usx, ws
-      )
-
-      sysslvrcache_nl = Gridap.Algebra.solve!(x, sysslvr_nl, stageop, sysslvrcache_nl)
+    # Define scheme
+    function usx(x)
+      copy!(ui, ui_pre)
+      axpy!(aii * dt, x, ui)
+      (ui, x)
     end
+    ws = (aii * dt, 1)
+
+    # Create and solve stage operator
+    stageop = NonlinearStageOperator(
+      odeop, odeopcache,
+      tx, usx, ws
+    )
+
+    sysslvrcache_nl = Gridap.Algebra.solve!(x, sysslvr_nl, stageop, sysslvrcache_nl)
   end
 
   # Update state
