@@ -1,56 +1,52 @@
 ##########################
 # NonlinearStageOperator #
 ##########################
+function Gridap.Algebra.solve!(x::AbstractVector,
+  ls::LinearSolver,
+  op::NonlinearStageOperator,
+  cache::Nothing)
 
-struct DAENonlinearStageOperator <: StageOperator
-  odeop::DAEODEOperator
-  odeopcache
-  tx::Real
-  usx::Function
-  ws::Tuple{Vararg{Real}}
+  fill!(x,zero(eltype(x)))
+  b = residual(op, x)
+  A = jacobian(op, x)
+  ss = symbolic_setup(ls, A)
+  ns = numerical_setup(ss,A)
+  rmul!(b,-1)
+  # solve!(x,ns,b)
+
+  _x = Gridap.Algebra.allocate_in_domain(A)
+  fill!(_x,0.0)
+  Gridap.Algebra.solve!(_x,ns,b)
+  copy!(x,_x)
+  consistent!(x) |> fetch
+
+  LinearSolverCache(A,b,ns)
 end
 
-# NonlinearOperator interface
-function Algebra.allocate_residual(
-  nlop::DAENonlinearStageOperator, x::AbstractVector
-)
-  odeop, odeopcache = nlop.odeop, nlop.odeopcache
-  tx = nlop.tx
-  usx = nlop.usx(x)
-  Gridap.ODEs.allocate_residual(odeop, tx, usx, odeopcache)
-end
+function Gridap.Algebra.solve!(x::AbstractVector,
+  ls::LinearSolver,
+  op::NonlinearStageOperator,
+  cache)
 
-function Algebra.residual!(
-  r::AbstractVector,
-  nlop::DAENonlinearStageOperator, x::AbstractVector
-)
-  odeop, odeopcache = nlop.odeop, nlop.odeopcache
-  tx = nlop.tx
-  usx = nlop.usx(x)
-  Gridap.ODEs.residual!(r, odeop, tx, usx, odeopcache)
-end
+  println("Non linear stage solve ")
+  fill!(x,zero(eltype(x)))
+  b = cache.b
+  A = cache.A
+  ns = cache.ns
+  residual!(b, op, x)
+  jacobian!(A, op, x)
+  numerical_setup!(ns,A)
+  rmul!(b,-1)
 
-function Algebra.allocate_jacobian(
-  nlop::DAENonlinearStageOperator, x::AbstractVector
-)
-  odeop, odeopcache = nlop.odeop, nlop.odeopcache
-  tx = nlop.tx
-  usx = nlop.usx(x)
-  Gridap.ODEs.allocate_jacobian(odeop, tx, usx, odeopcache)
-end
+  # solve!(x,ns,b)
+  _x = Gridap.Algebra.allocate_in_domain(A)
+  fill!(_x,0.0)
+  Gridap.Algebra.solve!(_x,ns,b)
+  copy!(x,_x)
+  consistent!(x) |> fetch
 
-function Algebra.jacobian!(
-  J::AbstractMatrix,
-  nlop::DAENonlinearStageOperator, x::AbstractVector
-)
-  odeop, odeopcache = nlop.odeop, nlop.odeopcache
-  tx = nlop.tx
-  usx = nlop.usx(x)
-  ws = nlop.ws
-  Gridap.ODEs.jacobian!(J, odeop, tx, usx, ws, odeopcache)
-  J
+  cache
 end
-
 
 
 #######################

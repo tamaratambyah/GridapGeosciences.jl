@@ -109,12 +109,18 @@ function Gridap.ODEs.ode_march!(
     ws = (0, 1)
 
 
+    # # Create and solve stage operator
+    # stageop = LinearStageOperator(
+    #   odeop, odeopcache,
+    #   tx, usx, ws,
+    #   J, r, reuse, sysslvrcache
+    # )
+
     # Create and solve stage operator
-    stageop = LinearStageOperator(
-      odeop, odeopcache,
-      tx, usx, ws,
-      J, r, reuse, sysslvrcache
-    )
+    stageop = NonlinearStageOperator(
+          odeop, odeopcache,
+          tx, usx, ws
+        )
 
     sysslvrcache = Gridap.Algebra.solve!(x, sysslvr, stageop, sysslvrcache)
   end

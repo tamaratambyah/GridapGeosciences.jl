@@ -41,9 +41,9 @@ import Gridap.ODEs: LinearStageOperator, NonlinearStageOperator
 include("DAE.jl")
 include("ODEOperators.jl")
 include("ODEOpsFromTFEOps.jl")
+include("StageOperators.jl")
 include("RungeKuttaEX.jl")
 include("RungeKuttaDIM.jl")
-include("StageOperators.jl")
 
 export DAEFEOperator
 export LinearStageOperator
