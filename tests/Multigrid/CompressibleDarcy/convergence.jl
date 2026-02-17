@@ -69,12 +69,11 @@ function Gridap.CellData.get_triangulation(a::GridapDistributed.DistributedMulti
   return first(trians)
 end
 
-u_exact(x) = VectorValue(x[2]*(1-x[2]),x[1]*(1-x[1]))
-p_exact(x) = 1 + x[1]*(1-x[1])
+# u_exact(x) = VectorValue(x[2]*(1-x[2]),x[1]*(1-x[1]))
+# p_exact(x) = 1 + x[1]*(1-x[1])
 
-# u_exact(x) = VectorValue(sin(2*π*x[2]),0.0)
-# p_exact(x) = 1 + 0.1*sin(2*π*x[1])
-
+u_exact(x) = VectorValue(sin(2*π*x[1])*cos(2*π*x[2]), -sin(2*π*x[2])*cos(2*π*x[1]) )
+p_exact(x) = 1 + 0.1*sin(2*π*x[1])
 
 
 function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)

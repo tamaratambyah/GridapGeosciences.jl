@@ -113,7 +113,7 @@ end
 jobsdir = projectdir("gmg_jobs")
 !isdir(jobsdir) && mkdir(jobsdir)
 
-dir = datadir("Multigrid_compressible")
+dir = datadir("Multigrid_compressible_p1")
 !isdir(dir) && mkdir(dir)
 
 wdir = projectdir("tests/Multigrid/CompressibleDarcy")
@@ -121,7 +121,7 @@ driver = wdir*"/convergence.jl"
 
 
 queue = :normal
-orders = [2]
+orders = [1]
 compress = [1,10,100]
 alphas = [1,10,100]
 nlevels = [3,4,5,6]
