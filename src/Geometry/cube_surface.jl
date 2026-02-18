@@ -11,7 +11,7 @@ end
 function _CCAM_panel_wise_node_ids(npanels)
   ## CCAM panel ordering
   Dc=2  
-  data = [ 1,2,3,4, 3,4,5,6,  2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5 ]
+  data = [ 1,2,3,4, 5,6,7,8,  9,10,11,12, 13,14,15,16, 17,18,19,20, 21,22,23,24 ]
   ptr = generate_ptr(Dc,npanels)
   Table(data,ptr)
 end 

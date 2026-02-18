@@ -82,7 +82,7 @@ end
 function _create_parametric_octree_dmodel_coarse_model()
   # 6 panels (cells), 4 corners (vertices) each panel
   cell_node_ids = _CCAM_panel_wise_node_ids(NPANELS)
-  node_coordinates = Vector{Point{2,Float64}}(undef,8)
+  node_coordinates = Vector{Point{2,Float64}}(undef,24)
   # These coordinates are junk coordinates, but they have to be unique.
   # This a precondition for the OctreeDistributedDiscreteModel to properly
   # count the vertices of the coarse model
