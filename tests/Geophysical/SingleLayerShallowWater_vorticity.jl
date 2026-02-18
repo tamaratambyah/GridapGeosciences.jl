@@ -18,7 +18,7 @@ dir = datadir("SW_3D")
 !isdir(dir) && mkdir(dir)
 
 include("../convergence_tools.jl")
-include("Williamson2Test.jl")
+include("Williamson2Test_3D.jl")
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
@@ -26,27 +26,8 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 n_ref_lvls = 3
 ζ = 0.0
 
-function η_vec₀(ζ)
-  function _η₀(xyz)
-    η = η₀(ζ)(xyz)
-    n = normal_vec(xyz)
-    η*n
-  end
-end
-
-function f_vec₀(ζ)
-  function _f₀(xyz)
-    f = f₀(ζ)(xyz)
-    n = normal_vec(xyz)
-    f*n
-  end
-end
-
-
 vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-f = panel_to_cartesian(f₀(ζ))
 f_vec = panel_to_cartesian(f_vec₀(ζ))
-η = panel_to_cartesian(η₀(ζ))
 η_vec = panel_to_cartesian(η_vec₀(ζ))
 
 
@@ -59,23 +40,36 @@ ls = LUSolver()
 p_fe = 1
 
 das =  FullyAssembledRows()
+# das =  SubAssembledRows()
 
 ## finite element solver
 panel_ids = get_panel_ids(panel_model)
 Ω_panel = Triangulation(das,panel_model)
 dΩ = Measure(Ω_panel,4*(p_fe+1))
-dΩ_error = Measure(Ω_panel,8*(p_fe+1))
+Ω_error = Triangulation(panel_model)
+dΩ_error = Measure(Ω_error,4*(p_fe+1))
 
-# Λ = SkeletonTriangulation(das,panel_model)
-# dΛ = Measure(Λ,4*(p_fe+1))
+Λ_panel = SkeletonTriangulation(das,panel_model)
+dΛ = Measure(Λ_panel,4*(p_fe+1))
+
+
+inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
+contra_v_3D(vecX::Function,p::Int) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
+contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
+
+u_contra_cf = panelwise_cellfield(contra_v_3D(vX),Ω_panel,panel_ids)
+f_cf = panelwise_cellfield(contra_v_3D(f_vec),Ω_panel,panel_ids)
+η_cf = panelwise_cellfield(contra_v_3D(η_vec),Ω_panel,panel_ids)
+
 
 tags = ["top_boundary", "bottom_boundary"]
 
+
 V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
-U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
+U = TrialFESpace(V,u_contra_cf)
 
 R = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
-H = TrialFESpace(R,VectorValue(0.0,0.0,0.0))
+H = TrialFESpace(R,η_cf)
 
 ## metric information
 detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
@@ -87,58 +81,61 @@ inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
 jac_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
 
 
+
+
+
 ## push forward to ambient normal vector
 n = CellField(VectorValue(1.0,0.0,0.0),Ω_panel)
 ff = Operation(sqrt)(  n  ⋅ (inv_metric_cf⋅ n )  )
 n_ambient  = (jac_cf ⋅(inv_metric_cf  ⋅n ) )/ff
 
 
+writevtk(Ω_panel,dir*"/boundary.vtu", cellfields=["u"=>n×(metric_cf⋅u_contra_cf)],
+      append=false,geo_map=latlon_geo_map_func(Ω_panel))
+
+
 # initial conditions
-u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
 u_contra_h = interpolate(u_contra_cf,U)
-cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-f_cf = panelwise_cellfield(contra_v(f_vec),Ω_panel,panel_ids)
-f_ambient = cor_cf*n_ambient
+η_h = interpolate(η_cf,H)
 
-η_cf = panelwise_cellfield(η,Ω_panel,panel_ids)
-η_ambient = η_cf*n_ambient
-### put vector into FE space
-_η_cf = panelwise_cellfield(contra_v(η_vec),Ω_panel,panel_ids)
-η_h = interpolate(_η_cf,H)
-_η_ambient = covarient_basis_cf ⋅ η_h
-l2(η_ambient-_η_ambient,meas_cf,dΩ_error)
+f_scalar = panel_to_cartesian(f₀(ζ))
+f_cf_scalar = panelwise_cellfield(f_scalar,Ω_panel,panel_ids)
 
 
-# plot
-# latlon_cell_geo_map = geo_map_func(Ω_panel)
-latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)
-panel_cfs = [f_ambient,n_ambient,η_ambient, _η_ambient, η_ambient-_η_ambient  ]
-cellfields = map((x,y) -> x=>y, [ "f", "n", "eta1", "eta2","eeta"],panel_cfs)
-writevtk(Ω_panel,dir*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+tags = ["top_boundary", "bottom_boundary"]
+Γ = BoundaryTriangulation(das,panel_model,tags=tags)
+cell_geo_map = geo_map_func(get_panel_ids(Γ))
+writevtk(Γ,dir*"/boundary",append=false,geo_map=cell_geo_map)
+
+u_contra_skel = panelwise_cellfield(contra_v_3D(vX),Γ)
+metric_skel = panelwise_cellfield(metric,Γ)
+n_skel = CellField(VectorValue(1,0,0),Γ)
+
+pts = get_cell_points(Γ)
+# d = metric_skel⋅u_contra_skel
+d = metric_skel
+writevtk(Γ,dir*"/boundary",cellfields=["u"=>d],append=false,geo_map=cell_geo_map)
 
 
-Aperp = [0 0 0
-        0 0 -1
-        0 1 0]
-Rperp = TensorValue(Aperp)
-Rperp_cf = CellField(Rperp,Ω_panel)
 
 biformq(q,w) = ∫( (q⋅(metric_cf⋅w))*meas_cf )dΩ
 liformq(w) = (
-              ∫( (f_cf⋅(metric_cf⋅w))*(meas_cf )  )dΩ
-              # ∫( cor_cf*(w⋅n)*(meas_cf/ff )  )dΩ
-            + ∫( (metric_cf⋅u_contra_h)⋅(curl(metric_cf⋅w) )  )dΩ
+              ∫( (f_cf_scalar*(n⋅w))*(meas_cf/ff )  )dΩ
+            + ∫( (metric_cf⋅u_contra_cf)⋅(curl(metric_cf⋅w) )  )dΩ
+            # + ∫(  w⋅()  )dΛ
 )
 assem = SparseMatrixAssembler(H,R,das)
 op = AffineFEOperator(biformq,liformq,H,R,assem)
 qh = solve(ls,op)
 
 qh_ambient = covarient_basis_cf ⋅ qh
-e_η = l2((_η_ambient - qh_ambient ),meas_cf,dΩ_error)
-
+η_ambient = covarient_basis_cf ⋅ η_h
+e_η = l2((η_ambient - qh_ambient ),meas_cf,dΩ_error)
 
 # latlon_cell_geo_map = geo_map_func(Ω_panel)
 latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)
-panel_cfs = [ η_h, _η_ambient, qh ,qh_ambient, _η_ambient-qh_ambient ]
-cellfields = map((x,y) -> x=>y, ["η", "ηambient", "η_h", "ηambient_h", "eη"  ],panel_cfs)
-writevtk(Ω_panel,dir*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+cellfields = ["η"=>η_h, "ηambient"=>η_ambient,
+              "η_h"=>qh ,"ηambient_h"=>qh_ambient,
+              "eη_ambient"=>η_ambient-qh_ambient,"eη"=>η_h-qh,
+              "uh"=>covarient_basis_cf⋅ u_contra_h]
+ writevtk(Ω_panel,dir*"/latlon_solT_0.vtu", cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)

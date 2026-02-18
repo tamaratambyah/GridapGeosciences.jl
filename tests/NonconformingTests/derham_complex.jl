@@ -95,10 +95,10 @@ function derham_complex(
 
   if return_vtk
     writevtk(Ω,dir*"/de_Rham_H1_nref$(lvl)_p$p_fe",
-      cellfields=["grad_perp_π0u"=>grap_perp_π0u,"π1u_grad_perp_u"=>π1u_grad_perp_u,
+      cellfields=["f"=>π0u,"grad_perp_π0u"=>grap_perp_π0u,"π1u_grad_perp_u"=>π1u_grad_perp_u,
                 "error"=>π1u_grad_perp_u-grap_perp_π0u],append=false);
     writevtk(Ω,dir*"/de_Rham_Hdiv_nref$(lvl)_p$p_fe",nsubcells=10,
-      cellfields=["div_π1u"=>div_π1u,"π2_div_u"=>π2_div_u,
+      cellfields=["u"=>π1u,"div_π1u"=>div_π1u,"π2_div_u"=>π2_div_u,
               "error"=>div_π1u-π2_div_u],append=false);
   end
 

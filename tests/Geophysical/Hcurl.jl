@@ -33,53 +33,33 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 
 
 #################### sphere
-n_ref_lvls = 2
+n_ref_lvls = 0
 
 o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
         num_horizontal_uniform_refinements=n_ref_lvls,
         num_vertical_uniform_refinements=0)
 panel_model = o3model.parametric_dmodel
 
+tags = ["top_boundary", "bottom_boundary"]
+p_fe = 1
 
 panel_ids = get_panel_ids(panel_model)
 Ω = Triangulation(panel_model)
-dΩ = Measure(Ω,4)
+dΩ = Measure(Ω,6)
+dΩ_error = Measure(Ω,8*p_fe)
 
-## normal vector in the chart
-# f_cf = CellField(VectorValue(1,0.0,0.0),Ω)
+metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
+meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
+covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
+
+# ## normal vector in the chart
+# # f_cf = CellField(VectorValue(1,0.0,0.0),Ω)
 function fV(p)
   function f(γαβ)
     xyz = forward_map_3D(p)(γαβ)
     VectorValue(xyz[1],xyz[2],xyz[3])
   end
 end
-f_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
-
-## finite element space with boundry conditions
-tags = ["top_boundary", "bottom_boundary"]
-p_fe = 1
-
-R = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
-H = TrialFESpace(R,f_cf)
-
-f_h = interpolate(f_cf,H)
-eh = f_cf-f_h
-
-
-print("error", sum(∫( eh⋅eh )*dΩ)); print("\n");
-@assert sum(∫( eh⋅eh )*dΩ)/sum(∫( f_cf⋅f_cf )*dΩ) < 1.e-12
-
-grad = gradient(f_cf)
-gradh = gradient(f_h)
-
-eh_grad = grad-gradh
-@assert sum(∫( eh_grad⊙eh_grad )*dΩ) < 1.e-12
-
-latlon_geo_map = latlon_geo_map_func(Ω)
-panel_cfs = [f_h, f_cf, eh, gradh, grad, eh_grad   ]
-cellfields = map((x,y) -> x=>y, ["f_h", "f", "eh", "grad_h", "grad", "eh_grad" ],panel_cfs)
-writevtk(Ω,dir*"/sol.vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map)
-
 
 ################################################################################
 #### Consider a more complicated vector field
@@ -87,33 +67,77 @@ writevtk(Ω,dir*"/sol.vtu", cellfields=cellfields,append=false,geo_map=latlon_ge
 function fV(p)
   function f(γαβ)
     xyz = forward_map_3D(p)(γαβ)
-    VectorValue(-xyz[2],xyz[1],0.0)
+    VectorValue(-xyz[2],0.0,0.0)
   end
 end
 
-# f(xyz) = VectorValue(-xyz[2],xyz[1],0)
-# _fV = panel_to_cartesian(f)
-
 f_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
-H = TrialFESpace(R,f_cf)
 
+
+Rcurl = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
+RH1 = TestFESpace(panel_model, ReferenceFE(lagrangian,VectorValue{3,Float64},p_fe);conformity=:H1,dirichlet_tags=tags)
+RHdiv = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe);conformity=:Hdiv,dirichlet_tags=tags)
+RL2 = TestFESpace(panel_model, ReferenceFE(lagrangian,VectorValue{3,Float64},p_fe);conformity=:L2,dirichlet_tags=tags)
+
+R = RH1
+H = TrialFESpace(R,f_cf)
 f_h = interpolate(f_cf,H)
+d = collect(get_cell_dof_values(f_h.fields.item_ref[]))
+_d = map(x->round.(x),d)
+_d[1]
+
+
+
+
+Rspaces = [Rcurl, RH1, RHdiv, RL2]
+
+# R = Rcurl
+for (R,name) in zip(Rspaces, ["curl", "H1", "Hdiv", "L2"])
+
+  H = TrialFESpace(R,f_cf)
+  f_h = interpolate(f_cf,H)
+
+  # a(u,v) = ∫( u⋅(metric_cf⋅v)*meas_cf )dΩ
+  # l(v) = ∫( f_cf⋅(metric_cf⋅v)*meas_cf )dΩ
+  # op = AffineFEOperator(a,l,H,R)
+  # A = get_matrix(op)
+  # f_h = solve(LUSolver(),op)
+
+  writevtk(Ω,dir*"/sol_$name.vtu",
+  cellfields=["f_param"=>f_h, "f_ambient"=>covarient_basis_cf⋅f_h,
+              "f"=>f_cf, "famb"=>covarient_basis_cf⋅f_cf,
+              "e"=>f_cf-f_h, "eamb"=>covarient_basis_cf⋅(f_cf-f_h) ],
+  append=false,geo_map= latlon_geo_map_func(Ω))
+end
+
+# a(u,v) = ∫( u⋅(metric_cf⋅v)*meas_cf )dΩ
+# l(v) = ∫( f_cf⋅(metric_cf⋅v)*meas_cf )dΩ
+# op = AffineFEOperator(a,l,H,R)
+# f_h = solve(LUSolver(),op)
+
 grad = gradient(f_cf)
 gradh = gradient(f_h)
 
-dΩ_error = Measure(Ω,6)
+# ccurl = curl(metric_cf⋅f_cf)
+# ccurlh = curl(metric_cf⋅f_h)
 
-eh = f_cf-f_h
-sum(∫( eh⋅eh )*dΩ_error)
-sum(∫( eh⋅eh )*dΩ_error)/sum(∫( f_cf⋅f_cf )*dΩ_error)
+eh = f_cf - f_h
+_eh = f_cf - f_h
+
+errs[i] =  sum(∫( (_eh⋅_eh)*meas_cf )*dΩ_error)
+println("Error lvl $n_ref_lvls: ", sum(∫( (_eh⋅_eh)*meas_cf )*dΩ_error) )
+# sum(∫( (eh⋅eh)*meas_cf )*dΩ_error)
+# sum(∫( eh⋅eh )*dΩ_error)/sum(∫( f_cf⋅f_cf )*dΩ_error)
 
 eh_grad = grad-gradh
-sum(∫( eh⊙eh )*dΩ_error)
+sum(∫( (eh_grad⊙eh_grad)*meas_cf )*dΩ_error)
 
-covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
+# eh_curl = ccurl-ccurlh
+# sum(∫( (eh_curl⊙eh_curl)*meas_cf )*dΩ_error)
+
 # latlon_geo_map = geo_map_func(Ω)
 latlon_geo_map = latlon_geo_map_func(Ω)
-panel_cfs = [covarient_basis_cf⋅f_h, covarient_basis_cf⋅f_cf, eh,
-            covarient_basis_cf⋅gradh, covarient_basis_cf⋅grad, eh_grad   ]
-cellfields = map((x,y) -> x=>y, ["f_h", "f", "ef", "grad_h", "grad", "egrad" ],panel_cfs)
+panel_cfs = [f_h, f_cf, eh, _eh,
+            gradh, grad, eh_grad   ]
+cellfields = map((x,y) -> x=>y, ["f_h", "f", "ef_ambient", "ef", "grad_h", "grad", "egrad" ],panel_cfs)
 writevtk(Ω,dir*"/sol.vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map)

@@ -65,11 +65,11 @@ function Gridap.CellData.get_triangulation(a::GridapDistributed.DistributedMulti
   return first(trians)
 end
 
-u_exact(x) = VectorValue(x[2]*(1-x[2]),x[1]*(1-x[1]))
-p_exact(x) = 1 + x[1]*(1-x[1])
+# u_exact(x) = VectorValue(x[2]*(1-x[2]),x[1]*(1-x[1]))
+# p_exact(x) = 1 + x[1]*(1-x[1])
 
-# u_exact(x) = VectorValue(sin(2*π*x[2]),0.0)
-# p_exact(x) = 1 + 0.1*sin(2*π*x[1])
+u_exact(x) = VectorValue(sin(2*π*x[1])*cos(2*π*x[2]), -sin(2*π*x[2])*cos(2*π*x[1]) )
+p_exact(x) = 1 + 0.1*sin(2*π*x[1])
 
 
 MPI.Init()
@@ -77,8 +77,8 @@ np = MPI.Comm_size(MPI.COMM_WORLD)
 ranks = distribute_with_mpi(LinearIndices((np,)))
 
 
-p_fe = 2
-n = 4
+p_fe = 1
+n = 32
 
 coarse_model = CartesianDiscreteModel((0,1,0,1),(n,n),isperiodic=(true,true))
 dmodel = OctreeDistributedDiscreteModel(ranks, coarse_model)
@@ -139,8 +139,8 @@ gmg = GMGLinearSolver(
 )
 
 ##### solvers for the blocks of the preconditioner
-solver_u = gmg
-# solver_u = LUSolver()
+# solver_u = gmg
+solver_u = LUSolver()
 
 # solver_p = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-8,verbose=1)
 solver_p = LUSolver()
@@ -155,7 +155,7 @@ P = BlockTriangularSolver(bblocks,[solver_u,solver_p],coeffs,:upper)
 # P = JacobiLinearSolver()
 
 ##### Preconditioned external solver
-ls = FGMRESSolver(20,P;maxiter=1000,atol=1e-14,rtol=1.e-8,verbose=true)
+ls = FGMRESSolver(20,P;maxiter=1000,atol=1e-14,rtol=1.e-14,verbose=true)
 # ls = GMRESSolver(40;Pr=JacobiLinearSolver(),Pl=nothing,maxiter=2000,rtol=1.e-8,verbose=true)
 # ls = LUSolver()
 ns = numerical_setup(symbolic_setup(ls,A),A)
