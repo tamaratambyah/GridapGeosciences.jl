@@ -89,7 +89,8 @@ function generate_dictionaries(orders,alphas,nlevels,exiters,itus,itps,nprocs,co
             aux = OrderedDict{Symbol,Any}(
                         :c => c,
                         :alpha => α,
-                        :n => 2^(nl),
+                        # :n => 2^(nl), ## on cartesian meshes
+                        :n => nl, ## on cubed sphere meshes
                         :order => order,
                         :iters => iters, # iters of external FGMRESSolver
                         :itu => itu,# u_solver
@@ -113,18 +114,20 @@ end
 jobsdir = projectdir("gmg_jobs")
 !isdir(jobsdir) && mkdir(jobsdir)
 
-dir = datadir("Multigrid_compressible_p1")
+dir = datadir("Multigrid_CS")
 !isdir(dir) && mkdir(dir)
 
 wdir = projectdir("tests/Multigrid/CompressibleDarcy")
-driver = wdir*"/convergence.jl"
+# driver = wdir*"/convergence.jl"
+driver = wdir*"/convergence_CS.jl"
 
 
 queue = :normal
 orders = [1]
 compress = [1,10,100]
 alphas = [1,10,100]
-nlevels = [3,4,5,6]
+# nlevels = [3,4,5,6] # cartesian mesh
+nlevels = [1,2,3,4] # cubed sphere mesh
 nprocs  = [4,4,16,16]
 exiters = [1000,20] # kyrol iters
 itus = [0,1] # iterate u via gmg
