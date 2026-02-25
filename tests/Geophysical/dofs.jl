@@ -126,6 +126,12 @@ sDOF_to_dofs = Gridap.Arrays.Table(vcat(Mdofs...))
 sDOF_to_coeffs = Gridap.Arrays.Table(vcat(Coeffs...))
 Rconstrained = Gridap.FESpaces.FESpaceWithLinearConstraints(vcat(sDOF_to_dof...), sDOF_to_dofs, sDOF_to_coeffs, R)
 
+# Assemble the constrained system matrix
+metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
+meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
+a(u,v) = ∫( (u⋅(metric_cf⋅v))*meas_cf )dΩ
+Aconstrained=assemble_matrix(a,Rconstrained,Rconstrained)
+
 fh = interpolate(f_cf, Rconstrained)
 
 dconstrained = collect(get_cell_dof_values(fh))

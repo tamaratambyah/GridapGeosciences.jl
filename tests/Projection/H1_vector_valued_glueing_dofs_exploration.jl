@@ -93,9 +93,8 @@ test_basis_field_array = Gridap.CellData.get_data(test_basis)
 transformed_test_basis_field_array = 
     lazy_map(Gridap.Fields.linear_combination, S_matrices, test_basis_field_array)
 
-S_matrices_transposed = lazy_map(transpose, S_matrices)
 transformed_trial_basis_field_array= 
-   lazy_map(transpose, lazy_map(Gridap.Fields.linear_combination, S_matrices_transposed, test_basis_field_array))
+   lazy_map(transpose, lazy_map(Gridap.Fields.linear_combination, S_matrices, test_basis_field_array))
 
 evaluate(transformed_trial_basis_field_array[1], Point(0.1,0.2))
 
@@ -112,7 +111,7 @@ vX(xyz) = VectorValue(-xyz[2], xyz[1], 0)
 vecX = panel_to_cartesian(tangent_vec(vX))
 
 Ω_panel = Triangulation(panel_model)
-dΩ = Measure(Ω_panel,2*order+1)
+dΩ = Measure(Ω_panel,6)
 panel_ids = get_panel_ids(panel_model)
 
 metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
@@ -141,9 +140,10 @@ AK_transformed = get_array(AK_dc_transformed)
 bK_dc_transformed = l(test_basis_transformed)
 bK_transformed = get_array(bK_dc_transformed)
 
+S_matrices_transposed = lazy_map(transpose, S_matrices)
 for i=1:num_cells(panel_model)
   @assert norm(S_matrices_transposed[i]*bK_no_transformed[i]-bK_transformed[i]) <1.0e-12
-  @assert norm(S_matrices_transposed[i]*AK_no_transformed[i]*S_matrices_transposed[i]-AK_transformed[i]) < 1.0e-12
+  @assert norm(S_matrices_transposed[i]*AK_no_transformed[i]*S_matrices[i]-AK_transformed[i]) < 1.0e-12
 end
 
 A=assemble_matrix(AK_dc_transformed, U, V)
