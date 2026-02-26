@@ -7,19 +7,23 @@ using GridapP4est
 using Gridap
 using GridapDistributed
 using LinearAlgebra
-
+using FillArrays
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
 
-order=1
+order=3
 value_type=VectorValue{2,Float64}
 
 reffe = ReferenceFE(lagrangian,value_type,order)
 lag_reffe = Gridap.ReferenceFEs.LagrangianRefFE(value_type,QUAD,order)
 panel_model = parametric_octree_dmodel.parametric_dmodel.models.item_ref[]
+
+cell_map = get_cell_map(panel_model)
+reffe_node_coordinates = Gridap.ReferenceFEs.get_node_coordinates(lag_reffe)
+cell_wise_reffe_node_coordinates = lazy_map(evaluate, cell_map, Fill(reffe_node_coordinates, num_cells(panel_model)))
 
 V = FESpace(panel_model, reffe)
 
@@ -27,22 +31,14 @@ panel_ids = get_panel_ids(panel_model)
 grid_topology = Gridap.Geometry.get_grid_topology(panel_model)
 grid = get_grid(panel_model)
 
-cell_vertices = Gridap.Geometry.get_faces(grid_topology, 2, 0)
-
-# Warning: we must use the global IDs of the cells instead 
-# of the proc-local IDs as we are doing now. With one processor
-# is ok, as both coincide.
-vertex_cells  = Gridap.Geometry.get_faces(grid_topology, 0, 2)
-
 ndofs = Gridap.ReferenceFEs.num_dofs(lag_reffe)
 
-# To-think: Better way to extract the (α,β) coordinates of the cell vertices?
-# To-think: how to extract the (α,β) coordinates of the nodes on top of edges?
-αβ_cell_wise_coords = grid.cell_map.args[1]
-
-face_own_dofs = Gridap.ReferenceFEs.get_face_own_dofs(lag_reffe)
+face_own_dofs  = Gridap.ReferenceFEs.get_face_own_dofs(lag_reffe)
+face_own_nodes = Gridap.ReferenceFEs.get_face_own_nodes(lag_reffe)
 
 S_matrices = Vector{Matrix{Float64}}(undef,num_cells(panel_model))
+
+Dc = num_dims(panel_model)
 
 # Loop over cells 
 for cell=1:num_cells(panel_model)
@@ -51,37 +47,58 @@ for cell=1:num_cells(panel_model)
     S = S_matrices[cell]
 
     current_cell_panel = panel_ids[cell]
-    
-    # Loop over vertices of the cell
-    num_vertices = num_faces(QUAD, 0)
-    for i=1:num_vertices
-        vertex_gid = cell_vertices[cell][i]
-        max_cell_gid = -1
-        for cell_around in vertex_cells[vertex_gid]
-            if (cell_around>max_cell_gid)
-                max_cell_gid = cell_around
+
+
+    for i=0:Dc-1
+        cell_faces = Gridap.Geometry.get_faces(grid_topology, Dc, i)
+
+        # Warning: we must use the global IDs of the cells instead 
+        # of the proc-local IDs as we are doing now. With one processor
+        # is ok, as both coincide.
+        face_cells  = Gridap.Geometry.get_faces(grid_topology, i, Dc)
+        
+        num_faces_dim_i = num_faces(QUAD, i)
+        offset = Gridap.ReferenceFEs.get_offset(QUAD,i)
+
+       
+        for j=1:num_faces_dim_i
+            face_gid = cell_faces[cell][j]
+            max_cell_gid = -1
+            for cell_around in face_cells[face_gid]
+                if (cell_around>max_cell_gid)
+                    max_cell_gid = cell_around
+                end
+            end
+            master_cell_panel = panel_ids[max_cell_gid]
+            dof_lids_slave = face_own_dofs[offset+j]
+            node_lids_slave = face_own_nodes[offset+j]
+            if (current_cell_panel!=master_cell_panel && length(dof_lids_slave)>0)
+                 # Vertex with local ID i within the current cell is a slave vertex.
+                 # Determine local ID j within the master cell 
+                 pos_master=findfirst(x->x==face_gid,cell_faces[max_cell_gid])
+                 node_lids_master = face_own_nodes[offset+pos_master]
+                 
+                 for (inode, node_slave) in enumerate(node_lids_slave)
+                      
+                     node_master = node_lids_master[inode]
+
+                     JM = forward_jacobian(master_cell_panel)(cell_wise_reffe_node_coordinates[max_cell_gid][node_master])
+                     JSinv = forward_pinv_jacobian(current_cell_panel)(cell_wise_reffe_node_coordinates[cell][node_slave])
+
+                     #println("Cell $cell, vertex $i ($(cell_wise_reffe_node_coordinates[cell][i])) is slave. Master cell: $max_cell_gid vertex $j ($(cell_wise_reffe_node_coordinates[max_cell_gid][j]))")
+
+                     coeffs = JSinv⋅JM
+                     
+                     #println("coeffs=$coeffs")
+
+                     dof_lids_slave_current_node = findall(x->x==node_slave,lag_reffe.reffe.dofs.dof_to_node)
+
+                     # To-think: should we use here coeffs or its transpose?
+                     S[dof_lids_slave_current_node,dof_lids_slave_current_node] .= Array(coeffs)
+                 end     
             end
         end
-        master_cell_panel = panel_ids[max_cell_gid]
-        if (current_cell_panel!=master_cell_panel)
-             # Vertex with local ID i within the current cell is a slave vertex.
-             # Determine local ID j within the master cell 
-             j=findfirst(x->x==vertex_gid,cell_vertices[max_cell_gid])
-             JM = forward_jacobian(master_cell_panel)(αβ_cell_wise_coords[max_cell_gid][j])
-             JSinv = forward_pinv_jacobian(current_cell_panel)(αβ_cell_wise_coords[cell][i])
-
-             #println("Cell $cell, vertex $i ($(αβ_cell_wise_coords[cell][i])) is slave. Master cell: $max_cell_gid vertex $j ($(αβ_cell_wise_coords[max_cell_gid][j]))")
-
-             coeffs = JSinv⋅JM
-             
-             #println("coeffs=$coeffs")
-
-             dof_lids = face_own_dofs[i]
-
-             # To-think: should we use here coeffs or its transpose?
-             S[dof_lids,dof_lids] .= Array(coeffs)
-        end
-    end
+    end    
     #println("S matrix for cell $cell (panel $current_cell_panel):")
     #display(S)
 end
@@ -95,8 +112,6 @@ transformed_test_basis_field_array =
 
 transformed_trial_basis_field_array= 
    lazy_map(transpose, lazy_map(Gridap.Fields.linear_combination, S_matrices, test_basis_field_array))
-
-evaluate(transformed_trial_basis_field_array[1], Point(0.1,0.2))
 
 test_basis_transformed = Gridap.FESpaces.SingleFieldFEBasis(
     transformed_test_basis_field_array, 
