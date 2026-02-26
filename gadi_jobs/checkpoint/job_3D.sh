@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -P zg98
 #PBS -q normalsr
-#PBS -l walltime=48:00:00
+#PBS -l walltime=24:00:00
 #PBS -l ncpus=208
 #PBS -l mem=1024gb
 #PBS -N linear_boussineq_amg

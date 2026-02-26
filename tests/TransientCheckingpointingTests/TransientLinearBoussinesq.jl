@@ -114,6 +114,10 @@ function transient_linear_boussinesq_solver(
   initial_dir = dir*"/initial_solution"
   (i_am_main(ranks) && !isdir(initial_dir) ) && mkdir(initial_dir)
 
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
+
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -248,6 +252,10 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
 
   vtk_latlon_dir = dir*"/vtk_latlon_data"
   (i_am_main(ranks) && !isdir(vtk_latlon_dir) ) && mkdir(vtk_latlon_dir)
+
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
