@@ -124,11 +124,11 @@ driver = wdir*"/convergence_CS.jl"
 
 queue = :normal
 orders = [1]
-compress = [1,10,100]
+compress = [0, 1, 10, 100]
 alphas = [1,10,100]
 # nlevels = [3,4,5,6] # cartesian mesh
-nlevels = [1,2,3,4] # cubed sphere mesh
-nprocs  = [4,4,16,16]
+nlevels = [1,2,3,4,5] # cubed sphere mesh
+nprocs  = [4,4,16,16,32]
 exiters = [1000,20] # kyrol iters
 itus = [0,1] # iterate u via gmg
 itps = [0,1] # iterate p via cg

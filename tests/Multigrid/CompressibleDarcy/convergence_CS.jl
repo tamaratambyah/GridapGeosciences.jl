@@ -85,6 +85,10 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   dir_convergence = dir*"/convergence"
   !isdir(dir_convergence) && mkdir(dir_convergence)
 
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
+
   C = c ≠ 0 ? 1/c : 0.0
 
   n_gmg_lvls = 1
@@ -115,12 +119,15 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
 
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
   sgrad_cf = panelwise_cellfield(sgrad(h),Ω,panel_ids)
+  sgrad_contra_cf = panelwise_cellfield(contr_gradf(h),Ω,panel_ids)
   pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω,panel_ids)
   sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω,panel_ids)
 
   # manufacture rhs functions
-  rhs_vector = u_proj_cf + sgrad_cf
-  rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
+  # rhs_vector = u_proj_cf + sgrad_cf
+  # rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
+  rhs_con_vector = u_contra_cf + sgrad_contra_cf # exact contravariant component
+
   rhs_scalar = C*h_cf + sdiv_cf
 
   metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
@@ -163,10 +170,10 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
     post_smoothers=smoothers,
     coarsest_solver=LUSolver(),
     maxiter=20,mode=:preconditioner,verbose=i_am_main(ranks),
-    atol=1.0e-14, rtol=1.0e-08
+    atol=1.0e-14, rtol=1.0e-12
   )
 
-  cg = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-8,verbose=i_am_main(ranks))
+  cg = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-12,verbose=i_am_main(ranks))
 
   ##### solvers for the blocks of the preconditioner
   solver_u = Bool(itu) ? gmg : LUSolver()
@@ -182,7 +189,7 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   # P = JacobiLinearSolver()
 
   ##### Preconditioned external solver
-  ls = FGMRESSolver(20,P;maxiter=iters,atol=1e-14,rtol=1.e-8,verbose=i_am_main(ranks))
+  ls = FGMRESSolver(20,P;maxiter=iters,atol=1e-14,rtol=1.e-12,verbose=i_am_main(ranks))
   # ls = GMRESSolver(40;Pr=JacobiLinearSolver(),Pl=nothing,maxiter=2000,rtol=1.e-8,verbose=i_am_main(ranks))
   # ls = LUSolver()
   ns = numerical_setup(symbolic_setup(ls,A),A)
@@ -209,7 +216,7 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   if Bool(return_vtk)
     writevtk(Ω,dir*"/$(simName)",
       cellfields= ["uh"=>uh_proj, "ph"=>ph, "eu"=>eu, "ep"=>ep, "u"=>u_proj_cf],
-      append=false)
+      append=false,geo_map=latlon_geo_map_func(Ω))
   end
 
   output = @strdict Eu Ep gmg_iters cg_iters kylov_iters n order c α itu itp
