@@ -78,8 +78,16 @@ face_own_dofs  = Gridap.ReferenceFEs.get_face_own_dofs(nedelec_reffe)
 println(face_own_dofs)
 
 ########### Interpolation
-vec_contra_h = interpolate(vec_contra_cf,H)
-d = collect(get_cell_dof_values(vec_contra_h.fields.item_ref[]))
+# vec_contra_h = interpolate(vec_contra_cf,H)
+# d = collect(get_cell_dof_values(vec_contra_h.fields.item_ref[]))
+# _d = map(x->round.(x;digits=8),d)
+
+############ Evaluation on dof basis
+##### by evaluating on the dof basis, we avoid noise of the scatter/gather in the
+##### FE space
+dof_basis = get_fe_dof_basis(H)
+vec_contra_h = dof_basis(vec_contra_cf)
+d = collect(vec_contra_h.item_ref[])
 _d = map(x->round.(x;digits=8),d)
 
 ##### Panel 6 is the master, panel 1 is the slave

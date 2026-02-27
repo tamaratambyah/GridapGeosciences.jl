@@ -2,6 +2,7 @@ using Gridap.FESpaces
 using Gridap.Geometry
 using Gridap.ReferenceFEs
 using Gridap.Fields
+using Gridap.Arrays
 using FillArrays
 
 ## Gridap Fixes
@@ -120,7 +121,7 @@ end
 function Gridap.Fields.evaluate!(cache,::CoVariantPiolaMapFixed,
                    v::Number,
                    Jt::Number,
-                   sign_flip::Bool)                
+                   sign_flip::Bool)
    (((-1)^sign_flip)*v)⋅(transpose(pinvJt(Jt)))# we multiply by the right side to compute the gradient correctly
 end
 
@@ -185,6 +186,3 @@ function FESpaces.FESpace(model::GridapDistributed.DistributedDiscreteModel,
   end
   GridapDistributed._common_fe_space_constructor(model,cell_reffes;conformity,split_own_and_ghost,kwargs...)
 end
-
-
-
