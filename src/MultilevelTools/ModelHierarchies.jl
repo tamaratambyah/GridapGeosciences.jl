@@ -1,4 +1,5 @@
 function GridapSolvers.MultilevelTools.ModelHierarchy(coarse_model::ParametricOctreeDistributedDiscreteModel,n_ref_lvls::Int)
+  println("gmg lvls = $(n_ref_lvls)")
 
   ranks = get_parts(coarse_model.parametric_dmodel)
 
@@ -14,26 +15,27 @@ function GridapSolvers.MultilevelTools.ModelHierarchy(coarse_model::ParametricOc
     glues[n] = glue
   end
 
-  return ModelHierarchy(models,glues)
+  # return ModelHierarchy(models,glues)
+  return GridapSolvers.MultilevelTools.ModelHierarchy(models)
 end
 
-function GridapSolvers.MultilevelTools.ModelHierarchy(models::Vector{<:GridapDistributed.DistributedDiscreteModel},glues::Vector{<:MPIArray})
-  println("my model hierarhcy")
-  nlevs = length(models)
+# function GridapSolvers.MultilevelTools.ModelHierarchy(models::Vector{<:GridapDistributed.DistributedDiscreteModel},glues::Vector{<:MPIArray})
+#   println("my model hierarhcy")
+#   nlevs = length(models)
 
-  ranks = get_parts(models[1])
-  @check all(m -> length(get_parts(m)) === length(ranks), models) "Models have different communicators."
+#   ranks = get_parts(models[1])
+#   @check all(m -> length(get_parts(m)) === length(ranks), models) "Models have different communicators."
 
-  level_parts = fill(ranks,nlevs)
-  meshes = Vector{GridapSolvers.MultilevelTools.ModelHierarchyLevel}(undef,nlevs)
-  for lev in 1:nlevs-1
-    glue  = glues[lev]
-    model = models[lev]
-    meshes[lev] = GridapSolvers.MultilevelTools.ModelHierarchyLevel(lev,model,glue,nothing,nothing)
-  end
-  meshes[nlevs] = GridapSolvers.MultilevelTools.ModelHierarchyLevel(nlevs,models[nlevs],nothing,nothing,nothing)
-  return GridapSolvers.MultilevelTools.HierarchicalArray(meshes,level_parts)
-end
+#   level_parts = fill(ranks,nlevs)
+#   meshes = Vector{GridapSolvers.MultilevelTools.ModelHierarchyLevel}(undef,nlevs)
+#   for lev in 1:nlevs-1
+#     glue  = glues[lev]
+#     model = models[lev]
+#     meshes[lev] = GridapSolvers.MultilevelTools.ModelHierarchyLevel(lev,model,glue,nothing,nothing)
+#   end
+#   meshes[nlevs] = GridapSolvers.MultilevelTools.ModelHierarchyLevel(nlevs,models[nlevs],nothing,nothing,nothing)
+#   return GridapSolvers.MultilevelTools.HierarchicalArray(meshes,level_parts)
+# end
 
 function adapt_model(ranks,model::ParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(model.octree_dmodel)
