@@ -170,10 +170,10 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
     post_smoothers=smoothers,
     coarsest_solver=LUSolver(),
     maxiter=20,mode=:preconditioner,verbose=i_am_main(ranks),
-    atol=1.0e-14, rtol=1.0e-12
+    atol=1.0e-14, rtol=1.0e-8
   )
 
-  cg = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-12,verbose=i_am_main(ranks))
+  cg = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-8,verbose=i_am_main(ranks))
 
   ##### solvers for the blocks of the preconditioner
   solver_u = Bool(itu) ? gmg : LUSolver()
@@ -189,7 +189,7 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   # P = JacobiLinearSolver()
 
   ##### Preconditioned external solver
-  ls = FGMRESSolver(20,P;maxiter=iters,atol=1e-14,rtol=1.e-12,verbose=i_am_main(ranks))
+  ls = FGMRESSolver(20,P;maxiter=iters,atol=1e-14,rtol=1.e-8,verbose=i_am_main(ranks))
   # ls = GMRESSolver(40;Pr=JacobiLinearSolver(),Pl=nothing,maxiter=2000,rtol=1.e-8,verbose=i_am_main(ranks))
   # ls = LUSolver()
   ns = numerical_setup(symbolic_setup(ls,A),A)
