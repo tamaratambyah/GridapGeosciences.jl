@@ -124,9 +124,9 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω,panel_ids)
 
   # manufacture rhs functions
-  # rhs_vector = u_proj_cf + sgrad_cf
-  # rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
-  rhs_con_vector = u_contra_cf + sgrad_contra_cf # exact contravariant component
+  rhs_vector = u_proj_cf + sgrad_cf
+  rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
+  # rhs_con_vector = u_contra_cf + sgrad_contra_cf # exact contravariant component
 
   rhs_scalar = C*h_cf + sdiv_cf
 
@@ -182,7 +182,7 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   #### preconditioner
   bblocks  = [LinearSystemBlock() LinearSystemBlock();
               LinearSystemBlock() BiformBlock((p,q) -> ∫( (1.0/α + C)*(p*q)*meas_cf)dΩ,Q,Q)]
-  coeffs = [1.0 0.0;
+  coeffs = [1.0 1.0;
             0.0 1.0]
 
   P = BlockTriangularSolver(bblocks,[solver_u,solver_p],coeffs,:upper)
@@ -200,6 +200,10 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   gmg_iters = Bool(itu) ? solver_u.log.num_iters : 0
   cg_iters = Bool(itp) ? solver_p.log.num_iters : 0
   kylov_iters = ls.log.num_iters
+
+  i_am_main(ranks) && println("GMG iterations: ", gmg_iters)
+  i_am_main(ranks) && println("CG iterations: ", cg_iters)
+  i_am_main(ranks) && println("KYL iterations: ", kylov_iters)
 
   xh = FEFunction(X,x)
   uh,ph = xh
