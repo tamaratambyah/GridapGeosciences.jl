@@ -76,7 +76,7 @@ ranks = distribute_with_mpi(LinearIndices((np,)))
 
 
 p_fe = 1
-n_gmg_lvls = 1
+n_gmg_lvls = 2
 
 model0 = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
 mh = ModelHierarchy(model0,n_gmg_lvls)
@@ -97,8 +97,8 @@ mfs = Gridap.MultiField.BlockMultiFieldStyle()
 X = MultiFieldFESpace([U,Q];style=mfs)
 Y = MultiFieldFESpace([V,Q];style=mfs)
 
-c = 1
-α = 1
+c = 0
+α = 10
 
 C = c ≠ 0 ? 1/c : 0.0
 
@@ -170,14 +170,14 @@ solver_p = CGSolver(JacobiLinearSolver();maxiter=1000,atol=1e-14,rtol=1.e-8,verb
 #### preconditioner
 bblocks  = [LinearSystemBlock() LinearSystemBlock();
             LinearSystemBlock() BiformBlock((p,q) -> ∫( (1.0/α + C)*(p*q)*meas_cf)dΩ,Q,Q)]
-coeffs = [1.0 0.0;
+coeffs = [1.0 1.0;
           0.0 1.0]
 
 P = BlockTriangularSolver(bblocks,[solver_u,solver_p],coeffs,:upper)
 # P = JacobiLinearSolver()
 
 ##### Preconditioned external solver
-ls = FGMRESSolver(20,P;maxiter=1000,atol=1e-14,rtol=1.e-14,verbose=true)
+ls = FGMRESSolver(20,P;maxiter=1000,atol=1e-14,rtol=1.e-8,verbose=true)
 # ls = GMRESSolver(40;Pr=JacobiLinearSolver(),Pl=nothing,maxiter=2000,rtol=1.e-8,verbose=true)
 # ls = LUSolver()
 ns = numerical_setup(symbolic_setup(ls,A),A)
