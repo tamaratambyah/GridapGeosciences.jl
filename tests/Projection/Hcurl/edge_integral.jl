@@ -61,8 +61,8 @@ vec_contra_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
 
 ### lowest order nedelec
 order = 0
-value_type = Float64
-reffe =  ReferenceFE(nedelec,Float64,order)
+et = Float64
+reffe =  ReferenceFE(nedelec,et,order)
 R = TestFESpace(panel_model,reffe;conformity=:Hcurl,dirichlet_tags=tags)
 H = TrialFESpace(R,vec_contra_cf)
 
@@ -170,35 +170,74 @@ dc_s.dict
 sum(dc_s)
 
 
+####################### Shape functions
+p = HEX
+dim1 = 1
+ep = Polytope{dim1}(p,1)
 
-#######################
+# geomap from ref face to polytope faces
+egeomap = Gridap.ReferenceFEs._ref_face_to_faces_geomap(p,ep)
 
-# p = HEX
-# order = 0
-# et = Float64
-# dim1 = 1
-# ep = Polytope{dim1}(p,1)
+# Compute integration points at all polynomial edges
+degree = (order)*2
+equad = Quadrature(ep,degree)
+cips = get_coordinates(equad)
+wips = get_weights(equad)
 
-# # geomap from ref face to polytope faces
-# egeomap = Gridap.ReferenceFEs._ref_face_to_faces_geomap(p,ep)
+c_eips, ecips, ewips = Gridap.ReferenceFEs._nfaces_evaluation_points_weights(p, egeomap, cips, wips)
 
-# # Compute integration points at all polynomial edges
-# degree = (order)*2
-# equad = Quadrature(ep,degree)
-# cips = get_coordinates(equad)
-# wips = get_weights(equad)
+# Edge moments, i.e., M(Ei)_{ab} = q_RE^a(xgp_REi^b) w_Fi^b t_Ei ⋅ ()
+eshfs = Gridap.ReferenceFEs.MonomialBasis(et,ep,order)
+
+function _u_p3(x) # x ∈ [0,1]
+  # map x to β ∈ [-π/4,π/4]
+  β = (1-x[1])*(-π/4) + x[1]*(π/4)
+  pm = 3
+  γαβ = VectorValue(0.0,-π/4,β)
+  u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
+  u
+end
+
+u3 = _u_p3(c_eips[9]...)
+u_dot_t_p3(Point(0)) ## 0 -> midpoint of [-π/4,π/4]
+
+manual = linear_combination([u3],eshfs)
+manual_u3 = evaluate(manual,cips)
+manual_dof3 = manual_u3[1] ⋅ tangent_m
+
+manual_dof3 ≈ dof_3
 
 
-# c_eips, ecips, ewips = Gridap.ReferenceFEs._nfaces_evaluation_points_weights(p, egeomap, cips, wips)
 
-# # Edge moments, i.e., M(Ei)_{ab} = q_RE^a(xgp_REi^b) w_Fi^b t_Ei ⋅ ()
-# eshfs = Gridap.ReferenceFEs.MonomialBasis(et,ep,order)
-# emoments = _Nedelec_edge_moments(p, eshfs, c_eips, ecips, ewips)
+function _u_p1(x) # x ∈ [0,1]
+  # map x to β ∈ [-π/4,π/4]
+  β = (1-x[1])*(-π/4) + x[1]*(π/4)
+  pm = 3
+  ps = 1
+  γαβ_s = VectorValue(0.0,π/4,β[1])
+  γαβ_m = slave2master(γαβ_s,ps,pm)
 
-#   ts = get_edge_tangent(p)
-#   _nc = length(c_eips)
-#   cfshfs = fill(eshfs, _nc)
-#   cvals = lazy_map(evaluate,cfshfs,c_eips)
-#   cvals = [ewips[i].*cvals[i] for i in 1:_nc]
-#   # @santiagobadia : Only working for oriented meshes now
-#   cvals = [ Gridap.ReferenceFEs._broadcast(typeof(t),t,b) for (t,b) in zip(ts,cvals)]
+  W = W_matrix(γαβ_s,ps,pm)
+  u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
+  u_s = W ⋅ u_m
+  u_s
+end
+
+u1 = _u_p1(c_eips[10]...)
+u_dot_t_p1(Point(0)) ## 0 -> midpoint of [-π/4,π/4]
+
+manual = linear_combination([u1],eshfs)
+manual_u1 = evaluate(manual,cips)
+manual_dof1 = manual_u1[1] ⋅ tangent_s
+
+manual_dof1 ≈ dof_1
+
+manual_dof1 ≈ manual_dof3
+
+# ts = get_edge_tangent(p)
+# _nc = length(c_eips)
+# cfshfs = fill(eshfs, _nc)
+# cvals = lazy_map(evaluate,cfshfs,c_eips)
+# cvals = [ewips[i].*cvals[i] for i in 1:_nc]
+# # @santiagobadia : Only working for oriented meshes now
+# cvals = [ Gridap.ReferenceFEs._broadcast(typeof(t),t,b) for (t,b) in zip(ts,cvals)]
