@@ -113,9 +113,92 @@ tangent_s ≈ VectorValue(0,0,1)
 
 #### Cofficient matrix in terms of slave points
 function W_matrix(γαβ_s,p_s,p_m)
-  inv_jacobian(ps)(γαβ_s)⋅forward_jacobian(p_m)( slave2master(γαβ_s,p_s,p_m) )
+  W = inv_jacobian(ps)(γαβ_s)⋅forward_jacobian(p_m)( slave2master(γαβ_s,p_s,p_m) )
+  W
 end
+
+W_matrix(p_s,p_m) = γαβ_s -> W_matrix(γαβ_s,p_s,p_m)
 
 W_s = W_matrix(γαβ_s,ps,pm)
 coeffs_s = Matrix(W_s)
 coeffs_s ≈ coeffs
+
+
+########### integral over the edge:
+##### an the edge [3,7] is [0,-π/4,-π/4] -> [0,π/4,π/4]
+##### we could restrict the 3D model to the edge, but as a hack, let's create a
+##### 1D model that is the line [-π/4,π/4]
+model_edge = UnstructuredDiscreteModel(CartesianDiscreteModel((-π/4,π/4),(1)))
+Ω_edge = Triangulation(model_edge)
+dΩ_edge = Measure(Ω,0) ## zero order elements -> zero order quadrature for edge values
+
+############# PANEL 3
+## In panel 3,edge [3 7] -> dof 9
+dof_3 = cell_dofs[3][9]
+
+## on [3 7] in panel 3, (γ,α,β) = (0,-π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+function u_dot_t_p3(β)
+  pm = 3
+  γαβ = VectorValue(0.0,-π/4,β[1])
+  u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
+  u ⋅ tangent_m
+end
+dc_m = ∫(  u_dot_t_p3   )dΩ_edge
+dc_m.dict
+sum(dc_m)
+
+############# PANEL 1
+## In panel 1, edge [3 7] -> dof 10
+dof_1 = cell_dofs[1][10]
+
+## on [3 7] in panel 1, (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+function u_dot_t_p1(β)
+  pm = 3
+  ps = 1
+  γαβ_s = VectorValue(0.0,π/4,β[1])
+  γαβ_m = slave2master(γαβ_s,ps,pm)
+
+  W = W_matrix(γαβ_s,ps,pm)
+  u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
+  u_s = W ⋅ u_m
+  tangent_s = W ⋅ tangent_m
+  u_s ⋅ tangent_s
+end
+
+dc_s = ∫(  u_dot_t_p1   )dΩ_edge
+dc_s.dict
+sum(dc_s)
+
+
+
+#######################
+
+# p = HEX
+# order = 0
+# et = Float64
+# dim1 = 1
+# ep = Polytope{dim1}(p,1)
+
+# # geomap from ref face to polytope faces
+# egeomap = Gridap.ReferenceFEs._ref_face_to_faces_geomap(p,ep)
+
+# # Compute integration points at all polynomial edges
+# degree = (order)*2
+# equad = Quadrature(ep,degree)
+# cips = get_coordinates(equad)
+# wips = get_weights(equad)
+
+
+# c_eips, ecips, ewips = Gridap.ReferenceFEs._nfaces_evaluation_points_weights(p, egeomap, cips, wips)
+
+# # Edge moments, i.e., M(Ei)_{ab} = q_RE^a(xgp_REi^b) w_Fi^b t_Ei ⋅ ()
+# eshfs = Gridap.ReferenceFEs.MonomialBasis(et,ep,order)
+# emoments = _Nedelec_edge_moments(p, eshfs, c_eips, ecips, ewips)
+
+#   ts = get_edge_tangent(p)
+#   _nc = length(c_eips)
+#   cfshfs = fill(eshfs, _nc)
+#   cvals = lazy_map(evaluate,cfshfs,c_eips)
+#   cvals = [ewips[i].*cvals[i] for i in 1:_nc]
+#   # @santiagobadia : Only working for oriented meshes now
+#   cvals = [ Gridap.ReferenceFEs._broadcast(typeof(t),t,b) for (t,b) in zip(ts,cvals)]
