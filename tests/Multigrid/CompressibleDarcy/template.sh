@@ -9,7 +9,7 @@
 #PBS -o {{{o}}}
 #PBS -e {{{e}}} 
 
-source $HOME/scripts/load-configs.sh
+source $HOME/scripts/load-configs-{{project}}.sh
 source $HOME/scripts/load-intel.sh
  
 mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
