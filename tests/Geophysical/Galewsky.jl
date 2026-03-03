@@ -26,16 +26,14 @@ TF = 20*(3600*24) #s
 L = a_e
 _τ = 1/Ωₑ
 
-_a = a_e/L
-_rₑ = rₑ/L
-_g = g*_τ^2/L
-_Ωₑ = Ωₑ*_τ
-_H_0 = H₀/L
-_h0 = h0/L
-_umax  = umax /L*_τ
+Uscale = L/_τ # m/s
+Hscale = L #m
+gscale = L/_τ^2 # m/s^2
+bscale = gscale # m/s^2
+fscale = 1/_τ # 1/s
+
+_g = g/gscale
 _tF = TF/_τ
-
-
 
 
 function uθ(θϕr)
@@ -46,9 +44,9 @@ function uθ(θϕr)
   en    = exp(-4.0/((ϕ₂ - ϕ₁)*(ϕ₂ - ϕ₁)))
   u     = 0.0
   if ϕ > ϕ₁ + ϵ && ϕ < ϕ₂ - ϵ
-    u = (_umax/en)*exp(1.0/((ϕ - ϕ₁)*(ϕ - ϕ₂)))
+    u = (umax/en)*exp(1.0/((ϕ - ϕ₁)*(ϕ - ϕ₂)))
   end
-  u
+  u/Uscale
 end
 
 # Initial velocity
@@ -70,8 +68,8 @@ function h₀(xyz)
   θϕr   = xyz2θϕr(xyz)
   x,y,z = xyz
   θ,ϕ,r = θϕr
-  h     = _H_0
-  hh    = _h0
+  h     = H₀
+  hh    = 120.0
   α     = 1.0/3.0
   β     = 1.0/15.0
   ϕ₂    = π/4
@@ -86,23 +84,25 @@ function h₀(xyz)
     ϕₚ   = ϕₚ + sgn*dϕ
     _θϕr = VectorValue(θ,ϕₚ,r)
     u    = uθ(_θϕr)
-    _f   = 2.0*_Ωₑ*sin(ϕₚ)
-    h    = h - _rₑ*u*(_f + tan(ϕₚ)*u/_rₑ)*dϕ/_g
+    _f   = 2.0*Ωₑ*sin(ϕₚ)
+    h    = h - rₑ*u*(_f + tan(ϕₚ)*u/rₑ)*dϕ/g
   end
   h = h + hh*cos(ϕ)*exp(-1.0*(θ/α)*(θ/α))*exp(-1.0*((ϕ₂ - ϕ)/β)*((ϕ₂ - ϕ)/β))
-  h
+  h/Hscale
 end
 
 
 function f₀(x)         # Coriolis term
-  2.0*_Ωₑ*x[3]/_rₑ
+  f = 2.0*Ωₑ*x[3]/rₑ
+  f/fscale
 end
 
 
 function b₀(xyz)
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,r = θϕr
-  _g*(1 - 0.1*cos(ϕ)*exp( -(3*θ)^2 - (15 * (π/4-ϕ) )^2  )   )
+  # _g*(1 - 0.1*cos(ϕ)*exp( -(3*θ)^2 - (15 * (π/4-ϕ) )^2  )   )
+  g/gscale
 end
 
 function B₀(xyz)
