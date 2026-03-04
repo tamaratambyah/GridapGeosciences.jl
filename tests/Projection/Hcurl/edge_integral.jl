@@ -68,17 +68,18 @@ dof_basis = get_fe_dof_basis(H)
 vec_contra_h = dof_basis(vec_contra_cf)
 cell_dofs = collect(vec_contra_h)
 
+################################################################################
+########### Edge [3 7] #######################
+################################################################################
 
-########### Panel 3 is the master, panel 1 is the slave ########################
+########### Panel 3 is the master, panel 1 is the slave
 pm = 3
 ps = 1
 
-########### Edge [3 7] #######################
 ## In panel 3,edge [3 7] -> dof 9
 ## In panel 1, edge [3 7] -> dof 10
 dof_3 = cell_dofs[3][9]
 dof_1 = cell_dofs[1][10]
-
 
 ## In panel 3, Node 3 -> (γ,α,β) = (0,-π/4,-π/4)
 ## In panel 1, Node 3 -> (γ,α,β) = (0,π/4,-π/4)
@@ -130,13 +131,11 @@ model_edge = UnstructuredDiscreteModel(CartesianDiscreteModel((-π/4,π/4),(1)))
 Ω_edge = Triangulation(model_edge)
 dΩ_edge = Measure(Ω_edge,0) ## zero order elements -> zero order quadrature for edge values
 
-############# PANEL 3
-## In panel 3,edge [3 7] -> dof 9
-dof_3
 
-## on [3 7] in panel 3, (γ,α,β) = (0,-π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+############# PANEL 3
+## In panel 3,edge [3 7] -> (γ,α,β) = (0,-π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+tangent_m = VectorValue(0,0,1)
 function u_dot_t_p3(β)
-  pm = 3
   γαβ = VectorValue(0.0,-π/4,β[1])
   u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
   u ⋅ tangent_m
@@ -147,13 +146,9 @@ sum(dc_m) ≈ dof_3
 
 
 ############# PANEL 1
-## In panel 1, edge [3 7] -> dof 10
+## In panel 1, edge [3 7] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
 dof_1
-
-## on [3 7] in panel 1, (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
 function u_dot_t_p1(β)
-  pm = 3
-  ps = 1
   γαβ_s = VectorValue(0.0,π/4,β[1])
   γαβ_m = slave2master(γαβ_s,ps,pm)
 
@@ -170,79 +165,94 @@ sum(dc_s) ≈ sum(dc_m)
 sum(dc_s) != dof_1
 
 ;
-####################### Shape functions
-# p = HEX
-# dim1 = 1
-# ep = Polytope{dim1}(p,1)
+################################################################################
+########### Edge [9 11] #######################
+################################################################################
 
-# # geomap from ref face to polytope faces
-# egeomap = Gridap.ReferenceFEs._ref_face_to_faces_geomap(p,ep)
+## Panel 4 is the master, panel 2 is the slave
+pm = 4
+ps = 2
 
-# # Compute integration points at all polynomial edges
-# degree = (order)*2
-# equad = Quadrature(ep,degree)
-# cips = get_coordinates(equad)
-# wips = get_weights(equad)
-
-# c_eips, ecips, ewips = Gridap.ReferenceFEs._nfaces_evaluation_points_weights(p, egeomap, cips, wips)
-
-# # Edge moments, i.e., M(Ei)_{ab} = q_RE^a(xgp_REi^b) w_Fi^b t_Ei ⋅ ()
-# eshfs = Gridap.ReferenceFEs.MonomialBasis(et,ep,order)
-
-# # evaluate(cmap[3],ecips[9])
-# # x = c_eips[9][1]
-# # β = (1-x[1])*(-π/4) + x[1]*(π/4)
-# # γαβ = VectorValue(0.0,-π/4,β)
-
-# function _u_p3(x) # x ∈ [0,1]
-#   # map x to β ∈ [-π/4,π/4]
-#   β = (1-x[1])*(-π/4) + x[1]*(π/4)
-#   pm = 3
-#   γαβ = VectorValue(0.0,-π/4,β)
-#   u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
-#   u
-# end
-
-# u3 = _u_p3(c_eips[9]...)
-# u_dot_t_p3(Point(0)) ## 0 -> midpoint of [-π/4,π/4]
-
-# manual = linear_combination([u3],eshfs)
-# manual_u3 = evaluate(manual,cips)
-# manual_dof3 = manual_u3[1] ⋅ tangent_m
-
-# manual_dof3 ≈ dof_3
+## In panel 4, edge [9 11] -> dof 10
+## In panel 2, edge [9 11] -> dof 6
+dof_4 = cell_dofs[4][10]
+dof_2 = cell_dofs[2][6]
 
 
+############# PANEL 4
+## In panel 4, edge [9 11] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+dof_4
+tangent_m = VectorValue(0.0,0.0,1.0)
+function u_dot_t_p4(β)
+  γαβ = VectorValue(0.0,π/4,β[1])
+  u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
+  u ⋅ tangent_m
+end
+dc_m = ∫(  u_dot_t_p4   )dΩ_edge
+dc_m.dict
+sum(dc_m) ≈ dof_4 ### Why is this false?
 
-# function _u_p1(x) # x ∈ [0,1]
-#   # map x to β ∈ [-π/4,π/4]
-#   β = (1-x[1])*(-π/4) + x[1]*(π/4)
-#   pm = 3
-#   ps = 1
-#   γαβ_s = VectorValue(0.0,π/4,β[1])
-#   γαβ_m = slave2master(γαβ_s,ps,pm)
+############# PANEL 2
+## In panel 2, edge [9 11] -> (γ,α,β) = (0,α,π/4) where α = [-π/4,π/4], tangent = (0,1,0)
+dof_2
+function u_dot_t_p2(α)
+  γαβ_s = VectorValue(0.0,α[1],π/4)
+  γαβ_m = slave2master(γαβ_s,ps,pm)
 
-#   W = W_matrix(γαβ_s,ps,pm)
-#   u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
-#   u_s = W ⋅ u_m
-#   u_s
-# end
+  W = W_matrix(ps,pm)(γαβ_s)
+  u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
+  u_s = W ⋅ u_m
+  tangent_s = W ⋅ tangent_m
+  u_s ⋅ tangent_s
+end
 
-# u1 = _u_p1(c_eips[10]...)
-# u_dot_t_p1(Point(0)) ## 0 -> midpoint of [-π/4,π/4]
+dc_s = ∫(  u_dot_t_p2   )dΩ_edge
+dc_s.dict
+sum(dc_s) ≈ sum(dc_m)
+sum(dc_s) != dof_2
 
-# manual = linear_combination([u1],eshfs)
-# manual_u1 = evaluate(manual,cips)
-# manual_dof1 = manual_u1[1] ⋅ tangent_s
 
-# manual_dof1 ≈ dof_1
 
-# manual_dof1 ≈ manual_dof3
+################################################################################
+########### Edge [7 11] #######################
+################################################################################
 
-# ts = get_edge_tangent(p)
-# _nc = length(c_eips)
-# cfshfs = fill(eshfs, _nc)
-# cvals = lazy_map(evaluate,cfshfs,c_eips)
-# cvals = [ewips[i].*cvals[i] for i in 1:_nc]
-# # @santiagobadia : Only working for oriented meshes now
-# cvals = [ Gridap.ReferenceFEs._broadcast(typeof(t),t,b) for (t,b) in zip(ts,cvals)]
+########### Panel 3 is the master, panel 2 is the slave
+pm = 3
+ps = 2
+
+## In panel 3, edge [7 11] -> dof 6
+## In panel 2, edge [7 11] -> dof 10
+dof_3 = cell_dofs[3][6]
+dof_2 = cell_dofs[2][10]
+
+############# PANEL 3
+## In panel 3, edge [7 11] -> (γ,α,β) = (0,α,π/4) where α = [-π/4,π/4], tangent = (0,1,0)
+dof_3
+tangent_m = VectorValue(0.0,1.0,0.0)
+function u_dot_t_p3(α)
+  γαβ = VectorValue(0.0,α[1],π/4)
+  u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
+  u ⋅ tangent_m
+end
+dc_m = ∫(  u_dot_t_p3   )dΩ_edge
+dc_m.dict
+sum(dc_m) ≈ dof_3
+
+############# PANEL 2
+## In panel 2, edge [7 11] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+dof_2
+function u_dot_t_p2(β)
+  γαβ_s = VectorValue(0.0,π/4,β[1])
+  γαβ_m = slave2master(γαβ_s,ps,pm)
+
+  W = W_matrix(ps,pm)(γαβ_s)
+  u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
+  u_s = W ⋅ u_m
+  tangent_s = W ⋅ tangent_m
+  u_s ⋅ tangent_s
+end
+
+dc_s = ∫(  u_dot_t_p2   )dΩ_edge
+dc_s.dict
+sum(dc_s) ≈ sum(dc_m)
