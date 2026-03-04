@@ -25,6 +25,7 @@ TF = 20*(3600*24) #s
 
 L = a_e
 _τ = 1/Ωₑ
+# _τ = sqrt(a_e/g)
 
 Uscale = L/_τ # m/s
 Hscale = L #m
@@ -33,6 +34,7 @@ bscale = gscale # m/s^2
 fscale = 1/_τ # 1/s
 
 _g = g/gscale
+_H_0 = H₀/Hscale
 _tF = TF/_τ
 
 
@@ -101,8 +103,9 @@ end
 function b₀(xyz)
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,r = θϕr
-  # _g*(1 - 0.1*cos(ϕ)*exp( -(3*θ)^2 - (15 * (π/4-ϕ) )^2  )   )
-  g/gscale
+  # b = g
+  b = g*(1 - 0.1*cos(ϕ)*exp( -(3*θ)^2 - (15 * (π/4-ϕ) )^2  )   )
+  b/gscale
 end
 
 function B₀(xyz)

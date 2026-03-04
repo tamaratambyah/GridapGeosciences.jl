@@ -79,7 +79,7 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   op::DAENonlinearStageOperator,
   cache)
 
-  println("Non linear stage solve ")
+  # println("Non linear stage solve ")
   fill!(x,zero(eltype(x)))
   b = cache.b
   A = cache.A
