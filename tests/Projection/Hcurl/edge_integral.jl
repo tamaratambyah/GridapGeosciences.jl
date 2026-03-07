@@ -7,7 +7,7 @@ using GridapDistributed
 using GridapSolvers
 using PartitionedArrays
 using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
-
+using Gridap.FESpaces, Gridap.ReferenceFEs
 using GridapGeosciences
 using GridapGeosciences.Distributed
 using GridapP4est
@@ -21,19 +21,21 @@ dir = datadir("Hcurl")
 include("../../convergence_tools.jl")
 include("../../Geophysical/Williamson2Test.jl")
 include(srcdir("Helpers/overloads.jl"))
-include("../../Geophysical/CurlConformingFESpacesFixes.jl")
+# include("../../Geophysical/CurlConformingFESpacesFixes.jl")
 
 ## pullback 3D vector to 3D chart
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
 contra_v_3D(vecX::Function,p::Int) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
+transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
+covar_v_3D(vecX::Function,p::Int) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
+covar_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-
-#################### sphere
 o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
         num_horizontal_uniform_refinements=0,
         num_vertical_uniform_refinements=0)
@@ -47,7 +49,6 @@ panel_ids = get_panel_ids(panel_model)
 dΩ = Measure(Ω,6)
 dΩ_error = Measure(Ω,8)
 
-
 #### Consider a complicated vector field
 function fV(p)
   function f(γαβ)
@@ -55,7 +56,8 @@ function fV(p)
     VectorValue(0.0,xyz[3],xyz[1]^2)
   end
 end
-vec_contra_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
+### pull with JT -> to a 1-form i.e. covariant vector (index down)
+vec_contra_cf = panelwise_cellfield(covar_v_3D(fV),Ω,panel_ids)
 
 ### lowest order nedelec
 order = 0
@@ -68,191 +70,274 @@ dof_basis = get_fe_dof_basis(H)
 vec_contra_h = dof_basis(vec_contra_cf)
 cell_dofs = collect(vec_contra_h)
 
-################################################################################
-########### Edge [3 7] #######################
-################################################################################
+# edge [3 7]:
+cell_dofs[1][11] # Panel 1 dof 11
+cell_dofs[3][9] # panl 3 dof 9
 
-########### Panel 3 is the master, panel 1 is the slave
-pm = 3
-ps = 1
+# edge [3 13]:
+cell_dofs[3][5] # Panel 3 dof 5
+cell_dofs[5][7] # panel 5 dof 7
 
-## In panel 3,edge [3 7] -> dof 9
-## In panel 1, edge [3 7] -> dof 10
-dof_3 = cell_dofs[3][9]
-dof_1 = cell_dofs[1][10]
+# edge [1 3]:
+cell_dofs[1][5]
+cell_dofs[5][9]
 
-## In panel 3, Node 3 -> (γ,α,β) = (0,-π/4,-π/4)
-## In panel 1, Node 3 -> (γ,α,β) = (0,π/4,-π/4)
-vm = Point(0,-π/4,-π/4)
-vs = Point(0,π/4,-π/4)
+# edge [1 5]:
+cell_dofs[1][9]
+cell_dofs[6][5]
 
-function slave2master(γαβ_s,p_s,p_m)
-  ## 1. push slave to ambient space
-  ## 2. pull to master using inverse of master map
-  xyz = ForwardMap(p_s)(γαβ_s)
-  inv_m = inverse_map(ForwardMap(p_m))
-  γαβ_m = evaluate(inv_m,xyz)
-  return γαβ_m
-end
+# edge [5 9]:
+cell_dofs[2][9]
+cell_dofs[6][11]
 
-#### Node 3: given the slave parametric coord, compute the master parametric coord
-γαβ_s = Point(0,π/4,-π/4)
-γαβ_m = slave2master(γαβ_s,ps,pm)
-γαβ_m ≈ vm
+# edge [15 9]:
+cell_dofs[4][5]
+cell_dofs[6][7]
 
+# edge [9 11]:
+cell_dofs[2][7]
+cell_dofs[4][11]
 
-#### Tangent to the edge [3, 7]
-tangent_m = VectorValue(0.0,0.0,1.0)
+# edge [5 7]:
+cell_dofs[1][7]
+cell_dofs[2][5]
 
-W = inv_jacobian(ps)(γαβ_s)⋅forward_jacobian(pm)(γαβ_m)
-coeffs = Matrix(W)
-tangent_s = W ⋅ tangent_m
-tangent_s ≈ VectorValue(0,0,1)
+# edge [7 11]:
+cell_dofs[2][11]
+cell_dofs[3][7]
 
+# edge [13 11]:
+cell_dofs[3][11]
+cell_dofs[4][7]
 
-#### Cofficient matrix in terms of slave points
-function W_matrix(p_s,p_m)
-  function _W_matrix(γαβ_s)
-    W = inv_jacobian(p_s)(γαβ_s)⋅forward_jacobian(p_m)( slave2master(γαβ_s,p_s,p_m) )
-    W
-  end
-end
+# edge [15 13]:
+cell_dofs[4][9]
+cell_dofs[5][11]
 
-W_s = W_matrix(ps,pm)(γαβ_s)
-coeffs_s = Matrix(W_s)
-coeffs_s ≈ coeffs
-
-
-########### integral over the edge:
-##### an the edge [3,7] is [0,-π/4,-π/4] -> [0,π/4,π/4]
-##### we could restrict the 3D model to the edge, but as a hack, let's create a
-##### 1D model that is the line [-π/4,π/4]
-model_edge = UnstructuredDiscreteModel(CartesianDiscreteModel((-π/4,π/4),(1)))
-Ω_edge = Triangulation(model_edge)
-dΩ_edge = Measure(Ω_edge,0) ## zero order elements -> zero order quadrature for edge values
-
-
-############# PANEL 3
-## In panel 3,edge [3 7] -> (γ,α,β) = (0,-π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
-tangent_m = VectorValue(0,0,1)
-function u_dot_t_p3(β)
-  γαβ = VectorValue(0.0,-π/4,β[1])
-  u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
-  u ⋅ tangent_m
-end
-dc_m = ∫(  u_dot_t_p3   )dΩ_edge
-dc_m.dict
-sum(dc_m) ≈ dof_3
-
-
-############# PANEL 1
-## In panel 1, edge [3 7] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
-dof_1
-function u_dot_t_p1(β)
-  γαβ_s = VectorValue(0.0,π/4,β[1])
-  γαβ_m = slave2master(γαβ_s,ps,pm)
-
-  W = W_matrix(ps,pm)(γαβ_s)
-  u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
-  u_s = W ⋅ u_m
-  tangent_s = W ⋅ tangent_m
-  u_s ⋅ tangent_s
-end
-
-dc_s = ∫(  u_dot_t_p1   )dΩ_edge
-dc_s.dict
-sum(dc_s) ≈ sum(dc_m)
-sum(dc_s) != dof_1
-
-;
-################################################################################
-########### Edge [9 11] #######################
-################################################################################
-
-## Panel 4 is the master, panel 2 is the slave
-pm = 4
-ps = 2
-
-## In panel 4, edge [9 11] -> dof 10
-## In panel 2, edge [9 11] -> dof 6
-dof_4 = cell_dofs[4][10]
-dof_2 = cell_dofs[2][6]
-
-
-############# PANEL 4
-## In panel 4, edge [9 11] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
-dof_4
-tangent_m = VectorValue(0.0,0.0,1.0)
-function u_dot_t_p4(β)
-  γαβ = VectorValue(0.0,π/4,β[1])
-  u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
-  u ⋅ tangent_m
-end
-dc_m = ∫(  u_dot_t_p4   )dΩ_edge
-dc_m.dict
-sum(dc_m) ≈ dof_4 ### Why is this false?
-
-############# PANEL 2
-## In panel 2, edge [9 11] -> (γ,α,β) = (0,α,π/4) where α = [-π/4,π/4], tangent = (0,1,0)
-dof_2
-function u_dot_t_p2(α)
-  γαβ_s = VectorValue(0.0,α[1],π/4)
-  γαβ_m = slave2master(γαβ_s,ps,pm)
-
-  W = W_matrix(ps,pm)(γαβ_s)
-  u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
-  u_s = W ⋅ u_m
-  tangent_s = W ⋅ tangent_m
-  u_s ⋅ tangent_s
-end
-
-dc_s = ∫(  u_dot_t_p2   )dΩ_edge
-dc_s.dict
-sum(dc_s) ≈ sum(dc_m)
-sum(dc_s) != dof_2
+# edge [1 15]:
+cell_dofs[5][5]
+cell_dofs[6][9]
 
 
 
-################################################################################
-########### Edge [7 11] #######################
-################################################################################
 
-########### Panel 3 is the master, panel 2 is the slave
-pm = 3
-ps = 2
 
-## In panel 3, edge [7 11] -> dof 6
-## In panel 2, edge [7 11] -> dof 10
-dof_3 = cell_dofs[3][6]
-dof_2 = cell_dofs[2][10]
 
-############# PANEL 3
-## In panel 3, edge [7 11] -> (γ,α,β) = (0,α,π/4) where α = [-π/4,π/4], tangent = (0,1,0)
-dof_3
-tangent_m = VectorValue(0.0,1.0,0.0)
-function u_dot_t_p3(α)
-  γαβ = VectorValue(0.0,α[1],π/4)
-  u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
-  u ⋅ tangent_m
-end
-dc_m = ∫(  u_dot_t_p3   )dΩ_edge
-dc_m.dict
-sum(dc_m) ≈ dof_3
 
-############# PANEL 2
-## In panel 2, edge [7 11] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
-dof_2
-function u_dot_t_p2(β)
-  γαβ_s = VectorValue(0.0,π/4,β[1])
-  γαβ_m = slave2master(γαβ_s,ps,pm)
+# topo = get_grid_topology(panel_model)
+# Dc = num_cell_dims(topo)
+# edge2cell  = Gridap.Geometry.get_faces(topo, 1, Dc)
+# cells2edge  = Gridap.Geometry.get_faces(topo, Dc, 1)
+# edge2node = get_faces(topo,1,0)
 
-  W = W_matrix(ps,pm)(γαβ_s)
-  u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
-  u_s = W ⋅ u_m
-  tangent_s = W ⋅ tangent_m
-  u_s ⋅ tangent_s
-end
+# tangents = get_edge_tangent(HEX)
 
-dc_s = ∫(  u_dot_t_p2   )dΩ_edge
-dc_s.dict
-sum(dc_s) ≈ sum(dc_m)
+
+# cell = 1
+
+# edge_ids = cells2edge[cell]
+
+# edges = edge2cell[edge_ids]
+
+# edge = edges[11]
+# pm = edge[end]
+# ps = cell
+
+# 11;
+# ################################################################################
+# ########### Edge [3 7] #######################
+# ################################################################################
+
+# ########### Panel 3 is the master, panel 1 is the slave
+# pm = 3
+# ps = 1
+
+# ## In panel 3,edge [3 7] -> dof 9
+# ## In panel 1, edge [3 7] -> dof 10
+# dof_3 = cell_dofs[3][9]
+# dof_1 = cell_dofs[1][10]
+
+# ## In panel 3, Node 3 -> (γ,α,β) = (0,-π/4,-π/4)
+# ## In panel 1, Node 3 -> (γ,α,β) = (0,π/4,-π/4)
+# vm = Point(0,-π/4,-π/4)
+# vs = Point(0,π/4,-π/4)
+
+# lag_reffe = Gridap.ReferenceFEs.LagrangianRefFE(Float64,SEGMENT,1)
+# shapefuns = get_shapefuns(lag_reffe)
+# edge_map = linear_combination([vm, Point(0,-π/4,π/4)], shapefuns)
+# jac_edge_map = gradient(edge_map)
+# measure = meas(jac_edge_map)
+
+# pt = [vm, Point(0,-π/4,π/4)]
+# measure(Point(1))
+
+# function slave2master(γαβ_s,p_s,p_m)
+#   ## 1. push slave to ambient space
+#   ## 2. pull to master using inverse of master map
+#   xyz = ForwardMap(p_s)(γαβ_s)
+#   inv_m = inverse_map(ForwardMap(p_m))
+#   γαβ_m = evaluate(inv_m,xyz)
+#   return γαβ_m
+# end
+
+# #### Node 3: given the slave parametric coord, compute the master parametric coord
+# γαβ_s = Point(0,π/4,-π/4)
+# γαβ_m = slave2master(γαβ_s,ps,pm)
+# γαβ_m ≈ vm
+
+
+# #### Tangent to the edge [3, 7]
+# tangent_m = VectorValue(0.0,0.0,1.0)
+
+# W = inv_jacobian(ps)(γαβ_s)⋅forward_jacobian(pm)(γαβ_m)
+# coeffs = Matrix(W)
+# tangent_s = W ⋅ tangent_m
+# tangent_s ≈ VectorValue(0,0,1)
+
+
+# #### Cofficient matrix in terms of slave points
+# function W_matrix(p_s,p_m)
+#   function _W_matrix(γαβ_s)
+#     W = inv_jacobian(p_s)(γαβ_s)⋅forward_jacobian(p_m)( slave2master(γαβ_s,p_s,p_m) )
+#     W
+#   end
+# end
+
+# W_s = W_matrix(ps,pm)(γαβ_s)
+# coeffs_s = Matrix(W_s)
+# coeffs_s ≈ coeffs
+
+
+# ########### integral over the edge:
+# ##### an the edge [3,7] is [0,-π/4,-π/4] -> [0,π/4,π/4]
+# ##### we could restrict the 3D model to the edge, but as a hack, let's create a
+# ##### 1D model that is the line [-π/4,π/4]
+# model_edge = UnstructuredDiscreteModel(CartesianDiscreteModel((-π/4,π/4),(1)))
+# Ω_edge = Triangulation(model_edge)
+# dΩ_edge = Measure(Ω_edge,0) ## zero order elements -> zero order quadrature for edge values
+
+
+# ############# PANEL 3
+# ## In panel 3,edge [3 7] -> (γ,α,β) = (0,-π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+# tangent_m = VectorValue(0,0,1)
+# function u_dot_t_p3(β)
+#   γαβ = VectorValue(0.0,-π/4,β[1])
+#   u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
+#   u ⋅ tangent_m
+# end
+# dc_m = ∫(  u_dot_t_p3   )dΩ_edge
+# dc_m.dict
+# sum(dc_m) ≈ dof_3
+
+
+# ############# PANEL 1
+# ## In panel 1, edge [3 7] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+# dof_1
+# function u_dot_t_p1(β)
+#   γαβ_s = VectorValue(0.0,π/4,β[1])
+#   γαβ_m = slave2master(γαβ_s,ps,pm)
+
+#   W = W_matrix(ps,pm)(γαβ_s)
+#   u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
+#   u_s = W ⋅ u_m
+#   tangent_s = W ⋅ tangent_m
+#   u_s ⋅ tangent_s
+# end
+
+# dc_s = ∫(  u_dot_t_p1   )dΩ_edge
+# dc_s.dict
+# sum(dc_s) ≈ sum(dc_m)
+# sum(dc_s) != dof_1
+
+# ;
+# ################################################################################
+# ########### Edge [9 11] #######################
+# ################################################################################
+
+# ## Panel 4 is the master, panel 2 is the slave
+# pm = 4
+# ps = 2
+
+# ## In panel 4, edge [9 11] -> dof 10
+# ## In panel 2, edge [9 11] -> dof 6
+# dof_4 = cell_dofs[4][10]
+# dof_2 = cell_dofs[2][6]
+
+
+# ############# PANEL 4
+# ## In panel 4, edge [9 11] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+# dof_4
+# tangent_m = VectorValue(0.0,0.0,1.0)
+# function u_dot_t_p4(β)
+#   γαβ = VectorValue(0.0,π/4,β[1])
+#   u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
+#   u ⋅ tangent_m
+# end
+# dc_m = ∫(  u_dot_t_p4   )dΩ_edge
+# dc_m.dict
+# sum(dc_m) ≈ dof_4 ### Why is this false?
+
+# ############# PANEL 2
+# ## In panel 2, edge [9 11] -> (γ,α,β) = (0,α,π/4) where α = [-π/4,π/4], tangent = (0,1,0)
+# dof_2
+# function u_dot_t_p2(α)
+#   γαβ_s = VectorValue(0.0,α[1],π/4)
+#   γαβ_m = slave2master(γαβ_s,ps,pm)
+
+#   W = W_matrix(ps,pm)(γαβ_s)
+#   u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
+#   u_s = W ⋅ u_m
+#   tangent_s = W ⋅ tangent_m
+#   u_s ⋅ tangent_s
+# end
+
+# dc_s = ∫(  u_dot_t_p2   )dΩ_edge
+# dc_s.dict
+# sum(dc_s) ≈ sum(dc_m)
+# sum(dc_s) != dof_2
+
+
+
+# ################################################################################
+# ########### Edge [7 11] #######################
+# ################################################################################
+
+# ########### Panel 3 is the master, panel 2 is the slave
+# pm = 3
+# ps = 2
+
+# ## In panel 3, edge [7 11] -> dof 6
+# ## In panel 2, edge [7 11] -> dof 10
+# dof_3 = cell_dofs[3][6]
+# dof_2 = cell_dofs[2][10]
+
+# ############# PANEL 3
+# ## In panel 3, edge [7 11] -> (γ,α,β) = (0,α,π/4) where α = [-π/4,π/4], tangent = (0,1,0)
+# dof_3
+# tangent_m = VectorValue(0.0,1.0,0.0)
+# function u_dot_t_p3(α)
+#   γαβ = VectorValue(0.0,α[1],π/4)
+#   u = inv_jacobian(pm)(γαβ) ⋅ fV(pm)(γαβ)
+#   u ⋅ tangent_m
+# end
+# dc_m = ∫(  u_dot_t_p3   )dΩ_edge
+# dc_m.dict
+# sum(dc_m) ≈ dof_3
+
+# ############# PANEL 2
+# ## In panel 2, edge [7 11] -> (γ,α,β) = (0,π/4,β) where β = [-π/4,π/4], tangent = (0,0,1)
+# dof_2
+# function u_dot_t_p2(β)
+#   γαβ_s = VectorValue(0.0,π/4,β[1])
+#   γαβ_m = slave2master(γαβ_s,ps,pm)
+
+#   W = W_matrix(ps,pm)(γαβ_s)
+#   u_m = inv_jacobian(pm)(γαβ_m) ⋅ fV(pm)(γαβ_m)
+#   u_s = W ⋅ u_m
+#   tangent_s = W ⋅ tangent_m
+#   u_s ⋅ tangent_s
+# end
+
+# dc_s = ∫(  u_dot_t_p2   )dΩ_edge
+# dc_s.dict
+# sum(dc_s) ≈ sum(dc_m)
