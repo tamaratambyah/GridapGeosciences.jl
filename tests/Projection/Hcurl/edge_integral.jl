@@ -70,6 +70,7 @@ dof_basis = get_fe_dof_basis(H)
 vec_contra_h = dof_basis(vec_contra_cf)
 cell_dofs = collect(vec_contra_h)
 
+#### Gamma = 0 edges:
 # edge [3 7]:
 cell_dofs[1][11] # Panel 1 dof 11
 cell_dofs[3][9] # panl 3 dof 9
@@ -120,7 +121,96 @@ cell_dofs[6][9]
 
 
 
+#### Gamma = 1 edges:
+# edge [4 8]:
+cell_dofs[1][12]
+cell_dofs[3][10]
 
+# edge [4 14]:
+cell_dofs[3][6] # Panel 3 dof 5
+cell_dofs[5][8] # panel 5 dof 7
+
+# edge [2 4]:
+cell_dofs[1][6]
+cell_dofs[5][10]
+
+# edge [2 6]:
+cell_dofs[1][10]
+cell_dofs[6][6]
+
+# edge [6 10]:
+cell_dofs[2][10]
+cell_dofs[6][12]
+
+# edge [16 10]:
+cell_dofs[4][6]
+cell_dofs[6][8]
+
+# edge [10 12]:
+cell_dofs[2][8]
+cell_dofs[4][12]
+
+# edge [6 8]:
+cell_dofs[1][8]
+cell_dofs[2][6]
+
+# edge [8 12]:
+cell_dofs[2][12]
+cell_dofs[3][8]
+
+# edge [14 12]:
+cell_dofs[3][12]
+cell_dofs[4][8]
+
+# edge [16 14]:
+cell_dofs[4][10]
+cell_dofs[5][12]
+
+# edge [2 16]:
+cell_dofs[5][6]
+cell_dofs[6][10]
+
+
+#### Vertical edges, variable gamma:
+# edge [1 2]:
+cell_dofs[1][1]
+cell_dofs[5][1]
+cell_dofs[6][1]
+
+# edge [3 4]:
+cell_dofs[1][2]
+cell_dofs[3][1]
+cell_dofs[5][3]
+
+# edge [5 6]:
+cell_dofs[1][3]
+cell_dofs[2][1]
+cell_dofs[6][2]
+
+# edge [7 8]:
+cell_dofs[2][2]
+cell_dofs[3][3]
+cell_dofs[1][4]
+
+# edge [9 10]:
+cell_dofs[2][3]
+cell_dofs[4][2]
+cell_dofs[6][4]
+
+# edge [11 12]:
+cell_dofs[2][4]
+cell_dofs[3][4]
+cell_dofs[4][4]
+
+# edge [13 14]:
+cell_dofs[3][2]
+cell_dofs[4][3]
+cell_dofs[5][4]
+
+# edge [15 16]:
+cell_dofs[4][1]
+cell_dofs[5][2]
+cell_dofs[6][3]
 
 
 
