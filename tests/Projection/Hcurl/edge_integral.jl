@@ -31,7 +31,7 @@ contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 covar_v_3D(vecX::Function,p::Int) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
-covar_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
+covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
@@ -57,18 +57,18 @@ function fV(p)
   end
 end
 ### pull with JT -> to a 1-form i.e. covariant vector (index down)
-vec_contra_cf = panelwise_cellfield(covar_v_3D(fV),Ω,panel_ids)
+vec_cov_cf = panelwise_cellfield(covar_v_3D(fV),Ω,panel_ids)
 
 ### lowest order nedelec
 order = 0
 et = Float64
 reffe =  ReferenceFE(nedelec,et,order)
 R = TestFESpace(panel_model,reffe;conformity=:Hcurl,dirichlet_tags=tags)
-H = TrialFESpace(R,vec_contra_cf)
+H = TrialFESpace(R,vec_cov_cf)
 
 dof_basis = get_fe_dof_basis(H)
-vec_contra_h = dof_basis(vec_contra_cf)
-cell_dofs = collect(vec_contra_h)
+vec_cov_h = dof_basis(vec_cov_cf)
+cell_dofs = collect(vec_cov_h)
 
 #### Gamma = 0 edges:
 # edge [3 7]:
