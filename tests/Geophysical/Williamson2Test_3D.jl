@@ -1,5 +1,3 @@
-#### Parameters for a reduced earth
-# include("Williamson_functions.jl")
 
 # Initial fluid depth
 function h_3D(p)
@@ -91,15 +89,34 @@ end
 #                cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
 # end
 
+function topography(p)
+  function _u(γαβ)
+    xyz = forward_map_3D(p)(γαβ)
+    θϕr   = xyz2θϕr(xyz)
+    θ,ϕ,r = θϕr
+    #θc    = -π/2.0
+    θc    =  0.0
+    ϕc    =  π/6.0
+    rad   = π/9.0
+    rsq   = (ϕ - ϕc)*(ϕ - ϕc) + (θ - θc)*(θ - θc)
+    r     = sqrt(rsq)
+    b     = 0.0
+    if(r < rad)
+      b = _b0*(1.0 - r/rad)
+    end
+    b
+  end
+end
 
+#### Parameters for a reduced earth
 a_e = 6.37e6/125 # m
 g = 9.8 # m/2
 ω = 7.29e-5 #s^-1
 T = 12*24*3600 #s
-H_0 = 2.94e4/g #m
-u_0 = 2*π*a_e/T #m/s
-b_0 = 0.0 #m
-TF = 5*(3600*24)
+H_0 = 5960.0 #2.94e4/g #m
+u_0 = 20 #2*π*a_e/T #m/s
+b_0 = 2000.0 #m
+TF = 20*(3600*24)
 
 L = a_e
 _τ = 1/ω #sqrt(a_e/g)

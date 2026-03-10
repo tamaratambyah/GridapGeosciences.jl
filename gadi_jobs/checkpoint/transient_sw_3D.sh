@@ -1,0 +1,23 @@
+#!/bin/bash
+#PBS -P zg98
+#PBS -q normal
+#PBS -l walltime=06:00:00
+#PBS -l ncpus=192
+#PBS -l mem=768gb
+#PBS -N sw_3D
+#PBS -l wd
+
+source $HOME/scripts/load-configs-zg98.sh
+source $HOME/scripts/load-intel.sh
+
+mpiexec -n $PBS_NCPUS julia --project=$PBS_O_WORKDIR -e'
+    using MPI
+    using PartitionedArrays
+    include("tests/TransientCheckingpointingTests/TransientShallowWater_3D.jl") 
+
+    with_mpi() do distribute
+        main_transient(distribute,192;restart=false,n_ref_lvls=4,p_fe=1,CFL=0.1)
+        # main_visualise(distribute,192;n_ref_lvls=4,p_fe=1)
+    end
+
+' > /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.out.${PBS_JOBID} 2> /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.err.${PBS_JOBID}
