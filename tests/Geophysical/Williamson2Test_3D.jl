@@ -1,21 +1,96 @@
 #### Parameters for a reduced earth
-include("Williamson_functions.jl")
+# include("Williamson_functions.jl")
 
-function η_vec₀(ζ)
-  function _η₀(xyz)
-    η = η₀(ζ)(xyz)
+# Initial fluid depth
+function h_3D(p)
+  function _h(γαβ)
+    ζ = 0.0
+    xyz = forward_map_3D(p)(γαβ)
+    θϕr   = xyz2θϕr(xyz)
+    θ,ϕ,r = θϕr
+    h  = -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ)
+    _H_0 - (_ω*_u0 + 0.5*_u0*_u0)*h*h/_g
+  end
+end
+
+function f_3D(p)
+  function _f(γαβ)
+    ζ = 0.0
+    xyz = forward_map_3D(p)(γαβ)
+    θϕr   = xyz2θϕr(xyz)
+    θ,ϕ,r = θϕr
+    2.0*_ω*( -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ) )
+  end
+end
+
+function f_vec_3D(p)
+  function _f(γαβ)
+    f = f_3D(p)(γαβ)
+
+    xyz = forward_map_3D(p)(γαβ)
+    n = normal_vec(xyz)
+    f*n
+  end
+end
+
+
+
+function η_3D(p)
+  function _η(γαβ)
+    ζ = 0.0
+    xyz = forward_map_3D(p)(γαβ)
+    θϕr   = xyz2θϕr(xyz)
+    θ,ϕ,r = θϕr
+    η = -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ)
+    ( 4*π/_T + 2*_ω  )* η
+  end
+end
+
+
+function η_vec_3D(p)
+  function _η(γαβ)
+    η = η_3D(p)(γαβ)
+
+    xyz = forward_map_3D(p)(γαβ)
     n = normal_vec(xyz)
     η*n
   end
 end
 
-function f_vec₀(ζ)
-  function _f₀(xyz)
-    f = f₀(ζ)(xyz)
-    n = normal_vec(xyz)
-    f*n
+
+function u_vec_3D(p)
+  function _u(γαβ)
+    ζ = 0.0
+    xyz = forward_map_3D(p)(γαβ)
+    # θϕr   = xyz2θϕr(xyz)
+    # θ,ϕ,r = θϕr
+    # u     = _u0*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
+    # v     = - _u0*sin(θ)*sin(ζ)
+    # _spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
+
+    #### from Rognes2013 paper
+    r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)
+    u = -_u0*xyz[2]/r
+    v = _u0*xyz[1]/r
+    w = 0.0
+    VectorValue(u,v,w)
   end
 end
+
+function _spherical_to_cartesian_matrix(θϕr)
+  θ,ϕ,r = θϕr
+  TensorValue(-r*sin(θ)*cos(ϕ), r*cos(θ)*cos(ϕ),      0,
+              -r*sin(ϕ)*cos(θ),-r*sin(ϕ)*sin(θ), r*cos(ϕ),
+               cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
+end
+
+# function _spherical_to_cartesian_matrix(θϕr)
+#   θ,ϕ,r = θϕr
+#   TensorValue(-sin(θ)       , cos(θ)       ,      0,
+#               -sin(ϕ)*cos(θ),-sin(ϕ)*sin(θ), cos(ϕ),
+#                cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
+# end
+
 
 a_e = 6.37e6/125 # m
 g = 9.8 # m/2
