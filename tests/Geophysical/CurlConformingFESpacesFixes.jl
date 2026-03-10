@@ -85,7 +85,8 @@ function Gridap.Fields.evaluate!(cache,
     face_moments_out = basis.face_moments[face]
     face_moments_in = dofs.face_moments[face]
     for p in 1:length(face_point_ids)
-      F = transpose(Jtx[p])
+      # F = transpose(Jtx[p])
+      F = transpose(Jtx[face_point_ids[p]])
       for i in 1:length(face_dofs_ids)
         sign = (-1)^sign_flip[face_dofs_ids[i]]
         face_moments_out[p,i] = sign * (F⋅face_moments_in[p,i])
