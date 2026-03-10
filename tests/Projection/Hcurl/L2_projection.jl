@@ -23,14 +23,6 @@ covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
-        num_horizontal_uniform_refinements=3,
-        num_vertical_uniform_refinements=0)
-panel_model = o3model.parametric_dmodel
-
-p_fe = 0
-return_vtk = true
-
 
 function interpolation(panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
   p_fe::Int,dir::String,vecX::Function,conf,return_vtk)
@@ -59,8 +51,14 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
   V = TestFESpace(panel_model, reffe; conformity=:Hcurl,dirichlet_tags=tags)
   U = TrialFESpace(V,vec_cov_cf)
 
-  # vec_cov_h = interpolate(vec_cov_cf,U)
+  ## interpolation
+  vec_cov_h = interpolate(vec_cov_cf,U)
 
+  _e = ( inv_metric_cf ⋅ vec_cov_h) - ( inv_metric_cf ⋅ vec_cov_cf)
+  el2_interp =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ))
+
+
+  ## L2 projection
   a(u,v) = ∫( u⋅( inv_metric_cf⋅v)*meas_cf )dΩ
   l(v) = ∫( vec_cov_cf⋅(inv_metric_cf⋅v)*meas_cf )dΩ
   op = AffineFEOperator(a,l,U,V)
@@ -69,7 +67,11 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
   vec_proj_h = covarient_basis_cf ⋅ ( inv_metric_cf ⋅ vec_cov_h)
 
   _e = ( inv_metric_cf ⋅ vec_cov_h) - ( inv_metric_cf ⋅ vec_cov_cf)
-  e =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ))
+  el2_proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ))
+
+  if p_fe == 0
+    el2_proj = 1
+  end
 
   if return_vtk
     cellfields=["uproj"=> vec_proj_cf, "u_cov"=>vec_cov_cf,
@@ -79,7 +81,7 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
           append=false,geo_map=latlon_geo_map_func(Ω_panel))
   end
 
-  return e, false,false
+  return el2_interp, el2_proj, false
 
 end
 
@@ -98,7 +100,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 
 
 n_ref_lvls = 3
-ps = [1]
+ps = [0,1]
 
 dir = datadir("InterpolationConvergence")
 !isdir(dir) && mkdir(dir)
@@ -108,4 +110,4 @@ conf = :Hcurl
 _dir = dir*"/vector_func_"*String(conf)
 !isdir(_dir) && mkdir(_dir)
 p_convergence_test(ranks,ps,models,interpolation,_dir,vecX,conf,true)
-plot_convergence_from_saved(_dir,"convergence",["L2 proj:"])
+plot_convergence_from_saved(_dir,"convergence",["Interp:", "L2 proj:"])
