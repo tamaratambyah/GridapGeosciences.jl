@@ -362,10 +362,16 @@ function plot_convergence_from_saved(dir,simName,varNames=["u"])
   ps = dd["ps"]
   slopes = dd["slopes"]
 
+
+  cidx = ps
+  if any(iszero.(ps))
+    cidx = ps .+ 1
+  end
+
   plot()
   for (i,p_fe) in enumerate(ps)
     leginf = map(x->"$x: p=$p_fe", varNames)
-    cols = map(x->palette(:tab10)[p_fe], varNames )
+    cols = map(x->palette(:tab10)[cidx[i]], varNames )
     plot_convergence(errors[i],ns[i],dxs[i],slopes[i];leginf=leginf,colors=cols)
   end
   savefig(dir*"/$simName")
