@@ -42,17 +42,24 @@ function main_transient(distribute,nprocs;
   -g_ksp_type gmres
   -g_ksp_converged_reason
   -g_ksp_monitor
+  -g_ksp_rtol 1.0e-12
+  -cg_ksp_type cg
+  -cg_ksp_converged_reason
+  -cg_ksp_monitor
+  -cg_ksp_rtol 1.0e-12
+  -cg_pc_type gamg
   """
 
   GridapPETSc.Init(args=split(options))
   ls_ode = PETScLinearSolver(petsc_gmres_amg_setup)
+  # ls_diag = PETScLinearSolver(petsc_cg_amg_setup)
 
   lss = (ls_ode,ls_diag)
 
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
-  _dir = datadir("TransientThermalShallowWater_Galewsky_bpertub")
+  _dir = datadir("TransientThermalShallowWater_Galewsky")
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
@@ -87,7 +94,7 @@ function main_visualise(distribute,nprocs;
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
-  _dir = datadir("TransientThermalShallowWater_Galewsky_bpertub")
+  _dir = datadir("TransientThermalShallowWater_Galewsky")
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
 
@@ -106,6 +113,23 @@ function petsc_gmres_amg_setup(ksp)
   maxits = PetscInt(1000)
 
   @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"g_")
+  @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])
+  # @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPGMRES)
+
+  pc = Ref{GridapPETSc.PETSC.PC}()
+  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCGAMG)
+  @check_error_code GridapPETSc.PETSC.KSPSetTolerances(ksp[], rtol, atol, dtol, maxits)
+  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+end
+
+function petsc_cg_amg_setup(ksp)
+  rtol = GridapPETSc.PETSC.PETSC_DEFAULT
+  atol = GridapPETSc.PETSC.PETSC_DEFAULT
+  dtol = GridapPETSc.PETSC.PETSC_DEFAULT
+  maxits = PetscInt(1000)
+
+  @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"cg_")
   @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])
   # @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPGMRES)
 

@@ -124,7 +124,7 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   PartitionedArrays.barrier(ranks)
 
   ## finite element solver
-  degree = 2*(p_fe+1)
+  degree = 6*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(das,panel_model)
   dΩ = Measure(Ω_panel,degree)
@@ -351,7 +351,7 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
   _nsteps = _tF/_dt
   nsteps = ceil(_nsteps)
-  dt = _tF/nsteps
+  dt = floor(_tF/nsteps, sigdigits=1)
 
   i_am_main(ranks) && println("nsteps = $nsteps, other nsteps = ", _nsteps)
   i_am_main(ranks) && println("dt = $dt, other dt = ", _dt)
@@ -366,7 +366,7 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   ## iterate solution
   it = iterate(solT)
 
-  unwrap_tsw(it,ranks,solT,dir,_tF)
+  unwrap_tsw(it,ranks,solT,dir,_tF,50)
 
 
 end

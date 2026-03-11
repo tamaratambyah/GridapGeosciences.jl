@@ -1,15 +1,16 @@
 #!/bin/bash
-#PBS -P zg98
-#PBS -q normalsr
-#PBS -lncpus=208
-#PBS -lmem=1024gb
-#PBS -lwalltime=48:00:00
+#PBS -P bt62
+#PBS -q normal
+#PBS -l ncpus=384
+#PBS -l mem=1536gb
+#PBS -lwalltime=24:00:00
 #PBS -v NJOBS,NJOB
-#PBS -N linear_boussineq_amg
+#PBS -N tsw_galewsky
 #PBS -l wd
   
-source $HOME/scripts/load-configs-zg98.sh
+source $HOME/scripts/load-configs.sh
 source $HOME/scripts/load-intel.sh
+
 
 # =============================================================================
 #  Self resubmitting PBS bash script:
@@ -82,15 +83,17 @@ fi
 # now run the job
 #
 
-mpiexec -n 192 julia --project=$PBS_O_WORKDIR -e'
+mpiexec -n $PBS_NCPUS julia --project=$PBS_O_WORKDIR -e'
     using MPI
-    using PartitionedArrays 
-    include("tests/TransientCheckingpointingTests/TransientLinearBoussinesq.jl") 
+    using PartitionedArrays
+    include("tests/TransientCheckingpointingTests/TSWGalewsky.jl") 
 
     with_mpi() do distribute
-        main_transient(distribute,192;restart=true,n_ref_lvls=4,CFL=0.2)
-    end     
-' > /scratch/$PROJECT/tt4814/LB_3D/${PBS_JOBNAME}.out.${PBS_JOBID} 2> /scratch/$PROJECT/tt4814/LB_3D/${PBS_JOBNAME}.err.${PBS_JOBID}
+        main_transient(distribute,384;restart=true,n_ref_lvls=6,p_fe=1,CFL=0.1)
+        # main_visualise(distribute,384;n_ref_lvls=6,p_fe=1)
+    end
+
+' > /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.out.${PBS_JOBID} 2> /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.err.${PBS_JOBID}
 
   
 # 
@@ -122,7 +125,7 @@ if [ $NJOB -lt $NJOBS ]; then
 # 
     NJOB=$(($NJOB+1))
     $ECHO "Submitting job number $NJOB in sequence of $NJOBS jobs"
-    qsub gadi_jobs/checkpoint/job_3D.sh 
+    qsub gadi_jobs/checkpoint/transient_tsw.sh 
 else
     $ECHO "Finished last job in sequence of $NJOBS jobs"
 fi
