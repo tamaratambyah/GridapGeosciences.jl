@@ -109,7 +109,7 @@ function topography(p)
 end
 
 #### Parameters for a reduced earth
-a_e = 6.37e6/125 # m
+a_e = 6.37e6#/125 # m
 g = 9.8 # m/2
 ω = 7.29e-5 #s^-1
 T = 12*24*3600 #s

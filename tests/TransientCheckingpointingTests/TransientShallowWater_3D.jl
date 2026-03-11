@@ -158,13 +158,13 @@ function transient_shallow_water_solver_3D(
 
   res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = (
                                   ∫( ( q × (metric_cf⋅F) )⋅(metric_cf⋅v) )dΩ
-                                # + ∫( -τ*( ( (q-q0)/dt ) × (metric_cf⋅F) )⋅(metric_cf⋅v) )dΩ
-                                # + ∫( -τ*( ( ( u⋅(metric_cf⋅curl(q)  )  )× F   )⋅v    )*meas_cf   )dΩ
+                                + ∫( -τ*( ( (q-q0)/dt ) × (metric_cf⋅F) )⋅(metric_cf⋅v) )dΩ
+                                + ∫( τ*(  ( u× curl(q)) × (metric_cf⋅F)  )⋅(metric_cf⋅v)   )dΩ
                                 - ∫( Φ*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
                     )
 
   res_x(t,((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) + res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0))
-  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) = ∫( 0.0*dp*r )dΩ  #∫( -τ*( ( ( du⋅(metric_cf⋅curl(q)  )  )× F   )⋅v    )*meas_cf   )dΩ
+  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) = + ∫( τ*(  ( du× curl(q)) × (metric_cf⋅F)  )⋅(metric_cf⋅v)   )dΩ
   jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
 
@@ -236,8 +236,15 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   vtk_dir = dir*"/vtk_data"
   (i_am_main(ranks) && !isdir(vtk_dir) ) && mkdir(vtk_dir)
 
+  vtk_latlon_dir = dir*"/latlon_data"
+  (i_am_main(ranks) && !isdir(vtk_latlon_dir) ) && mkdir(vtk_latlon_dir)
+
   dir_casimirs = dir*"/casimirs"
   (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
+
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
@@ -268,30 +275,32 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   gravity = _g
 
   cell_geo_map = geo_map_func(Ω_panel)
-
+  latlon_geo_map = latlon_geo_map_func(Ω_panel)
   labels = ["uh","ph","qh","Fh","Phih","vort"]
-  function make_vtk(t::Float64,xh,yh,cell_geo_map)
+  function make_vtk(t::Float64,xh,yh,cell_geo_map,latlon_geo_map)
     uh,ph = xh
     qh,Fh,Φh = yh
-    vort = qh*ph - f_cov_cf
+    # vort = qh*ph - f_cov_cf
     panel_cfs = [covarient_basis_cf⋅uh, ph,
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ qh ),
                  Fh, Φh,
-                 covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )]
+                #  covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )
+                 ]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,vtk_latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map)
   end
 
   function casimirs(xh,yh,dΩ)
     uh,ph = xh
     qh,Fh,Φh = yh
-    # vort = qh*ph - f_cov_cf
+    vort = 0.0#qh*ph - f_cov_cf
 
-    ens = sum(∫( (qh*qh*xh[2])*meas_cf  )dΩ)
+    ens = 0.0#sum(∫( ( (qh⋅qh)*xh[2])*meas_cf  )dΩ)
     energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
     _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
-    _vort = 0.0 #sum( ∫( vort*meas_cf )dΩ  )
+    _vort = 0.0#sum( ∫( vort*meas_cf )dΩ  )
 
     return _mass, energy, ens, _vort
   end
@@ -322,7 +331,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
     ts[i] = t
     Masss[i], Energys[i], Enstropys[i], Vorts[i] = casimirs(xh,yh,dΩ)
 
-    return_vtk && make_vtk(t,xh,yh,cell_geo_map)
+    return_vtk && make_vtk(t,xh,yh,cell_geo_map,latlon_geo_map)
 
     if mod(i,10) == 0
       dxx = dx(panel_model)
@@ -337,7 +346,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   i_am_main(ranks) && safesave(datadir(dir_casimirs, ("casimirs.jld2")), output)
 
   _make_pvd_distributed(vtk_dir,"solT",1)
-
+  _make_pvd_distributed(vtk_latlon_dir,"solT",1)
 end
 
 ################################################################################
@@ -355,7 +364,7 @@ function main_transient(distribute,nprocs;
   -cg_ksp_type cg
   -cg_ksp_converged_reason
   -cg_ksp_monitor
-  -cg_ksp_rtol 1.0e-12
+  -cg_ksp_rtol 1.0e-10
   -cg_pc_type gamg
   """
 
@@ -435,10 +444,10 @@ function petsc_cg_amg_setup(ksp)
 end
 
 
-MPI.Init()
-nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-# n_ref_lvls = 3
-with_mpi() do distribute
-  main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
-end
+# MPI.Init()
+# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+# # ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# # n_ref_lvls = 3
+# with_mpi() do distribute
+#   main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
+# end
