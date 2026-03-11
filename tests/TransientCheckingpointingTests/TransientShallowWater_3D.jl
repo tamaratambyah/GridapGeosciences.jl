@@ -280,11 +280,11 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   function make_vtk(t::Float64,xh,yh,cell_geo_map,latlon_geo_map)
     uh,ph = xh
     qh,Fh,Φh = yh
-    # vort = qh*ph - f_cov_cf
+    vort = qh*ph - f_cov_cf
     panel_cfs = [covarient_basis_cf⋅uh, ph,
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ qh ),
                  Fh, Φh,
-                #  covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )
+                 covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )
                  ]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -295,9 +295,9 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   function casimirs(xh,yh,dΩ)
     uh,ph = xh
     qh,Fh,Φh = yh
-    vort = 0.0#qh*ph - f_cov_cf
+    vort = qh*ph - f_cov_cf
 
-    ens = 0.0#sum(∫( ( (qh⋅qh)*xh[2])*meas_cf  )dΩ)
+    ens = sum(∫( ( (qh⋅qh)*xh[2])*meas_cf  )dΩ)
     energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
     _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
     _vort = 0.0#sum( ∫( vort*meas_cf )dΩ  )
