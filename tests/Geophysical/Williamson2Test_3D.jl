@@ -1,3 +1,17 @@
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapSolvers
+using MPI
+using PartitionedArrays
+using MPIPreferences
+using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+using GridapGeosciences
+using GridapPETSc
+
+
+include("CurlConformingFESpacesFixes.jl")
+
 
 # Initial fluid depth
 function h_3D(p)
@@ -75,12 +89,12 @@ function u_vec_3D(p)
   end
 end
 
-function _spherical_to_cartesian_matrix(θϕr)
-  θ,ϕ,r = θϕr
-  TensorValue(-r*sin(θ)*cos(ϕ), r*cos(θ)*cos(ϕ),      0,
-              -r*sin(ϕ)*cos(θ),-r*sin(ϕ)*sin(θ), r*cos(ϕ),
-               cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
-end
+# function _spherical_to_cartesian_matrix(θϕr)
+#   θ,ϕ,r = θϕr
+#   TensorValue(-r*sin(θ)*cos(ϕ), r*cos(θ)*cos(ϕ),      0,
+#               -r*sin(ϕ)*cos(θ),-r*sin(ϕ)*sin(θ), r*cos(ϕ),
+#                cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
+# end
 
 # function _spherical_to_cartesian_matrix(θϕr)
 #   θ,ϕ,r = θϕr
@@ -129,3 +143,132 @@ _T = T/_τ
 _u0 = u_0/L*_τ #2*π*_a/_T
 _b0 = b_0/L
 _tF = TF/_τ
+
+
+inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
+contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
+contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
+
+transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
+contravariant_basis_3D(p) = x -> inv_tranpose_jacobian(p)(x)
+
+covar_v_3D(vecX::Function,p::Int) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
+covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
+
+
+
+
+
+
+
+MPI.Init()
+nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+ranks = distribute_with_mpi(LinearIndices((nprocs,)))
+
+ls = LUSolver()
+p_fe = 1
+n_ref_lvls = 3
+
+o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+    num_horizontal_uniform_refinements=n_ref_lvls,
+    num_vertical_uniform_refinements=0)
+panel_model = o3model.parametric_dmodel
+
+
+
+## finite element solver
+panel_ids = get_panel_ids(panel_model)
+Ω_panel = Triangulation(panel_model)
+dΩ = Measure(Ω_panel,4*(p_fe+1))
+
+tags = ["top_boundary", "bottom_boundary"]
+Γ = BoundaryTriangulation(panel_model,tags=tags)
+dΓ = Measure(Γ,4*(p_fe+1))
+nΓ = get_normal_vector(Γ)
+
+R = TestFESpace(Ω_panel, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
+H = TrialFESpace(R,VectorValue(0.0,0.0,0.0))
+
+Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+P = TrialFESpace(Q)
+
+V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
+U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
+
+X_prog = MultiFieldFESpace([U,P]) # u, p
+Y_prog = MultiFieldFESpace([V,Q]) # u, p
+
+X_diag = MultiFieldFESpace([H,U,P]) # q, F, Φ
+Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
+
+## initial conditions
+u_contra_cf = panelwise_cellfield(contra_v_3D(u_vec_3D),Ω_panel,panel_ids)
+u_contra_h = interpolate(u_contra_cf,U)
+
+h_cf = panelwise_cellfield(h_3D,Ω_panel,panel_ids)
+b_cf = panelwise_cellfield(topography,Ω_panel,panel_ids)
+h_h = interpolate(h_cf-b_cf,P)
+
+xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog)
+
+
+inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+jac_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
+area_meas_cf = Operation(norm)(jac_cf⋅(inv_metric_cf ⋅nΓ) )
+
+gravity = _g
+f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
+
+
+uh,ph = xh0
+t0 = 0.0
+#### DIAGNOSTIC VARIABLES
+### multifield
+# resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ( ∫( p*(q⋅(inv_metric_cf⋅w))*meas_cf )dΩ
+#                                 - ∫( u⋅( metric_cf⋅ curl(w) )  )dΩ
+#                                 + ∫( (( w × (metric_cf⋅ u) )⋅nΓ)*area_meas_cf   )dΓ
+#                                 - ∫( (f_cov_cf⋅(inv_metric_cf ⋅ w))*meas_cf )dΩ
+#                               )
+
+# # mass flux
+# resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(u⋅(metric_cf⋅v))*meas_cf   )dΩ
+
+# # Bernoulli potential
+# resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( gravity*(p+b_cf)*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*meas_cf  )dΩ
+
+# res_y(t,((u,p),(q,F,Φ)),(w,v,ψ)) = resq(((u,p),(q,F,Φ)),(w,v,ψ)) + resF(((u,p),(q,F,Φ)),(w,v,ψ)) + resΦ(((u,p),(q,F,Φ)),(w,v,ψ))
+# jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( p*(dq⋅(inv_metric_cf⋅w))*meas_cf )dΩ  + ∫( (dF⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( dΦ*ψ*meas_cf  )dΩ
+
+# _res_y((q,F,Φ),(w,v,ψ))  = res_y(t0,(xh0,(q,F,Φ)),(w,v,ψ))
+# _jac_y((q,F,Φ),(dq,dF,dΦ),(w,v,ψ)) = jac_y(t0,(xh0,(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ))
+# _opFE = FEOperator(_res_y,_jac_y,X_diag,Y_diag)
+# nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls,verbose=i_am_main(ranks))
+# yh0 = solve(nls,_opFE)
+# qh,Fh,Φh = yh0
+
+### single field
+biformq(q,w) = ∫( ph*(q⋅(inv_metric_cf⋅w))*meas_cf )dΩ
+liformq(w) = (
+              ∫( uh⋅( metric_cf⋅ curl(w) )  )dΩ
+            - ∫( (( w × (metric_cf⋅ uh) )⋅nΓ)*area_meas_cf   )dΓ
+            + ∫( (f_cov_cf⋅(inv_metric_cf ⋅ w))*meas_cf )dΩ
+              )
+op = AffineFEOperator(biformq,liformq,H,R)
+qh = solve(ls,op)
+
+
+vort = qh*ph
+vortf = vort - f_cov_cf
+
+vort_ambient = covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )
+vortf_ambient = covarient_basis_cf ⋅ (inv_metric_cf ⋅ vortf )
+q_ambient = covarient_basis_cf ⋅ (inv_metric_cf ⋅ qh )
+
+cellfields = ["q"=>q_ambient, "vort"=>vort_ambient, "vortf"=>vortf_ambient ]
+dir = datadir("SW_3D_IC")
+!isdir(dir) && mkdir(dir)
+writevtk(Ω_panel,dir*"/IC_nrproc$(nprocs)",cellfields=cellfields,append=false,geo_map= latlon_geo_map_func(Ω_panel))
