@@ -6,6 +6,7 @@ using GridapP4est
 using Gridap
 using GridapDistributed
 using DrWatson
+using Gridap.ReferenceFEs, Gridap.Polynomials
 
 include("../../convergence_tools.jl")
 include("../../Geophysical/CurlConformingFESpacesFixes.jl")
@@ -23,6 +24,33 @@ covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
+function Gridap.ReferenceFEs._Nedelec_edge_values(p,et,order)
+  println("my nedelec")
+
+  # Reference facet
+  dim1 = 1
+  ep = Polytope{dim1}(p,1)
+
+  # geomap from ref face to polytope faces
+  egeomap = Gridap.ReferenceFEs._ref_face_to_faces_geomap(p,ep)
+
+  # Compute integration points at all polynomial edges
+  degree = (order)*2 + 2
+  equad = Quadrature(ep,degree)
+  cips = get_coordinates(equad)
+  wips = get_weights(equad)
+
+
+  c_eips, ecips, ewips = Gridap.ReferenceFEs._nfaces_evaluation_points_weights(p, egeomap, cips, wips)
+
+  # Edge moments, i.e., M(Ei)_{ab} = q_RE^a(xgp_REi^b) w_Fi^b t_Ei ⋅ ()
+  eshfs = MonomialBasis(et,ep,order)
+  emoments = Gridap.ReferenceFEs._Nedelec_edge_moments(p, eshfs, c_eips, ecips, ewips)
+
+  return ecips, emoments
+
+end
+
 
 function interpolation(panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
   p_fe::Int,dir::String,vecX::Function,conf,return_vtk)
@@ -33,8 +61,15 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
   lvl = nref(nc_horizontal(panel_model))
   println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 
+  degree = 4*p_fe
+  if p_fe == 0
+    degree = 8
+  end
+
+  println("p_fe = $(p_fe); degree = $(degree)")
+
   Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,4*p_fe)
+  dΩ = Measure(Ω_panel,degree)
   panel_ids = get_panel_ids(panel_model)
 
   inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
@@ -68,10 +103,6 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
 
   _e = ( inv_metric_cf ⋅ vec_cov_h) - ( inv_metric_cf ⋅ vec_cov_cf)
   el2_proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ))
-
-  if p_fe == 0
-    el2_proj = 1
-  end
 
   if return_vtk
     cellfields=["uproj"=> vec_proj_cf, "u_cov"=>vec_cov_cf,
