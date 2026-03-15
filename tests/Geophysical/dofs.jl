@@ -41,7 +41,7 @@ dΩ = Measure(Ω,6)
 function fV(p)
   function f(αβ)
     xyz = forward_map_2D(p)(αβ)
-    VectorValue(-xyz[2],0.0,0.0)
+    VectorValue(-xyz[2],xyz[1],0.0)
   end
 end
 
@@ -127,12 +127,20 @@ sDOF_to_coeffs = Gridap.Arrays.Table(vcat(Coeffs...))
 Rconstrained = Gridap.FESpaces.FESpaceWithLinearConstraints(vcat(sDOF_to_dof...), sDOF_to_dofs, sDOF_to_coeffs, R)
 
 # Assemble the constrained system matrix
-metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
+metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
 a(u,v) = ∫( (u⋅(metric_cf⋅v))*meas_cf )dΩ
-Aconstrained=assemble_matrix(a,Rconstrained,Rconstrained)
+# Aconstrained=assemble_matrix(a,Rconstrained,Rconstrained)
 
-fh = interpolate(f_cf, Rconstrained)
+l(v) = ∫( (vec_contra_cf⋅(metric_cf⋅v))*meas_cf )dΩ
+op = AffineFEOperator(a,l,Rconstrained,Rconstrained)
+fh = solve(LUSolver(),op)
+
+_e = fh-vec_contra_h
+e =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ))
+
+
+# fh = interpolate(f_cf, Rconstrained)
 
 dconstrained = collect(get_cell_dof_values(fh))
 
