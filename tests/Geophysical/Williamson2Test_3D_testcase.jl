@@ -60,59 +60,52 @@ function u_vec_3D(p)
   function _u(γαβ)
     ζ = 0.0
     xyz = forward_map_3D(p)(γαβ)
-    # θϕr   = xyz2θϕr(xyz)
-    # θ,ϕ,r = θϕr
-    # u     = _u0*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
-    # v     = - _u0*sin(θ)*sin(ζ)
-    # _spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
+    θϕr   = xyz2θϕr(xyz)
+    θ,ϕ,r = θϕr
+    u     = _u0*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
+    v     = - _u0*sin(θ)*sin(ζ)
+    _spherical_to_cartesian_matrix(θϕr)⋅VectorValue(u,v,0)
 
-    #### from Rognes2013 paper
-    r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)
-    u = -_u0*xyz[2]/r
-    v = _u0*xyz[1]/r
-    w = 0.0
-    VectorValue(u,v,w)
+    # #### from Rognes2013 paper
+    # r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)
+    # u = -_u0*xyz[2]/r
+    # v = _u0*xyz[1]/r
+    # w = 0.0
+    # VectorValue(u,v,w)
   end
 end
 
 function _spherical_to_cartesian_matrix(θϕr)
   θ,ϕ,r = θϕr
-  TensorValue(-r*sin(θ)*cos(ϕ), r*cos(θ)*cos(ϕ),      0,
-              -r*sin(ϕ)*cos(θ),-r*sin(ϕ)*sin(θ), r*cos(ϕ),
+  TensorValue(-sin(θ)       , cos(θ)       ,      0,
+              -sin(ϕ)*cos(θ),-sin(ϕ)*sin(θ), cos(ϕ),
                cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
 end
 
-# function _spherical_to_cartesian_matrix(θϕr)
-#   θ,ϕ,r = θϕr
-#   TensorValue(-sin(θ)       , cos(θ)       ,      0,
-#               -sin(ϕ)*cos(θ),-sin(ϕ)*sin(θ), cos(ϕ),
-#                cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
-# end
+function topography(p)
+  function _u(γαβ)
+    xyz = forward_map_3D(p)(γαβ)
+    θϕr   = xyz2θϕr(xyz)
+    θ,ϕ,r = θϕr
+    #θc    = -π/2.0
+    θc    =  0.0
+    ϕc    =  π/6.0
+    rad   = π/9.0
+    rsq   = (ϕ - ϕc)*(ϕ - ϕc) + (θ - θc)*(θ - θc)
+    r     = sqrt(rsq)
+    b     = 0.0
+    if(r < rad)
+      b = _b0*(1.0 - r/rad)
+    end
+    b
+  end
+end
 
 # function topography(p)
 #   function _u(γαβ)
-#     xyz = forward_map_3D(p)(γαβ)
-#     θϕr   = xyz2θϕr(xyz)
-#     θ,ϕ,r = θϕr
-#     #θc    = -π/2.0
-#     θc    =  0.0
-#     ϕc    =  π/6.0
-#     rad   = π/9.0
-#     rsq   = (ϕ - ϕc)*(ϕ - ϕc) + (θ - θc)*(θ - θc)
-#     r     = sqrt(rsq)
-#     b     = 0.0
-#     if(r < rad)
-#       b = _b0*(1.0 - r/rad)
-#     end
-#     b
+#      0.0
 #   end
 # end
-
-function topography(p)
-  function _u(γαβ)
-     0.0
-  end
-end
 
 import GridapGeosciences.Helpers: RADIUS, THICKNESS
 
@@ -122,11 +115,11 @@ g = 9.8 # m/2
 ω = 7.29e-5 #s^-1
 T = 12*24*3600 #s
 
-H_0 = 2.94e4/g #m
-# H_0 = 5960.0 #2.94e4/g #m
+# H_0 = 2.94e4/g #m
+H_0 = 5960.0 #2.94e4/g #m
 
-u_0 = 2*π*a_e/T #m/s
-# u_0 = 20 #2*π*a_e/T #m/s
+# u_0 = 2*π*a_e/T #m/s
+u_0 = 20 #2*π*a_e/T #m/s
 
 b_0 = 2000.0 #m
 
