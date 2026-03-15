@@ -9,7 +9,7 @@ using DrWatson
 using Gridap.ReferenceFEs, Gridap.Polynomials
 
 include("../../convergence_tools.jl")
-include("../../Geophysical/CurlConformingFESpacesFixes.jl")
+# include("../../Geophysical/CurlConformingFESpacesFixes.jl")
 
 ## pullback 3D vector to 3D chart
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))

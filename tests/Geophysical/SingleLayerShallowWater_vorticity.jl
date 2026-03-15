@@ -19,7 +19,7 @@ dir = datadir("SW_3D")
 
 include("../convergence_tools.jl")
 include("Williamson2Test_3D_testcase.jl")
-include("CurlConformingFESpacesFixes.jl")
+# include("CurlConformingFESpacesFixes.jl")
 
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)

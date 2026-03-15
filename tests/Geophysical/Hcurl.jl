@@ -20,7 +20,7 @@ dir = datadir("SW_3D")
 include("../convergence_tools.jl")
 include("Williamson2Test.jl")
 include(srcdir("Helpers/overloads.jl"))
-include("CurlConformingFESpacesFixes.jl")
+# include("CurlConformingFESpacesFixes.jl")
 
 ## pullback 3D vector to 3D chart
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
