@@ -217,7 +217,7 @@ vort_ambient = covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )
 vortf_ambient = covarient_basis_cf ⋅ (inv_metric_cf ⋅ vortf )
 q_ambient = covarient_basis_cf ⋅ (inv_metric_cf ⋅ qh )
 
-cellfields = ["q"=>q_ambient, "vort"=>vort_ambient, "vortf"=>vortf_ambient, "bf"=>b_cf ]
+cellfields = ["q"=>q_ambient, "vort"=>vort_ambient, "vortf"=>vortf_ambient ]
 dir = datadir("Nedelec_3D")
-!isdir(dir) && mkdir(dir)
+(i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 writevtk(Ω_panel,dir*"/IC_nrproc$(nprocs)",cellfields=cellfields,append=false,geo_map= latlon_geo_map_func(Ω_panel))
