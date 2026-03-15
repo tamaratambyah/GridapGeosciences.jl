@@ -1,3 +1,9 @@
+"""
+Only for L2 and Hdiv,
+for H1, use constraints
+for Hcurl, use covariant comp
+"""
+
 using MPI
 using PartitionedArrays
 using GridapGeosciences
@@ -37,21 +43,18 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
   reffe = ReferenceFE(lagrangian,VectorValue{Dc,Float64},p_fe)
   if conf == :HDiv || conf == :Hdiv
     reffe = ReferenceFE(raviart_thomas,Float64,p_fe)
-  elseif conf == :Hcurl || conf == :HCurl
-    reffe = ReferenceFE(nedelec,Float64,p_fe)
   end
 
   tags = ["top_boundary", "bottom_boundary"]
-
   V = TestFESpace(panel_model, reffe; conformity=conf,dirichlet_tags=tags)
   U = TrialFESpace(V,vec_contra_cf)
 
-  # vec_contra_h = interpolate(vec_contra_cf,U)
+  vec_contra_h = interpolate(vec_contra_cf,U)
 
-  a(u,v) = ∫( u⋅( metric_cf⋅v)*meas_cf )dΩ
-  l(v) = ∫( vec_contra_cf⋅(metric_cf⋅v)*meas_cf )dΩ
-  op = AffineFEOperator(a,l,U,V)
-  vec_contra_h = solve(LUSolver(),op)
+  # a(u,v) = ∫( u⋅( metric_cf⋅v)*meas_cf )dΩ
+  # l(v) = ∫( vec_contra_cf⋅(metric_cf⋅v)*meas_cf )dΩ
+  # op = AffineFEOperator(a,l,U,V)
+  # vec_contra_h = solve(LUSolver(),op)
 
   vec_proj_h = covarient_basis_cf ⋅vec_contra_h
 
@@ -77,7 +80,8 @@ function vecX(p)
   function f(γαβ)
     xyz = forward_map_3D(p)(γαβ)
     # VectorValue(xyz[1],xyz[2],xyz[3])
-    VectorValue(xyz[2], 0.0, 0.0)
+    # VectorValue(xyz[2], 0.0, 0.0)
+    VectorValue(0.0,xyz[3],xyz[1]^2)
   end
 end
 
@@ -85,7 +89,7 @@ MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 
-n_ref_lvls = 4
+n_ref_lvls = 3
 ps = [1]
 
 dir = datadir("InterpolationConvergence")
@@ -94,7 +98,7 @@ dir = datadir("InterpolationConvergence")
 Dc = 3
 models  = get_3D_octree_refined_models(ranks,n_ref_lvls)
 
-for conf in [:H1, :L2, :Hdiv, :Hcurl]
+for conf in [:L2, :Hdiv]
   _dir = dir*"/vector_func__$(Dc)D_"*String(conf)
   !isdir(_dir) && mkdir(_dir)
   p_convergence_test(ranks,ps,models,interpolation,_dir,vecX,conf,true)
