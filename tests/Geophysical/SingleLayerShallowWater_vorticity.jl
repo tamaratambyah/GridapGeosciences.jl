@@ -18,7 +18,7 @@ dir = datadir("SW_3D")
 !isdir(dir) && mkdir(dir)
 
 include("../convergence_tools.jl")
-include("Williamson2Test_3D.jl")
+include("Williamson2Test_3D_testcase.jl")
 include("CurlConformingFESpacesFixes.jl")
 
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
@@ -72,17 +72,22 @@ function single_layer_shallow_water_vorticity(
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
 
+  degree = 4*(p_fe + 1)
+
+  if p_fe == 0
+    degree = 8
+  end
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,4*(p_fe+1))
+  dΩ = Measure(Ω_panel,degree)
   Ω_error = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_error,6*(p_fe+1))
+  dΩ_error = Measure(Ω_error,2*degree)
 
   tags = ["top_boundary", "bottom_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
-  dΓ = Measure(Γ,4*(p_fe+1))
+  dΓ = Measure(Γ,degree)
   nΓ = get_normal_vector(Γ)
 
   ## cellfields

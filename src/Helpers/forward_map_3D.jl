@@ -7,7 +7,7 @@ using Gridap.Helpers
 radius(XYZ) = sqrt(XYZ[1]*XYZ[1] + XYZ[2]*XYZ[2] + XYZ[3]*XYZ[3])
 
 # const THICKNESS = 1.0
-const THICKNESS = 0.19
+const THICKNESS = 3e-4 #0.19
 # const THICKNESS = 10e3
 println("thickness = $THICKNESS")
 
