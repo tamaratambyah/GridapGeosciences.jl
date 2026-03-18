@@ -44,7 +44,7 @@ writevtk(Triangulation(panel_model),dir*"/rhs",
            cellfields=["u"=>uX, "div"=>divuX, "rhs"=>rhs, "r1"=>f],append=false)
 
 ls = LUSolver()
-p_fe = 1
+p_fe = 0
 
 
 degree = 4*(p_fe + 1)
@@ -83,6 +83,11 @@ biformX((s,u),(t,v)) = biform_s((s,u),(t,v)) + biform_u((s,u),(t,v))
 liformX((t,v)) = ∫( rhs⋅v )dΩ
 op = AffineFEOperator(biformX,liformX,X,Y)
 sh, uh = solve(ls,op)
+
+  # using LinearAlgebra
+  # A = get_matrix(op)
+  # evals = eigvals(Array(A))
+
 
 u_int = interpolate(u_cf,H)
 

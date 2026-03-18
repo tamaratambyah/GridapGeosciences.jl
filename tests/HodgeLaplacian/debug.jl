@@ -131,7 +131,6 @@ function uX(p)
 end
 
 
-
 # panel_model = models[1]
 # p_fe = 0
 function hodge_laplacian(
@@ -163,20 +162,6 @@ function hodge_laplacian(
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
-
-  ##
-  # A(p) = x -> transpose_jacobian(p)(x) ⋅ uX(p)(x)
-  # B(p) = x -> 1/sqrtg(p,x) * ( metric(p,x) ⋅ curl(A(p))(x) )
-  # D(p) = x -> 1/sqrtg(p,x) * (metric(p,x) ⋅ curl(B(p))(x))
-
-  # p1 = D(1)(Point(1,1,1))
-
-  # p2 = cov_ccurl(1)(Point(1,1,1))
-  # p1 ≈p2
-
-  # E(p) = x -> gradient(q_surfdiv(p))(x)
-  # E(1)(Point(1,1,1)) ≈   cov_graddiv(1)(Point(1,1,1))
-
 
   # manufacture rhs
   W(p) = x -> transpose_jacobian(p)(x) ⋅ surfcurl(uX,p)(x) # covariant comps of curl
@@ -211,39 +196,11 @@ function hodge_laplacian(
   sigma_cf = -sdiv_cf
 
 
-
-  ## manufacture rhs
-  # graddiv_cov(p) = x ->  gradient( surfdiv(contra_v_3D(uX))(p))(x)
-  # curlcurl_cov(p) = x ->  1/sqrtg(p,x)* metric(p,x)⋅ ( curl(cov_surfcurl(uX,p))(x))
-  # curlcurl_cov_cf = panelwise_cellfield(curlcurl_cov,Ω_panel,panel_ids)
-  # graddiv_cov_cf = panelwise_cellfield(graddiv_cov,Ω_panel,panel_ids)
-  # rhs1 = curlcurl_cov_cf - graddiv_cov_cf
-
-
-  # qq(p) = x -> (1/sqrtg(p,x)) * (metric(p,x) ⋅ (curl(covar_v_3D(uX,p))(x) ))
-  # aa(p) = x -> (1/sqrtg(p,x)) * (metric(p,x) ⋅ (curl(qq(p))(x) ))
-  # bb(p) = x -> gradient(surfdiv(contra_v_3D(uX),p))(x)
-  # rr(p) = x -> aa(p)(x) - bb(p)(x)
-  # w1 = panelwise_cellfield(aa,Ω_panel,panel_ids)
-  # w2 = panelwise_cellfield(bb,Ω_panel,panel_ids)
-  # rhs2 = panelwise_cellfield(rr,Ω_panel,panel_ids)
-
-  # writevtk(Ω_panel,dir*"/rhs",
-  #           cellfields=["w1"=>rhs1, "w2"=>rhs2, "e"=>rhs1-rhs2, "w3"=>rhs3],append=false,geo_map= geo_map_func(Ω_panel))
-  # slap = panelwise_cellfield(surflap(uX1),Ω_panel,panel_ids)
-
-  # vec_surf_lap(p) = x-> VectorValue(surflap(uX1,p)(x),surflap(uX2,p)(x),surflap(uX3,p)(x))
-  # vec_surf_lap_cov_cf = panelwise_cellfield(covar_v_3D(vec_surf_lap),Ω_panel,panel_ids)
-  # rhs3 = -vec_surf_lap_cov_cf
-
-  # rhs = rhs3
-
-
   tags = ["top_boundary", "bottom_boundary"]
 
   ## FE spaces
-  T = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe+1); conformity=:H1,dirichlet_tags=tags)
-  S = TrialFESpace(T,sigma_cf)
+  T = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe+1); conformity=:H1, constraint=:zeromean)
+  S = TrialFESpace(T)
 
   R = TestFESpace(Ω_panel, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
   H = TrialFESpace(R,u_cov_cf)
@@ -257,12 +214,60 @@ function hodge_laplacian(
                          )
   biform_u((s,u),(t,v)) = ( ∫( (∇×u)⋅(metric_cf ⋅(∇×v) )*(1/meas_cf)  )dΩ
                           + ∫( ∇(s)⋅(inv_metric_cf⋅v )*meas_cf )dΩ
-                          # + ∫( v⋅(inv_metric_cf⋅∇(s) )*meas_cf )dΩ
                           )
   biformX((s,u),(t,v)) = biform_s((s,u),(t,v)) + biform_u((s,u),(t,v))
   liformX((t,v)) = ∫( cov_rhs_cf⋅(inv_metric_cf⋅v)*meas_cf  )dΩ
   op = AffineFEOperator(biformX,liformX,X,Y)
+
+  # using LinearAlgebra
+  # A = get_matrix(op)
+  # evals = eigvals(Array(partition(A).item))
+  # A1 = partition(A).item
+  # norm(A1-A1')/norm(A1)
+
+
+
+
+  # dX=get_trial_fe_basis(X)
+  # dY=get_fe_basis(Y)
+
+  # A11((s,u),(t,v)) = ∫( (s*t)*meas_cf )dΩ
+  # _A11=assemble_matrix(A11(dX,dY), X, Y)
+  # A1 = partition(_A11).item
+  # norm(A1-A1')/norm(A1)
+
+  # A22((s,u),(t,v)) = ∫( (∇×u)⋅(metric_cf ⋅(∇×v) )*(1/meas_cf)  )dΩ
+  # _A22=assemble_matrix(A22(dX,dY), X, Y)
+  # A2 = partition(_A22).item
+  # norm(A2-A2')/norm(A2)
+
+
+  # A12((s,u),(t,v)) =  ∫( -1.0*( ∇(t)⋅(inv_metric_cf⋅u) )*meas_cf)dΩ
+  # _A12=assemble_matrix(A12(dX,dY), X, Y)
+  # a12 = partition(_A12).item
+  # norm(a12-a12')/norm(a12)
+
+  # A21((s,u),(t,v)) = ∫( ∇(s)⋅(inv_metric_cf⋅v )*meas_cf )dΩ
+  # _A21=assemble_matrix(A21(dX,dY), X, Y)
+  # a21 = partition(_A21).item
+  # norm(a21-a21')/norm(a21)
+
+  # a = a12 + a21'
+  # norm(a)
+
+
+
+  # using LinearAlgebra
+  # A = get_matrix(op)
+  # evals = eigvals(Array(partition(A).item))
+
+  # A1 = partition(A).item
+  # norm(A1-A1')/norm(A1)
+
   sh, uh = solve(ls,op)
+
+
+
 
   u_cov_int = interpolate(u_cov_cf,H)
   uh_ambient = covarient_basis_cf ⋅ (inv_metric_cf ⋅ uh )
@@ -292,8 +297,23 @@ function hodge_laplacian(
 
   end
 
+  ### convergence output for DrWatson
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  return el2_u, el2_s, false
+  n = nc(panel_model)
+  n_h = nc_horizontal(panel_model)
+  n_v = _nc_vertical(panel_model)
+  dxx = dx(panel_model)
+  dxH = dx_horizontal(panel_model)
+  dxV = dx_vertical(panel_model)
+  output = @strdict el2_u el2_s n n_h n_v dxx dxH dxV p_fe lvl_h lvl_v
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("hodge_laplacian_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
+
+
+
+  return el2_u, false, false
+  # return el2_u, el2_s, false
 
 end
 
@@ -301,14 +321,12 @@ end
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-
-
-dir = datadir("HodgeLaplacian")
+dir = datadir("HodgeLaplacianConvergence")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-n_ref_lvls = 3
+n_ref_lvls = 4
 ps = [0,1]
 models  = get_3D_octree_refined_models(ranks,n_ref_lvls)
 ls = LUSolver()
 p_convergence_test(ranks,ps,models,hodge_laplacian,dir,uX,ls,true)
-i_am_main(ranks) && plot_convergence_from_saved(dir,"convergence",["u:", "s:"])
+# i_am_main(ranks) && plot_convergence_from_saved(dir,"convergence_p0",["u:", "s:"])
