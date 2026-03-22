@@ -21,7 +21,7 @@ using Test
 
 include("../convergence_tools.jl")
 include("helpers.jl")
-include("../Geophysical/Williamson2Test_3D.jl")
+include("../Geophysical/Williamson2Test_3D_testcase.jl")
 include("../Geophysical/CurlConformingFESpacesFixes.jl")
 
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
@@ -61,24 +61,28 @@ function transient_shallow_water_solver_3D(
   diag_dir = sim_dir*"/diagnostics"
   (i_am_main(ranks) && !isdir(diag_dir) ) && mkdir(diag_dir)
 
+  degree = 5*(p_fe+1)
+  if p_fe == 0
+    degree = 8
+  end
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,4*(p_fe+1))
+  dΩ = Measure(Ω_panel,degree)
 
   tags = ["top_boundary", "bottom_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
-  dΓ = Measure(Γ,4*(p_fe+1))
+  dΓ = Measure(Γ,degree)
   nΓ = get_normal_vector(Γ)
 
-  R = TestFESpace(Ω_panel, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
+  R = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
   H = TrialFESpace(R,VectorValue(0.0,0.0,0.0))
 
-  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
 
-  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
+  V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
   U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
 
   X_prog = MultiFieldFESpace([U,P]) # u, p
@@ -99,7 +103,7 @@ function transient_shallow_water_solver_3D(
     h_h = interpolate(h_cf-b_cf,P)
 
 
-    xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
+    xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog)
     t = 0.0
     psave(prog_dir*"/solT_$(t)",xh0)
     psave(initial_dir*"/solT_$(t)",xh0)
@@ -107,7 +111,7 @@ function transient_shallow_water_solver_3D(
   end
 
   simName = "solT"
-  t0,xh0 = (restart) ? load_last(ranks,X_prog(0.0),prog_dir,simName) : initial_condition()
+  t0,xh0 = (restart) ? load_last(ranks,X_prog,prog_dir,simName) : initial_condition()
 
   ## transient weak form
   grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
@@ -164,7 +168,7 @@ function transient_shallow_water_solver_3D(
                     )
 
   res_x(t,((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) + res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0))
-  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) = + ∫( τ*(  ( du× curl(q)) × (metric_cf⋅F)  )⋅(metric_cf⋅v)   )dΩ
+  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) =  ∫( τ*(  ( du× curl(q)) × (metric_cf⋅F)  )⋅(metric_cf⋅v)   )dΩ
   jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
 
@@ -174,7 +178,7 @@ function transient_shallow_water_solver_3D(
 
   # transient parameters
   dxx_horizontal = dx_horizontal(panel_model)
-  _dt = dxx_horizontal*CFL/(p_fe*sqrt(gravity*_H_0))
+  _dt = dxx_horizontal*CFL/(sqrt(gravity*_H_0))
   dt = floor(_dt, sigdigits=1)
   i_am_main(ranks) && println("dt = $dt")
   τ = dt/2
@@ -186,7 +190,7 @@ function transient_shallow_water_solver_3D(
   ## iterate solution
   it = iterate(solT)
 
-  unwrap_sw(it,ranks,solT,dir,_tF)
+  unwrap_sw(it,ranks,solT,dir,_tF,100)
 
 
 end
@@ -246,16 +250,21 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   # created the folder
   PartitionedArrays.barrier(ranks)
 
+  degree = 5*(p_fe+1)
+  if p_fe == 0
+    degree = 8
+  end
+
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,4*(p_fe+1))
+  dΩ = Measure(Ω_panel,degree)
 
   tags = ["top_boundary", "bottom_boundary"]
   R = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)
   H = TrialFESpace(R,VectorValue(0.0,0.0,0.0))
 
-  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TransientTrialFESpace(Q)
 
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
@@ -276,14 +285,16 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
 
   cell_geo_map = geo_map_func(Ω_panel)
   latlon_geo_map = latlon_geo_map_func(Ω_panel)
-  labels = ["uh","ph","qh","Fh","Phih","vort"]
+  labels = ["uh","ph","qh","Fh","Phih","vortf","vort"]
   function make_vtk(t::Float64,xh,yh,cell_geo_map,latlon_geo_map)
     uh,ph = xh
     qh,Fh,Φh = yh
-    vort = qh*ph - f_cov_cf
+    vortf = qh*ph - f_cov_cf
+    vort = qh*ph
     panel_cfs = [covarient_basis_cf⋅uh, ph,
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ qh ),
                  Fh, Φh,
+                 covarient_basis_cf ⋅ (inv_metric_cf ⋅ vortf ),
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )
                  ]
 
@@ -353,7 +364,7 @@ end
 #### Main run for transient solution
 ################################################################################
 function main_transient(distribute,nprocs;
-  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk=true)
+  restart=false,options="",n_ref_lvls=4,p_fe=0,CFL=0.1,return_vtk=true)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
@@ -361,11 +372,9 @@ function main_transient(distribute,nprocs;
   i_am_main(ranks) && println("transient_wave_equation_3D")
 
   options = """
-  -cg_ksp_type cg
-  -cg_ksp_converged_reason
-  -cg_ksp_monitor
-  -cg_ksp_rtol 1.0e-10
-  -cg_pc_type gamg
+  -g_ksp_type gmres
+  -g_ksp_converged_reason
+  -g_ksp_monitor
   """
 
   o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
@@ -373,12 +382,9 @@ function main_transient(distribute,nprocs;
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
 
-  # ls_diag = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="diagnostic_solver")
-  # ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-20,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-20,verbose=i_am_main(ranks),name="ode_solver")
 
-  GridapPETSc.Init(args=split(options))
-  ls_ode = PETScLinearSolver(petsc_cg_amg_setup)
-  ls_diag = PETScLinearSolver(petsc_cg_amg_setup)
 
   lss = (ls_ode,ls_diag)
 
@@ -395,15 +401,13 @@ function main_transient(distribute,nprocs;
   transient_shallow_water_solver_3D(panel_model,p_fe,dir,CFL,lss,restart)
   post_process(panel_model,p_fe,dir,return_vtk)
 
-  GridapPETSc.Finalize()
-  GridapPETSc.gridap_petsc_gc()
 
   i_am_main(ranks) && println("--DONE--")
   @test true
 end
 
 function main_visualise(distribute,nprocs;
-  n_ref_lvls=4,p_fe=1,return_vtk=true)
+  n_ref_lvls=4,p_fe=0,return_vtk=true)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
@@ -424,25 +428,6 @@ function main_visualise(distribute,nprocs;
   i_am_main(ranks) && println("--DONE--")
   @test true
 end
-
-
-function petsc_cg_amg_setup(ksp)
-  rtol = GridapPETSc.PETSC.PETSC_DEFAULT
-  atol = GridapPETSc.PETSC.PETSC_DEFAULT
-  dtol = GridapPETSc.PETSC.PETSC_DEFAULT
-  maxits = PetscInt(1000)
-
-  @check_error_code GridapPETSc.PETSC.KSPSetOptionsPrefix(ksp[],"cg_")
-  @check_error_code GridapPETSc.PETSC.KSPSetFromOptions(ksp[])
-  # @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPGMRES)
-
-  pc = Ref{GridapPETSc.PETSC.PC}()
-  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
-  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCGAMG)
-  @check_error_code GridapPETSc.PETSC.KSPSetTolerances(ksp[], rtol, atol, dtol, maxits)
-  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
-end
-
 
 # MPI.Init()
 # nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
