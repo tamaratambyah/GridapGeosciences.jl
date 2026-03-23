@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "../../../tests/Applications/LaplaceBeltrami.jl"
+EditURL = "../../../tests/Examples/LaplaceBeltrami.jl"
 ```
 
 # Laplace Beltrami equation on the cubed sphere manifold
@@ -23,11 +23,13 @@ The weak formulation in the parametric space is: find $u \in H^1(\mathcal{V})$ s
 \int_{\mathcal{V}} \mathbf{grad}~u \cdot (g^{-1} \mathbf{grad}~ v )~\sqrt{g} &= \int_{\mathcal{V}} f v ~\sqrt{g} \qquad   \forall v \in H^1(\mathcal{V})
 \end{align*}
 ```
-where $f: \mathcal{V} \rightarrow \mathbb{R}$, $g$ is the Riemannian metric, and $\sqrt{g} = (\det{g})^{1/2}$ is the measure.
+where $\mathcal{V}$ is the parametric space $f: \mathcal{V} \rightarrow \mathbb{R}$,
+$g$ is the Riemannian metric associated to the geometrical map $\sigma: \mathcal{V} \rightarrow \gamma$,
+and $\sqrt{g} = (\det{g})^{1/2}$ is the measure.
 
 ## Set up
 First load all required pacakges. In this example, we will use a serial model, and the
- basic LU solver provided in Gridap. One can use a distributed model and solvers.
+ basic LU solver provided in Gridap.
 
 ````julia 
 using GridapGeosciences
@@ -38,7 +40,7 @@ using GridapSolvers
 ## Discrete model
 
 To obtain a refined parametric model, we first define the coarse parametric model, and
-then apply $\ell$ levels of refinement, as follows:
+then apply $\ell$ levels of refinement:
 
 ````julia 
 ℓ = 3
@@ -48,7 +50,7 @@ for n in collect(1:ℓ)
 end
 ````
 
-Each cell is assigned a panel identifier, $p$. We extract these as a cellwise array:
+Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array:
 
 ````julia 
 panel_ids = get_panel_ids(panel_model)
@@ -86,7 +88,7 @@ function u(p)
 end
 ````
 
-The cooresponding CellField and rhs forcing function is defined panelwise, as follows:
+The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
 
 ````julia 
 f_panel_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
@@ -116,8 +118,7 @@ op = AffineFEOperator(poisson_biform,poisson_liform,U,V)
 uh = solve(LUSolver(),op)
 ````
 
-The L2 norm of the error between the exact and numerical soltuions is computed in the
-parametric space
+The $L^2$ norm of the error between the exact and numerical soltuions is computed as
 
 ````julia 
 e = f_panel_cf-uh
