@@ -44,25 +44,25 @@ then apply $\ell$ levels of refinement:
 
 ````julia 
 ℓ = 3
-panel_model = coarse_parametric_model()
+model = coarse_parametric_model()
 for n in collect(1:ℓ)
-    panel_model = Gridap.Adaptivity.refine(panel_model)
+    model = Gridap.Adaptivity.refine(model)
 end
 ````
 
 Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array:
 
 ````julia 
-panel_ids = get_panel_ids(panel_model)
+panel_ids = get_panel_ids(model)
 ````
 
 Using the panel ids, we can visualise the triangulation in the ambient space of the sphere
 or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk:
 
 ````julia 
-Ω_panel = Triangulation(panel_model)
-writevtk(Ω_panel,"sphere_model",append=false,geo_map=geo_map_func(Ω_panel))
-writevtk(Ω_panel,"latlon_model",append=false,geo_map=latlon_geo_map_func(Ω_panel))
+Ω = Triangulation(model)
+writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
+writevtk(Ω,"latlon_model",append=false,geo_map=latlon_geo_map_func(Ω))
 ````
 
 ## FE Spaces
@@ -71,7 +71,7 @@ To remove the kernel, we use the zeromean constraint in the definition of the FE
 
 ````julia 
 order = 1
-V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,order); conformity=:H1, constraint=:zeromean)
+V = TestFESpace(model, ReferenceFE(lagrangian,Float64,order); conformity=:H1, constraint=:zeromean)
 U = TrialFESpace(V)
 ````
 
@@ -91,9 +91,9 @@ end
 The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
 
 ````julia 
-f_panel_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
-slap_panel_cf =  panelwise_cellfield(surflap(u),Ω_panel,panel_ids)
-rhs_cf = - slap_panel_cf
+u_cf = panelwise_cellfield(u,Ω,panel_ids)
+slap_cf = panelwise_cellfield(surflap(u),Ω,panel_ids)
+rhs = - slap_cf
 ````
 
 ## Weak form
@@ -102,11 +102,11 @@ and then write the bilinear and linear forms using Gridap's high level API.
 We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
 
 ````julia 
-inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-dΩ = Measure(Ω_panel,6*order)
-poisson_biform(u,v) =  ∫( ( gradient(v)⋅ (inv_metric_cf⋅ gradient(u) ) )*meas_cf )dΩ
-poisson_liform(v) = ∫(  (rhs_cf*v)*meas_cf )dΩ
+invg = panelwise_cellfield(inv_metric,Ω,panel_ids)
+meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
+dΩ = Measure(Ω,6*order)
+poisson_biform(u,v) = ∫((gradient(v)⋅(invg⋅gradient(u)))*meas )dΩ
+poisson_liform(v) = ∫((rhs*v)*meas)dΩ
 ````
 
 ## FE problem
@@ -121,8 +121,8 @@ uh = solve(LUSolver(),op)
 The $L^2$ norm of the error between the exact and numerical soltuions is computed as
 
 ````julia 
-e = f_panel_cf-uh
-el2 = sqrt(sum(∫( (e⋅e)*meas_cf )dΩ))
+e = u_cf-uh
+el2 = sqrt(sum(∫((e⋅e)*meas)dΩ))
 ````
 
 ## Post processing
@@ -130,7 +130,7 @@ The solution can be visualised in the ambient space by passing a
 cell-wise array of geometrical maps to Gridap's writevtk function
 
 ````julia 
-writevtk(Ω_panel,"laplace_beltrami",cellfields=["u"=>f_panel_cf,"uh"=>uh,"eu"=>e],append=false,geo_map=geo_map_func(Ω_panel))
+writevtk(Ω_panel,"laplace_beltrami",cellfields=["u"=>u_panel,"uh"=>uh,"eu"=>e],append=false,geo_map=geo_map_func(Ω_panel))
 ````
 
 ---
