@@ -28,10 +28,10 @@ The weak formulation in the parametric space is: find $u_h \in \mathbb{V} \subse
 a(u_h,v_h) &+ b(u_h,v_h) + s(u_h,v_h) = 0  , \\
 a(u_h,v_h) &= \int_{\mathcal{V}} \partial_t {u}_h {v}_h ~\sqrt{g}
 - \int_{\mathcal{V}} {u}_h \boldsymbol{\beta} \cdot \mathbf{grad}~v_h    ~\sqrt{g} \\
-b({u}_h,{v}_h) &= \int_{{\mathcal{E}}_0} \left\{ J \boldsymbol{\beta}{u}_h \right\}\cdot
-\llbracket {v}_h,  J g^{-1}\boldsymbol{n} \rrbracket  ~\sqrt{g} , \\
+b({u}_h,{v}_h) &= \int_{{\mathcal{E}}_0} \{\! \!\{ J \boldsymbol{\beta}{u}_h \}\! \!\} \cdot
+\lbrack\!\lbrack {v}_h,  J g^{-1}\boldsymbol{n} \rbrack\!\rbrack  ~\sqrt{g} , \\
 s({u}_h,{v}_h) 	&= \int_{{\mathcal{E}}_0} \frac{1}{2} |\boldsymbol{\beta}\cdot \boldsymbol{n}^+|
-\llbracket {u}_h, \sigma^* [\boldsymbol{n}]\rrbracket \cdot \llbracket {v}_h, \sigma^*[\boldsymbol{n}] \rrbracket \sqrt{g}   ,
+\lbrack\!\lbrack {u}_h, \sigma^* [\boldsymbol{n}]\rbrack\!\rbrack \cdot \lbrack\!\lbrack {v}_h, \sigma^*[\boldsymbol{n}] \rbrack\!\rbrack \sqrt{g}   ,
 \end{align*}
 ```
 $\forall v_h \in \mathbb{V}$ where $\mathcal{V}$ is the parametric space,
