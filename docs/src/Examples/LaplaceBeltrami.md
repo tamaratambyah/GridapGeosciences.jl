@@ -93,7 +93,7 @@ The cooresponding cellfield and rhs forcing function is defined panelwise, as fo
 ````julia 
 u_cf = panelwise_cellfield(u,Ω,panel_ids)
 slap_cf = panelwise_cellfield(surflap(u),Ω,panel_ids)
-rhs = - slap_cf
+rhs = -slap_cf
 ````
 
 ## Weak form
@@ -130,7 +130,7 @@ The solution can be visualised in the ambient space by passing a
 cell-wise array of geometrical maps to Gridap's writevtk function
 
 ````julia 
-writevtk(Ω_panel,"laplace_beltrami",cellfields=["u"=>u_panel,"uh"=>uh,"eu"=>e],append=false,geo_map=geo_map_func(Ω_panel))
+writevtk(Ω,"laplace_beltrami",cellfields=["u"=>u_cf,"uh"=>uh,"eu"=>e],append=false,geo_map=geo_map_func(Ω))
 ````
 
 ---
