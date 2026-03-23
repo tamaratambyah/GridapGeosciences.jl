@@ -29,8 +29,6 @@
 #  basic LU solver provided in Gridap.
 using GridapGeosciences
 using Gridap
-using GridapSolvers
-
 
 # ## Discrete model
 

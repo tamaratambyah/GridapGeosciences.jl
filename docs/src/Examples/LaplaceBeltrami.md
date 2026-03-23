@@ -34,7 +34,6 @@ First load all required pacakges. In this example, we will use a serial model, a
 ````julia 
 using GridapGeosciences
 using Gridap
-using GridapSolvers
 ````
 
 ## Discrete model
