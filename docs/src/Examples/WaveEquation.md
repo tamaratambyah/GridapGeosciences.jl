@@ -40,13 +40,11 @@ $g$ is the Riemannian metric associated to the geometrical map $\sigma: \mathcal
 and $\sqrt{g} = (\det{g})^{1/2}$ is the measure.
 
 ## Set up
-First load all required pacakges. In this example, we will use a distributed model, and the
-iterative solver provided by GridapSolvers.jl. So we also initialise MPI
+First load all required pacakges. In this example, we will use a distributed model. So we also initialise MPI.
 
 ````julia 
 using GridapGeosciences
 using Gridap
-using GridapP4est
 using PartitionedArrays
 using MPI
 
@@ -60,13 +58,13 @@ To obtain a refined 3D parametric model, we pass $\ell$ levels of refinement to 
 
 ````julia 
 ℓ = 2
-octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
-                        num_horizontal_uniform_refinements=ℓ,
-                        num_vertical_uniform_refinements=ℓ);
+octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+                  num_horizontal_uniform_refinements=ℓ,
+                  num_vertical_uniform_refinements=ℓ);
 model = octree3_model.parametric_dmodel
 ````
 
-We can visualise the triangulation in the ambient space of the 3D sphere
+We can visualise the triangulation in the ambient space of the 3D cubed sphere
 by passing a cellwise array of geometrical maps to writevtk:
 
 ````julia 
@@ -180,7 +178,7 @@ Now we can build the FE operator that represents the linearised wave equation.
 op = AffineFEOperator(biform,liform,X,Y)
 ````
 
-We solve using a LU solver. One can also solve using MUMPS or another iterative solver.
+We solve using a LU solver. One can also solve using MUMPS or another iterative solver from GridapSolvers/GridapPETSc
 
 ````julia 
 ls = LUSolver()

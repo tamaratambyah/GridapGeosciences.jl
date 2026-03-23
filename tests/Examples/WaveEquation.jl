@@ -37,11 +37,9 @@
 
 
 # ## Set up
-# First load all required pacakges. In this example, we will use a distributed model, and the
-# iterative solver provided by GridapSolvers.jl. So we also initialise MPI
+# First load all required pacakges. In this example, we will use a distributed model. So we also initialise MPI.
 using GridapGeosciences
 using Gridap
-using GridapP4est
 using PartitionedArrays
 using MPI
 
@@ -52,12 +50,12 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 
 # To obtain a refined 3D parametric model, we pass $\ell$ levels of refinement to the vertical and horizontal:
 ℓ = 2
-octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
-                        num_horizontal_uniform_refinements=ℓ,
-                        num_vertical_uniform_refinements=ℓ);
+octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+                  num_horizontal_uniform_refinements=ℓ,
+                  num_vertical_uniform_refinements=ℓ);
 model = octree3_model.parametric_dmodel
 
-# We can visualise the triangulation in the ambient space of the 3D sphere
+# We can visualise the triangulation in the ambient space of the 3D cubed sphere
 # by passing a cellwise array of geometrical maps to writevtk:
 Ω = Triangulation(model)
 writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
@@ -149,8 +147,7 @@ liform((v,q)) = ∫( f1⋅(g⋅v)*meas )dΩ + ∫( (f2*q)*meas )dΩ
 # Now we can build the FE operator that represents the linearised wave equation.
 op = AffineFEOperator(biform,liform,X,Y)
 
-# We solve using a LU solver. One can also solve using MUMPS or another iterative solver.
-
+# We solve using a LU solver. One can also solve using MUMPS or another iterative solver from GridapSolvers/GridapPETSc
 ls = LUSolver()
 A = get_matrix(op)
 b = get_vector(op)
