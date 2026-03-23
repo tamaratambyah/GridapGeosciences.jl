@@ -1,6 +1,6 @@
 using Literate
 
-src_dir = string(@__DIR__,"/../tests/Applications/")
+src_dir = string(@__DIR__,"/../tests/Examples/")
 out_dir = string(@__DIR__,"/src/Examples/")
 
 mkpath(out_dir)
