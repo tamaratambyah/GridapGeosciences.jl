@@ -88,6 +88,7 @@ end
 @publish Helpers contravariant_basis
 
 @publish Distributed ParametricOctreeDistributedDiscreteModel
+@publish Distributed Parametric3DOctreeDistributedDiscreteModel
 @publish Distributed DistributedParametricDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed latlon_geo_map_func

@@ -42,6 +42,7 @@ include("helpers.jl")
 include("Triangulations.jl")
 
 export ParametricOctreeDistributedDiscreteModel
+export Parametric3DOctreeDistributedDiscreteModel
 export DistributedParametricDiscreteModel
 export panelwise_cellfield, geo_map_func, get_panel_ids, latlon_geo_map_func
 export writevtk, createvtk, write_vtk_file, create_vtk_file, create_pvtk_file
