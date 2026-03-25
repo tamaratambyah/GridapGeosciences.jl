@@ -1,10 +1,17 @@
+"""
+In this module, we test the refinement of the serial model by checking
+1. the number of cell dims and point dims = 2
+2. the refined model is a child of the parent
+"""
+
 module RefinementTests
 
-using DrWatson
 using Gridap
 using GridapGeosciences
 using Gridap.Helpers,  Gridap.Adaptivity
 using Test
+
+include("../convergence_tools.jl")
 
 ### Check the Dc, Dp of the coarse model
 panel_model = coarse_parametric_model()
@@ -21,5 +28,5 @@ for lev in 1:n_ref_lvls-1
   @test is_child(panel_models[lev],panel_models[lev+1])
 end
 
-
+@test true
 end

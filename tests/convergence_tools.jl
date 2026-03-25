@@ -6,6 +6,7 @@ using PartitionedArrays
 using Plots, LaTeXStrings
 using JLD2
 using Test
+using DrWatson
 
 include("helpers.jl")
 

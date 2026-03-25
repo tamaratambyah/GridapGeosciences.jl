@@ -1,3 +1,8 @@
+"""
+In this module, we test the pushforward of normal vectors from the parametric
+to ambient space, for boundary and skeleton triangulations
+"""
+
 module NormalTests
 
 using DrWatson
@@ -5,6 +10,7 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Helpers
+using Gridap.Geometry
 
 include("../convergence_tools.jl")
 
@@ -57,10 +63,16 @@ panel_model = models[4]
 panel_ids = get_panel_ids(panel_model)
 cell_geo_map = geo_map_func(panel_ids)
 
+topo = get_grid_topology(panel_model)
+Dc = num_cell_dims(topo)
+face_to_mask = get_isboundary_face(topo,Dc-1)
+bgface_to_mask = collect(Bool, .!get_isboundary_face(topo,Dc-1))
+
 ################################################################################
 ## Face normals: boundary trian
 ################################################################################
-trian = BoundaryTriangulation(panel_model,1)
+
+trian = BoundaryTriangulation(panel_model,bgface_to_mask,1)
 pts = get_cell_points(trian)
 
 # get face normals in 3D
@@ -173,5 +185,6 @@ if return_vtk
   writevtk(Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false,geo_map=skel_geo_map)
 end
 
+@test true
 
 end

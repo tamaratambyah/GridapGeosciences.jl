@@ -1,13 +1,14 @@
+"""
+In this module, we test the panel ids from the BodyFittedTriangulation trian are
+equivalent to the panel ids from the model.
+We also test the length of the panel ids is equvialent to the number of cells.
+"""
+
 module PanelIdsTests
 using Gridap
 using GridapGeosciences
 using Gridap.Adaptivity
 using Test
-
-################################################################################
-## Test the panel ids from the BodyFittedTriangulation trian are the same as the
-## panel ids from the model
-################################################################################
 
 function test_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
@@ -27,5 +28,5 @@ test_panel_ids(s_panel_model)
 s_panel_model = Gridap.Adaptivity.refine(s_panel_model)
 test_panel_ids(s_panel_model)
 
-
+@test true
 end # module

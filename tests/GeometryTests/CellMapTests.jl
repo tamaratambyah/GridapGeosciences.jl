@@ -1,14 +1,18 @@
+"""
+In this module, we test the cell maps of the serial ParametricDiscreteModel.
+Theoretically, the panel models should return the cell coordinates of a
+Cartesian panel. Test the evaluation of the cell maps on ref coords against
+a cartesian model at the same level of refinement
+"""
+
 module CellMapTests
 using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
 
-################################################################################
-## Theoretically, the panel models should return the cell coordinates of a
-## Cartesian panel. Test the evaluation of the cell maps on ref coords against
-## a cartesian model at the same level of refinement
-################################################################################
+include("../convergence_tools.jl")
+
 function test_cell_maps(panel_model,cart_model)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
@@ -60,5 +64,5 @@ for (level,(panel_model,cart_model)) in enumerate(zip(panel_models,cart_panel_mo
   test_cell_maps(panel_model,cart_model)
 end
 
-
+@test true
 end
