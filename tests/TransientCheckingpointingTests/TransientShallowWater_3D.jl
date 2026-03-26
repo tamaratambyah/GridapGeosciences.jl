@@ -22,7 +22,6 @@ using Test
 include("../convergence_tools.jl")
 include("helpers.jl")
 include("../Geophysical/Williamson2Test_3D_testcase.jl")
-include("../Geophysical/CurlConformingFESpacesFixes.jl")
 
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
@@ -63,8 +62,9 @@ function transient_shallow_water_solver_3D(
 
   degree = 5*(p_fe+1)
   if p_fe == 0
-    degree = 8
+    degree = 10
   end
+  @check degree > 0 "Zero quad!!"
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
@@ -125,7 +125,6 @@ function transient_shallow_water_solver_3D(
 
   gravity = _g
   f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
-  n_cov = CellField(x->VectorValue(1,0,0),Ω_panel) ## same as nΓ
   b_cf = panelwise_cellfield(topography,Ω_panel,panel_ids) # topography
 
   #### DIAGNOSTIC VARIABLES
@@ -190,7 +189,7 @@ function transient_shallow_water_solver_3D(
   ## iterate solution
   it = iterate(solT)
 
-  unwrap_sw(it,ranks,solT,dir,_tF,100)
+  unwrap_sw(it,ranks,solT,dir,_tF,125)
 
 
 end
@@ -252,7 +251,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
 
   degree = 5*(p_fe+1)
   if p_fe == 0
-    degree = 8
+    degree = 10
   end
 
   ## finite element solver
@@ -283,19 +282,34 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
   gravity = _g
 
+  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  area_meas(p) = x-> norm(_area_meas(p)(x))
+  n_3D(p) = x -> VectorValue(1,0,0)/area_meas(p)(x)
+
+  n_cov = panelwise_cellfield(n_3D,Ω_panel,panel_ids)
+
+
   cell_geo_map = geo_map_func(Ω_panel)
   latlon_geo_map = latlon_geo_map_func(Ω_panel)
-  labels = ["uh","ph","qh","Fh","Phih","vortf","vort"]
+  labels = ["uh","ph","qh","Fh","Phih","vortf","vort", "qh_rad_mag", "f_rad_mag", "vortf_rad_mag"]
   function make_vtk(t::Float64,xh,yh,cell_geo_map,latlon_geo_map)
     uh,ph = xh
     qh,Fh,Φh = yh
     vortf = qh*ph - f_cov_cf
     vort = qh*ph
+
+    radial_qh_mag = qh⋅(inv_metric_cf⋅n_cov)
+    radial_f_mag = f_cov_cf⋅(inv_metric_cf⋅n_cov)
+    radial_vortf_mag = radial_qh_mag*ph - radial_f_mag
+
     panel_cfs = [covarient_basis_cf⋅uh, ph,
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ qh ),
                  Fh, Φh,
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ vortf ),
-                 covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort )
+                 covarient_basis_cf ⋅ (inv_metric_cf ⋅ vort ),
+                radial_qh_mag,
+                radial_f_mag,
+                radial_vortf_mag ,
                  ]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -308,7 +322,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
     qh,Fh,Φh = yh
     vort = qh*ph - f_cov_cf
 
-    ens = sum(∫( ( (qh⋅qh)*xh[2])*meas_cf  )dΩ)
+    ens = sum(∫( ( (qh⋅(inv_metric_cf⋅qh))*xh[2])*meas_cf  )dΩ)
     energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
     _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
     _vort = 0.0#sum( ∫( vort*meas_cf )dΩ  )
@@ -395,8 +409,8 @@ function main_transient(distribute,nprocs;
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
   ## if restarted, post process the existing files
-  restart && post_process(panel_model,p_fe,dir,return_vtk)
-  i_am_main(ranks) && println("finished post processing existing data")
+  # restart && post_process(panel_model,p_fe,dir,return_vtk)
+  # i_am_main(ranks) && println("finished post processing existing data")
 
   transient_shallow_water_solver_3D(panel_model,p_fe,dir,CFL,lss,restart)
   post_process(panel_model,p_fe,dir,return_vtk)
