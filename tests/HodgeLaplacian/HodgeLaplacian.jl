@@ -85,23 +85,28 @@ function hodge_laplacian(
   lvl_v = nref(nc_vertical(panel_model))
   i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
 
+  final_dir = dir*"/final_solution"
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
 
-  degree = 5*(p_fe + 1)
-  if p_fe == 0
-    degree = 10
-  end
+  degree = 30
+  # degree = 5*(p_fe + 1)
+  # if p_fe == 0
+  #   degree = 10
+  # end
   @check degree > 0 "Zero quad!!"
 
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,2*degree)
+  dΩ = Measure(Ω_panel,degree)
   Ω_error = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_error,4*degree)
+  dΩ_error = Measure(Ω_error,2*degree)
 
   tags = ["top_boundary", "bottom_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
-  dΓ = Measure(Γ,2*degree)
+  dΓ = Measure(Γ,degree)
   nΓ = get_normal_vector(Γ)
 
   ## metric information
@@ -179,16 +184,16 @@ function hodge_laplacian(
   sigma_cf = -sdiv_cf
 
 
-  cellfields = ["curlu"=>ccurlu_cov_cf,
-                "u"=>covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
-                "un"=>un_cf,
-                "curlu_cross"=>covarient_basis_cf ⋅ (inv_metric_cf⋅curlu_cross),
-                "sigma"=>-sdiv_cf,
-                "rhs"=>rhs_cov_cf
-                ]
-  writevtk(Ω_panel,dir*"/sol",
-          cellfields=cellfields,
-          append=false,geo_map= geo_map_func(Ω_panel))
+  # cellfields = ["curlu"=>ccurlu_cov_cf,
+  #               "u"=>covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
+  #               "un"=>un_cf,
+  #               "curlu_cross"=>covarient_basis_cf ⋅ (inv_metric_cf⋅curlu_cross),
+  #               "sigma"=>-sdiv_cf,
+  #               "rhs"=>rhs_cov_cf
+  #               ]
+  # writevtk(Ω_panel,dir*"/sol",
+  #         cellfields=cellfields,
+  #         append=false,geo_map= geo_map_func(Ω_panel))
 
 
   ## FE spaces
@@ -219,8 +224,10 @@ function hodge_laplacian(
 
 
   op = AffineFEOperator(biform_x,liform_x,X,Y)
-  sh,uh = solve(ls,op)
+  xh = solve(ls,op)
+  sh,uh = xh
 
+  psave(final_dir*"/sol",xh)
 
   # _e = sigma_cf - sh
   _e = sigma_int - sh
@@ -229,6 +236,8 @@ function hodge_laplacian(
   # _e = (inv_metric_cf⋅uh) - (inv_metric_cf⋅u_cov_cf)
   _e = (inv_metric_cf⋅uh) - (inv_metric_cf⋅u_int)
   el2_u = sqrt(sum(∫( (_e⋅(metric_cf ⋅_e))*meas_cf  )dΩ_error))
+
+  i_am_main(ranks) && println("eu = $(el2_u), es = $(el2_s)")
 
   if return_vtk
     cellfields =  ["u"=>covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),

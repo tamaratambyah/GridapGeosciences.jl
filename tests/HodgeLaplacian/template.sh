@@ -12,7 +12,7 @@
 source $HOME/scripts/load-configs-{{project}}.sh
 source $HOME/scripts/load-intel.sh
  
-mpiexec -n 1 julia --project=$PBS_O_WORKDIR -e'
+mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
   using PartitionedArrays
   using MPI
 

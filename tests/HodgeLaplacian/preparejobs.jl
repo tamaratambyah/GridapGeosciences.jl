@@ -29,8 +29,8 @@ end
 
 # queue, cpumem, ncputask, ncpunode, walltime
 queue_info = Dict{Symbol,Any}(
-  :normal => ("normal",4,"4:00:00",48,1),
-  :hugemem => ("hugemem",30,"5:00:00",48,1),
+  :normal => ("normal",4,"48:00:00",48,1),
+  :hugemem => ("hugemem",30,"12:00:00",48,1),
   :megamem => ("megamem",60,"12:00:00",48,1),
   :saphire => ("normalsr",4.8,"2:00:00",104,4)
 )
@@ -56,7 +56,7 @@ function jobdict(name,params,q)
     "walltime" => walltime,
     # "nnodes" => nnodes,
     "ncpus" => ncpus,
-    "mem" => "$(mem)G",
+    "mem" => "2990G", #"$(mem)G",
     # "ntasks" => ntasks,
     # "ncputask" => ncputask,
     # "ntaskspernode" => ntaskspernode,
@@ -95,10 +95,10 @@ end
 
 ############################################
 
-jobsdir = projectdir("hodge_jobs")
+jobsdir = projectdir("hodge_jobs_thick")
 !isdir(jobsdir) && mkdir(jobsdir)
 
-dir = datadir("HodgeLaplacianConvergence")
+dir = datadir("HodgeLaplacianConvergence_30quad_thick")
 !isdir(dir) && mkdir(dir)
 
 wdir = projectdir("tests/HodgeLaplacian")
