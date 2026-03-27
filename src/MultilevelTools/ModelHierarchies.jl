@@ -37,7 +37,8 @@ end
 #   return GridapSolvers.MultilevelTools.HierarchicalArray(meshes,level_parts)
 # end
 
-function adapt_model(ranks,model::ParametricOctreeDistributedDiscreteModel)
+function adapt_model(ranks,
+  model::Union{ParametricOctreeDistributedDiscreteModel,Parametric3DOctreeDistributedDiscreteModel})
   cell_partition=get_cell_gids(model.octree_dmodel)
   ref_flags=map(ranks,partition(cell_partition)) do rank,indices
       flags=zeros(Cint,length(indices))
