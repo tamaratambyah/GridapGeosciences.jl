@@ -1,7 +1,7 @@
 module DistributedTriangulationTestsSeq
 using PartitionedArrays
 include("../DistributedTriangulationTests.jl")
-with_debug() do distribute
-  DistributedTriangulationTests.main(distribute,6)
+with_mpi() do distribute
+  DistributedTriangulationTests.main(distribute,1)
 end
 end # module

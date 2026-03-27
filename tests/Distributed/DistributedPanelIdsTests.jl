@@ -1,16 +1,24 @@
+"""
+In this module, we test the panel ids from the BodyFittedTriangulation trian are
+equivalent to the panel ids from the model.
+We also test the length of the panel ids is equvialent to the number of cells.
+Do this for:
+  - DistributedParametricDiscreteModel
+  -ParametricOctreeDistributedDiscreteModel
+  -ParametricOctree3DistributedDiscreteModel
+"""
+
 module DistributedPanelIdsTests
 using Gridap
 using GridapGeosciences
 using Gridap.Adaptivity
 using Test
 using GridapDistributed
+using MPI
+using PartitionedArrays
 
 include("../convergence_tools.jl")
 
-################################################################################
-## Test the panel ids from the BodyFittedTriangulation trian are the same as the
-## panel ids from the model
-################################################################################
 
 function test_distributed_panel_ids(dpanel_model)
   trian = Triangulation(dpanel_model)
@@ -28,13 +36,109 @@ function test_distributed_panel_ids(dpanel_model)
 
 end
 
-function main(distribute,nprocs)
+# nprocs = 1
+# with_mpi() do distribute
+#   main(distribute,nprocs)
+# end
+
+
+function test_distributedParametricDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
+
   n_ref_lvls = 2
   dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
 
   test_distributed_panel_ids(dmodels[1])
+
+  @test true
+end
+
+
+function main(distribute,nprocs)
+  test_distributedParametricDiscreteModel(distribute,nprocs)
+  test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
+  test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
+end
+
+
+
+function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
+
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
+
+  # level 0
+  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+  panel_model = omodel.parametric_dmodel
+  test_distributed_panel_ids(panel_model)
+
+  # Ω_panel = Triangulation(panel_model)
+  # writevtk(Ω_panel,"model0",append=false, geo_map=geo_map_func(Ω_panel))
+
+
+  # level 1
+  omodel, = adapt_model(ranks,omodel)
+  panel_model = omodel.parametric_dmodel
+  test_distributed_panel_ids(panel_model)
+
+  _omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
+  _panel_model = _omodel.parametric_dmodel
+  test_distributed_panel_ids(_panel_model)
+
+
+  # level 2
+  omodel, = adapt_model(ranks,omodel)
+  panel_model = omodel.parametric_dmodel
+  test_distributed_panel_ids(panel_model)
+
+  _omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=2)
+  _panel_model = _omodel.parametric_dmodel
+  test_distributed_panel_ids(_panel_model)
+
+  @test true
+end
+
+
+
+
+function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
+
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
+
+  # level 0
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+        num_horizontal_uniform_refinements=0, num_vertical_uniform_refinements=0);
+  panel_model = o3model.parametric_dmodel
+  test_distributed_panel_ids(panel_model)
+
+  # level 1
+  # o3model, = adapt_model(ranks,o3model)
+  # panel_model = o3model.parametric_dmodel
+  # test_distributed_panel_ids(panel_model)
+
+  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+       num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
+  _panel_model = _o3model.parametric_dmodel
+  test_distributed_panel_ids(_panel_model)
+
+
+  # level 2
+  # o3model, = adapt_model(ranks,o3model)
+  # panel_model = o3model.parametric_dmodel
+  # test_distributed_panel_ids(panel_model)
+
+  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+      num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
+  _panel_model = _o3model.parametric_dmodel
+  test_distributed_panel_ids(_panel_model)
+
+  @test true
 end
 
 

@@ -62,7 +62,7 @@ function main(distribute,nprocs)
   ### check sqrt(g) is continuous across skeleton
   ### check |Jg^-1 n| - pullback of area form
   ##############################################################################
-  meas_cf = panelwise_cellfield(_sqrtg,Λ)
+  meas_cf = panelwise_cellfield(sqrtg,Λ)
   out = (meas_cf.plus-meas_cf.minus)(pts)
   test_debug_equality(out)
 
