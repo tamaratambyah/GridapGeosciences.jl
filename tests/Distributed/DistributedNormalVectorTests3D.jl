@@ -1,0 +1,66 @@
+"""
+In this module, test the mapping of (1,0,0) as the radial normal vector in
+ambient space
+"""
+
+module DistributedNormalTests3D
+
+using DrWatson
+using Gridap
+using GridapDistributed
+using GridapP4est
+using GridapGeosciences
+using GridapGeosciences.Distributed
+
+using MPI
+using PartitionedArrays
+using Test
+
+
+
+function main(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
+  panel_model = o3model.parametric_dmodel
+
+  Ω_panel =  Triangulation(panel_model)
+  panel_ids = get_panel_ids(panel_model)
+  dΩ = Measure(Ω_panel,4)
+
+  ## the normal in parametric space (γ,α,β) is (1,0,0)
+  n3D_panel = CellField(VectorValue(1.0,0.0,0.0),Ω_panel)
+  J_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
+  inv_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+
+  ## map the normal from parametric space -> ambient space
+  _n_mapped = J_cf ⋅ (inv_cf  ⋅ n3D_panel )
+  ff = Operation(sqrt)(  n3D_panel   ⋅ (inv_cf⋅ n3D_panel )  )
+  n_mapped = _n_mapped/ff
+
+  ## the unit surface normal is given by the position vector
+  vX = panel_to_cartesian(normal_vec)
+  norm_vec_cf = panelwise_cellfield(vX,Ω_panel,panel_ids)
+
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  _e = norm_vec_cf-n_mapped
+  e = sum(∫( _e⋅(metric_cf⋅_e ) )dΩ)
+  @test e < 1e-12
+
+  # if return_vtk
+  #   lvl = nref(panel_model)
+  #   cell_geo_map = geo_map_func(Ω_panel)
+  #   panel_cfs = [ n_mapped,norm_vec_cf,norm_vec_cf-n_mapped]
+  #   labels = ["n_mapped", "n_vec", "diff"]
+  #   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
+  #   writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  # end
+
+end
+
+end # module
+
+
+
+# ./mpiexecjl.sh -np 2 julia --project=. $PWD/tests/SurfaceUnitNormal3D.jl

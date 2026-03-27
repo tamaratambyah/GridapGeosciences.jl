@@ -81,7 +81,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
   n_ref_lvls = 2
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
   num_horizontal_uniform_refinements=n_ref_lvls, num_vertical_uniform_refinements=n_ref_lvls);
   panel_model = o3model.parametric_dmodel
 
