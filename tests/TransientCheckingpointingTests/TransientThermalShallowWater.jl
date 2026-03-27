@@ -24,17 +24,6 @@ function my_mean( Bu_n::SkeletonPair)
   0.5*( plus - minus  )
 end
 
-# function upwinding_sign(Fn)
-#   c = 0.0
-
-#   if Fn < 0.0
-#     c = -0.5
-#   elseif Fn > 0.0
-#     c = 0.5
-#   end
-#   return c
-# end
-
 
 # using MPI
 # using PartitionedArrays
@@ -42,11 +31,12 @@ end
 # np = MPI.Comm_size(MPI.COMM_WORLD)
 # ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
+# include("../Geophysical/Galewsky.jl")
 
 # include("../Geophysical/ThermogeostrophicBalanceTest.jl")
 
 # ζ = 0.0
-# n_ref_lvls = 1
+# n_ref_lvls = 6
 # p_fe = 1
 
 #   h = panel_to_cartesian(h₀(ζ))
@@ -59,9 +49,8 @@ end
 #   ls_ode = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1-14,atol=1e-12,verbose=1,name="ode_solver")
 #   lss = (ls_ode,ls_diag)
 
-#   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
-#   _panel_model = omodel.parametric_dmodel
-#   panel_model = _panel_model.models.item
+  # omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  # panel_model = omodel.parametric_dmodel
 
 #   _dir = datadir("TransientThermalShallowWater_checkpointing")
 #   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
@@ -69,10 +58,17 @@ end
 #   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
 #   (i_am_main(ranks) && !isdir(dir) ) && mkdir(dir)
 
-#   ε = 0.0
-#   soft = false
-#   CFL = 0.1
-#   restart = false
+# # transient parameters
+# CFL = 0.1
+# p_fe  = 1
+# gravity = _g
+# _H_0
+# _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
+# _nsteps = _tF/_dt
+# nsteps = ceil(_nsteps)
+# dt = floor(_tF/nsteps, sigdigits=1)
+
+# 1/0.004
 function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,B::Function,
   ε=1e-4,soft=false,
@@ -82,15 +78,15 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   # upwinding function
   function upwinding_sign(Fn)
     c = 0.0
-
+    K = 1#0.5
     if Fn < -ε
-      c = -0.5
+      c = -1.0*K
     elseif Fn > ε
-      c = 0.5
+      c = K
     end
 
     if soft
-      c = 0.5*Fn/(sqrt(Fn^2 + (ε)^2 ) )
+      c = K*Fn/(sqrt(Fn^2 + (ε)^2 ) )
     end
 
     return c
@@ -124,7 +120,7 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   PartitionedArrays.barrier(ranks)
 
   ## finite element solver
-  degree = 6*(p_fe+1)
+  degree = 4*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(das,panel_model)
   dΩ = Measure(Ω_panel,degree)
@@ -317,28 +313,18 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
     ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*((_H_0*du)⋅n_Λ).plus )*jump(b)*jump(w)*meas_cf_skel.plus   )dΛ
   )
 
-  jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  (
-    jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_u_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_B_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  + jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  )
-  # function jac_prog(dΩ,c)
-  #   _jac_prog((t,dt),(u0,h0,B0),(u,h,B),(du,dh,dB),(v,w,r),(b),(F,Φ,q,ω),b3,b1) = (
-  #       ∫( du⋅v  )dΩ
-  #     + ∫( (c*dt)*(ω*(vecPerp∘(du)⋅v) )  )dΩ
-  #     - ∫( ((c*dt)*(1/2))*dB*(∇⋅v) )dΩ
-  #     - ∫( ((c*dt)*(1/2)*b1*dh)*(∇⋅v )  )dΩ
-  #     + ∫( dh*w   )dΩ
-  #     + ∫( (c*dt)*h0*(∇⋅du)*w  )dΩ
-  #     + ∫( dB*r )dΩ
-  #     + ∫( ((c*dt)*b1*h0)*(∇⋅du)*r )dΩ
-  #   )
-  # end
-###
+  # jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  (
+  #   jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_u_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_B_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # + jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
+  # )
+
+  i_am_main(ranks) && println("using explicit jacobian")
+  jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  ∫( VectorValue(0,0)⋅(du⋅v) + 0*dp*r + 0*dB*w   )dΩ
 
 
   ####
@@ -351,22 +337,20 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
   _nsteps = _tF/_dt
   nsteps = ceil(_nsteps)
-  dt = floor(_tF/nsteps, sigdigits=1)
+  # dt = floor(_tF/nsteps, sigdigits=1)
+  dt = 0.004
 
   i_am_main(ranks) && println("nsteps = $nsteps, other nsteps = ", _nsteps)
   i_am_main(ranks) && println("dt = $dt, other dt = ", _dt)
 
   # solve with SSP RK 3
   ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
-#
-  # nls_ode = GridapSolvers.NonlinearSolvers.NewtonSolver(ls_ode,verbose=i_am_main(ranks))
-  # ode_solver = RungeKutta(nls_ode, ls_ode, dt, :SDIRK_Crouzeix_3_4)
   solT  = solve(ode_solver,opDAE,t0,_tF,xh0)
 
   ## iterate solution
   it = iterate(solT)
 
-  unwrap_tsw(it,ranks,solT,dir,_tF,50)
+  unwrap_tsw(it,ranks,solT,dir,_tF,250)
 
 
 end
