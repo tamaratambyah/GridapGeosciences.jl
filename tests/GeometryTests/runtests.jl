@@ -10,6 +10,8 @@ using Test
 
 @testset "PanelIds" begin include("PanelIdsTests.jl") end
 
+@testset "SurfaceArea" begin include("SurfaceAreaTests.jl") end
+
 end
 
 # @testset "CellMap" begin include("tests/GeometryTests/CellMapTests.jl") end
