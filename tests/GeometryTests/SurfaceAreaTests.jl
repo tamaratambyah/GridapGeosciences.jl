@@ -30,9 +30,9 @@ function main(distribute,nprocs)
 
   n_ref_lvls = 3
   serial_models = get_refined_models(n_ref_lvls)
-  dist_models = get_octree_refined_models(ranks,n_ref_lvls)
+  p4test_models = get_octree_refined_models(ranks,n_ref_lvls)
   for degree in collect([2,4,6,8])
-    for (s_model,d_model) in zip(serial_models,dist_models)
+    for (s_model,d_model) in zip(serial_models,p4test_models)
       extact_area = 4*π*RADIUS^2
 
       ### s_model
