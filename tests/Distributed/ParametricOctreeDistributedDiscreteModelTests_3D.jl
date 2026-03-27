@@ -14,6 +14,38 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 dir = datadir("Omodel_3D")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
+
+#####################
+### Test horizontl then vertical refinement
+#####################
+coarse_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+num_horizontal_uniform_refinements=0, num_vertical_uniform_refinements=0);
+
+model_vertically_refined  = GridapGeosciences.Distributed.vertically_uniformly_refine(coarse_model)
+model_uniformly_refined = GridapGeosciences.Distributed.horizontally_uniformly_refine(model_vertically_refined)
+
+panel_model = model_uniformly_refined.parametric_dmodel
+Ω = Triangulation(panel_model)
+panel_ids = get_panel_ids(Ω)
+dpanel_ids = get_panel_ids(panel_model)
+panel_ids.item .== dpanel_ids.item
+num_cells(panel_model)
+length(panel_ids.item)
+
+
+_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
+_panel_model = _model.parametric_dmodel
+_Ω = Triangulation(_panel_model)
+_panel_ids = get_panel_ids(_panel_model)
+_dpanel_ids = get_panel_ids(_Ω)
+num_cells(_panel_model)
+writevtk(Ω,dir*"/trian",append=false,geo_map=geo_map_func(Ω))
+
+
+
+
+######################################
 num_horizontal_uniform_refinements = 3
 num_vertical_uniform_refinements = 2
 o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
