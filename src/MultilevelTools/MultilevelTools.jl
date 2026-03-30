@@ -12,6 +12,7 @@ using GridapP4est
 
 using GridapGeosciences.Distributed
 import GridapGeosciences.Distributed: ParametricOctreeDistributedDiscreteModel
+import GridapGeosciences.Distributed: vertically_uniformly_refine, horizontally_uniformly_refine
 
 include("ModelHierarchies.jl")
 

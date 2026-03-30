@@ -38,7 +38,7 @@ end
 # end
 
 function adapt_model(ranks,
-  model::Union{ParametricOctreeDistributedDiscreteModel,Parametric3DOctreeDistributedDiscreteModel})
+  model::ParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(model.octree_dmodel)
   ref_flags=map(ranks,partition(cell_partition)) do rank,indices
       flags=zeros(Cint,length(indices))
@@ -46,4 +46,12 @@ function adapt_model(ranks,
   end
   ref_model, adaptivity_glue = Gridap.Adaptivity.adapt(model,ref_flags)
   return ref_model, adaptivity_glue
+end
+
+function adapt_model(ranks,
+  model::Parametric3DOctreeDistributedDiscreteModel)
+  model_vertically_refined = vertically_uniformly_refine(model)
+  model_uniformly_refined = horizontally_uniformly_refine(model_vertically_refined)
+
+  return model_uniformly_refined
 end
