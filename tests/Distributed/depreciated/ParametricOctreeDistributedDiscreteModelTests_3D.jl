@@ -19,28 +19,32 @@ dir = datadir("Omodel_3D")
 ### Test horizontl then vertical refinement
 #####################
 coarse_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
-num_horizontal_uniform_refinements=0, num_vertical_uniform_refinements=0);
+num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
 
 model_vertically_refined  = GridapGeosciences.Distributed.vertically_uniformly_refine(coarse_model)
 model_uniformly_refined = GridapGeosciences.Distributed.horizontally_uniformly_refine(model_vertically_refined)
 
 panel_model = model_uniformly_refined.parametric_dmodel
-Ω = Triangulation(panel_model)
+Ω = Triangulation(coarse_model.parametric_dmodel)
 panel_ids = get_panel_ids(Ω)
 dpanel_ids = get_panel_ids(panel_model)
 panel_ids.item .== dpanel_ids.item
 num_cells(panel_model)
 length(panel_ids.item)
+writevtk(Ω,dir*"/trian",append=false,geo_map=geo_map_func(Ω))
+
+
+
 
 
 _model = Parametric3DOctreeDistributedDiscreteModel(ranks;
-num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
+num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
 _panel_model = _model.parametric_dmodel
 _Ω = Triangulation(_panel_model)
 _panel_ids = get_panel_ids(_panel_model)
 _dpanel_ids = get_panel_ids(_Ω)
 num_cells(_panel_model)
-writevtk(Ω,dir*"/trian",append=false,geo_map=geo_map_func(Ω))
+
 
 
 
