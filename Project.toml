@@ -39,8 +39,9 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 
 [compat]
-Gridap = "0.19"
-GridapP4est = "0.3.9"
+Gridap = "=0.19.9" # by now, pointer to #cubed-sphere branch
+GridapP4est = "=0.3.12"
+GridapDistributed = "=0.4.13"
 GridapPETSc = "0.5.2"
 MPI = "0.20"
 PartitionedArrays = "0.3"
