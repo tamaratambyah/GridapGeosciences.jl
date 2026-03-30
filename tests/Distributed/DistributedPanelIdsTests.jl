@@ -118,9 +118,9 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
   test_distributed_panel_ids(panel_model)
 
   # level 1
-  # o3model, = adapt_model(ranks,o3model)
-  # panel_model = o3model.parametric_dmodel
-  # test_distributed_panel_ids(panel_model)
+  o3model = adapt_model(ranks,o3model)
+  panel_model = o3model.parametric_dmodel
+  test_distributed_panel_ids(panel_model)
 
   _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
        num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
@@ -129,9 +129,9 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
 
   # level 2
-  # o3model, = adapt_model(ranks,o3model)
-  # panel_model = o3model.parametric_dmodel
-  # test_distributed_panel_ids(panel_model)
+  o3model = adapt_model(ranks,o3model)
+  panel_model = o3model.parametric_dmodel
+  test_distributed_panel_ids(panel_model)
 
   _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
       num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
