@@ -5,7 +5,7 @@
 #PBS -l mem=1536gb
 #PBS -lwalltime=24:00:00
 #PBS -v NJOBS,NJOB
-#PBS -N tsw_galewsky
+#PBS -N tsw_galewsky_self
 #PBS -l wd
   
 source $HOME/scripts/load-configs.sh

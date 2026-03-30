@@ -35,8 +35,8 @@ function main_transient(distribute,nprocs;
   h = panel_to_cartesian(h₀)
   B = panel_to_cartesian(B₀)
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-14,verbose=i_am_main(ranks),name="diagnostic_solver")
-  # ls_ode = CGSolver(JacobiLinearSolver();rtol=1e-14,atol=1e-14,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-20,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-20,verbose=i_am_main(ranks),name="ode_solver")
 
   options = """
   -g_ksp_type gmres
@@ -50,8 +50,8 @@ function main_transient(distribute,nprocs;
   -cg_pc_type gamg
   """
 
-  GridapPETSc.Init(args=split(options))
-  ls_ode = PETScLinearSolver(petsc_gmres_amg_setup)
+  # GridapPETSc.Init(args=split(options))
+  # ls_ode = PETScLinearSolver(petsc_gmres_amg_setup)
   # ls_diag = PETScLinearSolver(petsc_cg_amg_setup)
 
   lss = (ls_ode,ls_diag)
@@ -59,21 +59,21 @@ function main_transient(distribute,nprocs;
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
-  _dir = datadir("TransientThermalShallowWater_Galewsky")
+  _dir = datadir("TransientThermalShallowWater_Galewsky_K2")
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
   ## if restarted, post process the existing files
-  restart && post_process(panel_model,p_fe,dir,f,return_vtk)
-  i_am_main(ranks) && println("finished post processing existing data")
+  # restart && post_process(panel_model,p_fe,dir,f,return_vtk)
+  # i_am_main(ranks) && println("finished post processing existing data")
 
   transient_tsw_solver(panel_model,p_fe,dir,h,vX,f,B,_ε,_soft,CFL,lss,restart)
   post_process(panel_model,p_fe,dir,f,return_vtk)
 
-  GridapPETSc.Finalize()
-  GridapPETSc.gridap_petsc_gc()
+  # GridapPETSc.Finalize()
+  # GridapPETSc.gridap_petsc_gc()
 
   i_am_main(ranks) && println("--DONE--")
   @test true
@@ -94,7 +94,7 @@ function main_visualise(distribute,nprocs;
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
-  _dir = datadir("TransientThermalShallowWater_Galewsky")
+  _dir = datadir("TransientThermalShallowWater_Galewsky_K2")
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
 

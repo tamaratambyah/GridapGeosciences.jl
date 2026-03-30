@@ -71,14 +71,14 @@ end
 # 1/0.004
 function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,B::Function,
-  ε=1e-4,soft=false,
+  ε=1e-4,soft=true,
   CFL=0.1,lss=(LUSolver(),LUSolver()),restart=false
   )
 
   # upwinding function
   function upwinding_sign(Fn)
     c = 0.0
-    K = 1#0.5
+    K = 2#0.5
     if Fn < -ε
       c = -1.0*K
     elseif Fn > ε
@@ -120,7 +120,7 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   PartitionedArrays.barrier(ranks)
 
   ## finite element solver
-  degree = 4*(p_fe+1)
+  degree = 5*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(das,panel_model)
   dΩ = Measure(Ω_panel,degree)
@@ -408,6 +408,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   dir_casimirs = dir*"/casimirs"
   (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
 
+  i_am_main(ranks) && println("Made all folders")
   lvl = nref(nc(panel_model))
 
   ## finite element solver
@@ -439,12 +440,13 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   _Ω_panel = Triangulation(panel_model)
   cell_geo_map = geo_map_func(_Ω_panel)
 
-  labels = ["uh","ph","Bh","bh","qh","Fh","Phih","vort"]
+  labels = ["uh","ph","Bh","bh","qh","Fh","Phih","vort","eta"]
   function make_vtk(t::Float64,xh,yh,cell_geo_map)
     uh,ph,Bh = xh
     qh,Fh,Φh,bh = yh
     vort = qh*ph - cor_cf
-    panel_cfs = [covarient_basis_cf⋅uh, ph, Bh, bh, qh, Fh, Φh, vort]
+    eta = qh*ph
+    panel_cfs = [covarient_basis_cf⋅uh, ph, Bh, bh, qh, Fh, Φh, vort, eta]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     # writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
