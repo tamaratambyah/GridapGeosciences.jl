@@ -19,6 +19,8 @@ include("Geometry/Geometry.jl")
 
 include("Adaptivity/Adaptivity.jl")
 
+include("FESpaces/FESpaces.jl")
+
 include("ODEs/ODEs.jl")
 
 include("Visualisation/Visualisation.jl")
