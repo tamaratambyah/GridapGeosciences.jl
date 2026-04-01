@@ -30,5 +30,6 @@ import Gridap.FESpaces: get_cell_shapefuns, get_cell_dof_basis, _use_clagrangian
 import Gridap.Helpers: @notimplemented
 import LinearAlgebra: I, ⋅
 include("GradConformingFESpaces.jl")
+export _generate_change_of_basis_matrices
 
 end

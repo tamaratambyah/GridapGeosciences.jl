@@ -41,6 +41,11 @@ include("createpvd.jl")
 include("helpers.jl")
 include("Triangulations.jl")
 
+import Gridap.FESpaces: FESpace
+import GridapDistributed: generate_gids, _find_vector_type, _add_distributed_constraint, DistributedSingleFieldFESpace
+import GridapGeosciences.FESpaces: _generate_face_to_master_cell_id, _generate_change_of_basis_matrices
+include("GradConformingFESpaces.jl")
+
 export ParametricOctreeDistributedDiscreteModel
 export Parametric3DOctreeDistributedDiscreteModel
 export DistributedParametricDiscreteModel

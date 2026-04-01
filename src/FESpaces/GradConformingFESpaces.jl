@@ -1,4 +1,5 @@
-function _generate_face_to_master_cell_id(model::ParametricDiscreteModel{Dc}) where Dc
+function _generate_face_to_master_cell_id(model::ParametricDiscreteModel{Dc};
+                                          cell_l2g::AbstractVector{Int}=IdentityVector(num_cells(model))) where Dc
   grid_topology = get_grid_topology(model)
   face_to_master_cell_id = Vector{Vector{Int}}(undef, Dc)
   for i=1:Dc
@@ -7,9 +8,16 @@ function _generate_face_to_master_cell_id(model::ParametricDiscreteModel{Dc}) wh
       cache_face_cells = array_cache(face_cells)
       for face_id in 1:num_faces(model, i-1)
         face_cells_around = getindex!(cache_face_cells, face_cells, face_id)
-        master_cell_id = maximum(face_cells_around)
-        face_to_master_cell_id[i][face_id] = master_cell_id
-      end   
+        global_master_cell_id = -1
+        local_master_cell_id = -1
+        for cell_around in face_cells_around
+            if (cell_l2g[cell_around]>global_master_cell_id)
+              global_master_cell_id = cell_l2g[cell_around]
+              local_master_cell_id = cell_around
+            end
+        end
+        face_to_master_cell_id[i][face_id] = local_master_cell_id
+      end
   end
   return face_to_master_cell_id
 end
@@ -103,10 +111,10 @@ function _get_cell_shape_funs(T::Type{Float64},
   return shapefuns
 end
 
-function _generate_change_of_basis_matrices(model, cell_reffe)
+function _generate_change_of_basis_matrices(model, cell_reffe; 
+                                           face_to_master_cell_id=_generate_face_to_master_cell_id(model))
   T=_get_value_type(cell_reffe)
-  if T <: VectorValue  
-      face_to_master_cell_id = _generate_face_to_master_cell_id(model)
+  if T <: VectorValue
       k = GenerateChangeOfBasisMatrixMap(model,face_to_master_cell_id)
       return lazy_map(k,
                       cell_reffe,
