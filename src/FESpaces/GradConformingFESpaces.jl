@@ -103,15 +103,25 @@ function _get_cell_shape_funs(T::Type{Float64},
   return shapefuns
 end
 
+function _generate_change_of_basis_matrices(model, cell_reffe)
+  T=_get_value_type(cell_reffe)
+  if T <: VectorValue  
+      face_to_master_cell_id = _generate_face_to_master_cell_id(model)
+      k = GenerateChangeOfBasisMatrixMap(model,face_to_master_cell_id)
+      return lazy_map(k,
+                      cell_reffe,
+                      IdentityVector(Int32(num_cells(model))))
+  else
+    return nothing
+  end
+end
+
+
 function _get_cell_shape_funs(T::Type{<:VectorValue},
                               model::ParametricDiscreteModel,
                               cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
-                              face_to_master_cell_id)
+                              change_of_basis_matrices)
   shapefuns = lazy_map(get_shapefuns,cell_reffe)
-  k = GenerateChangeOfBasisMatrixMap(model,face_to_master_cell_id)
-  change_of_basis_matrices=lazy_map(k,
-                                    cell_reffe,
-                                    IdentityVector(Int32(num_cells(model))))
   # VERY IMPORTANT: linear_combination works s.t. the i-th field in 
   # the output basis is the linear combination of the fields in input 
   # basis using the coefficients in the i-th COLUMN of the matrix. 
@@ -123,22 +133,22 @@ end
 function _get_cell_shape_funs(T::Type{<:TensorValue},
                               model::ParametricDiscreteModel,
                               cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
-                              face_to_master_cell_id)
+                              change_of_basis_matrices)
   @notimplemented "GridapGeosciences.jl does not support grad-conforming tensor-valued finite elements"
 end
 
 function get_cell_shapefuns(model::ParametricDiscreteModel,
                             cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
                             ::GradConformity,
-                            face_to_master_cell_id = _generate_face_to_master_cell_id(model))
+                            change_of_basis_matrices = _generate_change_of_basis_matrices(model, cell_reffe))
  T = _get_value_type(cell_reffe)
- _get_cell_shape_funs(T, model, cell_reffe, face_to_master_cell_id)
+ _get_cell_shape_funs(T, model, cell_reffe, change_of_basis_matrices)
 end
 
 function _get_cell_dof_basis(T::Type{Float64},
                               model::ParametricDiscreteModel,
                               cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
-                              face_to_master_cell_id)
+                              change_of_basis_matrices)
   dof_basis = lazy_map(get_dof_basis,cell_reffe)
   return dof_basis
 end
@@ -146,12 +156,8 @@ end
 function _get_cell_dof_basis(T::Type{<:VectorValue},
                               model::ParametricDiscreteModel,
                               cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
-                              face_to_master_cell_id)
+                              change_of_basis_matrices)
   dof_basis = lazy_map(get_dof_basis,cell_reffe)
-  k = GenerateChangeOfBasisMatrixMap(model,face_to_master_cell_id)
-  change_of_basis_matrices=lazy_map(k,
-                                    cell_reffe,
-                                    IdentityVector(Int32(num_cells(model))))
   inv_change_of_basis_matrices = lazy_map(transpose, lazy_map(inv, change_of_basis_matrices))
   return lazy_map(linear_combination, inv_change_of_basis_matrices, dof_basis)
 end
@@ -159,16 +165,16 @@ end
 function _get_cell_dof_basis(T::Type{<:TensorValue},
                               model::ParametricDiscreteModel,
                               cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
-                              face_to_master_cell_id)
+                              change_of_basis_matrices)
   @notimplemented "GridapGeosciences.jl does not support grad-conforming tensor-valued finite elements"
 end
 
 function get_cell_dof_basis(model::ParametricDiscreteModel,
                             cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
                             ::GradConformity,
-                            face_to_master_cell_id = _generate_face_to_master_cell_id(model))
+                            change_of_basis_matrices = _generate_change_of_basis_matrices(model, cell_reffe))
  T = _get_value_type(cell_reffe)
- _get_cell_dof_basis(T, model, cell_reffe, face_to_master_cell_id)
+ _get_cell_dof_basis(T, model, cell_reffe, change_of_basis_matrices)
 end
 
 
