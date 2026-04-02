@@ -67,7 +67,7 @@ function interpolation(
   el2_proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))
 
   # Interpolation instead of L2 projection ...
-  vec_contra_h = interpolate(vec_contra_cf, V)
+  vec_contra_h = interpolate(vec_contra_cf, U)
   vec_interp_h = covarient_basis_cf ⋅vec_contra_h
   _e = vec_contra_cf - vec_contra_h
   el2_interp =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))
