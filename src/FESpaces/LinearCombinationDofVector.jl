@@ -65,5 +65,5 @@ end
 # for PointValue without arguments. I think this should be reported as 
 # an issue in Gridap.
 function PointValue{Point{D,Float64}}() where D
-   return PointValue(ntuple(i->0.0,D))
+   return PointValue(ntuple(_->0.0,D))
 end
