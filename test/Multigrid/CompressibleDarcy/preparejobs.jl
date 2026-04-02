@@ -117,7 +117,7 @@ jobsdir = projectdir("gmg_jobs")
 dir = datadir("Multigrid_CS")
 !isdir(dir) && mkdir(dir)
 
-wdir = projectdir("tests/Multigrid/CompressibleDarcy")
+wdir = projectdir("test/Multigrid/CompressibleDarcy")
 # driver = wdir*"/convergence.jl"
 driver = wdir*"/convergence_CS.jl"
 

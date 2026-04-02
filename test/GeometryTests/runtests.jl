@@ -14,4 +14,4 @@ using Test
 
 end
 
-# @testset "CellMap" begin include("tests/GeometryTests/CellMapTests.jl") end
+# @testset "CellMap" begin include("test/GeometryTests/CellMapTests.jl") end

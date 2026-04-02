@@ -22,7 +22,7 @@ mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
 
   i_am_main(ranks) && println("--START--")
 
-  include("tests/TransientCheckingpointingTests/TSWConvergence.jl") 
+  include("test/TransientCheckingpointingTests/TSWConvergence.jl") 
 
   with_mpi() do distribute
       main_transient(distribute,{{ncpus}};restart=false,n_ref_lvls={{nl}},p_fe={{order}})

@@ -5,4 +5,4 @@ using Test
 
 # @testset "AdvectionDGUpwinding" begin include("AdvectionDGUpwindingTests.jl") end
 @testset "TransientAdvectionDGUpwinding" begin include("TransientAdvectionDGUpwindingTests.jl") end
-# include("tests/Advection/seq/runtests.jl")
+# include("test/Advection/seq/runtests.jl")

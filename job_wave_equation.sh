@@ -13,7 +13,7 @@ source $HOME/scripts/load-intel.sh
 mpiexec -n 6 julia --project=$PBS_O_WORKDIR -e'
   using MPI
   using PartitionedArrays
-  include("tests/Geophysical/TransientWaveEquation.jl")
+  include("test/Geophysical/TransientWaveEquation.jl")
  
    with_mpi() do distribute        
         TransientWaveEquation.main_transient(distribute,6;n_ref_lvls=6,return_vtk=true)

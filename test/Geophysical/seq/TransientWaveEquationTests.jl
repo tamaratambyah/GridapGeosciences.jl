@@ -8,4 +8,4 @@ end
 
 end
 
-# @testset "TransientWave" begin include("tests/Transient/seq/TransientWaveEquationTests.jl") end
+# @testset "TransientWave" begin include("test/Transient/seq/TransientWaveEquationTests.jl") end

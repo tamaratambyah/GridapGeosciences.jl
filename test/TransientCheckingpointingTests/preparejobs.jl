@@ -88,7 +88,7 @@ end
 
 jobsdir = projectdir("tsw_jobs")
 !isdir(jobsdir) && mkdir(jobsdir)
-wdir = projectdir("tests/TransientCheckingpointingTests")
+wdir = projectdir("test/TransientCheckingpointingTests")
 
 
 queue = :normal

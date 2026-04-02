@@ -101,7 +101,7 @@ jobsdir = projectdir("hodge_jobs_thick")
 dir = datadir("HodgeLaplacianConvergence_30quad_thick")
 !isdir(dir) && mkdir(dir)
 
-wdir = projectdir("tests/HodgeLaplacian")
+wdir = projectdir("test/HodgeLaplacian")
 driver = wdir*"/HodgeLaplacian.jl"
 
 

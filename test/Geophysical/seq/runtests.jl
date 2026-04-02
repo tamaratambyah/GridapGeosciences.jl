@@ -5,4 +5,4 @@ using Test
 
 @testset "LinearisedShallowWater" begin include("LinearisedShallowWaterTests.jl") end
 @testset "ShallowWater" begin include("ShallowWaterTests.jl") end
-# include("tests/Geophysical/seq/runtests.jl")
+# include("test/Geophysical/seq/runtests.jl")

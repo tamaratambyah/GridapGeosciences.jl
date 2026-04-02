@@ -5,4 +5,4 @@ using Test
 
 @testset "MPIAdvectionSUPG" begin include("AdvectionSUPGTests.jl") end
 @testset "MPITransientAdvectionSUPG" begin include("TransientAdvectionSUPGTests.jl") end
-# include("tests/Advection/mpi/runtests.jl")
+# include("test/Advection/mpi/runtests.jl")

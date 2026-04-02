@@ -4,4 +4,4 @@ using Test
 @testset "HelmholtzTests" begin include("HelmholtzTests.jl") end
 @testset "MixedHelmholtzTests" begin include("MixedHelmholtzTests.jl") end
 
-# include("tests/Laplace/seq/runtests.jl")
+# include("test/Laplace/seq/runtests.jl")
