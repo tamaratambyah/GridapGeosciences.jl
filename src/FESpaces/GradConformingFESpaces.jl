@@ -99,7 +99,9 @@ end
 
 function _get_value_type(cell_reffe::AbstractArray{<:GenericLagrangianRefFE})
   prebasis = get_prebasis(testitem(cell_reffe))
-  T = return_type(prebasis, Point(0.0,0.0))
+  Dc = num_cell_dims(testitem(cell_reffe))
+  x = VectorValue{Dc,Float64}(ntuple(_->0.0,Dc))
+  T = return_type(prebasis, x)
   return eltype(T)
 end
 
