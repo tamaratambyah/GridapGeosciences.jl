@@ -106,7 +106,7 @@ end
 function _get_cell_shape_funs(T::Type{Float64},
                               model::ParametricDiscreteModel,
                               cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
-                              face_to_master_cell_id)
+                              change_of_basis_matrices)
   shapefuns = lazy_map(get_shapefuns,cell_reffe)
   return shapefuns
 end
