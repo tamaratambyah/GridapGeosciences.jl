@@ -13,10 +13,8 @@ include("../convergence_tools.jl")
 
 
 function interpolation(
-  dpanel_model::Union{GridapDistributed.GenericDistributedDiscreteModel{2,2},GridapDistributed.GenericDistributedDiscreteModel{3,3}},
-                        p_fe::Int,dir::String,vecX::Function,return_vtk)
+  panel_model,p_fe::Int,dir::String,vecX::Function,conf,ls=LUSolver(),return_vtk=true)
 
-  panel_model = dpanel_model
   ranks = get_ranks(panel_model)
 
   Dc = num_cell_dims(panel_model)
@@ -28,7 +26,7 @@ function interpolation(
     lvl = nref(nc_horizontal(panel_model))
   end
 
-  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
+  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc, conf = $conf")
 
   degree = 4*(p_fe+1)
 
@@ -44,29 +42,27 @@ function interpolation(
   vec_contra_cf = panelwise_cellfield(contra_v(vecX),Ω_panel,panel_ids)
   vec_proj_cf = covarient_basis_cf⋅vec_contra_cf
 
-
-  a(u,v) = ∫( (u⋅(metric_cf⋅v))*meas_cf )dΩ
-  l(v) = ∫( (vec_contra_cf⋅(metric_cf⋅v))*meas_cf )dΩ
-
   reffe  = ReferenceFE(lagrangian,VectorValue{Dc, Float64},p_fe)
-  V = TestFESpace(panel_model, reffe; conformity=:H1)
+  V = TestFESpace(panel_model, reffe; conformity=conf)
   U = TrialFESpace(V)
 
   if Dc == 3
-    V = TestFESpace(panel_model, reffe; conformity=:H1,
+    V = TestFESpace(panel_model, reffe; conformity=conf,
                 dirichlet_tags=["top_boundary", "bottom_boundary"])
     U = TrialFESpace(V,vec_contra_cf)
   end
 
+  ## L2 projection
+  a(u,v) = ∫( (u⋅(metric_cf⋅v))*meas_cf )dΩ
+  l(v) = ∫( (vec_contra_cf⋅(metric_cf⋅v))*meas_cf )dΩ
   op = AffineFEOperator(a,l,U,V)
-
-  vec_contra_h = solve(op)
+  vec_contra_h = solve(ls,op)
   vec_l2proj_h = covarient_basis_cf ⋅vec_contra_h
 
   _e = vec_contra_cf - vec_contra_h
   el2_proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))
 
-  # Interpolation instead of L2 projection ...
+  # Interpolation
   vec_contra_h = interpolate(vec_contra_cf, U)
   vec_interp_h = covarient_basis_cf ⋅vec_contra_h
   _e = vec_contra_cf - vec_contra_h
@@ -86,7 +82,7 @@ function interpolation(
           append=false,geo_map=geo_map_func(Ω_panel))
   end
 
-  return  el2_interp,el2_proj,false
+  return  el2_proj,el2_interp,false
 
 end
 
@@ -102,15 +98,20 @@ MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 n_ref_lvls = 4
-ps = [1]
+ps = [1,2]
+ls = LUSolver()
 
 dir = datadir("InterpolationConvergence")
 !isdir(dir) && mkdir(dir)
 
-Dc = 3
-models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+# Dc = 3
+# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 
-_dir = dir*"/vector_func_$(Dc)D_H1"
-!isdir(_dir) && mkdir(_dir)
-p_convergence_test(ranks,ps,models,interpolation,_dir,uX,true)
-plot_convergence_from_saved(_dir,"convergence",["Interp","L2Proj", ])
+Dc = 2
+models = get_refined_models(n_ref_lvls)
+for conf in [:L2, :H1]
+  _dir = dir*"/vector_func_$(Dc)D_"*String(conf)
+  !isdir(_dir) && mkdir(_dir)
+  p_convergence_test(ranks,ps,models,interpolation,_dir,uX,conf,ls,true)
+  plot_convergence_from_saved(_dir,"convergence",["L2Proj","Interp" ])
+end

@@ -96,7 +96,7 @@ ls = LUSolver()
 Dc = 3
 models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 
-dir = datadir("Piola")
+dir = datadir("InterpolateConvergence")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 _dir = dir*"/vector_func_$(Dc)D_Hdiv"

@@ -98,9 +98,8 @@ dir = datadir("InterpolationConvergence")
 Dc = 3
 models  = get_3D_octree_refined_models(ranks,n_ref_lvls)
 
-for conf in [:L2, :Hdiv]
-  _dir = dir*"/vector_func__$(Dc)D_"*String(conf)
-  !isdir(_dir) && mkdir(_dir)
-  p_convergence_test(ranks,ps,models,interpolation,_dir,vecX,conf,true)
-  plot_convergence_from_saved(_dir,"convergence",["p"])
-end
+conf = :L2
+_dir = dir*"/vector_func__$(Dc)D_"*String(conf)
+!isdir(_dir) && mkdir(_dir)
+p_convergence_test(ranks,ps,models,interpolation,_dir,vecX,conf,true)
+plot_convergence_from_saved(_dir,"convergence",["p"])

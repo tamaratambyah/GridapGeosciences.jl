@@ -11,7 +11,7 @@ include("../convergence_tools.jl")
 
 
 function interpolation(panel_model::GridapDistributed.GenericDistributedDiscreteModel{2,2},
-                        p_fe::Int,dir::String,vecX::Function,conf,return_vtk)
+                        p_fe::Int,dir::String,vecX::Function,ls=LUSolver(),return_vtk=false)
   Dc = num_cell_dims(panel_model)
 
   lvl = nref(nc(panel_model))
@@ -30,10 +30,6 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
   vec_proj_cf = covarient_basis_cf⋅vec_contra_cf
 
   reffe = ReferenceFE(lagrangian,VectorValue{Dc,Float64},p_fe)
-  if conf == :HDiv || conf == :Hdiv
-    reffe = ReferenceFE(raviart_thomas,Float64,p_fe)
-  end
-
   V = TestFESpace(panel_model, reffe; conformity=conf)
   U = TrialFESpace(V)
   # vec_contra_h = interpolate(vec_contra_cf,U)
@@ -89,10 +85,9 @@ dir = datadir("InterpolationConvergence")
 
 Dc = 2
 models  = get_octree_refined_models(ranks,n_ref_lvls)
+conf =:L2
 
-for conf in [:Hdiv]
-  _dir = dir*"/vector_func_$(Dc)D_"*String(conf)
-  !isdir(_dir) && mkdir(_dir)
-  p_convergence_test(ranks,ps,models,interpolation,_dir,vecX,conf,true)
-  plot_convergence_from_saved(_dir,"convergence",["Interp","L2Proj", ])
-end
+_dir = dir*"/vector_func_$(Dc)D_"*String(conf)
+!isdir(_dir) && mkdir(_dir)
+p_convergence_test(ranks,ps,models,interpolation,_dir,vecX,conf,true)
+plot_convergence_from_saved(_dir,"convergence",["Interp","L2Proj", ])
