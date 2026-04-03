@@ -18,11 +18,10 @@ function L2_projection_Hcurl(panel_model::GridapDistributed.GenericDistributedDi
   p_fe::Int,dir::String,vecX::Function,ls=LUSolver(),return_vtk=true)
 
   ranks = get_ranks(panel_model)
-
   Dc = num_cell_dims(panel_model)
-  @check Dc == 3
+  lvl = nref(panel_model)
 
-  lvl = nref(nc_horizontal(panel_model))
+  @check Dc == 3
 
   degree = 4*(p_fe+1)
   if p_fe == 0

@@ -15,15 +15,8 @@ function L2_projection_Hdiv(panel_model,p_fe::Int,dir::String,vecX::Function,
   ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
-
   Dc = num_cell_dims(panel_model)
-
-  lvl = 0
-  if Dc == 2
-    lvl = nref(nc(panel_model))
-  elseif Dc == 3
-    lvl = nref(nc_horizontal(panel_model))
-  end
+  lvl = nref(panel_model)
 
   i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 

@@ -15,17 +15,10 @@ function L2_projection_Lagrangian_scalar(panel_model,p_fe::Int,dir::String,
   func::Function,conf,ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
+  Dc = num_cell_dims(panel_model)
+  lvl = nref(panel_model)
 
   @check conf in [:L2, :H1] "\n Must be L2 or H1 conformity"
-
-  Dc = num_cell_dims(panel_model)
-
-  lvl = 0
-  if Dc == 2
-    lvl = nref(nc(panel_model))
-  elseif Dc == 3
-    lvl = nref(nc_horizontal(panel_model))
-  end
 
   i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc, conf = $conf")
 
