@@ -16,8 +16,8 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("../convergence_tools.jl")
-include("helpers.jl")
+# include("../convergence_tools.jl")
+# include("helpers.jl")
 
 ## initial conditions
 vecX(XYZ) = zero(XYZ)
@@ -54,8 +54,8 @@ function transient_wave_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapD
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
     h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-    vec_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-    xh0 = interpolate([vec_contra_cf,h_cf],X)
+    u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+    xh0 = interpolate([u_cf,h_cf],X)
     t = 0.0
     psave(sim_dir*"/solT_$(t)",xh0)
     return t,xh0
@@ -67,14 +67,11 @@ function transient_wave_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapD
   ## transient weak form
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
-  mass(t, (dtu,dtp), (v,q)) = ∫( (v⋅ (metric_cf⋅ dtu) )*meas_cf )dΩ + ∫( (q*dtp)*meas_cf )dΩ
-  res(t,(u,p),(v,q)) =  ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
+  mass(t, (dtu,dtp), (v,q)) = ∫( (v⋅ (metric_cf⋅dtu))*(1/meas_cf) )dΩ  + ∫( (q*dtp)*meas_cf )dΩ
+  res(t,(u,p),(v,q)) =  ∫( q*(∇⋅u) )dΩ - ∫( p*(∇⋅v) )dΩ
   jac(t,(u,p),(du,dp),(v,q)) = res(t,(du,dp),(v,q))
-  jac_t(t,(u,p),(dut,dpt),(v,q)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*q)*meas_cf )dΩ
-
+  jac_t(t,(u,p),(dut,dpt),(v,q)) =  ∫( (dut⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ + ∫( (dpt*q)*meas_cf )dΩ
 
   opT = TransientSemilinearFEOperator(mass, res,(jac,jac_t), X, Y, constant_mass=true)
 
@@ -132,7 +129,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=false)
   labels = ["uh","ph"]
   function make_vtk(t::Float64,xh,cell_geo_map)
     uh,ph = xh
-    panel_cfs = [covarient_basis_cf⋅uh, ph]
+    panel_cfs = [covarient_basis_cf⋅(1/meas_cf * uh), ph]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
   end
@@ -140,10 +137,9 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=false)
   function casimirs(xh,dΩ)
     uh,ph = xh
     _m = sum( ∫(  meas_cf*ph )dΩ)
-    _E = sum( ∫( 0.5*( uh⋅(metric_cf⋅ uh) + ph*ph)*meas_cf )dΩ  )
-    _s_divu = sum(∫(   divergence(meas_cf*uh) )dΩ)
+    _E = sum( ∫( 0.5*( uh⋅(metric_cf⋅ uh)*(1/meas_cf))dΩ )  + ∫( (ph*ph)*meas_cf )dΩ  )
     _divu = sum(∫(  divergence(uh)  )dΩ)
-    return _m, _E, _s_divu, _divu
+    return _m, _E, _divu
   end
 
 
@@ -154,7 +150,6 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=false)
   ts = Vector{Float64}(undef,length(folders))
   ms = Vector{Float64}(undef,length(folders))
   Es = Vector{Float64}(undef,length(folders))
-  s_divus = Vector{Float64}(undef,length(folders))
   divus = Vector{Float64}(undef,length(folders))
 
   for (i,f) in enumerate(folders)
@@ -166,20 +161,20 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=false)
     i_am_main(ranks) && println("t = ", t)
 
     ts[i] = t
-    ms[i], Es[i], s_divus[i], divus[i] = casimirs(xh,dΩ)
+    ms[i], Es[i], divus[i] = casimirs(xh,dΩ)
 
     return_vtk && make_vtk(t,xh,cell_geo_map)
 
     if mod(i,10) == 0
       dxx = dx(panel_model)
-      output = @strdict ts ms Es s_divus divus dxx
+      output = @strdict ts ms Es divus dxx
       i_am_main(ranks) && safesave(datadir(dir, ("wave_equation_nref$(lvl)_p$p_fe.jld2")), output)
     end
 
   end
 
   dxx = dx(panel_model)
-  output = @strdict ts ms Es s_divus divus dxx
+  output = @strdict ts ms Es divus dxx
   i_am_main(ranks) && safesave(datadir(dir, ("wave_equation_nref$(lvl)_p$p_fe.jld2")), output)
 
   _make_pvd_distributed(vtk_dir,"solT",1)
@@ -205,14 +200,11 @@ function main_transient(distribute,nprocs;
   _dir = datadir("TransientWaveEquation_checkpointing")
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
-  # models = get_models(ranks,nprocs,n_ref_lvls;threedims=false,octree=octree)
-  # panel_model = models[1]
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model =omodel.parametric_dmodel
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
-
 
   GridapPETSc.Init(args=split(options))
 
