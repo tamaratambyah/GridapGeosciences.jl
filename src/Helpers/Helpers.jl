@@ -8,6 +8,7 @@ import Gridap.TensorValues: MultiValue
 using LinearAlgebra
 using FillArrays
 using Test
+using PartitionedArrays
 
 
 include("forward_map_2D.jl")
