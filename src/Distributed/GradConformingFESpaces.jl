@@ -69,18 +69,28 @@ function FESpace(_trian::DistributedTriangulation{Dc,Dp,<:DistributedParametricD
                  constraint=nothing,
                  conformity=nothing,
                  kwargs...) where {Dc,Dp}
-  
-  dmodel, dtrian = _setup_dmodel_and_dtrian(_trian)
-  cell_reffes = map(local_views(dmodel)) do m
-     basis,reffe_args,reffe_kwargs = reffe
-     cell_reffe = ReferenceFE(m,basis,reffe_args...;reffe_kwargs...)
-  end
-  change_of_basis_matrices = _generate_change_of_basis_matrices(dmodel, cell_reffes)
-  spaces = map(local_views(dmodel),cell_reffes,local_views(dtrian),change_of_basis_matrices) do m,cell_reffe,trian,
-                                                                                                change_of_basis_matrices
-       conf = Conformity(testitem(cell_reffe),conformity)
-       cell_fe = CellFE(m,cell_reffe,conf,change_of_basis_matrices)
-       FESpace(m, cell_fe, trian=trian; kwargs...)
+
+ dmodel, dtrian = _setup_dmodel_and_dtrian(_trian)
+ if (conformity==:L2)
+     spaces = map(local_views(dmodel)) do m
+        FESpace(m, reffe; conformity=conformity, kwargs...)
+     end
+ else
+     cell_reffes = map(local_views(dmodel)) do m
+         basis,reffe_args,reffe_kwargs = reffe
+         cell_reffe = ReferenceFE(m,basis,reffe_args...;reffe_kwargs...)
+     end
+     change_of_basis_matrices = _generate_change_of_basis_matrices(dmodel, cell_reffes)
+     spaces = map(local_views(dmodel),
+                  cell_reffes,
+                  local_views(dtrian),
+                  change_of_basis_matrices) do m,
+                                               cell_reffe,
+                                               change_of_basis_matrices
+           conf = Conformity(testitem(cell_reffe),conformity)
+           cell_fe = CellFE(m,cell_reffe,conf,change_of_basis_matrices)
+           FESpace(m, cell_fe, trian=trian; kwargs...)
+     end
   end
   gids = generate_gids(dmodel,spaces)
   trian = DistributedTriangulation(map(get_triangulation,spaces),dmodel)
