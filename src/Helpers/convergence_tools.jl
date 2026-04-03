@@ -164,7 +164,7 @@ returns the level of refinement
   * in 3D, returns the horizontal refinement
 """
 
-nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
+nref(nc::Float64) = Int(log2(sqrt(nc))) ## level of refinement
 
 function nref(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
   nref(nc(model))
@@ -174,7 +174,15 @@ function nref(model::GridapDistributed.DistributedDiscreteModel{3,3})
   nref(nc_horizontal(model))
 end
 
-nc(panel_model) = num_cells(panel_model)/6 ## nc = num cells per panel
+## nc = num cells per panel
+function nc(model::GridapDistributed.GenericDistributedDiscreteModel{2,2})
+  num_cells(model)/6
+end
+function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  nc_horizontal(model) + _nc_vertical(model)
+end
+
+
 
 ## nc = num cells per panel in horizontal
 function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
@@ -198,6 +206,20 @@ function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{
   nsurface = sum(f)
   ncells_per_panel = Int(nsurface/6)
   return ncells_per_panel
+end
+
+# return square here so vertical is 'like' horitzontal
+function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  n = _nc_vertical(model)
+  return Int(n^2)
+end
+
+# the actual number of cells in vertical per panel
+function _nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  ncells_per_panel = nc_horizontal(model)
+  n = num_cells(model)/6
+  _n =  n /ncells_per_panel
+  return Int(_n)
 end
 
 using Gridap.Arrays
@@ -231,6 +253,28 @@ function Gridap.Arrays.evaluate!(cache,f::FindSurfaceCells,x::VectorValue{3} )
   return y
 end
 
+
+## element size
+function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
+  tmp =  4*π*RADIUS^2/num_cells(model)
+  sqrt(tmp)
+end
+
+function dx(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  horizontal = dx_horizontal(model)
+  vertical = dx_vertical(model)
+  horizontal*vertical
+end
+
+function dx_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  horizontal = 4*π*RADIUS^2/(nc_horizontal(model)*6)
+  sqrt(horizontal) ## quads so have to sqrt
+end
+
+function dx_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+  vertical = THICKNESS/_nc_vertical(model)
+  vertical ### single layer, so no sqrt
+end
 
 """
 get_ranks

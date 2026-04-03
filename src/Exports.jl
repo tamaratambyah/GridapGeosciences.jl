@@ -97,6 +97,7 @@ end
 @publish Helpers nref
 @publish Helpers nc
 @publish Helpers nc_horizontal
+@publish Helpers dx
 @publish Helpers get_ranks
 @publish Helpers convergence_rate
 

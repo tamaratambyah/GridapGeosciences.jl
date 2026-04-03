@@ -50,7 +50,7 @@ export forward_maps, RADIUS, THICKNESS
 
 export p_convergence_auto_test, h_convergence_auto_test
 export get_refined_models, get_distributed_refined_models, get_octree_refined_models, get_3D_octree_refined_models
-export nref, nc, nc_horizontal
+export nref, nc, nc_horizontal, dx
 export get_ranks
 export convergence_rate
 

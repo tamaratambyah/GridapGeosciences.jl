@@ -8,7 +8,7 @@ using JLD2
 using Test
 using DrWatson
 
-include("helpers.jl")
+# include("helpers.jl")
 
 function foldername(name,octree=false,threedims=false)
   dir = datadir(name)
