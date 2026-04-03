@@ -2,6 +2,10 @@
 solve the linearised wave equation in
 ∂ₜu + ∇ᵧ(φ) = 0
 ∂ₜφ + ∇ᵧ⋅u = 0
+
+NOTE: THIS HAS THE WRONG WEAK FORM -- DO NOT USE
+This test uses the contra weak form instead of the Piola weak form
+Refer to the transient test in the checkpoint folder
 """
 
 
