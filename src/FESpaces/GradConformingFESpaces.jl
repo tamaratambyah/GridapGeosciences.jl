@@ -147,6 +147,13 @@ function _get_cell_shape_funs(T::Type{<:TensorValue},
   @notimplemented "GridapGeosciences.jl does not support grad-conforming tensor-valued finite elements"
 end
 
+function get_cell_shapefuns(model::AdaptedDiscreteModel{Dc,Dp,<:ParametricDiscreteModel{Dc,Dp}},
+                            cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
+                            conformity::GradConformity,
+                            change_of_basis_matrices = _generate_change_of_basis_matrices(model.model, cell_reffe)) where {Dc,Dp}
+  get_cell_shapefuns(model.model, cell_reffe, conformity, change_of_basis_matrices)
+end
+
 function get_cell_shapefuns(model::ParametricDiscreteModel,
                             cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
                             ::GradConformity,
@@ -179,6 +186,13 @@ function _get_cell_dof_basis(T::Type{<:TensorValue},
   @notimplemented "GridapGeosciences.jl does not support grad-conforming tensor-valued finite elements"
 end
 
+function get_cell_dof_basis(model::AdaptedDiscreteModel{Dc,Dp,<:ParametricDiscreteModel{Dc,Dp}},
+                            cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
+                            conformity::GradConformity,
+                            change_of_basis_matrices = _generate_change_of_basis_matrices(model.model, cell_reffe)) where {Dc,Dp}
+  get_cell_dof_basis(model.model, cell_reffe, conformity, change_of_basis_matrices)
+end
+
 function get_cell_dof_basis(model::ParametricDiscreteModel,
                             cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
                             ::GradConformity,
@@ -190,7 +204,11 @@ end
 
 # We do not want to use CLagrangianFESpace for parametric models, because otherwise
 # we cannot implement the change of basis for the vector-valued case
-function _use_clagrangian(trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel},
+const ParamTrianType{Dc,Dp} = BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel{Dc,Dp}}
+const UnionParamTrianType{Dc,Dp} = Union{ParamTrianType{Dc,Dp},
+                                         AdaptedTriangulation{Dc,Dp,<:ParamTrianType{Dc,Dp}}}
+
+function _use_clagrangian(trian::UnionParamTrianType{Dc,Dp},
                           cell_reffe,
                           conf::H1Conformity) where {Dc,Dp}
     return false

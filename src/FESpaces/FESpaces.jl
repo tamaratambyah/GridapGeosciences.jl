@@ -27,6 +27,7 @@ import Gridap.Arrays: array_cache, CachedMatrix, return_type, getindex!, testite
 import GridapGeosciences.Geometry: ParametricDiscreteModel, get_panel_ids
 import GridapGeosciences.Helpers: forward_jacobian, forward_pinv_jacobian
 import Gridap.FESpaces: get_cell_shapefuns, get_cell_dof_basis, _use_clagrangian, H1Conformity
+import Gridap.Adaptivity: AdaptedDiscreteModel, AdaptedTriangulation
 import Gridap.Helpers: @notimplemented
 import LinearAlgebra: I, ⋅
 include("GradConformingFESpaces.jl")
