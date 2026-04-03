@@ -4,15 +4,20 @@ using GridapGeosciences
 using GridapGeosciences.Distributed
 using GridapP4est
 using Gridap
+using Gridap.Helpers
 using GridapDistributed
-using DrWatson
+# using DrWatson
 
-include("../convergence_tools.jl")
+# include("../convergence_tools.jl")
 
 
-function interpolation(panel_model,p_fe::Int,dir::String,func::Function,conf,ls=LUSolver(),return_vtk=false)
+function L2_projection_Lagrangian_scalar(panel_model,p_fe::Int,dir::String,
+  func::Function,conf,ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
+
+  @check conf in [:L2, :H1] "\n Must be L2 or H1 conformity"
+
   Dc = num_cell_dims(panel_model)
 
   lvl = 0
@@ -76,34 +81,34 @@ end
 #   end
 # end
 
-### f = sin(ϕ) = Z/R
-function fS(p)
-  function _f(αβ)
-    X,Y,Z = ForwardMap(p)(αβ)
-    radius = sqrt(X^2 + Y^2 + Z^2)
-    Z/radius
-  end
-end
+# ### f = sin(ϕ) = Z/R
+# function fS(p)
+#   function _f(αβ)
+#     X,Y,Z = ForwardMap(p)(αβ)
+#     radius = sqrt(X^2 + Y^2 + Z^2)
+#     Z/radius
+#   end
+# end
 
 
-MPI.Init()
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 
-n_ref_lvls = 4
-ps = [1,2]
-ls = LUSolver()
+# n_ref_lvls = 4
+# ps = [1,2]
+# ls = LUSolver()
 
-dir = datadir("InterpolationConvergence")
-!isdir(dir) && mkdir(dir)
+# dir = datadir("InterpolationConvergence")
+# !isdir(dir) && mkdir(dir)
 
-Dc = 2
+# Dc = 2
 
-# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls)
-models = get_refined_models(n_ref_lvls)
-for conf in [:L2, :H1]
-  _dir = dir*"/scalar_func_$(Dc)D_"*String(conf)
-  !isdir(_dir) && mkdir(_dir)
-  p_convergence_test(ranks,ps,models,interpolation,_dir,fS,conf,ls,true)
-  plot_convergence_from_saved(_dir,"convergence",["L2Proj","Interp" ])
-end
+# # models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls)
+# models = get_refined_models(n_ref_lvls)
+# for conf in [:L2, :H1]
+#   _dir = dir*"/scalar_func_$(Dc)D_"*String(conf)
+#   !isdir(_dir) && mkdir(_dir)
+#   p_convergence_test(ranks,ps,models,L2_projection_Lagrangian_scalar,_dir,fS,conf,ls,true)
+#   plot_convergence_from_saved(_dir,"convergence",["L2Proj","Interp" ])
+# end

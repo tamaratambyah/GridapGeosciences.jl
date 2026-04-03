@@ -6,12 +6,12 @@ using GridapP4est
 using Gridap
 using GridapDistributed
 
-using DrWatson
+# using DrWatson
 
-include("../convergence_tools.jl")
+# include("../convergence_tools.jl")
 
 
-function interpolation(panel_model,p_fe::Int,dir::String,vecX::Function,
+function L2_projection_Hdiv(panel_model,p_fe::Int,dir::String,vecX::Function,
   ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
@@ -79,28 +79,28 @@ function interpolation(panel_model,p_fe::Int,dir::String,vecX::Function,
 end
 
 ### must be in the tangent space of the sphere
-function uX(p)
-  function _u(α)
-    x = ForwardMap(p)(α)
-    VectorValue(-x[2],x[1],0.0)
-  end
-end
+# function uX(p)
+#   function _u(α)
+#     x = ForwardMap(p)(α)
+#     VectorValue(-x[2],x[1],0.0)
+#   end
+# end
 
-MPI.Init()
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-n_ref_lvls = 4
-ps = [1]
-ls = LUSolver()
+# n_ref_lvls = 4
+# ps = [1]
+# ls = LUSolver()
 
-Dc = 3
-models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+# Dc = 3
+# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 
-dir = datadir("InterpolateConvergence")
-(i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+# dir = datadir("InterpolateConvergence")
+# (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-_dir = dir*"/vector_func_$(Dc)D_Hdiv"
-!isdir(_dir) && mkdir(_dir)
+# _dir = dir*"/vector_func_$(Dc)D_Hdiv"
+# !isdir(_dir) && mkdir(_dir)
 
-p_convergence_test(ranks,ps,models,interpolation,_dir,uX,ls,true)
-plot_convergence_from_saved(_dir,"convergence",["L2 proj","Interp"])
+# p_convergence_test(ranks,ps,models,L2_projection_Hdiv,_dir,uX,ls,true)
+# plot_convergence_from_saved(_dir,"convergence",["L2 proj","Interp"])

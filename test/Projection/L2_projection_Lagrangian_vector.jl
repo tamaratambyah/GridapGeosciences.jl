@@ -4,18 +4,19 @@ using GridapGeosciences
 using GridapGeosciences.Distributed
 using GridapP4est
 using Gridap
+using Gridap.Helpers
 using GridapDistributed
-using DrWatson
-using LinearAlgebra
-using FillArrays
+# using DrWatson
 
-include("../convergence_tools.jl")
+# include("../convergence_tools.jl")
 
 
-function interpolation(
+function L2_projection_Lagrangian_vector(
   panel_model,p_fe::Int,dir::String,vecX::Function,conf,ls=LUSolver(),return_vtk=true)
 
   ranks = get_ranks(panel_model)
+
+  @check conf in [:L2, :H1] "\n Must be L2 or H1 conformity"
 
   Dc = num_cell_dims(panel_model)
 
@@ -68,8 +69,8 @@ function interpolation(
   _e = vec_contra_cf - vec_contra_h
   el2_interp =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))
 
-  i_am_main(ranks) && println("Error interp: ", el2_interp)
-  i_am_main(ranks) && println("Error proj: ", el2_proj)
+  # i_am_main(ranks) && println("Error interp: ", el2_interp)
+  # i_am_main(ranks) && println("Error proj: ", el2_proj)
 
   if return_vtk
     panel_cfs = [vec_proj_cf, vec_l2proj_h, vec_proj_cf-vec_l2proj_h,
@@ -87,31 +88,31 @@ function interpolation(
 end
 
 ### must be in the tangent space of the sphere
-function uX(p)
-  function _u(α)
-    x = ForwardMap(p)(α)
-    VectorValue(-x[2],x[1],0.0)
-  end
-end
+# function uX(p)
+#   function _u(α)
+#     x = ForwardMap(p)(α)
+#     VectorValue(-x[2],x[1],0.0)
+#   end
+# end
 
-MPI.Init()
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-n_ref_lvls = 4
-ps = [1,2]
-ls = LUSolver()
+# n_ref_lvls = 4
+# ps = [1,2]
+# ls = LUSolver()
 
-dir = datadir("InterpolationConvergence")
-!isdir(dir) && mkdir(dir)
+# dir = datadir("InterpolationConvergence")
+# !isdir(dir) && mkdir(dir)
 
 # Dc = 3
 # models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 
-Dc = 2
-models = get_refined_models(n_ref_lvls)
-for conf in [:L2, :H1]
-  _dir = dir*"/vector_func_$(Dc)D_"*String(conf)
-  !isdir(_dir) && mkdir(_dir)
-  p_convergence_test(ranks,ps,models,interpolation,_dir,uX,conf,ls,true)
-  plot_convergence_from_saved(_dir,"convergence",["L2Proj","Interp" ])
-end
+# Dc = 2
+# models = get_refined_models(n_ref_lvls)
+# for conf in [:L2, :H1]
+#   _dir = dir*"/vector_func_$(Dc)D_"*String(conf)
+#   !isdir(_dir) && mkdir(_dir)
+#   p_convergence_test(ranks,ps,models,L2_projection_Lagrangian_vector,_dir,uX,conf,ls,true)
+#   plot_convergence_from_saved(_dir,"convergence",["L2Proj","Interp" ])
+# end

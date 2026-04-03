@@ -1,20 +1,20 @@
 using MPI
 using PartitionedArrays
 using GridapGeosciences
-using GridapGeosciences.Distributed
 using GridapP4est
 using Gridap
 using GridapDistributed
+using Gridap.Helpers
 
-using DrWatson
+# using DrWatson
 
-include("../convergence_tools.jl")
+# include("../convergence_tools.jl")
 
 transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
 covar_v_3D(vecX::Function,p::Int) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
 covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
-function interpolation(panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
+function L2_projection_Hcurl(panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
   p_fe::Int,dir::String,vecX::Function,ls=LUSolver(),return_vtk=true)
 
   ranks = get_ranks(panel_model)
@@ -24,7 +24,7 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
 
   lvl = nref(nc_horizontal(panel_model))
 
-  degree = 4*p_fe
+  degree = 4*(p_fe+1)
   if p_fe == 0
     degree = 8
   end
@@ -80,29 +80,29 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
 end
 
 ### Since we are in 3D, does not have to be in the tangent space of the 3D sphere
-function uX(p)
-  function f(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
-    # VectorValue(xyz[1],xyz[2],xyz[3])
-    # VectorValue(xyz[2], 0.0, 0.0)
-    VectorValue(0.0,xyz[3],xyz[1]^2)
-  end
-end
+# function uX(p)
+#   function f(γαβ)
+#     xyz = forward_map_3D(p)(γαβ)
+#     # VectorValue(xyz[1],xyz[2],xyz[3])
+#     # VectorValue(xyz[2], 0.0, 0.0)
+#     VectorValue(0.0,xyz[3],xyz[1]^2)
+#   end
+# end
 
-MPI.Init()
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-n_ref_lvls = 3
-ps = [0,1]
-ls = LUSolver()
+# n_ref_lvls = 3
+# ps = [0,1]
+# ls = LUSolver()
 
-Dc = 3
-models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+# Dc = 3
+# models = get_3D_octree_refined_models(ranks,n_ref_lvls)
 
-dir = datadir("InterpolationConvergence")
-(i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+# dir = datadir("InterpolationConvergence")
+# (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-_dir = dir*"/vector_func_$(Dc)D_Hcurl"
-!isdir(_dir) && mkdir(_dir)
-p_convergence_test(ranks,ps,models,interpolation,_dir,uX,ls,true)
-plot_convergence_from_saved(_dir,"convergence",["L2 proj","Interp"])
+# _dir = dir*"/vector_func_$(Dc)D_Hcurl"
+# !isdir(_dir) && mkdir(_dir)
+# p_convergence_test(ranks,ps,models,L2_projection_Hcurl,_dir,uX,ls,true)
+# plot_convergence_from_saved(_dir,"convergence",["L2 proj","Interp"])
