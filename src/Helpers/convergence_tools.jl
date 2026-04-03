@@ -4,6 +4,7 @@ auto convergence tests
 
 function p_convergence_auto_test(ps::Vector{Int},models::AbstractArray,convergence_func,dir::String,fargs...)
 
+  ranks = get_ranks(testitem(models))
   # nref == refinement level of the mesh
   # 2^nref == number of cells per panel
   # 1/(2^nref) -> to get positive slopes
@@ -14,8 +15,8 @@ function p_convergence_auto_test(ps::Vector{Int},models::AbstractArray,convergen
   for (i,p_fe) in enumerate(ps)
     errs = h_convergence_auto_test(models,convergence_func,p_fe,dir,fargs...)
     slope = convergence_rate(lvls,errs)
-    println("slope = $slope")
-    @test abs(slope) >= p_fe
+    i_am_main(ranks) && println("slope = $slope")
+    @test slope >= p_fe
   end
 
 end
