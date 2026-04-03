@@ -4,12 +4,12 @@ import GridapGeosciences.Helpers: THICKNESS
 l2(e,dΩ) = sum(∫( e⋅e )dΩ)
 l2(e,meas,dΩ) = sum(∫( (e⋅e)*meas )dΩ)
 mass_conservation(p,meas,dΩ) = sum(∫( (p)*meas )dΩ)
-nc(panel_model) = num_cells(panel_model)/6 ## nc = num cells per panel
 dx(nc) = sqrt( 4*π*RADIUS^2 / (6*sqrt(nc)^2) )
-nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
 nc(model::ParametricOctreeDistributedDiscreteModel) = nc(model.parametric_dmodel)
 dx(model::ParametricOctreeDistributedDiscreteModel) = dx(model.parametric_dmodel)
+
+
 
 function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
   tmp =  4*π*RADIUS^2/num_cells(model)
@@ -37,29 +37,7 @@ function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   nc_horizontal(model) + _nc_vertical(model)
 end
 
-## nc = num cells per panel in horizontal
-function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
 
-  grid = get_grid(model)
-  gids = get_cell_gids(model)
-
-  ## find the number of cells that are on the surface.
-  ## i.e. with γ = 0.0
-  ## make sure to extract only the owned
-  f = map(local_views(grid),partition(gids)) do grid, cids
-    cmap = get_cell_map(grid)
-    pts = get_cell_ref_coordinates(grid)
-    f = lazy_map(evaluate,cmap,pts)
-    g = lazy_map(FindSurfaceCells(),f)
-
-    owned_cells = own_to_local(cids)
-    sum(g[owned_cells])
-  end
-
-  nsurface = sum(f)
-  ncells_per_panel = Int(nsurface/6)
-  return ncells_per_panel
-end
 
 # return square here so vertical is 'like' horitzontal
 function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
@@ -74,55 +52,3 @@ function _nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3
   _n =  n /ncells_per_panel
   return Int(_n)
 end
-
-using Gridap.Arrays
-using Gridap.Geometry
-
-"""
-find the cells at γ = 0.0
-"""
-struct FindSurfaceCells  <: Map
-end
-
-function Gridap.Arrays.return_cache(f::FindSurfaceCells,cellx::AbstractArray{<:VectorValue{3}})
-  y = similar(cellx,true)
-  return y
-end
-
-function Gridap.Arrays.evaluate!(cache,f::FindSurfaceCells,cellx::AbstractArray{<:VectorValue{3}} )
-  y = cache
-  y = !isempty(findall(x->x[1]==0.0,cellx))
-  return y
-end
-
-function Gridap.Arrays.return_cache(f::FindSurfaceCells,x::VectorValue{3})
-  y = true
-  return y
-end
-
-function Gridap.Arrays.evaluate!(cache,f::FindSurfaceCells,x::VectorValue{3} )
-  y = cache
-  y = !isempty(findall(x[1]==0.0))
-  return y
-end
-
-
-
-
-
-using Printf
-using GridapSolvers
-using GridapSolvers.SolverInterfaces: ConvergenceLog
-
-
-# function GridapSolvers.SolverInterfaces.update!(log::ConvergenceLog{T},r::T) where T
-#   log.num_iters += 1
-#   log.residuals[log.num_iters+1] = r
-#   r_rel = r / log.residuals[1]
-#   # if log.verbose > SOLVER_VERBOSE_LOW
-#     # t = get_tabulation(log)
-#     # msg = @sprintf("> Iteration %3i - Residuals: %.2e,   %.2e ", log.num_iters, r, r_rel)
-#     # println(t,msg)
-#   # end
-#   return GridapSolvers.SolverInterfaces.finished(log.tols,log.num_iters,r,r_rel)
-# end

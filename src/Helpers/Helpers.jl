@@ -7,6 +7,7 @@ using Gridap.Algebra, Gridap.FESpaces, Gridap.Helpers
 import Gridap.TensorValues: MultiValue
 using LinearAlgebra
 using FillArrays
+using Test
 
 
 include("forward_map_2D.jl")
@@ -19,7 +20,7 @@ include("analytical_functions_autodiff.jl")
 include("operators.jl")
 include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
-
+include("convergence_tools.jl")
 
 export ForwardMap
 export forward_map_2D, forward_jacobian_2D, covarient_basis, forward_pinv_jacobian
@@ -44,5 +45,11 @@ export g_star
 export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix, xyz2θϕ
 
 export forward_maps, RADIUS, THICKNESS
+
+export p_convergence_auto_test, h_convergence_auto_test
+export get_refined_models, get_distributed_refined_models, get_octree_refined_models, get_3D_octree_refined_models
+export nref, nc, nc_horizontal
+export get_ranks
+export convergence_rate
 
 end

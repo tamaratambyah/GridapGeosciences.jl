@@ -88,6 +88,18 @@ end
 @publish Helpers forward_pinv_jacobian
 @publish Helpers contravariant_basis
 
+@publish Helpers p_convergence_auto_test
+@publish Helpers h_convergence_auto_test
+@publish Helpers get_refined_models
+@publish Helpers get_distributed_refined_models
+@publish Helpers get_octree_refined_models
+@publish Helpers get_3D_octree_refined_models
+@publish Helpers nref
+@publish Helpers nc
+@publish Helpers nc_horizontal
+@publish Helpers get_ranks
+@publish Helpers convergence_rate
+
 @publish Distributed ParametricOctreeDistributedDiscreteModel
 @publish Distributed Parametric3DOctreeDistributedDiscreteModel
 @publish Distributed DistributedParametricDiscreteModel
