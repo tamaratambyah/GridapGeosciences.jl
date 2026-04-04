@@ -16,8 +16,7 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-# include("../convergence_tools.jl")
-# include("helpers.jl")
+include("helpers.jl")
 
 ## initial conditions
 vecX(XYZ) = zero(XYZ)
@@ -137,7 +136,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=false)
   function casimirs(xh,dΩ)
     uh,ph = xh
     _m = sum( ∫(  meas_cf*ph )dΩ)
-    _E = sum( ∫( 0.5*( uh⋅(metric_cf⋅ uh)*(1/meas_cf))dΩ )  + ∫( (ph*ph)*meas_cf )dΩ  )
+    _E = sum( ∫( 0.5*( uh⋅(metric_cf⋅ uh))*(1/meas_cf))dΩ   + ∫( (ph*ph)*meas_cf )dΩ  )
     _divu = sum(∫(  divergence(uh)  )dΩ)
     return _m, _E, _divu
   end
@@ -201,7 +200,7 @@ function main_transient(distribute,nprocs;
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
-  panel_model =omodel.parametric_dmodel
+  panel_model = omodel.parametric_dmodel
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
@@ -223,9 +222,9 @@ function main_transient(distribute,nprocs;
 end
 
 
-# MPI.Init()
-# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+MPI.Init()
+nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 
-# with_mpi() do distribute
-#   main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
-# end
+with_mpi() do distribute
+  main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
+end
