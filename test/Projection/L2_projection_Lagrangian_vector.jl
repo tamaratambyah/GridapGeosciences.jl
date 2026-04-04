@@ -37,11 +37,11 @@ function L2_projection_Lagrangian_vector(
   vec_proj_cf = covarient_basis_cf⋅vec_contra_cf
 
   reffe  = ReferenceFE(lagrangian,VectorValue{Dc, Float64},p_fe)
-  V = TestFESpace(panel_model, reffe; conformity=conf)
+  V = TestFESpace(Ω_panel, reffe; conformity=conf)
   U = TrialFESpace(V)
 
   if Dc == 3
-    V = TestFESpace(panel_model, reffe; conformity=conf,
+    V = TestFESpace(Ω_panel, reffe; conformity=conf,
                 dirichlet_tags=["top_boundary", "bottom_boundary"])
     U = TrialFESpace(V,vec_contra_cf)
   end
