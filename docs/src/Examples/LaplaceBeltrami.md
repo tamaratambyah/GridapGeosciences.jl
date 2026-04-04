@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "../../../tests/Examples/LaplaceBeltrami.jl"
+EditURL = "../../../test/Examples/LaplaceBeltrami.jl"
 ```
 
 # Laplace Beltrami equation on the cubed sphere manifold

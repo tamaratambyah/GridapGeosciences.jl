@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "../../../tests/Examples/ShallowWater.jl"
+EditURL = "../../../test/Examples/ShallowWater.jl"
 ```
 
 # Shallow water on the cubed sphere manifold

@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "../../../tests/Examples/WaveEquation.jl"
+EditURL = "../../../test/Examples/WaveEquation.jl"
 ```
 
 # Linear wave equation on the cubed sphere manifold
@@ -24,9 +24,10 @@ We use $H(\mathrm{div})$ vector and $L^2$ scalar finite-elements, to solve in th
 The weak formulation in the parametric space is: find $\boldsymbol{u} \in H(\mathrm{div},\mathcal{V})$, $\varphi \in L^2(\mathcal{V})$ such that
 ```math
 \begin{align*}
-\int_{\mathcal{V}} \boldsymbol{u}\cdot(g \boldsymbol{v}) \sqrt{g}
+\int_{\mathcal{V}} \boldsymbol{u}\cdot(g \boldsymbol{v}) \frac{1}{\sqrt{g}}
 - \int_{\mathcal{V}} \varphi \nabla\cdot(\sqrt{g} \boldsymbol{v})
-   &= \int_{\mathcal{V}} \boldsymbol{f}_1\cdot(g \boldsymbol{v}) \sqrt{g}
+   &= \int_{\mathcal{V}} \boldsymbol{f}_1\cdot(g \boldsymbol{v}) \frac{1}{\sqrt{g}}
+      - \int_{\mathcal{\partial\mathcal{V}}} \varphi_{bc} \boldsymbol{v}\cdot\boldsymbol{k}~\mathrm{d}S
 \qquad   \forall \boldsymbol{v} \in H(\mathrm{div},\mathcal{V}) \\
 \int_{\mathcal{V}} \varphi \psi \sqrt{g}
 + \int_{\mathcal{V}} \psi \nabla\cdot(\sqrt{g} \boldsymbol{u})
@@ -35,7 +36,9 @@ The weak formulation in the parametric space is: find $\boldsymbol{u} \in H(\mat
 
 \end{align*}
 ```
-where $\mathcal{V}$ is the parametric space $f_1\in \mathbb{R}^n$, $f_2: \mathcal{V} \rightarrow \mathbb{R}$,
+where $\mathcal{V}$ is the parametric space,  $f_1\in \mathbb{R}^n$, $f_2: \mathcal{V} \rightarrow \mathbb{R}$,
+$\partial \mathcal{V}$ is the boundary, $\boldsymbol{k}$ is the normal to the boundary,
+and $\varphi_{bc}$ is the boundary condition,
 $g$ is the Riemannian metric associated to the geometrical map $\sigma: \mathcal{V} \rightarrow \gamma$,
 and $\sqrt{g} = (\det{g})^{1/2}$ is the measure.
 
@@ -86,18 +89,24 @@ writevtk(Γ_top,"boundary_top",append=false,geo_map=geo_map_func(get_panel_ids(�
 writevtk(Γ_intermediate,"boundary_intermediate",append=false,geo_map=geo_map_func(get_panel_ids(Γ_intermediate)))
 ````
 
+In this test, we have non-homogeneous boundary conditions. So we need to create
+a boundary trangulation, and include the appropriate boundary term that arises
+from integration by parts.
+
+````julia 
+Γ = BoundaryTriangulation(model;tags=["bottom_boundary","top_boundary"])
+nΓ = get_normal_vector(Γ)
+````
+
 ## FE Spaces
 Now that we have a discrete model, we define trial and test spaces using Gridap's high level API.
-We enforce zero dirichlet boundary conditions in the velocity space.
 
 ````julia 
 order = 1
-tags = ["bottom_boundary",  "top_boundary"]
-
 Q = TestFESpace(Ω, ReferenceFE(lagrangian,Float64,order); conformity=:L2)
 P = TrialFESpace(Q)
-V = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,order); conformity=:HDiv, dirichlet_tags=tags)
-U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
+V = TestFESpace(Ω, ReferenceFE(raviart_thomas,Float64,order); conformity=:HDiv)
+U = TrialFESpace(V)
 ````
 
 The assoicated multifields are:
@@ -134,24 +143,20 @@ end
 ````
 
 Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.
-This is used to generate a panelwise cellfield of the analytic functions:
+This is used to generate a panelwise cellfield of the analytic functions, where
+we extra the contravariant Piola component for the velocity:
 
 ````julia 
 panel_ids = get_panel_ids(model)
-u_proj_cf = panelwise_cellfield(u,Ω,panel_ids)
+u_cf = panelwise_cellfield(piola(u),Ω,panel_ids)
 phi_cf = panelwise_cellfield(φ,Ω,panel_ids)
 ````
 
-The cooresponding rhs forcing function is defined panelwise, as follows, where
-we extra the contravariant component for the velocity:
+Interpolate the exact solution into the FE spae
 
 ````julia 
-sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(u)),Ω,panel_ids)
-sgrad_cf = panelwise_cellfield(sgrad(φ),Ω,panel_ids)
-pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω,panel_ids)
-
-f1 = pinvJ_cf ⋅ (u_proj_cf + sgrad_cf) # exact contravariant component
-f2 = phi_cf + sdiv_cf
+p_int = interpolate(phi_cf,P)
+u_int = interpolate(u_cf,U)
 ````
 
 ## Weak form
@@ -160,15 +165,24 @@ We use an increased degree of quadrature to exactly approximate the geometrical 
 
 ````julia 
 meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-_grad_meas = panelwise_cellfield(grad_meas,Ω,panel_ids)
 g = panelwise_cellfield(metric,Ω,panel_ids)
-dΩ = Measure(Ω,6*order)
+degree = 4*(order+1)
+dΩ = Measure(Ω,degree)
+dΓ = Measure(Γ,degree)
 
-biform_u((u,p),(v,q)) = ∫( (u⋅ (g⋅v))*meas )dΩ - ∫( p*(v⋅_grad_meas + meas*(∇⋅v) ) )dΩ
-biform_p((u,p),(v,q)) = ∫( (p*q)*meas )dΩ + ∫( q*(u⋅_grad_meas + meas*(∇⋅u) )  )dΩ
-
+biform_u((u,p),(v,q)) = ∫( (u⋅ (g⋅v))*(1/meas) )dΩ - ∫( p*(∇⋅v) )dΩ
+biform_p((u,p),(v,q)) = ∫( (p*q)*meas )dΩ + ∫( q*(∇⋅u) )dΩ
 biform((u,p),(v,q)) = biform_u((u,p),(v,q)) + biform_p((u,p),(v,q))
-liform((v,q)) = ∫( f1⋅(g⋅v)*meas )dΩ + ∫( (f2*q)*meas )dΩ
+````
+
+The cooresponding rhs forcing function is manufactured as, as follows, where
+we assume regularity to IBP:
+
+````julia 
+liform((v,q)) = ( ∫( (u_int⋅ (g⋅v))*(1/meas) )dΩ + ∫( gradient(p_int)⋅v )dΩ
+                + ∫( (p_int*q)*meas )dΩ + ∫( q*(∇⋅u_int) )dΩ
+                - ∫( (v⋅nΓ)*p_int )dΓ
+                )
 ````
 
 ## FE problem
@@ -199,14 +213,15 @@ ep_l2 = sqrt(sum(∫((ep⋅ep)*meas)dΩ))
 ````
 
 For the velocity, the parametric velocity field is pushed to the ambient space
-via the covariant basis (i.e. Jacobian). Then the $L^2$ norm of the error between
+via the contraviant Piola map. Then the $L^2$ norm of the error between
 the exact and numerical soltuions is computed as
 
 ````julia 
 covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
-uh_proj = covarient_basis_cf ⋅ uh
-eu = u_proj_cf - uh_proj
-eu_l2 = sqrt(sum(∫((eu⋅(g⋅eu))*meas)dΩ))
+uh_proj = covarient_basis_cf ⋅ (1/meas * uh)
+u_proj_cf = covarient_basis_cf ⋅ (1/meas *u_cf )
+eu = u_cf - uh
+eu_l2 = sqrt(sum(∫( eu⋅(g⋅eu)*(1/meas) )dΩ))
 ````
 
 ## Post processing

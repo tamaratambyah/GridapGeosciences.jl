@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "../../../tests/Examples/AdvectionUpwinding.jl"
+EditURL = "../../../test/Examples/AdvectionUpwinding.jl"
 ```
 
 # Advection with upwinding stabilisation on the cubed sphere manifold
