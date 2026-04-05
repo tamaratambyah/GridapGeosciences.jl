@@ -156,11 +156,13 @@ function launch_wave_equation(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
   e_u,e_p, = wave_solver(panel_model,p_fe,dir,h,vX,ls,Bool(return_vtk))
 
+  i_am_main(ranks) && println("eu = $e_u, e_p = $e_p")
+
   ## convergence output for DrWatson
   n = nc(panel_model)
   dxx = dx(panel_model)
-  output = @strdict e_u e_p n dxx p_fe n_ref
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("wave_equation_nref$(lvl)_p$(p_fe)_D$Dc.jld2")), output)
+  output = @strdict e_u e_p n dxx p_fe n_ref Dc
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("wave_equation_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
 
 
   GridapPETSc.Finalize()
