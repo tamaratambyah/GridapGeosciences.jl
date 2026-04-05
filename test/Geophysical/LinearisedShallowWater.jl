@@ -1,10 +1,8 @@
 """
 solve the linearised shallow water equations in steady form using manufactured solutions
-u + f u^⟂ + ∇ᵧ(φ) = f₁
+u + f (k×u) + ∇ᵧ(φ) = f₁
 φ + ∇ᵧ⋅u = f₁
 """
-
-module LinearisedShallowWater
 
 using DrWatson
 using Gridap
@@ -16,21 +14,40 @@ using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
 using GridapGeosciences
 using Test
 
-include("../convergence_tools.jl")
+using GridapPETSc
+function petsc_mumps_setup(ksp)
+  pc       = Ref{GridapPETSc.PETSC.PC}()
+  mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
+  @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
+  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
+  @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
+  @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
+  @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
+  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
+  # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
+  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+end
+
 include("Williamson2Test.jl")
 
 
-function linear_shallow_water_solver(
-  panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
-  p_fe::Int,dir::String,h::Function,vX::Function,f::Function,ls=LUSolver(),
-  return_vtk=false,check_geo_balance=false)
+function linear_shallow_water_solver(panel_model,
+  p_fe::Int,dir::String,h::Function,vX::Function,f::Function,ls=LUSolver(),return_vtk=false)
 
-  lvl = nref(nc(panel_model))
-  println("nref = $lvl")
+  ranks = get_ranks(panel_model)
+  Dc = num_cell_dims(panel_model)
+  lvl = nref(panel_model)
 
+  i_am_main(ranks) && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
+
+  degree = 5*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,2*(p_fe+1))
+  dΩ = Measure(Ω_panel,degree)
+  dΩ_error = Measure(Ω_panel,2*degree)
 
   Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
@@ -41,261 +58,199 @@ function linear_shallow_water_solver(
   Y = MultiFieldFESpace([V, Q])
   X = MultiFieldFESpace([U, P])
 
-
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
-  pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω_panel,panel_ids)
-
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_proj_cf = panelwise_cellfield(projection_v(vX),Ω_panel,panel_ids)
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-
-  u_perp_contra = panelwise_cellfield(contra_v_perp(vX),Ω_panel,panel_ids)
-  u_perp = covarient_basis_cf ⋅ u_perp_contra
-
-  sgrad_cf = panelwise_cellfield(sgrad(h),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
-
-
-  # manufacture rhs functions
-  rhs_scalar = h_cf + sdiv_cf
-  rhs_vector = u_proj_cf + cor_cf*u_perp + sgrad_cf
-  rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
-
-  # check geostropohic balance
-  geo_balance = cor_cf*u_perp + sgrad_cf
-  geo_balance_con = pinvJ_cf⋅ geo_balance
-  e_geo_balance = sum(∫( geo_balance_con )dΩ)
-  if check_geo_balance
-    @check vector_length(e_geo_balance) < 1e-12
-    println("Global geostropohic balance error: $e_geo_balance")
-  end
-
-
-  # weak forms
-  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
+  # metric information
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
+  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
+  u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+  u_proj_cf = covarient_basis_cf ⋅(1/meas_cf * u_cf  )
+  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+
+  p_int = interpolate(h_cf,P)
+  u_int = interpolate(u_cf,U)
+
+  ## Here we construct the coriolis term in 2D v. 3D
+  ## On the surface, the term is: ∫( ̃f ( ̃k × ̃u  )  )dΩ
+  ##
+  ## In 2D, we use the rotation matrx
   function vecPerp(u)
     # u   = (u1, u2)
     # u^T = (-u2, u1)
     VectorValue(-u[2],u[1])
   end
-
   Aperp = [0 -1
           1 0]
   Rperp = TensorValue(Aperp)
   Rperp_cf = CellField(Rperp,Ω_panel)
 
-  biform1((u,p),(v,q)) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( ( cor_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-  biform2((u,p),(v,q)) = ∫( (p*q)*meas_cf )dΩ + ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ
+  ## In 3D, we construct ̃k using the area measure
+  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  area_meas(p) = x-> norm(_area_meas(p)(x))
+  normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
+  normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel,panel_ids)
 
-  biformX((u,p),(v,q)) = biform1((u,p),(v,q)) + biform2((u,p),(v,q))
-  liformX((v,q)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ + ∫( (rhs_scalar*q)*meas_cf )dΩ
+  ## return the appropriate term based on Dimension
+  function get_coriolis_term(Dc::Int)
+    if Dc == 2
+      return ((u,p),(v,q)) -> ∫( ( cor_cf*( (Rperp_cf⋅ u)⋅v))  )dΩ
+    elseif Dc == 3
+      return ((u,p),(v,q)) -> ∫( cor_cf*( normal_3D_cf ×( metric_cf⋅u*(1/meas_cf)  ) )⋅(metric_cf⋅v)*(1/meas_cf)  )dΩ
+    end
+  end
+  coriolis_term((u,p),(v,q)) = get_coriolis_term(Dc)((u,p),(v,q))
 
-  op = AffineFEOperator(biformX,liformX,X,Y)
+  ## construct bilinear form using coriolis_term
+  biform_u((u,p),(v,q)) = ( ∫( (u⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
+                        + coriolis_term((u,p),(v,q))
+                         - ∫( p*(∇⋅v) )dΩ
+                          )
+  biform_p((u,p),(v,q)) = ∫( (p*q)*meas_cf )dΩ + ∫( q*(∇⋅u) )dΩ
+  biformX((u,p),(v,q)) = biform_u((u,p),(v,q)) + biform_p((u,p),(v,q))
+
+
+  # manufacture rhs functions
+  function get_liform(Dc::Int)
+
+    # the manufactured solution is exactly the LHS operator
+    _liformX((v,q)) = (
+      ∫( (u_int⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
+    + ∫( gradient(p_int)⋅v )dΩ # assume regularity to IBP
+    + coriolis_term((u_int,p_int),(v,q)) # coriolis term
+    + ∫( (p_int*q)*meas_cf )dΩ
+    + ∫( q*(∇⋅u_int) )dΩ
+    )
+
+    if Dc == 2
+      return v -> _liformX(v)
+    elseif Dc == 3
+      # in 3D, account for the boundary term from IBP
+      Γ = BoundaryTriangulation(panel_model;tags=["bottom_boundary","top_boundary"])
+      dΓ = Measure(Γ,degree)
+      nΓ = get_normal_vector(Γ)
+      boundary((v,q)) = ∫( (v⋅nΓ)*p_int )dΓ
+      return v -> _liformX(v) - boundary(v)
+    end
+  end
+
+
+  op = AffineFEOperator(biformX,get_liform(Dc),X,Y)
   uh,ph = solve(ls,op)
 
-  uh_proj = covarient_basis_cf ⋅ uh
+  uh_proj = covarient_basis_cf ⋅ (1/meas_cf*uh)
 
-  Ω_error = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_error,6*p_fe+1)
-  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
-  e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
+  _e = u_cf - uh
+  e_u =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*(1/meas_cf) )dΩ_error))
+
+  _e = h_cf - ph
+  e_p = sqrt(sum(∫( (_e*_e)*meas_cf )dΩ_error))
 
   if return_vtk
-    cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [ph, uh_proj, uh_proj-u_proj_cf,ph-h_cf]
     labels = ["p","u_proj","eu","ep"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_D$Dc",
+          cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
   end
 
-    ### convergence output for DrWatson
-    dir_convergence = dir*"/convergence"
-    (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+    # ### convergence output for DrWatson
+    # dir_convergence = dir*"/convergence"
+    # (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-    n = nc(panel_model)
-    dxx = dx(panel_model)
-    output = @strdict e_u e_p n dxx p_fe lvl
-    i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
+    # n = nc(panel_model)
+    # dxx = dx(panel_model)
+    # output = @strdict e_u e_p n dxx p_fe lvl
+    # i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
 
   return e_u, e_p, false
 
 end
 
+################################################################################
+#### Launch linearised shallow water equation -- on gadi
+################################################################################
+function launch_linearised_shallow_water(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
-#### 3D tests
-function linear_shallow_water_solver(panel_model::GridapDistributed.DistributedDiscreteModel{3,3},
-  p_fe::Int,dir::String,h::Function,vX::Function,f::Function,ls=LUSolver(),
-  return_vtk=false,check_geo_balance=false)
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Wave equation: Dc = $Dc")
 
-  das = SubAssembledRows()
-
-  ranks = get_ranks(panel_model)
-
-  i_am_main(ranks) && println("Assembly strategy: $das")
-
-  lvl_h = nref(nc_horizontal(panel_model))
-  lvl_v = nref(nc_vertical(panel_model))
-  i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
-
-  panel_ids = get_panel_ids(panel_model)
-  Ω_panel = Triangulation(das,panel_model)
-  dΩ = Measure(Ω_panel,2*(p_fe+1))
-  Ω_error = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_error,6*p_fe+1)
-
-  tags = ["bottom_boundary",  "top_boundary"]
-
-  Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
-  P = TrialFESpace(Q)
-
-  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
-  U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
-
-  Y = MultiFieldFESpace([V, Q])
-  X = MultiFieldFESpace([U, P])
-
-
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
-  pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω_panel,panel_ids)
-
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_proj_cf = panelwise_cellfield(projection_v(vX),Ω_panel,panel_ids)
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-
-  u_perp_contra = panelwise_cellfield(contra_v_perp3D(vX),Ω_panel,panel_ids)
-  u_perp = covarient_basis_cf ⋅ u_perp_contra
-
-  sgrad_cf = panelwise_cellfield(sgrad(h),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
-
-
-  # manufacture rhs functions
-  rhs_scalar = h_cf + sdiv_cf
-  rhs_vector = u_proj_cf + cor_cf*u_perp + sgrad_cf
-  rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
-
-  # weak forms
-  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_contra_h = interpolate(u_contra_cf,U)
-  h_h = interpolate(h_cf,P)
-
-  Aperp = [0 0 0
-          0 0 -1
-          0 1 0]
-  Rperp = TensorValue(Aperp)
-  Rperp_cf = CellField(Rperp,Ω_panel)
-
-  #### Solve as multifield
-  biform1((u,p),(v,q)) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( ( cor_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-  biform2((u,p),(v,q)) = ∫( (p*q)*meas_cf )dΩ + ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ
-
-  biformX((u,p),(v,q)) = biform1((u,p),(v,q)) + biform2((u,p),(v,q))
-  liformX((v,q)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ + ∫( (rhs_scalar*q)*meas_cf )dΩ
-
-  assem = SparseMatrixAssembler(X,Y,das)
-  op = AffineFEOperator(biformX,liformX,X,Y,assem)
-  A = get_matrix(op)
-  b = get_vector(op)
-  ns = numerical_setup(symbolic_setup(ls,A),A)
-  x = allocate_in_domain(A); fill!(x,0.0)
-  solve!(x,ns,b)
-  xh = FEFunction(X,x)
-  uh,ph = xh
-
-  uh_proj = covarient_basis_cf ⋅ uh
-  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
-  e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
-
-
-  if return_vtk
-    _Ω_panel = Triangulation(panel_model)
-    cell_geo_map = geo_map_func(_Ω_panel)
-
-    if das == FullyAssembledRows()
-      cell_geo_map = geo_map_func(get_panel_ids(_Ω_panel))
-    end
-
-    panel_cfs = [h_cf, u_proj_cf, ph, uh_proj, h_cf-ph, u_proj_cf-uh_proj ]
-    labels = ["p","u_proj", "ph", "uh_proj", "ep","eu"]
-    cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
-  end
-
-  ### convergence output for DrWatson
   dir_convergence = dir*"/convergence"
   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
+
+  ζ = 0.0
+  h = panel_to_cartesian(h₀(ζ))
+  vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+  f = panel_to_cartesian(f₀(ζ))
+
+  omodel = if Dc == 2
+    ParametricOctreeDistributedDiscreteModel(ranks;
+    num_initial_uniform_refinements=n_ref)
+  elseif Dc == 3
+    Parametric3DOctreeDistributedDiscreteModel(ranks;
+        num_horizontal_uniform_refinements=n_ref,
+        num_vertical_uniform_refinements=n_ref);
+  end
+
+  panel_model = omodel.parametric_dmodel
+
+
+  GridapPETSc.Init()
+  ls = PETScLinearSolver(petsc_mumps_setup)
+
+  e_u,e_p, = linear_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,ls,Bool(return_vtk))
+
+  i_am_main(ranks) && println("eu = $e_u, e_p = $e_p")
+
+  ## convergence output for DrWatson
   n = nc(panel_model)
-  n_h = nc_horizontal(panel_model)
-  n_v = _nc_vertical(panel_model)
   dxx = dx(panel_model)
-  output = @strdict e_u e_p n n_h n_v dxx p_fe lvl_h lvl_v
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("linear_shallow_water_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
+  output = @strdict e_u e_p n dxx p_fe n_ref Dc
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_sw_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
 
-  return e_u,e_p,false
+
+  GridapPETSc.Finalize()
+  GridapPETSc.gridap_petsc_gc()
+
+  i_am_main(ranks) && println("--DONE--")
+
 end
 
 
-function linear_shallow_water_errors(panel_model,p_fe::Int,dir::String,
-  h::Function,vX::Function,f::Function,η::Function,b::Function,
-  ls=LUSolver(),CFL=0.1,return_vtk=false,check_geo_balance=false)
-
-  linear_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,ls,return_vtk,check_geo_balance)
-end
 
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(distribute,nprocs;octree=false,threedims=false)
+function main(models::AbstractArray)
+  h = panel_to_cartesian(h₀(0.0))
+  vX = panel_to_cartesian(tangent_vec(u₀(0.0)))
+  f = panel_to_cartesian(f₀(0.0))
+
+  ls = LUSolver()
+  dir = @__DIR__
+  ps = [1,2]
+  p_convergence_auto_test(ps,models,linear_shallow_water_solver,dir,h,vX,f,ls)
+end
+
+function main(distribute,nprocs;)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("Auto conference test: Wave Equation")
-
-  dir = foldername("LinearisedShallowWater",octree,threedims)
-  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
-
   n_ref_lvls = 4
-  ps = [1]
-  ζs = [0.0]
-  ls = LUSolver()
 
-  models = get_models(ranks,nprocs,n_ref_lvls;threedims=threedims,octree=octree)
+  ## Distributed model: 2D
+  models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  main(models)
 
-  for (i,ζ) in enumerate(ζs)
-    _dir = dir*"/func_z$i"
-    (i_am_main(ranks) && !isdir(_dir) ) && mkdir(_dir)
+  ### P4test model: 2D
+  models = get_octree_refined_models(ranks,n_ref_lvls)
+  main(models)
 
-    h = panel_to_cartesian(h₀(ζ))
-    vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-    f = panel_to_cartesian(f₀(ζ))
+  ### P4test model: 3D
+  models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+  main(models)
 
-    i_am_main(ranks) && println("linear_shallow_water_convergence_func_z$i")
-    p_convergence_test(ranks,ps,models,linear_shallow_water_solver,_dir,h,vX,f,ls,true)
-  end
-
-  i_am_main(ranks) && println("--DONE--")
 end
-
-
-################################################################################
-#### Convergence test with plots
-################################################################################
-
-function linear_shallow_water_convergence_test(ranks::AbstractArray,nprocs::Int,
-  ζs=[0.0],n_ref_lvls=4,ps=[1],ls=LUSolver(),CFL=0.1,return_vtk=false,check_geo_balance=false)
-  williamson2_convergence_test(ranks,nprocs,linear_shallow_water_errors,ζs,n_ref_lvls,ps,ls,CFL,return_vtk,check_geo_balance)
-end
-
-
-
-end ##module
