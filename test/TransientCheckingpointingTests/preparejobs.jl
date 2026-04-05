@@ -86,13 +86,13 @@ end
 
 ############################################
 
-jobsdir = projectdir("tsw_jobs")
+jobsdir = projectdir("sw_W2_jobs")
 !isdir(jobsdir) && mkdir(jobsdir)
 wdir = projectdir("test/TransientCheckingpointingTests")
 
 
 queue = :normal
-orders = [1]
+orders = [1,2]
 nlevels = [1,2,3,4,5]
 nprocs  = [24,48,48,96,192]
 

@@ -19,8 +19,8 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("../convergence_tools.jl")
-include("helpers.jl")
+# include("../convergence_tools.jl")
+# include("helpers.jl")
 include("../Geophysical/Williamson2Test.jl")
 # include("../Geophysical/Williamson5Test.jl")
 
@@ -52,9 +52,10 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
 
 
   ## finite element solver
+  degree = 4*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
-  dΩ = Measure(Ω_panel,2*(p_fe+1))
+  dΩ = Measure(Ω_panel,degree)
 
   R = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe+1); conformity=:H1)
   H = TransientTrialFESpace(R)
@@ -71,18 +72,24 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   X_diag = TransientMultiFieldFESpace([H,U,P]) # q, F, Φ
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
+  # metric information
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+
   ## initial conditions
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
 
-    u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-    u_contra_h = interpolate(u_contra_cf,U)
+    u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+    u_int = interpolate(u_cf,U)
 
     h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
     b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
-    h_h = interpolate(h_cf-b_cf,P)
+    h_int = interpolate(h_cf-b_cf,P)
 
-    xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog(0.0))
+    xh0 = interpolate_everywhere([u_int,h_int],X_prog(0.0))
     t = 0.0
     psave(prog_dir*"/solT_$(t)",xh0)
     psave(initial_dir*"/solT_$(t)",xh0)
@@ -93,27 +100,28 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   t0,xh0 = (restart) ? load_last(ranks,X_prog(0.0),prog_dir,simName) : initial_condition()
 
   ## transient weak form
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
   gravity = _g
   b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
 
   #### DIAGNOSTIC VARIABLES
   # vorticity
-  perp_matrix_cf = panelwise_cellfield(perp_matrix,Ω_panel,panel_ids)
-  resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (perp_matrix_cf⋅u)⋅∇(w)  )dΩ
+  Aperp = [0 -1
+           1 0]
+  Rperp = TensorValue(Aperp)
+  Rperp_cf = CellField(Rperp,Ω_panel)
+
+
+  resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (( (Rperp_cf⋅u)⋅inv_metric_cf)⋅∇(w))*meas_cf  )dΩ
 
   # mass flux
-  resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(u⋅(metric_cf⋅v))*meas_cf   )dΩ
+  resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ - ∫( p*(u⋅(metric_cf⋅v))*(1/meas_cf)   )dΩ
 
   # Bernoulli potential
-  resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( gravity*(p+b_cf)*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*meas_cf  )dΩ
+  resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( gravity*(p+b_cf)*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*(1/meas_cf)  )dΩ
 
   res_y(t,((u,p),(q,F,Φ)),(w,v,ψ)) = resq(((u,p),(q,F,Φ)),(w,v,ψ)) + resF(((u,p),(q,F,Φ)),(w,v,ψ)) + resΦ(((u,p),(q,F,Φ)),(w,v,ψ))
-  jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( dq*p*w*meas_cf  )dΩ + ∫( (dF⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( dΦ*ψ*meas_cf  )dΩ
+  jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( dq*p*w*meas_cf  )dΩ + ∫( (dF⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ + ∫( dΦ*ψ*meas_cf  )dΩ
 
   _res_y((q,F,Φ),(w,v,ψ))  = res_y(t0,(xh0,(q,F,Φ)),(w,v,ψ))
   _jac_y((q,F,Φ),(dq,dF,dΦ),(w,v,ψ)) = jac_y(t0,(xh0,(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ))
@@ -126,19 +134,18 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   #### PROGNOSTIC VARIABLES
 
   # equation for depth and velocity:
-  mass(t,(dut,dpt),(v,r)) = ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
+  mass(t,(dut,dpt),(v,r)) = ∫( (dut⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
-  res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ∫( r*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
-
-  res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = (  ∫( q*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
-                                + ∫( -τ*( (q-q0)/dt )*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
-                                + ∫( -τ*(u⋅∇(q))*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
-                                - ∫( Φ*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
+  res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ∫( r*(∇⋅F) )dΩ
+  res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = (  ∫( ( q*( (Rperp_cf⋅ F)⋅v))  )dΩ
+                                + ∫( -τ*( (q-q0)/dt )*( (Rperp_cf⋅ F)⋅v)   )dΩ
+                                + ∫( -τ*(u⋅∇(q))*( (Rperp_cf⋅ F)⋅v)*(1/meas_cf)   )dΩ
+                                - ∫( Φ*(∇⋅v) )dΩ
                     )
 
   res_x(t,((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) + res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0))
-  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) =  ∫( -τ*(du⋅∇(q))*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
-  jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
+  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) = ∫( -τ*(du⋅∇(q))*( (Rperp_cf⋅ F)⋅v)*(1/meas_cf)   )dΩ
+  jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
 
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog)
@@ -146,9 +153,13 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   opDAE = DAEFEOperator(opT,opFE,ls_diag)
 
   # transient parameters
-  _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
-  dt = floor(_dt, sigdigits=1)
-  τ = dt/2
+  _dt = dx(panel_model)*CFL/(p_fe*sqrt(gravity*_H_0))
+  nsteps = _tF/ _dt
+  dt = _tF/floor(nsteps)
+  τ = 0.0#dt/2
+
+  i_am_main(ranks) && println("nsteps = $nsteps")
+  i_am_main(ranks) && println("dt = $dt, other dt = $_dt")
 
   # solve with SSP RK 3
   ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
@@ -240,12 +251,13 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
 
   cell_geo_map = geo_map_func(Ω_panel)
 
-  labels = ["uh","ph","qh","Fh","Phih","vort"]
+  labels = ["uh","ph","qh","Fh","Phih","vort", "vort-f"]
   function make_vtk(t::Float64,xh,yh,cell_geo_map)
     uh,ph = xh
     qh,Fh,Φh = yh
     vort = qh*ph - cor_cf
-    panel_cfs = [covarient_basis_cf⋅uh, ph, qh, Fh, Φh, vort]
+    vort_f = qh*ph
+    panel_cfs = [covarient_basis_cf⋅(1/meas_cf*uh), ph, qh, Fh, Φh, vort,vort_f]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
@@ -257,7 +269,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     vort = qh*ph - cor_cf
 
     ens = sum(∫( (qh*qh*xh[2])*meas_cf  )dΩ)
-    energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
+    energy = sum(∫( 0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1]))*(1/meas_cf) )dΩ  + ∫( 0.5*gravity*(xh[2]*xh[2] )*meas_cf )dΩ)
     _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
     _vort = sum( ∫( vort*meas_cf )dΩ  )
 
@@ -321,7 +333,7 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
   ## finite element solver
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_panel,6*(p_fe+1))
+  dΩ_error = Measure(Ω_panel,8*(p_fe+1))
 
   Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TransientTrialFESpace(Q)
@@ -334,6 +346,7 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
 
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
 
   f_folders = readdir(final_dir)
   i_folders = readdir(initial_dir)
@@ -353,11 +366,14 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
   xh0 = FEFunction(X_prog,x0)
   uh0,ph0 = xh0
 
-  uh_proj = covarient_basis_cf ⋅ uh
-  uh0_proj = covarient_basis_cf ⋅ uh0
-  e_u = l2( (uh0_proj - uh_proj),meas_cf,dΩ_error)
-  e_p = l2((ph0 - ph),meas_cf,dΩ_error)
+  uh_proj = covarient_basis_cf ⋅ (1/meas_cf*uh)
+  uh0_proj = covarient_basis_cf ⋅ (1/meas_cf*uh0)
 
+  _e = uh0 - uh
+  e_u =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*(1/meas_cf) )dΩ_error))
+
+  _e = ph0 - ph
+  e_p = sqrt(sum(∫( (_e*_e)*meas_cf )dΩ_error))
 
   ### convergence output for DrWatson
   dir_convergence = dir*"/convergence"
@@ -368,13 +384,14 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
   output = @strdict e_u e_p n dxx p_fe lvl t
   i_am_main(ranks) && safesave(datadir(dir_convergence, ("shallow_water_nref$(lvl)_p$p_fe.jld2")), output)
 
+  return e_u,e_p
 
 end
 ################################################################################
 #### Main run for transient solution
 ################################################################################
 function main_transient(distribute,nprocs;
-  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=true)
+  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=1)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
@@ -397,21 +414,22 @@ function main_transient(distribute,nprocs;
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
-  (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
   transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,CFL,lss,restart)
-  convergence_post_process(panel_model,p_fe,dir)
-  post_process(panel_model,p_fe,dir,f,return_vtk)
+  e_u,e_p = convergence_post_process(panel_model,p_fe,dir)
+  post_process(panel_model,p_fe,dir,f,Bool(return_vtk))
 
+  i_am_main(ranks) && println("eu = $e_u, ep = $e_p")
   i_am_main(ranks) && println("--DONE--")
   @test true
 end
 
 
-# MPI.Init()
+MPI.Init()
 # nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-# # ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-# with_mpi() do distribute
-#   main_transient(distribute,nprocs;restart=false,n_ref_lvls=4)
-# end
+with_mpi() do distribute
+  main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
+end

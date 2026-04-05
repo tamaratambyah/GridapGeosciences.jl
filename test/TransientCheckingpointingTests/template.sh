@@ -9,7 +9,7 @@
 #PBS -o {{{o}}}
 #PBS -e {{{e}}} 
 
-source $HOME/scripts/load-configs-zg98.sh
+source $HOME/scripts/load-configs-{{project}}.sh
 source $HOME/scripts/load-intel.sh
  
 mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
@@ -22,12 +22,14 @@ mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
 
   i_am_main(ranks) && println("--START--")
 
-  include("test/TransientCheckingpointingTests/TSWConvergence.jl") 
+  include("test/TransientCheckingpointingTests/TransientShallowWater.jl") 
 
   with_mpi() do distribute
-      main_transient(distribute,{{ncpus}};restart=false,n_ref_lvls={{nl}},p_fe={{order}})
+      main_transient(distribute,{{ncpus}};restart=false,
+        n_ref_lvls={{nl}},p_fe={{order}},return_vtk={{return_vtk}}) 
   end 
 
   i_am_main(ranks) && println("--DONE--")
 
-' > {{{o}}}.${PBS_JOBID} 2> {{{e}}}.${PBS_JOBID}
+' 
+#> {{{o}}}.${PBS_JOBID} 2> {{{e}}}.${PBS_JOBID}
