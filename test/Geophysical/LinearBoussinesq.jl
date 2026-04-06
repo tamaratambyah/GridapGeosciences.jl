@@ -5,35 +5,20 @@ u + f(̂n×u) + ∇ᵧ(φ) - bn̂ = f₁
 b + N² u⋅̂n = f₃
 """
 
-module LinearBoussinesq
-
-using MPI
-using PartitionedArrays
-
 using DrWatson
 using Gridap
 using GridapDistributed
 using GridapSolvers
 using PartitionedArrays
+using MPI
 using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
 
 using GridapGeosciences
-using GridapGeosciences.Distributed
-using GridapP4est
 using Test
 
 import GridapGeosciences.Helpers: RADIUS, THICKNESS
 THICKNESS
 RADIUS
-
-# MPI.Init()
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-# dir = datadir("DistributedLinearisedBoussinesq_nprocs$(length(ranks))")
-# (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
-
-include("../convergence_tools.jl")
-include("../missing_overloads.jl")
 
 a_e = 6.37e6/125 # m
 d = 5000 #m
@@ -60,7 +45,13 @@ _N = N*τ
 _ztop = ztop/LV
 
 
-p0(xyz) = 0.0
+function p0(xyz)
+  x,y,z = xyz
+  θϕr   = xyz2θϕr(xyz)
+  θ,ϕ,r = θϕr
+  sin(ϕ)
+  #  = 0.0
+end
 
 function b0(xyz)
   x,y,z = xyz
@@ -78,12 +69,6 @@ function b0(xyz)
   b
 end
 
-function bn(xyz)
-  b = b0(xyz)
-  n = normal_vec(xyz)
-  b*n
-end
-
 function u0(xyz)
   x,y,z = xyz
   θϕr   = xyz2θϕr(xyz)
@@ -97,13 +82,6 @@ function u0(xyz)
   VectorValue(u,v,0.0)
 end
 
-function un(xyz)
-  u = u0(xyz)
-  n = normal_vec(xyz)
-  u⋅n
-end
-
-
 function omega(xyz)
   x,y,z = xyz
   θϕr   = xyz2θϕr(xyz)
@@ -112,100 +90,94 @@ function omega(xyz)
 end
 
 
+
 function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
   p_fe::Int,dir::String,
-  h::Function,vX::Function,f::Function,b::Function,_bn::Function,_un::Function,
+  h::Function,vX::Function,f::Function,b::Function,
   ls=LUSolver(),return_vtk=false)
 
-  das =  FullyAssembledRows() # must have FullyAssembledRows to use b_cf on boundary
-
   ranks = get_ranks(panel_model)
+  Dc = num_cell_dims(panel_model)
+  lvl = nref(panel_model)
 
-  i_am_main(ranks) && println("Assembly strategy: $das")
+  i_am_main(ranks) && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
 
-  lvl_h = nref(nc_horizontal(panel_model))
-  lvl_v = nref(nc_vertical(panel_model))
-  i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
-
+  degree = 4*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
-  Ω_panel = Triangulation(das,panel_model)
-  dΩ = Measure(Ω_panel,4*(p_fe+1))
-
-  Ω_error = Triangulation(panel_model)
-  dΩ_error = Measure(Ω_error,6*p_fe+1)
-
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
-  pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω_panel,panel_ids)
-
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_proj_cf = panelwise_cellfield(projection_v(vX),Ω_panel,panel_ids)
-  omega_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
-
-  tags = ["bottom_boundary",  "top_boundary"]
+  Ω_panel = Triangulation(panel_model)
+  dΩ = Measure(Ω_panel,degree)
+  dΩ_error = Measure(Ω_panel,2*degree)
 
   Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
 
-  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv,dirichlet_tags=tags)
-  U = TrialFESpace(V,VectorValue(0.0,0.0,0.0))
+  V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe))
+  U = TrialFESpace(V)
 
-  W = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2,dirichlet_tags=tags)
-  B = TrialFESpace(W,b_cf)
+  W = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe))
+  B = TrialFESpace(W)
 
   Y = MultiFieldFESpace([V, Q, W])
   X = MultiFieldFESpace([U, P, B])
 
-  u_perp_contra = panelwise_cellfield(contra_v_perp3D(vX),Ω_panel,panel_ids)
-  u_perp = covarient_basis_cf ⋅ u_perp_contra
 
-  sgrad_cf = panelwise_cellfield(sgrad(h),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
-  bn_cf = panelwise_cellfield(_bn,Ω_panel,panel_ids)
-  un_cf = panelwise_cellfield(_un,Ω_panel,panel_ids)
-  g_star_cf = panelwise_cellfield(g_star,Ω_panel,panel_ids)
-
-  # manufacture rhs functions
-  rhs_bouyancy = b_cf + _N^2*un_cf
-  rhs_pressure = h_cf + _c^2*sdiv_cf
-  rhs_vector = u_proj_cf + omega_cf*u_perp + sgrad_cf -bn_cf
-  rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
-
-  # weak forms
-  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
+  # metric information
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
-  #### Velocity
-  Aperp = [0 0 0
-           0 0 -1
-           0 1 0]
-  Rperp = TensorValue(Aperp)
-  Rperp_cf = CellField(Rperp,Ω_panel)
 
-  biform1((u,p,b),(v,q,r)) = ( ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( ( omega_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ
-                             - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-                             - ∫( b*(g_star_cf⋅v )*meas_cf )dΩ )
-  liform1((v,q,r)) = ∫( rhs_con_vector⋅(metric_cf⋅v)*meas_cf )dΩ
+  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
+  u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+  u_proj_cf = covarient_basis_cf ⋅(1/meas_cf * u_cf  )
+  b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+  omega_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+
+  p_int = interpolate(h_cf,P)
+  u_int = interpolate(u_cf,U)
+  b_int = interpolate(b_cf,B)
+
+  ## In 3D, we construct ̃k using the area measure
+  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  area_meas(p) = x-> norm(_area_meas(p)(x))
+  normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
+  normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel,panel_ids)
+
+  coriolis_term((u,p,b),(v,q,r)) = ∫( omega_cf*( normal_3D_cf ×( metric_cf⋅u*(1/meas_cf)  ) )⋅(metric_cf⋅v)*(1/meas_cf)  )dΩ
+  bouyancy_term(b,v) = ∫( b*(normal_3D_cf⋅v)  )dΩ # v ∈ Hdiv, b ∈ L2
+
+  biform_u((u,p,b),(v,q,r)) = ( ∫( (u⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
+                              + coriolis_term((u,p,b),(v,q,r))
+                              - ∫( p*(∇⋅v) )dΩ
+                              - bouyancy_term(b,v)
+                              )
 
   #### Pressure
-  biform2((u,p,b),(v,q,r)) = ∫( (p*q)*meas_cf )dΩ + ∫( _c^2*( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) ) ) )dΩ
-  liform2((v,q,r)) =  ∫( (rhs_pressure*q)*meas_cf )dΩ
+  biform_p((u,p,b),(v,q,r)) = ∫( (p*q)*meas_cf )dΩ + ∫( _c^2*(q*(∇⋅u)) )dΩ
 
   #### Bouyancy
-  n_cf = CellField(VectorValue(1,0,0),Ω_panel)
-  biform3((u,p,b),(v,q,r)) = ∫( (b*r)*meas_cf )dΩ + ∫( _N^2*( r*(g_star_cf⋅u)*meas_cf)   )dΩ
-                                                  # ∫( _N^2*( r*( n_cf⋅(metric_cf⋅u))*meas_cf)   )dΩ
-  liform3((v,q,r)) =  ∫( (rhs_bouyancy*r)*meas_cf )dΩ
+  biform_b((u,p,b),(v,q,r)) = ∫( (b*r)*meas_cf )dΩ + _N^2* bouyancy_term(r,u)
+
+  biformX((u,p,b),(v,q,r)) = biform_u((u,p,b),(v,q,r)) + biform_p((u,p,b),(v,q,r)) + biform_b((u,p,b),(v,q,r))
+
+  # Account for the boundary term from IBP in the RHS forcing operator
+  Γ = BoundaryTriangulation(panel_model;tags=["bottom_boundary","top_boundary"])
+  dΓ = Measure(Γ,degree)
+  nΓ = get_normal_vector(Γ)
+
+  liformX((v,q,r)) = (
+    ∫( (u_int⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
+  + ∫( gradient(p_int)⋅v )dΩ # assume regularity to IBP
+  + coriolis_term((u_int,p_int,b_int),(v,q,r)) # coriolis term
+  - bouyancy_term(b_int,v)
+  + ∫( (p_int*q)*meas_cf )dΩ + ∫( _c^2*(q*(∇⋅u_int)) )dΩ
+  + ∫( (b_int*r)*meas_cf )dΩ + _N^2* bouyancy_term(r,u_int)
+  - ∫( (v⋅nΓ)*p_int )dΓ
+  )
 
 
   #### Multifield problem
-  assem = SparseMatrixAssembler(X,Y,das)
-  biformX((u,p,b),(v,q,r)) = biform1((u,p,b),(v,q,r)) + biform2((u,p,b),(v,q,r)) + biform3((u,p,b),(v,q,r))
-  liformX((v,q,r)) = liform1((v,q,r)) + liform2((v,q,r)) + liform3((v,q,r))
-
-  op = AffineFEOperator(biformX,liformX,X,Y,assem)
+  op = AffineFEOperator(biformX,liformX,X,Y)
   A = get_matrix(op)
   b_vec = get_vector(op)
   ns = numerical_setup(symbolic_setup(ls,A),A)
@@ -214,76 +186,101 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   xh = FEFunction(X,x)
   uh,ph,bh = xh
 
-  uh_proj = covarient_basis_cf ⋅ uh
-  e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
-  e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth
-  e_b = l2((b_cf - bh),meas_cf,dΩ_error) # error in bouyancy
 
-  ### solve bouyancy as single field
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_contra_h = interpolate(u_contra_cf,U)
-  biformB(b,r) = ∫( (b*r)*meas_cf )dΩ
-  liformB(r) =  ∫( (rhs_bouyancy*r)*meas_cf )dΩ - ∫( _N^2*( r*( n_cf⋅(metric_cf⋅u_contra_h))*meas_cf)   )dΩ
-  op = AffineFEOperator(biformB,liformB,B,W,SparseMatrixAssembler(B,W,das))
-  bh = solve(ls,op)
-  e_b = l2((b_cf - bh),meas_cf,dΩ_error)
+  uh_proj = covarient_basis_cf ⋅ (1/meas_cf*uh)
 
+  _e = u_cf - uh
+  e_u =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*(1/meas_cf) )dΩ_error))
+
+  _e = h_cf - ph
+  e_p = sqrt(sum(∫( (_e*_e)*meas_cf )dΩ_error))
+
+  _e = b_cf - bh
+  e_b = sqrt(sum(∫( (_e*_e)*meas_cf )dΩ_error))
 
   if return_vtk
-    cell_geo_map = geo_map_func(get_panel_ids(Ω_panel))
     panel_cfs = [h_cf, u_proj_cf, b_cf, ph, uh_proj, bh, h_cf-ph, u_proj_cf-uh_proj , b_cf-bh]
     labels = ["p","u_proj", "b", "ph", "uh_proj", "bh", "ep","eu", "eb"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+    cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
   end
 
-  ### convergence output for DrWatson
-  dir_convergence = dir*"/convergence"
-  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
-
-  n = nc(panel_model)
-  n_h = nc_horizontal(panel_model)
-  n_v = _nc_vertical(panel_model)
-  dxx = dx(panel_model)
-  dxx_horizontal = dx_horizontal(panel_model)
-  dxx_vertical = dx_vertical(panel_model)
-  output = @strdict e_u e_p e_b n n_h n_v dxx dxx_horizontal dxx_vertical p_fe lvl_h lvl_v
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("linear_boussineseq_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
-
-  return e_u,e_p,e_b
+  return e_u, e_p, e_b
 end
 
 ################################################################################
-#### Auto convergence test
+#### Launch linearised Boussineq equation -- on gadi
 ################################################################################
-function main(distribute,nprocs)
-  ranks = distribute(LinearIndices((nprocs,)))
+function launch_linearised_boussineseq(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
   i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("Auto conference test: Linear Boussineq")
+  i_am_main(ranks) && println("Linearised Boussineq: Dc = $Dc")
 
-  dir = datadir("LinearBoussineseqConvergence")
-  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  n_ref_lvls = 3
-  ps = [1]
-  ls = LUSolver()
-
-  models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
 
   h = panel_to_cartesian(p0)
   vX = panel_to_cartesian(tangent_vec(u0))
   f = panel_to_cartesian(omega)
   b = panel_to_cartesian(b0)
-  _bn = panel_to_cartesian(bn)
-  _un = panel_to_cartesian(un)
 
-  p_convergence_test(ranks,ps,models,linear_boussineseq,dir,h,vX,f,b,_bn,_un,ls,true)
 
+  Parametric3DOctreeDistributedDiscreteModel(ranks;
+        num_horizontal_uniform_refinements=n_ref,
+        num_vertical_uniform_refinements=n_ref);
+  panel_model = omodel.parametric_dmodel
+
+
+  GridapPETSc.Init()
+  ls = PETScLinearSolver(petsc_mumps_setup)
+
+  e_u, e_p, e_b = linear_boussineseq(panel_model,p_fe,dir,h,vX,f,b,ls,Bool(return_vtk))
+
+  i_am_main(ranks) && println("eu = $e_u, e_p = $e_p, e_b = $e_b")
+
+  ## convergence output for DrWatson
+  n = nc(panel_model)
+  dxx = dx(panel_model)
+  output = @strdict e_u e_p e_b n dxx p_fe n_ref Dc
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_sw_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
+
+
+  GridapPETSc.Finalize()
+  GridapPETSc.gridap_petsc_gc()
 
   i_am_main(ranks) && println("--DONE--")
+
 end
 
 
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(models::AbstractArray)
+  h = panel_to_cartesian(p0)
+  vX = panel_to_cartesian(tangent_vec(u0))
+  f = panel_to_cartesian(omega)
+  b = panel_to_cartesian(b0)
 
-end ## module
+  ls = LUSolver()
+  dir = @__DIR__
+  ps = [1]
+  p_convergence_auto_test(ps,models,linear_boussineseq,dir,h,vX,f,b,ls)
+
+end
+
+function main(distribute,nprocs;)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 3
+
+  ### P4test model: 3D
+  models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+  main(models)
+
+end

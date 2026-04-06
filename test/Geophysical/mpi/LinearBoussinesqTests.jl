@@ -6,7 +6,7 @@ MPI.Init()
 nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 
 with_mpi() do distribute
-  LinearBoussinesq.main(distribute,nprocs)
+  main(distribute,nprocs)
 end
 
 # end
