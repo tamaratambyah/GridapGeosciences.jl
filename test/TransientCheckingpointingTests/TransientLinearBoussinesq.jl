@@ -204,7 +204,7 @@ function transient_linear_boussinesq_solver(
 
   ## iterate solution
   it = iterate(solT)
-  unwrap_lbous(it,ranks,solT,dir,tF)
+  unwrap_lbous(it,ranks,solT,dir,tF,100)
 end
 
 
@@ -376,10 +376,10 @@ function petsc_gmres_amg_setup(ksp)
 end
 
 
-MPI.Init()
-nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# MPI.Init()
+# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-with_mpi() do distribute
-  main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
-end
+# with_mpi() do distribute
+#   main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
+# end
