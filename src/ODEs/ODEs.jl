@@ -44,7 +44,7 @@ include("ODEOpsFromTFEOps.jl")
 include("StageOperators.jl")
 include("RungeKuttaEX.jl")
 include("RungeKuttaDIM.jl")
-include("ThetaMethod.jl")
+# include("ThetaMethod.jl")
 
 export DAEFEOperator
 export LinearStageOperator
