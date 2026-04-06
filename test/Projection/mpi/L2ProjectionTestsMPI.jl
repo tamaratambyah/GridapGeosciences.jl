@@ -1,13 +1,4 @@
-using Gridap
-using GridapGeosciences
-using GridapDistributed
-using GridapP4est
-using Test
-
-using MPI
-using PartitionedArrays
-
-include("L2ProjectionTests.jl")
+include("../L2ProjectionTests.jl")
 
 
 MPI.Init()
