@@ -10,7 +10,7 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("../Geophysical/ThermogeostrophicBalanceTest.jl")
+include("ThermogeostrophicBalanceTest.jl")
 include("TransientThermalShallowWater.jl")
 
 ################################################################################

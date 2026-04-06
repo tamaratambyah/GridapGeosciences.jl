@@ -14,7 +14,7 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("../Geophysical/Galewsky.jl")
+include("Galewsky.jl")
 include("TransientThermalShallowWater.jl")
 
 

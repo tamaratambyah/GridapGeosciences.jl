@@ -25,7 +25,6 @@ import GridapGeosciences.Helpers: RADIUS, THICKNESS
 
 
 include("helpers.jl")
-include("../convergence_tools.jl")
 
 a_e = 6.37e6/125 # m
 d = 5000 #m
@@ -99,11 +98,11 @@ function transient_linear_boussinesq_solver(
   ls=LUSolver(),CFL=0.1,restart=false)
 
   ranks = get_ranks(panel_model)
+  ranks = get_ranks(panel_model)
+  Dc = num_cell_dims(panel_model)
+  lvl = nref(panel_model)
 
-
-  lvl_h = nref(nc_horizontal(panel_model))
-  lvl_v = nref(nc_vertical(panel_model))
-  i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
+  i_am_main(ranks) && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
 
   sim_dir = dir*"/sim_data"
   (i_am_main(ranks) && !isdir(sim_dir) ) && mkdir(sim_dir)
@@ -142,10 +141,10 @@ function transient_linear_boussinesq_solver(
     i_am_main(ranks) && println("initial condition")
 
     h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-    u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+    u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
     b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
 
-    xh0 = interpolate([u_contra_cf,h_cf,b_cf],X)
+    xh0 = interpolate([u_cf,h_cf,b_cf],X)
     t = 0.0
     psave(sim_dir*"/solT_$(t)",xh0)
     psave(initial_dir*"/solT_$(t)",xh0)
@@ -156,36 +155,34 @@ function transient_linear_boussinesq_solver(
   t0,xh0 = (restart) ? load_last(ranks,X,sim_dir,simName) : initial_condition()
 
   omega_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  g_star_cf = panelwise_cellfield(g_star,Ω_panel,panel_ids)
 
-  # weak forms
-  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
+  # metric information
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
 
-  #### Velocity
-  Aperp = [0 0 0
-            0 0 -1
-            0 1 0]
-  Rperp = TensorValue(Aperp)
-  Rperp_cf = CellField(Rperp,Ω_panel)
+  ## In 3D, we construct ̃k using the area measure
+  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  area_meas(p) = x-> norm(_area_meas(p)(x))
+  normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
+  normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel,panel_ids)
 
-  mass(t, (dtu,dtp,dtb), (v,q,r)) = ( ∫( (v⋅ (metric_cf⋅ dtu) )*meas_cf )dΩ
+  coriolis_term((u,p,b),(v,q,r)) = ∫( omega_cf*( normal_3D_cf ×( metric_cf⋅u*(1/meas_cf)  ) )⋅(metric_cf⋅v)*(1/meas_cf)  )dΩ
+  bouyancy_term(b,v) = ∫( b*(normal_3D_cf⋅v)  )dΩ # v ∈ Hdiv, b ∈ L2
+
+  mass(t, (dtu,dtp,dtb), (v,q,r)) = ( ∫( (v⋅ (metric_cf⋅ dtu) )*(1/meas_cf) )dΩ
                                     + ∫( (q*dtp)*meas_cf )dΩ
                                     + ∫( (r*dtb)*meas_cf )dΩ )
   #### Velocity
-  resu(t,(u,p,b),(v,q,r)) = ( ∫( ( omega_cf*( (Rperp_cf⋅ u)⋅v))*detg_cf )dΩ
-                              - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-                              - ∫( b*(g_star_cf⋅v )*meas_cf )dΩ )
+  resu(t,(u,p,b),(v,q,r)) = ( coriolis_term((u,p,b),(v,q,r))
+                            - ∫( p*(∇⋅v) )dΩ
+                            - ∫( b*(normal_3D_cf⋅v)  )dΩ  #bouyancy_term(b,v)
+                            )
 
   #### Pressure
-  resp(t,(u,p,b),(v,q,r)) = ∫( _c^2*( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) ) ) )dΩ
+  resp(t,(u,p,b),(v,q,r)) = ∫( _c^2*(q*(∇⋅u)) )dΩ
 
   #### Bouyancy
-  n_cf = CellField(VectorValue(1,0,0),Ω_panel)
-  resb(t,(u,p,b),(v,q,r)) =  ∫( _N^2*( r*(g_star_cf⋅u)*meas_cf)   )dΩ
-                                                  # ∫( _N^2*( r*( n_cf⋅(metric_cf⋅u))*meas_cf)   )dΩ
+  resb(t,(u,p,b),(v,q,r)) = ∫( _N^2*r*(normal_3D_cf⋅u)  )dΩ #bouyancy_term(r,u)
 
   res(t,(u,p,b),(v,q,r)) = resu(t,(u,p,b),(v,q,r)) + resp(t,(u,p,b),(v,q,r)) + resb(t,(u,p,b),(v,q,r))
   jac(t,(u,p,b),(du,dp,db),(v,q,r)) = resu(t,(du,dp,db),(v,q,r)) + resp(t,(du,dp,db),(v,q,r)) + resb(t,(du,dp,db),(v,q,r))
@@ -197,9 +194,6 @@ function transient_linear_boussinesq_solver(
   dxx_horizontal = dx_horizontal(panel_model)
   _dt = dxx_horizontal*CFL/_c
   dt = floor(_dt, sigdigits=1)
-
-  dxx_vertical = dx_vertical(panel_model)
-  dxx_horizontal/dxx_vertical
 
   # solve with SSP RK 3
   nls = GridapSolvers.NonlinearSolvers.NewtonSolver(ls;verbose=i_am_main(ranks))
@@ -276,21 +270,15 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   X = MultiFieldFESpace([U, P, B])
 
   covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
 
   cell_geo_map = geo_map_func(Ω_panel)
   latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)
-  # owned_panel_ids = get_owned_panel_ids(panel_model)
-
-  # latlon_cell_geo_map = map(owned_panel_ids) do pid
-  #   cell_geo_map = lazy_map(p -> ForwardMap(p), pid)
-  #   fi = lazy_map(p->Cartesian2SphereicalMap3D(),pid)
-  #   return lazy_map(∘, fi, cell_geo_map)
-  # end
 
   labels = ["uh","ph", "bh"]
   function make_vtk(t::Float64,xh,cell_geo_map,latlon_cell_geo_map)
     uh,ph,bh = xh
-    panel_cfs = [covarient_basis_cf⋅uh, ph, bh]
+    panel_cfs = [covarient_basis_cf⋅(1/meas_cf*uh), ph, bh]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
     writevtk(Ω_panel,vtk_dir*"/solT_$t",cellfields=cellfields,append=false,geo_map=cell_geo_map)
     writevtk(Ω_panel,vtk_latlon_dir*"/solT_$t",cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
@@ -342,7 +330,7 @@ function main_transient(distribute,nprocs;
   GridapPETSc.Init(args=split(options))
   ls = PETScLinearSolver(petsc_gmres_amg_setup)
 
-  # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
+  ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
 
   o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
           num_horizontal_uniform_refinements=n_ref_lvls,
@@ -357,8 +345,8 @@ function main_transient(distribute,nprocs;
   (i_am_main(ranks) && !isdir(dir) && return_vtk) && mkdir(dir)
 
   ## if restarted, post process the existing files
-  restart && post_process(panel_model,p_fe,dir,return_vtk)
-  i_am_main(ranks) && println("finished post processing existing data")
+  # restart && post_process(panel_model,p_fe,dir,return_vtk)
+  # i_am_main(ranks) && println("finished post processing existing data")
 
   transient_linear_boussinesq_solver(panel_model,p_fe,dir,h,vX,f,b,ls,CFL,restart)
   post_process(panel_model,p_fe,dir,return_vtk)
@@ -388,10 +376,10 @@ function petsc_gmres_amg_setup(ksp)
 end
 
 
-# MPI.Init()
-# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+MPI.Init()
+nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
-# with_mpi() do distribute
-#   main_transient(distribute,nprocs;restart=true,n_ref_lvls=3)
-# end
+with_mpi() do distribute
+  main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
+end

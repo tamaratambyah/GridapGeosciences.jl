@@ -19,9 +19,8 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("../convergence_tools.jl")
 include("helpers.jl")
-include("../Geophysical/Williamson2Test_3D_testcase.jl")
+include("Williamson2Test_3D_testcase.jl")
 
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
