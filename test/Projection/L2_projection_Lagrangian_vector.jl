@@ -1,26 +1,18 @@
-using MPI
-using PartitionedArrays
-using GridapGeosciences
-using GridapGeosciences.Distributed
-using GridapP4est
-using Gridap
-using Gridap.Helpers
-using GridapDistributed
-# using DrWatson
+function L2_projection_Lagrangian_vector(panel_model,
+                                         p_fe::Int,
+                                         dir::String,
+                                         vecX::Function,
+                                         conf,
+                                         ls=LUSolver(),
+                                         return_vtk=true;
+                                         _i_am_main=true)
 
-# include("../convergence_tools.jl")
-
-
-function L2_projection_Lagrangian_vector(
-  panel_model,p_fe::Int,dir::String,vecX::Function,conf,ls=LUSolver(),return_vtk=true)
-
-  ranks = get_ranks(panel_model)
   Dc = num_cell_dims(panel_model)
   lvl = nref(panel_model)
 
   @check conf in [:L2, :H1] "\n Must be L2 or H1 conformity"
 
-  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc, conf = $conf")
+  _i_am_main && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc, conf = $conf")
 
   degree = 4*(p_fe+1)
 
@@ -62,8 +54,8 @@ function L2_projection_Lagrangian_vector(
   _e = vec_contra_cf - vec_contra_h
   el2_interp =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))
 
-  # i_am_main(ranks) && println("Error interp: ", el2_interp)
-  # i_am_main(ranks) && println("Error proj: ", el2_proj)
+  # _i_am_main && println("Error interp: ", el2_interp)
+  # _i_am_main && println("Error proj: ", el2_proj)
 
   if return_vtk
     panel_cfs = [vec_proj_cf, vec_l2proj_h, vec_proj_cf-vec_l2proj_h,

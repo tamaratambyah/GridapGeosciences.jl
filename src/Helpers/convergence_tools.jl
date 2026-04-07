@@ -1,12 +1,10 @@
 """
 auto convergence tests
 """
-
 function test_slope(slope,p_fe,Dc)
   if slope >= p_fe
     return true
   end
-
   # In the event that the slope for 3D models is slightly less than p_fe
   if Dc == 3 && (slope >= p_fe -1e-1)
       return true
@@ -14,9 +12,12 @@ function test_slope(slope,p_fe,Dc)
   return false
 end
 
-function p_convergence_auto_test(ps::Vector{Int},models::AbstractArray,convergence_func,dir::String,fargs...)
+function p_convergence_auto_test(ps::Vector{Int},
+                                 models::AbstractArray,
+                                 convergence_func,
+                                 dir::String,fargs...; 
+                                 _i_am_main=true)
 
-  ranks = get_ranks(testitem(models))
   Dc = num_cell_dims(testitem(models))
   # nref == refinement level of the mesh
   # 2^nref == number of cells per panel
@@ -26,25 +27,21 @@ function p_convergence_auto_test(ps::Vector{Int},models::AbstractArray,convergen
   # lvls = map(x->num_cells(x),models)
 
   for (i,p_fe) in enumerate(ps)
-    errs = h_convergence_auto_test(models,convergence_func,p_fe,dir,fargs...)
+    errs = h_convergence_auto_test(models,convergence_func,p_fe,dir,fargs...; _i_am_main=_i_am_main)
     slope = convergence_rate(lvls,errs)
-    i_am_main(ranks) && println("slope = $slope")
+    _i_am_main && println("slope = $slope")
     @test test_slope(slope,p_fe,Dc) #slope >= p_fe
   end
-
 end
 
-function h_convergence_auto_test(models::AbstractArray,f,p_fe::Int,dir::String,fargs...)
+function h_convergence_auto_test(models::AbstractArray,f,p_fe::Int,dir::String,fargs...; _i_am_main=true)
   errs = Float64[]
-
   for model in models
-    e, = f(model,p_fe,dir,fargs...)
+    e, = f(model,p_fe,dir,fargs...; _i_am_main=_i_am_main)
     push!(errs,e)
   end
-
   return errs
 end
-
 
 
 """
@@ -54,22 +51,17 @@ returns an array of refined serial models where
   models[end] == coarsest model
 """
 function get_refined_models(n_ref_lvls::Int,coarse_model=false)
-
   panel_model = coarse_parametric_model()
   panel_models = Vector{DiscreteModel}(undef,n_ref_lvls)
-
   for n in n_ref_lvls:-1:1
     panel_model = Gridap.Adaptivity.refine(panel_model)
     panel_models[n] = panel_model
   end
-
   if coarse_model
     push!(panel_models,coarse_parametric_model())
   end
-
   panel_models
 end
-
 
 function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=false)
   s_models  = get_refined_models(n_ref_lvls,coarse_s_model)
@@ -77,9 +69,7 @@ function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_mo
   dmodels
 end
 
-
 function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:DiscreteModel})
-
   # get refined models in serial
   spanel_ids = map(m->get_panel_ids(m),s_models)
   s_model_coarse = s_models[end]
@@ -131,22 +121,18 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
 
     dmodels[level] = DistributedParametricDiscreteModel(child, dpanel_ids[level])
   end
-
   return dmodels, dpanel_ids, owned_panel_ids
-
 end
 
 
 #### get array of dmodel - octree models
 function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
-
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
     parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n)
     dmodels[i] = parametric_octree_dmodel.parametric_dmodel
   end
-
 
   if coarse_model
     parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
@@ -157,7 +143,6 @@ function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
 end
 
 function get_3D_octree_refined_models(ranks,n_ref_lvls::Int)
-
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
@@ -168,7 +153,6 @@ function get_3D_octree_refined_models(ranks,n_ref_lvls::Int)
   end
 
   return dmodels
-
 end
 
 """

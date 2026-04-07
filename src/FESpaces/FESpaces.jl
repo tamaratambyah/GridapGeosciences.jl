@@ -33,5 +33,6 @@ import LinearAlgebra: I, ⋅
 include("GradConformingFESpaces.jl")
 export _generate_change_of_basis_matrices
 export _get_value_type
+export ParamTrianType
 
 end

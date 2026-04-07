@@ -63,7 +63,7 @@ function FESpace(model::DistributedParametricDiscreteModel,
   return _add_distributed_constraint(space,reffe,constraint)
 end
 
-function FESpace(_trian::DistributedTriangulation{Dc,Dp,<:DistributedParametricDiscreteModel{Dc,Dp}},
+function FESpace(_trian::DistributedTriangulation{Dc,Dp,<:AbstractArray{<:ParamTrianType{Dc,Dp}}},
                  reffe::Tuple{<:Lagrangian,Any, Any}; 
                  split_own_and_ghost=false,
                  constraint=nothing,
@@ -86,6 +86,7 @@ function FESpace(_trian::DistributedTriangulation{Dc,Dp,<:DistributedParametricD
                   local_views(dtrian),
                   change_of_basis_matrices) do m,
                                                cell_reffe,
+                                               trian,
                                                change_of_basis_matrices
            conf = Conformity(testitem(cell_reffe),conformity)
            cell_fe = CellFE(m,cell_reffe,conf,change_of_basis_matrices)

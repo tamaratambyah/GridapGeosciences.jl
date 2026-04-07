@@ -1,23 +1,15 @@
-using MPI
-using PartitionedArrays
-using GridapGeosciences
-using GridapP4est
-using Gridap
-using GridapDistributed
-using Gridap.Helpers
-
-# using DrWatson
-
-# include("../convergence_tools.jl")
-
 transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
 covar_v_3D(vecX::Function,p::Int) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
 covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
-function L2_projection_Hcurl(panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
-  p_fe::Int,dir::String,vecX::Function,ls=LUSolver(),return_vtk=true)
+function L2_projection_Hcurl(panel_model,
+                             p_fe::Int,
+                             dir::String,
+                             vecX::Function,
+                             ls=LUSolver(),
+                             return_vtk=true;
+                             _i_am_main=true)
 
-  ranks = get_ranks(panel_model)
   Dc = num_cell_dims(panel_model)
   lvl = nref(panel_model)
 
@@ -28,7 +20,7 @@ function L2_projection_Hcurl(panel_model::GridapDistributed.GenericDistributedDi
     degree = 8
   end
 
-  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc; degree = $(degree)")
+  _i_am_main && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc; degree = $(degree)")
 
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
@@ -75,7 +67,6 @@ function L2_projection_Hcurl(panel_model::GridapDistributed.GenericDistributedDi
   end
 
   return  el2_proj,e_interp, false
-
 end
 
 ### Since we are in 3D, does not have to be in the tangent space of the 3D sphere

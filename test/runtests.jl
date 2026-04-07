@@ -1,9 +1,14 @@
-module RunTests
-
+using GridapGeosciences
 using Test
 
-@testset "Geometry" begin include("GeometryTests/runtests.jl") end
+TESTCASE = get(ENV, "TESTCASE", "seq")
 
+# Sequential tests
+if TESTCASE ∈ ("all", "seq", "seq-l2-projection")
+  include("Projection/seq/runtests.jl")
 end
 
-# @testset "gs" begin include("test/runtests.jl") end
+# MPI tests
+if TESTCASE ∈ ("all", "mpi", "mpi-l2-projection")
+   include("Projection/mpi/runtests.jl")
+end
