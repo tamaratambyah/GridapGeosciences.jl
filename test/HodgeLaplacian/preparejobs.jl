@@ -56,7 +56,7 @@ function jobdict(name,params,q)
     "walltime" => walltime,
     # "nnodes" => nnodes,
     "ncpus" => ncpus,
-    "mem" => "2990G", #"$(mem)G",
+    "mem" => "$(mem)G",
     # "ntasks" => ntasks,
     # "ncputask" => ncputask,
     # "ntaskspernode" => ntaskspernode,
@@ -105,7 +105,7 @@ wdir = projectdir("test/HodgeLaplacian")
 driver = wdir*"/HodgeLaplacian_scalar.jl"
 
 
-queue = :megamem
+queue = :normal
 orders = [1,2]
 nlevels = [1,2,3,4,5] # cubed sphere mesh
 nprocs  = [4,4,16,32,48]
