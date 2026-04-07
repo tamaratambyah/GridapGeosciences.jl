@@ -1,24 +1,15 @@
-using MPI
-using PartitionedArrays
-using GridapGeosciences
-using GridapGeosciences.Distributed
-using GridapP4est
-using Gridap
-using GridapDistributed
+function L2_projection_Hdiv(panel_model,
+                            p_fe::Int,
+                            dir::String,
+                            vecX::Function,
+                            ls=LUSolver(),
+                            return_vtk=false;
+                            _i_am_main=true)
 
-# using DrWatson
-
-# include("../convergence_tools.jl")
-
-
-function L2_projection_Hdiv(panel_model,p_fe::Int,dir::String,vecX::Function,
-  ls=LUSolver(),return_vtk=false)
-
-  ranks = get_ranks(panel_model)
   Dc = num_cell_dims(panel_model)
   lvl = nref(panel_model)
 
-  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
+  _i_am_main && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 
   degree = 4*(p_fe+1)
   Ω_panel = Triangulation(panel_model)
