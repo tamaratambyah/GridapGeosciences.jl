@@ -1,9 +1,9 @@
-module HelmholtzTestsMPI
 using MPI, PartitionedArrays
 include("../Helmholtz.jl")
 
-with_mpi() do distribute
-  Helmholtz.main(distribute,6)
-end
+MPI.Init()
+nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 
+with_mpi() do distribute
+  main(distribute,nprocs)
 end

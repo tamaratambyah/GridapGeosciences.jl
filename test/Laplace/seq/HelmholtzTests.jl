@@ -1,9 +1,7 @@
-module HelmholtzTestsSeq
-using PartitionedArrays
+using DrWatson
 include("../Helmholtz.jl")
 
-with_debug() do distribute
-  Helmholtz.main(distribute,1)
-end
-
-end
+## Serial model: 2D
+n_ref_lvls = 4
+models = get_refined_models(n_ref_lvls)
+main(models)
