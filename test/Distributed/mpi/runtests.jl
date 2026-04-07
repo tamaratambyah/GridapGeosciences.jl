@@ -2,7 +2,7 @@ using Test
 using MPI
 using GridapGeosciences
 
-function run_tests(testdir,procs=4)
+function run_tests(testdir,procs=2)
   istest(f) = endswith(f, ".jl") && !(f=="runtests.jl")
   testfiles = sort(filter(istest, readdir(testdir)))
   @time @testset "$f" for f in testfiles

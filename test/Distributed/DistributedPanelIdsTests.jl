@@ -17,8 +17,6 @@ using GridapDistributed
 using MPI
 using PartitionedArrays
 
-include("../convergence_tools.jl")
-
 
 function test_distributed_panel_ids(dpanel_model)
   trian = Triangulation(dpanel_model)

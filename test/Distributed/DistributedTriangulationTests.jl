@@ -7,8 +7,8 @@ using Gridap
 using GridapGeosciences
 using Test
 using GridapDistributed
-
-include("../convergence_tools.jl")
+using MPI
+using PartitionedArrays
 
 ################################################################################
 ## Test the evaluation of cmaps on DistributedTriangulations

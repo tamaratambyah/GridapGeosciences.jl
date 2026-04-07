@@ -14,8 +14,9 @@ using GridapGeosciences.Distributed
 using GridapP4est
 using Gridap
 using GridapDistributed
+using Test
 
-include("../convergence_tools.jl")
+import GridapGeosciences.Helpers: RADIUS
 
 function compute_surface_area(model, degree::Int)
   Ω = Triangulation(model)
@@ -54,10 +55,6 @@ function main(distribute,nprocs)
   # i_am_main(ranks) && println("test done ")
   @test true
 end
-
-# with_mpi() do distribute
-#   main(distribute,2)
-# end
 
 
 end # module

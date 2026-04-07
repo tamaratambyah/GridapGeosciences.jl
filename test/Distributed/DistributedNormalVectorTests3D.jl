@@ -60,7 +60,3 @@ function main(distribute,nprocs)
 end
 
 end # module
-
-
-
-# ./mpiexecjl.sh -np 2 julia --project=. $PWD/tests/SurfaceUnitNormal3D.jl
