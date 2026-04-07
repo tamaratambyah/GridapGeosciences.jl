@@ -67,7 +67,7 @@ function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
   GridapPETSc.Init()
   ls = PETScLinearSolver(petsc_mumps_setup)
 
-  hodge_laplacian(panel_model,p_fe,dir,uX,ls,Bool(return_vtk))
+  hodge_laplacian_vector(panel_model,p_fe,dir,uX,ls,Bool(return_vtk))
 
   GridapPETSc.Finalize()
   GridapPETSc.gridap_petsc_gc()
@@ -76,7 +76,7 @@ function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
 end
 
-function hodge_laplacian(
+function hodge_laplacian_vector(
   panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
   p_fe::Int,dir::String,uX::Function,ls=LUSolver(),return_vtk=false)
 
@@ -266,18 +266,3 @@ function hodge_laplacian(
   return el2_u, el2_s, false
 
 end
-
-
-# MPI.Init()
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-# dir = datadir("HodgeLaplacianConvergence")
-# (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
-
-# n_ref_lvls = 3
-# ps = [0,1]
-# models  = get_3D_octree_refined_models(ranks,n_ref_lvls)
-# ls = LUSolver()
-
-# p_convergence_test(ranks,ps,models,hodge_laplacian,dir,uX,ls,true)
-# i_am_main(ranks) && plot_convergence_from_saved(dir,"convergence",["u:", "s:"])
