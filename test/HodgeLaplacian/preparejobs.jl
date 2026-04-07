@@ -95,18 +95,18 @@ end
 
 ############################################
 
-jobsdir = projectdir("hodge_jobs_thick")
+jobsdir = projectdir("hodge_jobs_scalar")
 !isdir(jobsdir) && mkdir(jobsdir)
 
-dir = datadir("HodgeLaplacianConvergence_30quad_thick")
+dir = datadir("HodgeLaplacianConvergence_scalar")
 !isdir(dir) && mkdir(dir)
 
 wdir = projectdir("test/HodgeLaplacian")
-driver = wdir*"/HodgeLaplacian.jl"
+driver = wdir*"/HodgeLaplacian_scalar.jl"
 
 
 queue = :megamem
-orders = [0, 1]
+orders = [1,2]
 nlevels = [1,2,3,4,5] # cubed sphere mesh
 nprocs  = [4,4,16,32,48]
 

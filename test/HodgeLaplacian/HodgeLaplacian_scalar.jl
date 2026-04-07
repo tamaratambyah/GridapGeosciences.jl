@@ -21,11 +21,6 @@ using GridapPETSc
 using Test
 using LinearAlgebra
 
-# MPI.Init()
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-include("../convergence_tools.jl")
-
 
 function petsc_mumps_setup(ksp)
   pc       = Ref{GridapPETSc.PETSC.PC}()
@@ -53,40 +48,14 @@ function fX(p)
 end
 
 
-
-function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
-
-  i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("Hodge Laplacian: scalar")
-
-  octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
-    num_horizontal_uniform_refinements=n_ref,
-    num_vertical_uniform_refinements=n_ref);
-  panel_model = octree3_model.parametric_dmodel
-
-
-  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
-
-  GridapPETSc.Init()
-  ls = PETScLinearSolver(petsc_mumps_setup)
-  # ls = LUSolver()
-  hodge_laplacian_scalar(panel_model,p_fe,dir,fX,ls,Bool(return_vtk))
-
-  GridapPETSc.Finalize()
-  GridapPETSc.gridap_petsc_gc()
-
-  i_am_main(ranks) && println("--DONE--")
-
-end
-
 function hodge_laplacian_scalar(
   panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
-  lvl_h = nref(nc_horizontal(panel_model))
-  lvl_v = nref(nc_vertical(panel_model))
-  i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
+  Dc = num_cell_dims(panel_model)
+  lvl = nref(panel_model)
+  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 
   degree = 20
   if p_fe == 0
@@ -101,29 +70,9 @@ function hodge_laplacian_scalar(
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
 
-  i_am_main(ranks) && println("made triangulation")
-
-  tags = ["top_boundary", "bottom_boundary"]
-  Γ = BoundaryTriangulation(panel_model,tags=tags)
+  Γ = BoundaryTriangulation(panel_model,tags=["top_boundary", "bottom_boundary"])
   dΓ = Measure(Γ,degree)
   nΓ = get_normal_vector(Γ)
-
-  i_am_main(ranks) && println("made boundary triangulation")
-
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  sigma_cf = panelwise_cellfield(contr_gradf(f),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contr_gradf(f)),Ω_panel,panel_ids)
-  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
-  rhs = -slap_panel_cf
-
-  # i_am_main(ranks) && println("Check sdiv(sgrad) against slap: ", l2(sdiv_cf-slap_panel_cf,dΩ) )
-
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
-
-  i_am_main(ranks) && println("made cellfields")
 
   # FE spaces
   Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
@@ -135,69 +84,127 @@ function hodge_laplacian_scalar(
   Y = MultiFieldFESpace([V, Q])
   X = MultiFieldFESpace([U, P])
 
-  i_am_main(ranks) && println("made FE spaces")
+  # metric information
+  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
 
-  biform1((u,p),(v,q)) = ∫( (u⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-  biform2((u,p),(v,q)) =  ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ
+  # manufactured RHS
+  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  sigma_cf = panelwise_cellfield(sgrad(f),Ω_panel,panel_ids)
+  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+  rhs = -slap_panel_cf
+  f_int = interpolate(f_panel_cf,P)
 
-  biformX((u,p),(v,q)) = biform1((u,p),(v,q)) + biform2((u,p),(v,q))
-  liformX((v,q)) = ∫( (rhs*q)*meas_cf )dΩ + ∫( -f_panel_cf*(v⋅nΓ)*meas_cf )dΓ
+  biform_u((u,p),(v,q)) = ∫( (u⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ - ∫( p*(∇⋅v) )dΩ
+  biform_p((u,p),(v,q)) = ∫( q*(∇⋅u) )dΩ
 
-
+  biformX((u,p),(v,q)) = biform_u((u,p),(v,q)) + biform_p((u,p),(v,q))
+  liformX((v,q)) = ∫( (rhs*q)*meas_cf )dΩ + ∫( -f_int*(v⋅nΓ) )dΓ
 
   op = AffineFEOperator(biformX,liformX,X,Y)
-  i_am_main(ranks) && println("Made operator")
-  # A = get_matrix(op)
-  # eigvals(Array(partition(A).item))
-  # x = Gridap.Algebra.allocate_in_domain(A); fill!(x,1.0)
-  # partition(A*x).item
 
-  # uh,ph = solve(ls,op)
   A = get_matrix(op)
   b = get_vector(op)
   ns = numerical_setup(symbolic_setup(ls,A),A)
   x = allocate_in_domain(A); fill!(x,0.0)
-
-  i_am_main(ranks) && println("Got matrix, into solve")
-
   solve!(x,ns,b)
   xh = FEFunction(X,x)
   uh,ph = xh
 
-  i_am_main(ranks) && println("Done solve, getting errors")
-
   _e = f_panel_cf - ph
   el2_p = sqrt(sum(∫( (_e*_e)*meas_cf  )dΩ_error))
 
-  _e = (covarient_basis_cf⋅uh) - (covarient_basis_cf⋅-sigma_cf) ### u = -∇p
-  el2_u = sqrt(sum(∫( (_e⋅(metric_cf ⋅_e))*meas_cf  )dΩ_error))
+  _e = (covarient_basis_cf⋅(1/meas_cf*uh)) - (- sigma_cf ) ### u = -∇p
+  el2_u = sqrt(sum(∫( (_e⋅_e)*meas_cf  )dΩ_error))
 
   i_am_main(ranks) && println("eu = $(el2_u), es = $(el2_p)")
 
   if return_vtk
-    cellfields =  ["u"=>covarient_basis_cf⋅-sigma_cf,
-    "uh"=>covarient_basis_cf⋅uh,
-    "eu"=> (covarient_basis_cf⋅uh) - (covarient_basis_cf⋅-sigma_cf),
+    cellfields =  ["u"=> -sigma_cf ,
+    "uh"=>covarient_basis_cf⋅(1/meas_cf*uh),
+    "eu"=> (covarient_basis_cf⋅(1/meas_cf*uh)) - (-sigma_cf),
     "ph"=>ph, "p"=>f_panel_cf, "e"=>ph-f_panel_cf
                   ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl_h)_p$p_fe",
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
             cellfields=cellfields,
             append=false,geo_map= geo_map_func(Ω_panel))
   end
 
-  ### convergence output for DrWatson
+
+  return el2_u, el2_p, false
+
+end
+
+
+################################################################################
+#### Launch wave equation -- on gadi
+################################################################################
+function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
+
+  i_am_main(ranks) && println("--START--")
+  i_am_main(ranks) && println("Hodge Laplacian: scalar")
+
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
   dir_convergence = dir*"/convergence"
   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  n = nc(panel_model)
-  n_h = nc_horizontal(panel_model)
-  n_v = _nc_vertical(panel_model)
-  dxx = dx(panel_model)
-  dxH = dx_horizontal(panel_model)
-  dxV = dx_vertical(panel_model)
-  output = @strdict el2_u el2_p n n_h n_v dxx dxH dxV p_fe lvl_h lvl_v
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("hodge_laplacian_scalar_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
+  # ensure no MPI task tries to generate the file before the main MPI task has
+  # created the folder
+  PartitionedArrays.barrier(ranks)
 
-  return el2_u, el2_p, false
+  octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+    num_horizontal_uniform_refinements=n_ref,
+    num_vertical_uniform_refinements=n_ref);
+  panel_model = octree3_model.parametric_dmodel
+
+  GridapPETSc.Init()
+  ls = PETScLinearSolver(petsc_mumps_setup)
+  # ls = LUSolver()
+
+  e_u, e_p, = hodge_laplacian_scalar(panel_model,p_fe,dir,fX,ls,Bool(return_vtk))
+
+  ### convergence output for DrWatson
+  n = nc(panel_model)
+  dxx = dx(panel_model)
+  output = @strdict e_u e_p n dxx p_fe n_ref
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("hodge_laplacian_scalar_nref$(n_ref)_p$p_fe.jld2")), output)
+
+
+  GridapPETSc.Finalize()
+  GridapPETSc.gridap_petsc_gc()
+
+  i_am_main(ranks) && println("--DONE--")
+
+end
+
+################################################################################
+#### Auto convergence test
+################################################################################
+function main(models::AbstractArray)
+
+  ls = LUSolver()
+  dir = @__DIR__
+  ps = [1,2]
+  p_convergence_auto_test(ps,models,hodge_laplacian_scalar,dir,fX,ls)
+end
+
+function main(distribute,nprocs;)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 4
+
+  # ## Distributed model: 2D
+  # models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  # main(models)
+
+  # ### P4test model: 2D
+  # models = get_octree_refined_models(ranks,n_ref_lvls)
+  # main(models)
+
+  ### P4test model: 3D
+  models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+  main(models)
 
 end
