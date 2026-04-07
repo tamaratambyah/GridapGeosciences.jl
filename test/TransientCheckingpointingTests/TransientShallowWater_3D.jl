@@ -22,14 +22,8 @@ using Test
 include("helpers.jl")
 include("Williamson2Test_3D_testcase.jl")
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
-contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
-contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
 transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
-inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
-contravariant_basis_3D(p) = x -> inv_tranpose_jacobian(p)(x)
-
 covar_v_3D(vecX::Function,p::Int) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
 covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
@@ -94,15 +88,15 @@ function transient_shallow_water_solver_3D(
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
 
-    u_contra_cf = panelwise_cellfield(contra_v_3D(u_vec_3D),Ω_panel,panel_ids)
-    u_contra_h = interpolate(u_contra_cf,U)
+    u_cf = panelwise_cellfield(piola(u_vec_3D),Ω_panel,panel_ids)
+    u_h = interpolate(u_cf,U)
 
     h_cf = panelwise_cellfield(h_3D,Ω_panel,panel_ids)
     b_cf = panelwise_cellfield(topography,Ω_panel,panel_ids)
     h_h = interpolate(h_cf-b_cf,P)
 
 
-    xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog)
+    xh0 = interpolate_everywhere([u_h,h_h],X_prog)
     t = 0.0
     psave(prog_dir*"/solT_$(t)",xh0)
     psave(initial_dir*"/solT_$(t)",xh0)
@@ -113,14 +107,9 @@ function transient_shallow_water_solver_3D(
   t0,xh0 = (restart) ? load_last(ranks,X_prog,prog_dir,simName) : initial_condition()
 
   ## transient weak form
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
   inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
-  contravariant_basis_cf = panelwise_cellfield(contravariant_basis_3D,Ω_panel,panel_ids)
-  jac_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
-  area_meas_cf = Operation(norm)(jac_cf⋅(inv_metric_cf ⋅nΓ) )
 
   gravity = _g
   f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
@@ -129,19 +118,22 @@ function transient_shallow_water_solver_3D(
   #### DIAGNOSTIC VARIABLES
   # vorticity
   resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ( ∫( p*(q⋅(inv_metric_cf⋅w))*meas_cf )dΩ
-                                  - ∫( u⋅( metric_cf⋅ curl(w) )  )dΩ
-                                  + ∫( (( w × (metric_cf⋅ u) )⋅nΓ)*area_meas_cf   )dΓ
+                                  - ∫( u⋅( metric_cf⋅ curl(w) )*(1/meas_cf)  )dΩ
+                                  + ∫( ( w × (metric_cf⋅ u*(1/meas_cf)) )⋅nΓ )dΓ
                                   - ∫( (f_cov_cf⋅(inv_metric_cf ⋅ w))*meas_cf )dΩ
                                   )
 
   # mass flux
-  resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(u⋅(metric_cf⋅v))*meas_cf   )dΩ
+  resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ - ∫( p*(u⋅(metric_cf⋅v))*(1/meas_cf)   )dΩ
 
   # Bernoulli potential
-  resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( gravity*(p+b_cf)*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*meas_cf  )dΩ
+  resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( gravity*(p+b_cf)*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*(1/meas_cf)  )dΩ
 
   res_y(t,((u,p),(q,F,Φ)),(w,v,ψ)) = resq(((u,p),(q,F,Φ)),(w,v,ψ)) + resF(((u,p),(q,F,Φ)),(w,v,ψ)) + resΦ(((u,p),(q,F,Φ)),(w,v,ψ))
-  jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( p*(dq⋅(inv_metric_cf⋅w))*meas_cf )dΩ  + ∫( (dF⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( dΦ*ψ*meas_cf  )dΩ
+  jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ( ∫( p*(dq⋅(inv_metric_cf⋅w))*meas_cf )dΩ
+                                                + ∫( (dF⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
+                                                + ∫( dΦ*ψ*meas_cf  )dΩ
+                                              )
 
   _res_y((q,F,Φ),(w,v,ψ))  = res_y(t0,(xh0,(q,F,Φ)),(w,v,ψ))
   _jac_y((q,F,Φ),(dq,dF,dΦ),(w,v,ψ)) = jac_y(t0,(xh0,(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ))
@@ -154,20 +146,21 @@ function transient_shallow_water_solver_3D(
   #### PROGNOSTIC VARIABLES
 
   # equation for depth and velocity:
-  mass(t,(dut,dpt),(v,r)) = ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
+  mass(t,(dut,dpt),(v,r)) = ∫( (dut⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
-  res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ∫( r*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
+  res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ∫( r*(∇⋅F) )dΩ
+
 
   res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = (
-                                  ∫( ( q × (metric_cf⋅F) )⋅(metric_cf⋅v) )dΩ
-                                + ∫( -τ*( ( (q-q0)/dt ) × (metric_cf⋅F) )⋅(metric_cf⋅v) )dΩ
-                                + ∫( τ*(  ( u× curl(q)) × (metric_cf⋅F)  )⋅(metric_cf⋅v)   )dΩ
-                                - ∫( Φ*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
+                                  ∫( ( q × (metric_cf⋅F*(1/meas_cf)) )⋅(metric_cf⋅v)*(1/meas_cf) )dΩ
+                                + ∫( -τ*( ( (q-q0)/dt ) × (metric_cf⋅F*(1/meas_cf)) )⋅(metric_cf⋅v)*(1/meas_cf) )dΩ
+                                + ∫( τ*( ( (u*(1/meas_cf)) × curl(q)) × (metric_cf⋅F*(1/meas_cf))  )⋅(metric_cf⋅v)*(1/meas_cf)   )dΩ
+                                - ∫( Φ*(∇⋅v) )dΩ
                     )
 
   res_x(t,((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) + res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0))
-  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) =  ∫( τ*(  ( du× curl(q)) × (metric_cf⋅F)  )⋅(metric_cf⋅v)   )dΩ
-  jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ + ∫( (dpt*r)*meas_cf )dΩ
+  jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) =  ∫( τ*( ( (du*(1/meas_cf)) × curl(q)) × (metric_cf⋅F*(1/meas_cf))  )⋅(metric_cf⋅v)*(1/meas_cf)   )dΩ
+  jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) = ∫( (dut⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ + ∫( (dpt*r)*meas_cf )dΩ
 
 
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog)
@@ -177,7 +170,8 @@ function transient_shallow_water_solver_3D(
   # transient parameters
   dxx_horizontal = dx_horizontal(panel_model)
   _dt = dxx_horizontal*CFL/(sqrt(gravity*_H_0))
-  dt = floor(_dt, sigdigits=1)
+  # dt = floor(_dt, sigdigits=1)
+  dt = 0.004 # W5 - 3D test only
   i_am_main(ranks) && println("dt = $dt")
   τ = dt/2
 
@@ -188,7 +182,7 @@ function transient_shallow_water_solver_3D(
   ## iterate solution
   it = iterate(solT)
 
-  unwrap_sw(it,ranks,solT,dir,_tF,125)
+  unwrap_sw(it,ranks,solT,dir,_tF,250)
 
 
 end
@@ -287,11 +281,8 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
 
   n_cov = panelwise_cellfield(n_3D,Ω_panel,panel_ids)
 
-
-  cell_geo_map = geo_map_func(Ω_panel)
-  latlon_geo_map = latlon_geo_map_func(Ω_panel)
   labels = ["uh","ph","qh","Fh","Phih","vortf","vort", "qh_rad_mag", "f_rad_mag", "vortf_rad_mag"]
-  function make_vtk(t::Float64,xh,yh,cell_geo_map,latlon_geo_map)
+  function make_vtk(t::Float64,xh,yh)
     uh,ph = xh
     qh,Fh,Φh = yh
     vortf = qh*ph - f_cov_cf
@@ -301,7 +292,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
     radial_f_mag = f_cov_cf⋅(inv_metric_cf⋅n_cov)
     radial_vortf_mag = radial_qh_mag*ph - radial_f_mag
 
-    panel_cfs = [covarient_basis_cf⋅uh, ph,
+    panel_cfs = [covarient_basis_cf⋅(1/meas_cf*uh), ph,
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ qh ),
                  Fh, Φh,
                  covarient_basis_cf ⋅ (inv_metric_cf ⋅ vortf ),
@@ -312,8 +303,8 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
                  ]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
-    writevtk(Ω_panel,vtk_latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map)
+    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk(Ω_panel,vtk_latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
   end
 
   function casimirs(xh,yh,dΩ)
@@ -322,7 +313,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
     vort = qh*ph - f_cov_cf
 
     ens = sum(∫( ( (qh⋅(inv_metric_cf⋅qh))*xh[2])*meas_cf  )dΩ)
-    energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*gravity*xh[2]*xh[2] )*meas_cf )dΩ)
+    energy = sum(∫( 0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1]))*(1/meas_cf) )dΩ  + ∫( 0.5*gravity*(xh[2]*xh[2] )*meas_cf )dΩ)
     _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
     _vort = 0.0#sum( ∫( vort*meas_cf )dΩ  )
 
@@ -355,7 +346,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
     ts[i] = t
     Masss[i], Energys[i], Enstropys[i], Vorts[i] = casimirs(xh,yh,dΩ)
 
-    return_vtk && make_vtk(t,xh,yh,cell_geo_map,latlon_geo_map)
+    return_vtk && make_vtk(t,xh,yh)
 
     if mod(i,10) == 0
       dxx = dx(panel_model)
@@ -390,7 +381,7 @@ function main_transient(distribute,nprocs;
   -g_ksp_monitor
   """
 
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
         num_horizontal_uniform_refinements=n_ref_lvls,
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
@@ -427,7 +418,7 @@ function main_visualise(distribute,nprocs;
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Transient SW 3D visualise")
 
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
   num_horizontal_uniform_refinements=n_ref_lvls,
   num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
@@ -444,8 +435,9 @@ end
 
 # MPI.Init()
 # nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-# # ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 # # n_ref_lvls = 3
 # with_mpi() do distribute
-#   main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
+#   # main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
+#   main_visualise(distribute,nprocs;n_ref_lvls=3)
 # end
