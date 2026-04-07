@@ -1,18 +1,18 @@
 name: CI
 on:
   push:
-    # branches:
-    #   - main
+    branches:
+      - main
     tags: ['*']
     paths-ignore:
       - 'NEWS.md'
       - 'README.md'
-      - 'LICENSE.md'
+      - 'LICENSE'
   pull_request:
     paths-ignore:
       - 'NEWS.md'
       - 'README.md'
-      - 'LICENSE.md'
+      - 'LICENSE'
 concurrency:
   # Skip intermediate builds: always.
   # Cancel intermediate builds: only if it is a pull request build.
