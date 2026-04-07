@@ -1,4 +1,5 @@
-include("../Helmholtz.jl")
+using DrWatson
+include("../HodgeLaplacian_scalar.jl")
 
 ## Serial model: 2D
 n_ref_lvls = 4

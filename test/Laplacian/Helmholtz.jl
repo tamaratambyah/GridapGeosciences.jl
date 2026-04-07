@@ -170,8 +170,8 @@ function main(distribute,nprocs;)
   models = get_octree_refined_models(ranks,n_ref_lvls)
   main(models)
 
-  ### P4test model: 3D
-  models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
-  main(models)
+  # ### P4test model: 3D
+  # models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+  # main(models)
 
 end

@@ -59,6 +59,12 @@ function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Hodge")
 
+  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+
+  ### convergence output for DrWatson
+  dir_convergence = dir*"/convergence"
+  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+
   octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
     num_horizontal_uniform_refinements=n_ref,
     num_vertical_uniform_refinements=n_ref);
@@ -67,7 +73,14 @@ function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
   GridapPETSc.Init()
   ls = PETScLinearSolver(petsc_mumps_setup)
 
-  hodge_laplacian_vector(panel_model,p_fe,dir,uX,ls,Bool(return_vtk))
+  e_u, e_s, =  hodge_laplacian_vector(panel_model,p_fe,dir,uX,ls,Bool(return_vtk))
+
+  ### convergence output for DrWatson
+  n = nc(panel_model)
+  dxx = dx(panel_model)
+  output = @strdict e_u e_s n dxx p_fe n_ref
+  i_am_main(ranks) && safesave(datadir(dir_convergence, ("hodge_laplacian_vector_nref$(n_ref)_p$p_fe.jld2")), output)
+
 
   GridapPETSc.Finalize()
   GridapPETSc.gridap_petsc_gc()
@@ -81,20 +94,17 @@ function hodge_laplacian_vector(
   p_fe::Int,dir::String,uX::Function,ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
-  lvl_h = nref(nc_horizontal(panel_model))
-  lvl_v = nref(nc_vertical(panel_model))
-  i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
+  Dc = num_cell_dims(panel_model)
+  lvl = nref(panel_model)
+  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 
-  final_dir = dir*"/final_solution"
-  # ensure no MPI task tries to generate the file before the main MPI task has
-  # created the folder
-  PartitionedArrays.barrier(ranks)
 
-  degree = 30
-  # degree = 5*(p_fe + 1)
-  # if p_fe == 0
-  #   degree = 10
-  # end
+
+  # degree = 30
+  degree = 5*(p_fe + 1)
+  if p_fe == 0
+    degree = 10
+  end
   @check degree > 0 "Zero quad!!"
 
   ## finite element solver
@@ -227,7 +237,11 @@ function hodge_laplacian_vector(
   xh = solve(ls,op)
   sh,uh = xh
 
-  psave(final_dir*"/sol",xh)
+  # final_dir = dir*"/final_solution"
+  # # ensure no MPI task tries to generate the file before the main MPI task has
+  # # created the folder
+  # PartitionedArrays.barrier(ranks)
+  # psave(final_dir*"/sol",xh)
 
   # _e = sigma_cf - sh
   _e = sigma_int - sh
@@ -245,24 +259,35 @@ function hodge_laplacian_vector(
     "eu"=>covarient_basis_cf ⋅ (inv_metric_cf⋅uh)-covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
     "sh"=>sh, "s"=>sigma_cf, "e"=>sh-sigma_cf
                   ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl_h)_p$p_fe",
+    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
             cellfields=cellfields,
             append=false,geo_map= geo_map_func(Ω_panel))
   end
 
-  ### convergence output for DrWatson
-  dir_convergence = dir*"/convergence"
-  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
-
-  n = nc(panel_model)
-  n_h = nc_horizontal(panel_model)
-  n_v = _nc_vertical(panel_model)
-  dxx = dx(panel_model)
-  dxH = dx_horizontal(panel_model)
-  dxV = dx_vertical(panel_model)
-  output = @strdict el2_u el2_s n n_h n_v dxx dxH dxV p_fe lvl_h lvl_v
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("hodge_laplacian_nrefh$(lvl_h)_nrefv$(lvl_v)_p$p_fe.jld2")), output)
 
   return el2_u, el2_s, false
+
+end
+
+
+################################################################################
+#### Auto convergence test -- only 3D models for p=[0,1]
+################################################################################
+function main(models::AbstractArray)
+
+  ls = LUSolver()
+  dir = @__DIR__
+  ps = [0,1]
+  p_convergence_auto_test(ps,models,hodge_laplacian_vector,dir,uX,ls)
+end
+
+function main(distribute,nprocs;)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 3
+
+  ### P4test model: 3D
+  models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+  main(models)
 
 end

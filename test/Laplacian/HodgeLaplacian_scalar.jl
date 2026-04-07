@@ -41,15 +41,13 @@ end
 
 function fX(p)
   function _f(α)
-    xyz = forward_map_3D(p)(α)
+    xyz = ForwardMap(p)(α)
     θϕr   = xyz2θϕr(xyz)
     sin(θϕr[2])
   end
 end
 
-
-function hodge_laplacian_scalar(
-  panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
+function hodge_laplacian_scalar(panel_model,
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
 
   ranks = get_ranks(panel_model)
@@ -57,25 +55,23 @@ function hodge_laplacian_scalar(
   lvl = nref(panel_model)
   i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 
-  degree = 20
+  degree = 4*(p_fe+1)
   if p_fe == 0
     degree = 10
   end
   @check degree > 0 "Zero quad!!"
-
-  i_am_main(ranks) && println("degree = $degree")
 
   panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
 
-  Γ = BoundaryTriangulation(panel_model,tags=["top_boundary", "bottom_boundary"])
-  dΓ = Measure(Γ,degree)
-  nΓ = get_normal_vector(Γ)
-
   # FE spaces
   Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
+  if Dc == 2
+    i_am_main(ranks) && println("zeromean constraint in 2D ")
+    Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2, constraint=:zeromean)
+  end
   P = TrialFESpace(Q)
 
   V = TestFESpace(Ω_panel, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
@@ -100,10 +96,28 @@ function hodge_laplacian_scalar(
   biform_p((u,p),(v,q)) = ∫( q*(∇⋅u) )dΩ
 
   biformX((u,p),(v,q)) = biform_u((u,p),(v,q)) + biform_p((u,p),(v,q))
-  liformX((v,q)) = ∫( (rhs*q)*meas_cf )dΩ + ∫( -f_int*(v⋅nΓ) )dΓ
 
-  op = AffineFEOperator(biformX,liformX,X,Y)
 
+  # manufacture rhs functions
+  function get_liform(Dc::Int)
+
+    # the manufactured solution
+    _liformX((v,q)) = ∫( (rhs*q)*meas_cf )dΩ
+
+    if Dc == 2
+      return v -> _liformX(v)
+    elseif Dc == 3
+      # in 3D, account for the boundary term from IBP
+      Γ = BoundaryTriangulation(panel_model;tags=["bottom_boundary","top_boundary"])
+      dΓ = Measure(Γ,degree)
+      nΓ = get_normal_vector(Γ)
+      boundary((v,q)) = ∫( -f_int*(v⋅nΓ) )dΓ
+      return v -> _liformX(v) + boundary(v)
+    end
+  end
+
+
+  op = AffineFEOperator(biformX,get_liform(Dc),X,Y)
   A = get_matrix(op)
   b = get_vector(op)
   ns = numerical_setup(symbolic_setup(ls,A),A)
@@ -195,13 +209,13 @@ function main(distribute,nprocs;)
 
   n_ref_lvls = 4
 
-  # ## Distributed model: 2D
-  # models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
-  # main(models)
+  ## Distributed model: 2D
+  models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  main(models)
 
-  # ### P4test model: 2D
-  # models = get_octree_refined_models(ranks,n_ref_lvls)
-  # main(models)
+  ### P4test model: 2D
+  models = get_octree_refined_models(ranks,n_ref_lvls)
+  main(models)
 
   ### P4test model: 3D
   models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
