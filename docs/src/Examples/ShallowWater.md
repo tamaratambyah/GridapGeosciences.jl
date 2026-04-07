@@ -162,7 +162,7 @@ Then converted into a panelwise cellfield, where we extract the contravariant co
 for the velocity:
 
 ````julia 
-u_contra_cf = panelwise_cellfield(contra_v(u0),Ω,panel_ids)
+u_cf = panelwise_cellfield(piola(u0),Ω,panel_ids)
 h_cf = panelwise_cellfield(h0,Ω,panel_ids)
 f_cf = panelwise_cellfield(f0,Ω,panel_ids)
 ````
@@ -174,10 +174,13 @@ We use an increased degree of quadrature to exactly approximate the geometrical 
 
 ````julia 
 g = panelwise_cellfield(metric,Ω,panel_ids)
+ginv = panelwise_cellfield(inv_metric,Ω,panel_ids)
 meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
 covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
-perp_matrix_cf = panelwise_cellfield(perp_matrix,Ω,panel_ids)
+Aperp = [0 -1
+        1 0]
+Rperp = TensorValue(Aperp)
+Rperp_cf = CellField(Rperp,Ω)
 dΩ = Measure(Ω,4*order)
 ````
 
@@ -185,12 +188,12 @@ dΩ = Measure(Ω,4*order)
 The weak forms for the diagnostic variables are:
 
 ````julia 
-resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( q*p*w*meas )dΩ - ∫( f_cf*w*meas )dΩ - ∫( (perp_matrix_cf⋅u)⋅∇(w)  )dΩ
-resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅(g⋅v))*meas )dΩ - ∫( p*(u⋅(g⋅v))*meas )dΩ
-resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas )dΩ - ∫( gravity*p*ψ*meas  )dΩ - ∫( 0.5*( u⋅(g⋅u))ψ*meas  )dΩ
+resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( q*p*w*meas )dΩ - ∫( f_cf*w*meas )dΩ - ∫( (((Rperp_cf⋅u)⋅ginv)⋅∇(w))*meas)dΩ
+resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅(g⋅v))*(1/meas) )dΩ - ∫( p*(u⋅(g⋅v))*(1/meas))dΩ
+resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas )dΩ - ∫( gravity*p*ψ*meas  )dΩ - ∫( 0.5*(u⋅(g⋅u))ψ*(1/meas))dΩ
 
 res_y(t,((u,p),(q,F,Φ)),(w,v,ψ)) = resq(((u,p),(q,F,Φ)),(w,v,ψ)) + resF(((u,p),(q,F,Φ)),(w,v,ψ)) + resΦ(((u,p),(q,F,Φ)),(w,v,ψ))
-jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( dq*p*w*meas  )dΩ + ∫( (dF⋅(g⋅v))*meas )dΩ + ∫( dΦ*ψ*meas  )dΩ
+jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( dq*p*w*meas )dΩ + ∫( (dF⋅(g⋅v))*(1/meas) )dΩ + ∫( dΦ*ψ*meas  )dΩ
 ````
 
 ### Prognostic variables
@@ -198,17 +201,17 @@ The weak forms for the prognostic variables are as follows, where we use
 SUPG stabilisation in the velocity equation
 
 ````julia 
-res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ∫( r*(F⋅grad_meas_cf + meas*(∇⋅F)))dΩ
-res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ( ∫( q*( (perp_matrix_cf⋅F)⋅(g⋅v)))dΩ
-                              + ∫( -τ*( (q-q0)/dt )*( (perp_matrix_cf⋅F)⋅(g⋅v)))dΩ
-                              + ∫( -τ*(u⋅∇(q))*( (perp_matrix_cf⋅F)⋅(g⋅v)) )dΩ
-                              - ∫( Φ*(v⋅grad_meas_cf + meas*(∇⋅v)))dΩ
+res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ∫( r*(∇⋅F) )dΩ
+res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = ( ∫( ( q*( (Rperp_cf⋅F)⋅v)))dΩ
+                              + ∫( -τ*( (q-q0)/dt)*( (Rperp_cf⋅F)⋅v))dΩ
+                              + ∫( -τ*(u⋅∇(q))*( (Rperp_cf⋅ F)⋅v)*(1/meas))dΩ
+                              - ∫( Φ*(∇⋅v) )dΩ
                   )
 
-mass(t,(dut,dpt),(v,r)) = ∫( (dut⋅(g⋅v))*meas )dΩ + ∫( (dpt*r)*meas )dΩ
+mass(t,(dut,dpt),(v,r)) = ∫( (dut⋅(g⋅v))*(1/meas) )dΩ + ∫( (dpt*r)*meas )dΩ
 res_x(t,((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) = res_u(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0)) + res_p(((u,p),(q,F,Φ)),(v,r),(q0,F0,Φ0))
-jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) =  ∫( -τ*(du⋅∇(q))*( (perp_matrix_cf⋅F)⋅(g⋅v)))dΩ
-jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅(g⋅v))*meas )dΩ + ∫( (dpt*r)*meas )dΩ
+jac_x(t,((u,p),(q,F,Φ)),(du,dp),(v,r),(q0,F0,Φ0)) = ∫( -τ*(du⋅∇(q))*( (Rperp_cf⋅F)⋅v)*(1/meas))dΩ
+jac_xt(t,((u,p),(q,F,Φ)),(dut,dpt),(v,r),(q0,F0,Φ0)) =  ∫( (dut⋅(g⋅v))*(1/meas) )dΩ + ∫((dpt*r)*meas )dΩ
 ````
 
 ## Transient problem
@@ -237,7 +240,7 @@ opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog)
 opFE = FEOperator(res_y,jac_y,X_diag,Y_diag)
 opDAE = DAEFEOperator(opT,opFE,ls_diag)
 ode_solver = RungeKutta(ls_ode,ls_ode,dt,:EXRK_SSP_3_3)
-xh0 = interpolate_everywhere([u_contra_cf,h_cf],X_prog)
+xh0 = interpolate_everywhere([u_cf,h_cf],X_prog)
 solT  = solve(ode_solver,opDAE,t0,tF,xh0)
 ````
 
@@ -262,7 +265,7 @@ while !isnothing(it)
   i_am_main(ranks) && println(t)
 
   writevtk(Ω,"shallow_water_sol/solT_$t.vtu",
-      cellfields=["vel"=>covarient_basis_cf⋅uh,"p"=>ph,"vort"=>qh],
+      cellfields=["vel"=>covarient_basis_cf⋅(1/meas*uh),"p"=>ph,"vort"=>qh],
       append=false,geo_map=latlon_geo_map_func(Ω))
 
   it = iterate(solT, state)
