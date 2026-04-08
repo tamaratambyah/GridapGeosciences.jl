@@ -4,18 +4,34 @@ u + Δᵧ(u) = f
 
 module HelmholtzTests
 
-using DrWatson
 using Gridap
-using GridapDistributed
-using GridapSolvers
-using PartitionedArrays
-using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
-
+using Gridap.Helpers
+using Gridap.Algebra
 using GridapGeosciences
+using GridapP4est
+using DrWatson
 using Test
 
 using MPI
 using PartitionedArrays
+
+
+# using GridapPETSc
+# function petsc_mumps_setup(ksp)
+#   pc       = Ref{GridapPETSc.PETSC.PC}()
+#   mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
+#   @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
+#   @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+#   @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
+#   @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
+#   @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
+#   @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
+#   # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
+#   @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+# end
 
 function fX(p)
   function _f(αβ)

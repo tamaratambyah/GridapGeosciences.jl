@@ -7,23 +7,34 @@ where f = -Δϕ
 
 module HodgeLaplacianVectorTests
 
+using Gridap
+using Gridap.Helpers
+using Gridap.Algebra
+using GridapGeosciences
+using GridapP4est
+using DrWatson
+using Test
+
 using MPI
 using PartitionedArrays
 
-using DrWatson
-using Gridap
-using GridapDistributed
-using GridapSolvers
-using PartitionedArrays
-using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
-using Gridap.ReferenceFEs, Gridap.Polynomials, Gridap.CellData
+# using GridapPETSc
+# function petsc_mumps_setup(ksp)
+#   pc       = Ref{GridapPETSc.PETSC.PC}()
+#   mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
+#   @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
+#   @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+#   @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
+#   @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
+#   @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
+#   @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
+#   # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
+#   @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+# end
 
-using GridapGeosciences
-using GridapGeosciences.Distributed
-using GridapP4est
-using Test
-using GridapPETSc
-using LinearAlgebra
 
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
@@ -31,22 +42,6 @@ contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
 transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
-
-function petsc_mumps_setup(ksp)
-  pc       = Ref{GridapPETSc.PETSC.PC}()
-  mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
-  @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
-  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
-  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
-  @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
-  @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
-  @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
-  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
-  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
-  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
-  # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
-  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
-end
 
 function uX(p)
   function _u(γαβ)
