@@ -1,12 +1,10 @@
-# module WaveEquationTestsMPI
+
 using MPI, PartitionedArrays
-include("../WaveEquation.jl")
+include("../TransientWaveEquation.jl")
 
 MPI.Init()
 nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 
 with_mpi() do distribute
-  WaveEquationTests.main(distribute,nprocs)
+  TransientWaveEquationTests.main(distribute,nprocs)
 end
-
-# end

@@ -4,44 +4,47 @@ u + ∇ᵧ(φ) = f₁
 φ + ∇ᵧ⋅u = f₁
 """
 
-using DrWatson
-using Gridap
-using GridapDistributed
-using GridapSolvers
-using PartitionedArrays
-using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
+module WaveEquationTests
 
+using Gridap
+using Gridap.Helpers
+using Gridap.Algebra
 using GridapGeosciences
+using GridapP4est
+using DrWatson
 using Test
 
-using GridapPETSc
-function petsc_mumps_setup(ksp)
-  pc       = Ref{GridapPETSc.PETSC.PC}()
-  mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
-  @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
-  @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
-  @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
-  @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
-  @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
-  @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
-  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
-  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
-  @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
-  # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
-  @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
-end
+using MPI
+using PartitionedArrays
+
+# using GridapPETSc
+# function petsc_mumps_setup(ksp)
+#   pc       = Ref{GridapPETSc.PETSC.PC}()
+#   mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
+#   @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
+#   @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
+#   @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
+#   @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
+#   @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
+#   @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
+#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
+#   # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
+#   @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
+# end
 
 include("Williamson2Test.jl")
 
 
 function wave_solver(panel_model,
-  p_fe::Int,dir::String,h::Function,vX::Function,ls=LUSolver(),return_vtk=false)
+  p_fe::Int,dir::String,h::Function,vX::Function,ls=LUSolver(),return_vtk=false;
+  _i_am_main=true)
 
-  ranks = get_ranks(panel_model)
   Dc = num_cell_dims(panel_model)
   lvl = nref(panel_model)
 
-  i_am_main(ranks) && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
+  _i_am_main && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
 
   degree = 5*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
@@ -154,7 +157,7 @@ function launch_wave_equation(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
   GridapPETSc.Init()
   ls = PETScLinearSolver(petsc_mumps_setup)
 
-  e_u,e_p, = wave_solver(panel_model,p_fe,dir,h,vX,ls,Bool(return_vtk))
+  e_u,e_p, = wave_solver(panel_model,p_fe,dir,h,vX,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
   i_am_main(ranks) && println("eu = $e_u, e_p = $e_p")
 
@@ -177,14 +180,13 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(models::AbstractArray)
+function main(models::AbstractArray;ps=[2],_i_am_main=true)
   h = panel_to_cartesian(h₀(0.0))
   vX = panel_to_cartesian(tangent_vec(u₀(0.0)))
 
   ls = LUSolver()
   dir = @__DIR__
-  ps = [1,2]
-  p_convergence_auto_test(ps,models,wave_solver,dir,h,vX,ls)
+  p_convergence_auto_test(ps,models,wave_solver,dir,h,vX,ls;_i_am_main=_i_am_main)
 end
 
 function main(distribute,nprocs;)
@@ -194,14 +196,17 @@ function main(distribute,nprocs;)
 
   ## Distributed model: 2D
   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
-  main(models)
+  main(models;_i_am_main=i_am_main(ranks))
 
   ### P4test model: 2D
   models = get_octree_refined_models(ranks,n_ref_lvls)
-  main(models)
+  main(models;_i_am_main=i_am_main(ranks))
 
   ### P4test model: 3D
   models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
-  main(models)
+  main(models;ps=[1],_i_am_main=i_am_main(ranks))
 
 end
+
+
+end # module

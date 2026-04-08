@@ -37,6 +37,7 @@ jobs:
         testcase:
           - mpi-l2-projection
           - mpi-laplacian
+          - mpi-transient
     steps:
       - name: Install p4est/petsc dependencies
         run: |

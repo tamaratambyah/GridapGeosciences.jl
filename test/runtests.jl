@@ -12,6 +12,13 @@ if TESTCASE ∈ ("all", "seq", "seq-laplacian")
   include("Laplacian/seq/runtests.jl")
 end
 
+if TESTCASE ∈ ("all", "seq", "seq-geophysical")
+  include("Geophysical/seq/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "seq", "seq-transient")
+  include("Transient/seq/runtests.jl")
+end
 
 # MPI tests
 if TESTCASE ∈ ("all", "mpi", "mpi-l2-projection")
@@ -20,4 +27,12 @@ end
 
 if TESTCASE ∈ ("all", "mpi", "mpi-laplacian")
   include("Laplacian/mpi/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "mpi", "mpi-geophysical")
+  include("Geophysical/mpi/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "mpi", "mpi-transient")
+  include("Transient/mpi/runtests.jl")
 end
