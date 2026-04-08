@@ -10,6 +10,7 @@ module HodgeLaplacianVectorTests
 using Gridap
 using Gridap.Helpers
 using Gridap.Algebra
+using GridapDistributed
 using GridapGeosciences
 using GridapP4est
 using DrWatson
