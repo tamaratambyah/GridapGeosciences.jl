@@ -5,6 +5,8 @@ u + ∇ᵧ(φ) = 0
 where f = -Δφ
 """
 
+module HodgeLaplacianScalarTests
+
 using MPI
 using PartitionedArrays
 
@@ -12,7 +14,7 @@ using DrWatson
 using Gridap
 using GridapDistributed
 using Gridap.Geometry, Gridap.Adaptivity, Gridap.Helpers, Gridap.Algebra
-using Gridap.ReferenceFEs, Gridap.Polynomials, Gridap.CellData
+using Gridap.ReferenceFEs, Gridap.Polynomials, Gridap.CellData, Gridap.Arrays
 
 using GridapGeosciences
 using GridapGeosciences.Distributed
@@ -48,12 +50,12 @@ function fX(p)
 end
 
 function hodge_laplacian_scalar(panel_model,
-  p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+  p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false;
+  _i_am_main=true)
 
-  ranks = get_ranks(panel_model)
   Dc = num_cell_dims(panel_model)
   lvl = nref(panel_model)
-  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
+ _i_am_main && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 
   degree = 4*(p_fe+1)
   if p_fe == 0
@@ -69,7 +71,7 @@ function hodge_laplacian_scalar(panel_model,
   # FE spaces
   Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   if Dc == 2
-    i_am_main(ranks) && println("zeromean constraint in 2D ")
+   _i_am_main && println("zeromean constraint in 2D ")
     Q = TestFESpace(Ω_panel, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2, constraint=:zeromean)
   end
   P = TrialFESpace(Q)
@@ -132,7 +134,7 @@ function hodge_laplacian_scalar(panel_model,
   _e = (covarient_basis_cf⋅(1/meas_cf*uh)) - (- sigma_cf ) ### u = -∇p
   el2_u = sqrt(sum(∫( (_e⋅_e)*meas_cf  )dΩ_error))
 
-  i_am_main(ranks) && println("eu = $(el2_u), es = $(el2_p)")
+ _i_am_main && println("eu = $(el2_u), es = $(el2_p)")
 
   if return_vtk
     cellfields =  ["u"=> -sigma_cf ,
@@ -177,7 +179,7 @@ function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
   ls = PETScLinearSolver(petsc_mumps_setup)
   # ls = LUSolver()
 
-  e_u, e_p, = hodge_laplacian_scalar(panel_model,p_fe,dir,fX,ls,Bool(return_vtk))
+  e_u, e_p, = hodge_laplacian_scalar(panel_model,p_fe,dir,fX,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
   ### convergence output for DrWatson
   n = nc(panel_model)
@@ -196,12 +198,11 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(models::AbstractArray)
+function main(models::AbstractArray;ps=[2],_i_am_main=true)
 
   ls = LUSolver()
   dir = @__DIR__
-  ps = [1,2]
-  p_convergence_auto_test(ps,models,hodge_laplacian_scalar,dir,fX,ls)
+  p_convergence_auto_test(ps,models,hodge_laplacian_scalar,dir,fX,ls;_i_am_main=_i_am_main)
 end
 
 function main(distribute,nprocs;)
@@ -211,14 +212,18 @@ function main(distribute,nprocs;)
 
   ## Distributed model: 2D
   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
-  main(models)
+  main(models;_i_am_main=i_am_main(ranks))
 
   ### P4test model: 2D
   models = get_octree_refined_models(ranks,n_ref_lvls)
-  main(models)
+  main(models;_i_am_main=i_am_main(ranks))
 
   ### P4test model: 3D
   models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
-  main(models)
+  main(models;ps=[1],_i_am_main=i_am_main(ranks))
 
 end
+
+
+
+end # module

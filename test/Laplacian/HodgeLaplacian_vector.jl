@@ -1,3 +1,12 @@
+"""
+solve vector laplacian in mixed form
+σ + ∇ᵧ⋅ϕ  = 0
+∇ᵧ × (∇ᵧ × ϕ) + ∇ᵧσ = f
+where f = -Δϕ
+"""
+
+module HodgeLaplacianVectorTests
+
 using MPI
 using PartitionedArrays
 
@@ -15,8 +24,6 @@ using GridapP4est
 using Test
 using GridapPETSc
 using LinearAlgebra
-
-include("../convergence_tools.jl")
 
 inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
@@ -65,7 +72,7 @@ function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
   dir_convergence = dir*"/convergence"
   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
     num_horizontal_uniform_refinements=n_ref,
     num_vertical_uniform_refinements=n_ref);
   panel_model = octree3_model.parametric_dmodel
@@ -73,7 +80,7 @@ function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
   GridapPETSc.Init()
   ls = PETScLinearSolver(petsc_mumps_setup)
 
-  e_u, e_s, =  hodge_laplacian_vector(panel_model,p_fe,dir,uX,ls,Bool(return_vtk))
+  e_u, e_s, =  hodge_laplacian_vector(panel_model,p_fe,dir,uX,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
   ### convergence output for DrWatson
   n = nc(panel_model)
@@ -91,14 +98,12 @@ end
 
 function hodge_laplacian_vector(
   panel_model::GridapDistributed.GenericDistributedDiscreteModel{3,3},
-  p_fe::Int,dir::String,uX::Function,ls=LUSolver(),return_vtk=false)
+  p_fe::Int,dir::String,uX::Function,ls=LUSolver(),return_vtk=false;
+  _i_am_main=true)
 
-  ranks = get_ranks(panel_model)
   Dc = num_cell_dims(panel_model)
   lvl = nref(panel_model)
-  i_am_main(ranks) && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
-
-
+ _i_am_main && println("p_fe = $(p_fe); nref = $lvl; Dc = $Dc")
 
   # degree = 30
   degree = 5*(p_fe + 1)
@@ -251,7 +256,7 @@ function hodge_laplacian_vector(
   _e = (inv_metric_cf⋅uh) - (inv_metric_cf⋅u_int)
   el2_u = sqrt(sum(∫( (_e⋅(metric_cf ⋅_e))*meas_cf  )dΩ_error))
 
-  i_am_main(ranks) && println("eu = $(el2_u), es = $(el2_s)")
+ _i_am_main && println("eu = $(el2_u), es = $(el2_s)")
 
   if return_vtk
     cellfields =  ["u"=>covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
@@ -273,12 +278,11 @@ end
 ################################################################################
 #### Auto convergence test -- only 3D models for p=[0,1]
 ################################################################################
-function main(models::AbstractArray)
+function main(models::AbstractArray;ps = [1],_i_am_main=true)
 
   ls = LUSolver()
   dir = @__DIR__
-  ps = [0,1]
-  p_convergence_auto_test(ps,models,hodge_laplacian_vector,dir,uX,ls)
+  p_convergence_auto_test(ps,models,hodge_laplacian_vector,dir,uX,ls;_i_am_main=_i_am_main)
 end
 
 function main(distribute,nprocs;)
@@ -288,6 +292,10 @@ function main(distribute,nprocs;)
 
   ### P4test model: 3D
   models = get_3D_octree_refined_models(ranks,n_ref_lvls)
-  main(models)
+  main(models;_i_am_main=i_am_main(ranks))
 
 end
+
+
+
+end # module

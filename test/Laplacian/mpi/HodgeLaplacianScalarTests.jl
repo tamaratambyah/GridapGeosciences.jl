@@ -5,5 +5,5 @@ MPI.Init()
 nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 
 with_mpi() do distribute
-  main(distribute,nprocs)
+  HodgeLaplacianScalarTests.main(distribute,nprocs)
 end

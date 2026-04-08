@@ -2,6 +2,8 @@
 u + Δᵧ(u) = f
 """
 
+module HelmholtzTests
+
 using DrWatson
 using Gridap
 using GridapDistributed
@@ -23,13 +25,13 @@ function fX(p)
 end
 
 function helmholtz_solver(panel_model,
-  p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false)
+  p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false;
+  _i_am_main=true)
 
-  ranks = get_ranks(panel_model)
   Dc = num_cell_dims(panel_model)
   lvl = nref(panel_model)
 
-  i_am_main(ranks) && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
+  _i_am_main && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
 
   degree = 6*(p_fe+1)
   panel_ids = get_panel_ids(panel_model)
@@ -125,7 +127,7 @@ function launch_helmholtz(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
   GridapPETSc.Init()
   ls = PETScLinearSolver(petsc_mumps_setup)
   f = fX
-  e_u,  = helmholtz_solver(panel_model,p_fe,dir,f,ls,Bool(return_vtk))
+  e_u,  = helmholtz_solver(panel_model,p_fe,dir,f,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
   i_am_main(ranks) && println("eu = $e_u")
 
@@ -147,14 +149,11 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(models::AbstractArray)
-  f = fX
+function main(models::AbstractArray;ps=[2],_i_am_main=true)
 
   ls = LUSolver()
   dir = @__DIR__
-  ps = [1,2,3]
-
-  p_convergence_auto_test(ps,models,helmholtz_solver,dir,f,ls)
+  p_convergence_auto_test(ps,models,helmholtz_solver,dir,fX,ls;_i_am_main=_i_am_main)
 end
 
 function main(distribute,nprocs;)
@@ -164,14 +163,18 @@ function main(distribute,nprocs;)
 
   ## Distributed model: 2D
   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
-  main(models)
+  main(models;_i_am_main=i_am_main(ranks))
 
   ### P4test model: 2D
   models = get_octree_refined_models(ranks,n_ref_lvls)
-  main(models)
+  main(models;_i_am_main=i_am_main(ranks))
 
   # ### P4test model: 3D
   # models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
-  # main(models)
+  # main(models;_i_am_main=i_am_main(ranks))
 
 end
+
+
+
+end # module

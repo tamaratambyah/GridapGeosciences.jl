@@ -36,6 +36,7 @@ jobs:
           - x64
         testcase:
           - mpi-l2-projection
+          - mpi-laplacian
     steps:
       - name: Install p4est/petsc dependencies
         run: |
