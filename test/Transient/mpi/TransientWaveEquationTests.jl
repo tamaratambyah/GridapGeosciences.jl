@@ -16,8 +16,3 @@ omodel = ParametricOctreeDistributedDiscreteModel(ranks;
   num_initial_uniform_refinements=3)
 panel_model = omodel.parametric_dmodel
 TransientWaveEquationTests.main(panel_model;_i_am_main=i_am_main(ranks))
-
-
-# with_mpi() do distribute
-#   TransientWaveEquationTests.main(distribute,nprocs)
-# end

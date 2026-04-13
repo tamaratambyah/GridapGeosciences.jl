@@ -19,8 +19,3 @@ LinearisedShallowWaterTests.main(models;_i_am_main=i_am_main(ranks))
 ### P4test model: 3D
 models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 LinearisedShallowWaterTests.main(models;ps=[1],_i_am_main=i_am_main(ranks))
-
-
-# with_mpi() do distribute
-#   LinearisedShallowWaterTests.main(distribute,nprocs)
-# end

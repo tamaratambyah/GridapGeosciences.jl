@@ -11,27 +11,6 @@ using GridapGeosciences
 using GridapP4est
 using Test
 
-# using DrWatson
-# using MPI
-# using PartitionedArrays
-
-
-# using GridapPETSc
-# function petsc_mumps_setup(ksp)
-#   pc       = Ref{GridapPETSc.PETSC.PC}()
-#   mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
-#   @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
-#   @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
-#   @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
-#   @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
-#   @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
-#   @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
-#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
-#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
-#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
-#   # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
-#   @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
-# end
 
 function fX(p)
   function _f(αβ)
@@ -112,57 +91,6 @@ end
 
 
 ################################################################################
-#### Launch Helmholtz -- on gadi
-################################################################################
-# function launch_helmholtz(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
-
-#   i_am_main(ranks) && println("--START--")
-#   i_am_main(ranks) && println("Helmholtz: Dc = $Dc")
-
-#   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
-
-#   dir_convergence = dir*"/convergence"
-#   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
-
-#   # ensure no MPI task tries to generate the file before the main MPI task has
-#   # created the folder
-#   PartitionedArrays.barrier(ranks)
-
-#   omodel = if Dc == 2
-#     ParametricOctreeDistributedDiscreteModel(ranks;
-#     num_initial_uniform_refinements=n_ref)
-#   elseif Dc == 3
-#     Parametric3DOctreeDistributedDiscreteModel(ranks;
-#         num_horizontal_uniform_refinements=n_ref,
-#         num_vertical_uniform_refinements=n_ref);
-#   end
-
-#   panel_model = omodel.parametric_dmodel
-
-
-#   GridapPETSc.Init()
-#   ls = PETScLinearSolver(petsc_mumps_setup)
-#   f = fX
-#   e_u,  = helmholtz_solver(panel_model,p_fe,dir,f,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
-
-#   i_am_main(ranks) && println("eu = $e_u")
-
-#   ## convergence output for DrWatson
-#   n = nc(panel_model)
-#   dxx = dx(panel_model)
-#   output = @strdict e_u n dxx p_fe n_ref Dc
-#   i_am_main(ranks) && safesave(datadir(dir_convergence, ("helmholtz_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
-
-#   GridapPETSc.Finalize()
-#   GridapPETSc.gridap_petsc_gc()
-
-#   i_am_main(ranks) && println("--DONE--")
-
-# end
-
-
-
-################################################################################
 #### Auto convergence test
 ################################################################################
 function main(models::AbstractArray;ps=[2],_i_am_main=true)
@@ -171,26 +99,6 @@ function main(models::AbstractArray;ps=[2],_i_am_main=true)
   dir = @__DIR__
   p_convergence_auto_test(ps,models,helmholtz_solver,dir,fX,ls;_i_am_main=_i_am_main)
 end
-
-# function main(distribute,nprocs;)
-#   ranks = distribute(LinearIndices((nprocs,)))
-
-#   n_ref_lvls = 4
-
-#   ## Distributed model: 2D
-#   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
-#   main(models;_i_am_main=i_am_main(ranks))
-
-#   ### P4test model: 2D
-#   models = get_octree_refined_models(ranks,n_ref_lvls)
-#   main(models;_i_am_main=i_am_main(ranks))
-
-#   # ### P4test model: 3D
-#   # models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
-#   # main(models;_i_am_main=i_am_main(ranks))
-
-# end
-
 
 
 end # module

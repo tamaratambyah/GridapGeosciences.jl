@@ -15,8 +15,3 @@ HelmholtzTests.main(models;_i_am_main=i_am_main(ranks))
 ### P4test model: 2D
 models = get_octree_refined_models(ranks,n_ref_lvls)
 HelmholtzTests.main(models;_i_am_main=i_am_main(ranks))
-
-
-# with_mpi() do distribute
-#   HelmholtzTests.main(distribute,nprocs)
-# end

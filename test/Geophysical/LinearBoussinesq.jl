@@ -15,27 +15,6 @@ using GridapGeosciences
 using GridapP4est
 using Test
 
-# using DrWatson
-# using MPI
-# using PartitionedArrays
-
-# using GridapPETSc
-# function petsc_mumps_setup(ksp)
-#   pc       = Ref{GridapPETSc.PETSC.PC}()
-#   mumpsmat = Ref{GridapPETSc.PETSC.Mat}()
-#   @check_error_code GridapPETSc.PETSC.KSPSetType(ksp[],GridapPETSc.PETSC.KSPPREONLY)
-#   @check_error_code GridapPETSc.PETSC.KSPGetPC(ksp[],pc)
-#   @check_error_code GridapPETSc.PETSC.PCSetType(pc[],GridapPETSc.PETSC.PCLU)
-#   @check_error_code GridapPETSc.PETSC.PCFactorSetMatSolverType(pc[],GridapPETSc.PETSC.MATSOLVERMUMPS)
-#   @check_error_code GridapPETSc.PETSC.PCFactorSetUpMatSolverType(pc[])
-#   @check_error_code GridapPETSc.PETSC.PCFactorGetMatrix(pc[],mumpsmat)
-#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[],  4, 1)
-#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 28, 2)
-#   @check_error_code GridapPETSc.PETSC.MatMumpsSetIcntl(mumpsmat[], 29, 1)
-#   # @check_error_code GridapPETSc.PETSC.MatMumpsSetCntl(mumpsmat[],  1, 0.00001)
-#   @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
-# end
-
 
 import GridapGeosciences.Helpers: RADIUS, THICKNESS
 THICKNESS
@@ -71,7 +50,6 @@ function p0(xyz)
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,r = θϕr
   sin(ϕ)
-  #  = 0.0
 end
 
 function b0(xyz)
@@ -230,54 +208,6 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   return e_u, e_p, e_b
 end
 
-################################################################################
-#### Launch linearised Boussineq equation -- on gadi
-################################################################################
-# function launch_linearised_boussineseq(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
-
-#   i_am_main(ranks) && println("--START--")
-#   i_am_main(ranks) && println("Linearised Boussineq: Dc = $Dc")
-
-#   dir_convergence = dir*"/convergence"
-#   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
-
-#   # ensure no MPI task tries to generate the file before the main MPI task has
-#   # created the folder
-#   PartitionedArrays.barrier(ranks)
-
-#   h = panel_to_cartesian(p0)
-#   vX = panel_to_cartesian(tangent_vec(u0))
-#   f = panel_to_cartesian(omega)
-#   b = panel_to_cartesian(b0)
-
-
-#   Parametric3DOctreeDistributedDiscreteModel(ranks;
-#         num_horizontal_uniform_refinements=n_ref,
-#         num_vertical_uniform_refinements=n_ref);
-#   panel_model = omodel.parametric_dmodel
-
-
-#   GridapPETSc.Init()
-#   ls = PETScLinearSolver(petsc_mumps_setup)
-
-#   e_u, e_p, e_b = linear_boussineseq(panel_model,p_fe,dir,h,vX,f,b,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
-
-#   i_am_main(ranks) && println("eu = $e_u, e_p = $e_p, e_b = $e_b")
-
-#   ## convergence output for DrWatson
-#   n = nc(panel_model)
-#   dxx = dx(panel_model)
-#   output = @strdict e_u e_p e_b n dxx p_fe n_ref Dc
-#   i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_sw_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
-
-
-#   GridapPETSc.Finalize()
-#   GridapPETSc.gridap_petsc_gc()
-
-#   i_am_main(ranks) && println("--DONE--")
-
-# end
-
 
 ################################################################################
 #### Auto convergence test
@@ -294,16 +224,6 @@ function main(models::AbstractArray;ps=[1],_i_am_main=true)
 
 end
 
-# function main(distribute,nprocs;)
-#   ranks = distribute(LinearIndices((nprocs,)))
-
-#   n_ref_lvls = 3
-
-#   ### P4test model: 3D
-#   models = get_3D_octree_refined_models(ranks,n_ref_lvls)
-#   main(models;_i_am_main=i_am_main(ranks))
-
-# end
 
 
 end #module

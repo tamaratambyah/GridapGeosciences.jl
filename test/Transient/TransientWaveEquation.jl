@@ -15,8 +15,6 @@ using GridapP4est
 using DrWatson
 using Test
 
-# using MPI
-# using PartitionedArrays
 
 ## initial conditions
 function vecX(p)
@@ -138,23 +136,6 @@ function main(model;_i_am_main=true)
   @test isapprox(eu,0.001602838116424487;rtol=1e-2,atol=1e-3)
   @test isapprox(ep,0.010030006030668944;rtol=1e-2,atol=1e-3)
 end
-
-# function main(distribute,nprocs;)
-#   ranks = distribute(LinearIndices((nprocs,)))
-
-#   ## Distributed model: 2D
-#   models = get_distributed_refined_models(ranks,nprocs,3)
-#   main(models[1];_i_am_main=i_am_main(ranks))
-
-#   ### P4test model: 2D
-#   omodel = ParametricOctreeDistributedDiscreteModel(ranks;
-#     num_initial_uniform_refinements=3)
-#   panel_model = omodel.parametric_dmodel
-#   main(panel_model;_i_am_main=i_am_main(ranks))
-
-# end
-
-
 
 
 
