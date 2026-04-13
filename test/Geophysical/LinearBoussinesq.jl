@@ -13,11 +13,11 @@ using Gridap.Algebra
 using GridapDistributed
 using GridapGeosciences
 using GridapP4est
-using DrWatson
 using Test
 
-using MPI
-using PartitionedArrays
+# using DrWatson
+# using MPI
+# using PartitionedArrays
 
 # using GridapPETSc
 # function petsc_mumps_setup(ksp)
@@ -233,50 +233,50 @@ end
 ################################################################################
 #### Launch linearised Boussineq equation -- on gadi
 ################################################################################
-function launch_linearised_boussineseq(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
+# function launch_linearised_boussineseq(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
-  i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("Linearised Boussineq: Dc = $Dc")
+#   i_am_main(ranks) && println("--START--")
+#   i_am_main(ranks) && println("Linearised Boussineq: Dc = $Dc")
 
-  dir_convergence = dir*"/convergence"
-  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+#   dir_convergence = dir*"/convergence"
+#   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  # ensure no MPI task tries to generate the file before the main MPI task has
-  # created the folder
-  PartitionedArrays.barrier(ranks)
+#   # ensure no MPI task tries to generate the file before the main MPI task has
+#   # created the folder
+#   PartitionedArrays.barrier(ranks)
 
-  h = panel_to_cartesian(p0)
-  vX = panel_to_cartesian(tangent_vec(u0))
-  f = panel_to_cartesian(omega)
-  b = panel_to_cartesian(b0)
-
-
-  Parametric3DOctreeDistributedDiscreteModel(ranks;
-        num_horizontal_uniform_refinements=n_ref,
-        num_vertical_uniform_refinements=n_ref);
-  panel_model = omodel.parametric_dmodel
+#   h = panel_to_cartesian(p0)
+#   vX = panel_to_cartesian(tangent_vec(u0))
+#   f = panel_to_cartesian(omega)
+#   b = panel_to_cartesian(b0)
 
 
-  GridapPETSc.Init()
-  ls = PETScLinearSolver(petsc_mumps_setup)
-
-  e_u, e_p, e_b = linear_boussineseq(panel_model,p_fe,dir,h,vX,f,b,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
-
-  i_am_main(ranks) && println("eu = $e_u, e_p = $e_p, e_b = $e_b")
-
-  ## convergence output for DrWatson
-  n = nc(panel_model)
-  dxx = dx(panel_model)
-  output = @strdict e_u e_p e_b n dxx p_fe n_ref Dc
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_sw_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
+#   Parametric3DOctreeDistributedDiscreteModel(ranks;
+#         num_horizontal_uniform_refinements=n_ref,
+#         num_vertical_uniform_refinements=n_ref);
+#   panel_model = omodel.parametric_dmodel
 
 
-  GridapPETSc.Finalize()
-  GridapPETSc.gridap_petsc_gc()
+#   GridapPETSc.Init()
+#   ls = PETScLinearSolver(petsc_mumps_setup)
 
-  i_am_main(ranks) && println("--DONE--")
+#   e_u, e_p, e_b = linear_boussineseq(panel_model,p_fe,dir,h,vX,f,b,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
-end
+#   i_am_main(ranks) && println("eu = $e_u, e_p = $e_p, e_b = $e_b")
+
+#   ## convergence output for DrWatson
+#   n = nc(panel_model)
+#   dxx = dx(panel_model)
+#   output = @strdict e_u e_p e_b n dxx p_fe n_ref Dc
+#   i_am_main(ranks) && safesave(datadir(dir_convergence, ("linearised_sw_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
+
+
+#   GridapPETSc.Finalize()
+#   GridapPETSc.gridap_petsc_gc()
+
+#   i_am_main(ranks) && println("--DONE--")
+
+# end
 
 
 ################################################################################

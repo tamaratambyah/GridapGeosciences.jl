@@ -10,11 +10,11 @@ using Gridap.Helpers
 using Gridap.Algebra
 using GridapGeosciences
 using GridapP4est
-using DrWatson
 using Test
 
-using MPI
-using PartitionedArrays
+# using DrWatson
+# using MPI
+# using PartitionedArrays
 
 # using GridapPETSc
 # function petsc_mumps_setup(ksp)
@@ -127,51 +127,51 @@ end
 ################################################################################
 #### Launch launch_laplace_beltrami -- on gadi
 ################################################################################
-function launch_laplace_beltrami(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
+# function launch_laplace_beltrami(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
-  i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("Laplace Beltrami: Dc = $Dc")
+#   i_am_main(ranks) && println("--START--")
+#   i_am_main(ranks) && println("Laplace Beltrami: Dc = $Dc")
 
-  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+#   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  dir_convergence = dir*"/convergence"
-  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+#   dir_convergence = dir*"/convergence"
+#   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  # ensure no MPI task tries to generate the file before the main MPI task has
-  # created the folder
-  PartitionedArrays.barrier(ranks)
+#   # ensure no MPI task tries to generate the file before the main MPI task has
+#   # created the folder
+#   PartitionedArrays.barrier(ranks)
 
-  omodel = if Dc == 2
-    ParametricOctreeDistributedDiscreteModel(ranks;
-    num_initial_uniform_refinements=n_ref)
-  elseif Dc == 3
-    Parametric3DOctreeDistributedDiscreteModel(ranks;
-        num_horizontal_uniform_refinements=n_ref,
-        num_vertical_uniform_refinements=n_ref);
-  end
+#   omodel = if Dc == 2
+#     ParametricOctreeDistributedDiscreteModel(ranks;
+#     num_initial_uniform_refinements=n_ref)
+#   elseif Dc == 3
+#     Parametric3DOctreeDistributedDiscreteModel(ranks;
+#         num_horizontal_uniform_refinements=n_ref,
+#         num_vertical_uniform_refinements=n_ref);
+#   end
 
-  panel_model = omodel.parametric_dmodel
+#   panel_model = omodel.parametric_dmodel
 
 
-  GridapPETSc.Init()
-  ls = PETScLinearSolver(petsc_mumps_setup)
-  f = fX
-  e_u,  = laplace_beltrami_solver(panel_model,p_fe,dir,f,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
+#   GridapPETSc.Init()
+#   ls = PETScLinearSolver(petsc_mumps_setup)
+#   f = fX
+#   e_u,  = laplace_beltrami_solver(panel_model,p_fe,dir,f,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
-  i_am_main(ranks) && println("eu = $e_u")
+#   i_am_main(ranks) && println("eu = $e_u")
 
-  ## convergence output for DrWatson
-  n = nc(panel_model)
-  dxx = dx(panel_model)
-  output = @strdict e_u n dxx p_fe n_ref Dc
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
+#   ## convergence output for DrWatson
+#   n = nc(panel_model)
+#   dxx = dx(panel_model)
+#   output = @strdict e_u n dxx p_fe n_ref Dc
+#   i_am_main(ranks) && safesave(datadir(dir_convergence, ("laplace_beltrami_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
 
-  GridapPETSc.Finalize()
-  GridapPETSc.gridap_petsc_gc()
+#   GridapPETSc.Finalize()
+#   GridapPETSc.gridap_petsc_gc()
 
-  i_am_main(ranks) && println("--DONE--")
+#   i_am_main(ranks) && println("--DONE--")
 
-end
+# end
 
 
 

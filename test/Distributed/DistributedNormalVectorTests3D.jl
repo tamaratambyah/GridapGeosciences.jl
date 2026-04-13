@@ -5,17 +5,10 @@ ambient space
 
 module DistributedNormalTests3D
 
-using DrWatson
 using Gridap
-using GridapDistributed
-using GridapP4est
 using GridapGeosciences
-using GridapGeosciences.Distributed
-
-using MPI
-using PartitionedArrays
+using GridapP4est
 using Test
-
 
 
 function main(distribute,nprocs)

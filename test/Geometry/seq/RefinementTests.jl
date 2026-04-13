@@ -11,8 +11,6 @@ using GridapGeosciences
 using Gridap.Helpers,  Gridap.Adaptivity
 using Test
 
-include("../convergence_tools.jl")
-
 ### Check the Dc, Dp of the coarse model
 panel_model = coarse_parametric_model()
 panel_ids = get_panel_ids(panel_model)

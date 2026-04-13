@@ -3,12 +3,12 @@ Test the construction of meshes by evaluating the cellmaps
 """
 
 module DistributedTriangulationTests
+
 using Gridap
 using GridapGeosciences
-using Test
 using GridapDistributed
-using MPI
-using PartitionedArrays
+using GridapP4est
+using Test
 
 ################################################################################
 ## Test the evaluation of cmaps on DistributedTriangulations
@@ -33,7 +33,7 @@ end
 function test_distributedParametricDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
+  # i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
 
   n_ref_lvls = 2
   dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
@@ -56,7 +56,7 @@ end
 function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
 
   n_ref_lvls = 2
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
@@ -79,7 +79,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
   n_ref_lvls = 2
   o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
   num_horizontal_uniform_refinements=n_ref_lvls, num_vertical_uniform_refinements=n_ref_lvls);

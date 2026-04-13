@@ -4,19 +4,18 @@ equivalent to the panel ids from the model.
 We also test the length of the panel ids is equvialent to the number of cells.
 Do this for:
   - DistributedParametricDiscreteModel
-  -ParametricOctreeDistributedDiscreteModel
-  -ParametricOctree3DistributedDiscreteModel
+  - ParametricOctreeDistributedDiscreteModel
+  - ParametricOctree3DistributedDiscreteModel
 """
 
 module DistributedPanelIdsTests
+
 using Gridap
 using GridapGeosciences
-using Gridap.Adaptivity
-using Test
 using GridapDistributed
-using MPI
 using PartitionedArrays
-
+using GridapP4est
+using Test
 
 function test_distributed_panel_ids(dpanel_model)
   trian = Triangulation(dpanel_model)
@@ -34,17 +33,12 @@ function test_distributed_panel_ids(dpanel_model)
 
 end
 
-# nprocs = 1
-# with_mpi() do distribute
-#   main(distribute,nprocs)
-# end
-
 
 function test_distributedParametricDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
+  # i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
 
   n_ref_lvls = 2
   dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
@@ -67,7 +61,7 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
 
   # level 0
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
@@ -107,7 +101,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
 
   # level 0
   o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;

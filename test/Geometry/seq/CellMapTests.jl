@@ -11,7 +11,7 @@ using GridapGeosciences
 using Test
 using Gridap.Geometry
 
-include("../convergence_tools.jl")
+
 
 function test_cell_maps(panel_model,cart_model)
   lvl = nref(nc(panel_model))
@@ -65,4 +65,6 @@ for (level,(panel_model,cart_model)) in enumerate(zip(panel_models,cart_panel_mo
 end
 
 @test true
-end
+
+
+end #module

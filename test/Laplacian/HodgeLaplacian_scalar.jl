@@ -12,11 +12,11 @@ using Gridap.Helpers
 using Gridap.Algebra
 using GridapGeosciences
 using GridapP4est
-using DrWatson
 using Test
 
-using MPI
-using PartitionedArrays
+# using DrWatson
+# using MPI
+# using PartitionedArrays
 
 
 # using GridapPETSc
@@ -152,44 +152,44 @@ end
 ################################################################################
 #### Launch wave equation -- on gadi
 ################################################################################
-function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
+# function launch_hodge_laplacian(ranks,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
-  i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("Hodge Laplacian: scalar")
+#   i_am_main(ranks) && println("--START--")
+#   i_am_main(ranks) && println("Hodge Laplacian: scalar")
 
-  (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
+#   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  dir_convergence = dir*"/convergence"
-  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+#   dir_convergence = dir*"/convergence"
+#   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  # ensure no MPI task tries to generate the file before the main MPI task has
-  # created the folder
-  PartitionedArrays.barrier(ranks)
+#   # ensure no MPI task tries to generate the file before the main MPI task has
+#   # created the folder
+#   PartitionedArrays.barrier(ranks)
 
-  octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
-    num_horizontal_uniform_refinements=n_ref,
-    num_vertical_uniform_refinements=n_ref);
-  panel_model = octree3_model.parametric_dmodel
+#   octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+#     num_horizontal_uniform_refinements=n_ref,
+#     num_vertical_uniform_refinements=n_ref);
+#   panel_model = octree3_model.parametric_dmodel
 
-  GridapPETSc.Init()
-  ls = PETScLinearSolver(petsc_mumps_setup)
-  # ls = LUSolver()
+#   GridapPETSc.Init()
+#   ls = PETScLinearSolver(petsc_mumps_setup)
+#   # ls = LUSolver()
 
-  e_u, e_p, = hodge_laplacian_scalar(panel_model,p_fe,dir,fX,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
+#   e_u, e_p, = hodge_laplacian_scalar(panel_model,p_fe,dir,fX,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
-  ### convergence output for DrWatson
-  n = nc(panel_model)
-  dxx = dx(panel_model)
-  output = @strdict e_u e_p n dxx p_fe n_ref
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("hodge_laplacian_scalar_nref$(n_ref)_p$p_fe.jld2")), output)
+#   ### convergence output for DrWatson
+#   n = nc(panel_model)
+#   dxx = dx(panel_model)
+#   output = @strdict e_u e_p n dxx p_fe n_ref
+#   i_am_main(ranks) && safesave(datadir(dir_convergence, ("hodge_laplacian_scalar_nref$(n_ref)_p$p_fe.jld2")), output)
 
 
-  GridapPETSc.Finalize()
-  GridapPETSc.gridap_petsc_gc()
+#   GridapPETSc.Finalize()
+#   GridapPETSc.gridap_petsc_gc()
 
-  i_am_main(ranks) && println("--DONE--")
+#   i_am_main(ranks) && println("--DONE--")
 
-end
+# end
 
 ################################################################################
 #### Auto convergence test

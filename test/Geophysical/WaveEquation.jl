@@ -11,11 +11,11 @@ using Gridap.Helpers
 using Gridap.Algebra
 using GridapGeosciences
 using GridapP4est
-using DrWatson
 using Test
 
-using MPI
-using PartitionedArrays
+# using DrWatson
+# using MPI
+# using PartitionedArrays
 
 # using GridapPETSc
 # function petsc_mumps_setup(ksp)
@@ -126,54 +126,54 @@ end
 ################################################################################
 #### Launch wave equation -- on gadi
 ################################################################################
-function launch_wave_equation(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
+# function launch_wave_equation(ranks,Dc,n_ref,p_fe::Int,dir::String,return_vtk=1)
 
-  i_am_main(ranks) && println("--START--")
-  i_am_main(ranks) && println("Wave equation: Dc = $Dc")
+#   i_am_main(ranks) && println("--START--")
+#   i_am_main(ranks) && println("Wave equation: Dc = $Dc")
 
-  dir_convergence = dir*"/convergence"
-  (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
+#   dir_convergence = dir*"/convergence"
+#   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-  # ensure no MPI task tries to generate the file before the main MPI task has
-  # created the folder
-  PartitionedArrays.barrier(ranks)
+#   # ensure no MPI task tries to generate the file before the main MPI task has
+#   # created the folder
+#   PartitionedArrays.barrier(ranks)
 
-  ζ = 0.0
-  h = panel_to_cartesian(h₀(ζ))
-  vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
+#   ζ = 0.0
+#   h = panel_to_cartesian(h₀(ζ))
+#   vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
 
-  omodel = if Dc == 2
-    ParametricOctreeDistributedDiscreteModel(ranks;
-    num_initial_uniform_refinements=n_ref)
-  elseif Dc == 3
-    Parametric3DOctreeDistributedDiscreteModel(ranks;
-        num_horizontal_uniform_refinements=n_ref,
-        num_vertical_uniform_refinements=n_ref);
-  end
+#   omodel = if Dc == 2
+#     ParametricOctreeDistributedDiscreteModel(ranks;
+#     num_initial_uniform_refinements=n_ref)
+#   elseif Dc == 3
+#     Parametric3DOctreeDistributedDiscreteModel(ranks;
+#         num_horizontal_uniform_refinements=n_ref,
+#         num_vertical_uniform_refinements=n_ref);
+#   end
 
-  panel_model = omodel.parametric_dmodel
-
-
-  GridapPETSc.Init()
-  ls = PETScLinearSolver(petsc_mumps_setup)
-
-  e_u,e_p, = wave_solver(panel_model,p_fe,dir,h,vX,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
-
-  i_am_main(ranks) && println("eu = $e_u, e_p = $e_p")
-
-  ## convergence output for DrWatson
-  n = nc(panel_model)
-  dxx = dx(panel_model)
-  output = @strdict e_u e_p n dxx p_fe n_ref Dc
-  i_am_main(ranks) && safesave(datadir(dir_convergence, ("wave_equation_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
+#   panel_model = omodel.parametric_dmodel
 
 
-  GridapPETSc.Finalize()
-  GridapPETSc.gridap_petsc_gc()
+#   GridapPETSc.Init()
+#   ls = PETScLinearSolver(petsc_mumps_setup)
 
-  i_am_main(ranks) && println("--DONE--")
+#   e_u,e_p, = wave_solver(panel_model,p_fe,dir,h,vX,ls,Bool(return_vtk);_i_am_main=i_am_main(ranks))
 
-end
+#   i_am_main(ranks) && println("eu = $e_u, e_p = $e_p")
+
+#   ## convergence output for DrWatson
+#   n = nc(panel_model)
+#   dxx = dx(panel_model)
+#   output = @strdict e_u e_p n dxx p_fe n_ref Dc
+#   i_am_main(ranks) && safesave(datadir(dir_convergence, ("wave_equation_nref$(n_ref)_p$(p_fe)_D$Dc.jld2")), output)
+
+
+#   GridapPETSc.Finalize()
+#   GridapPETSc.gridap_petsc_gc()
+
+#   i_am_main(ranks) && println("--DONE--")
+
+# end
 
 
 

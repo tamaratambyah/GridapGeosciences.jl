@@ -6,8 +6,8 @@ of metric on skeleton mesh
 module DistributedNormalTests
 
 using Gridap
-using GridapGeosciences
 using GridapDistributed
+using GridapGeosciences
 using Test
 
 ################################################################################

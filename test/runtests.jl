@@ -20,6 +20,10 @@ if TESTCASE ∈ ("all", "seq", "seq-transient")
   include("Transient/seq/runtests.jl")
 end
 
+if TESTCASE ∈ ("all", "seq", "seq-geometry")
+  include("Geometry/seq/runtests.jl")
+end
+
 # MPI tests
 if TESTCASE ∈ ("all", "mpi", "mpi-l2-projection")
    include("Projection/mpi/runtests.jl")
@@ -35,4 +39,12 @@ end
 
 if TESTCASE ∈ ("all", "mpi", "mpi-transient")
   include("Transient/mpi/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "mpi", "mpi-geometry")
+  include("Geometry/mpi/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "mpi", "mpi-models")
+  include("Distributed/mpi/runtests.jl")
 end

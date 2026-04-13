@@ -5,14 +5,10 @@ to ambient space, for boundary and skeleton triangulations
 
 module NormalTests
 
-using DrWatson
 using Gridap
 using GridapGeosciences
 using Test
-using Gridap.Helpers
 using Gridap.Geometry
-
-include("../convergence_tools.jl")
 
 ################################################################################
 #### Test unit normal vectors
@@ -24,13 +20,19 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
 
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
-  dΩ = Measure(Ω_panel,4)
+  dΩ = Measure(Ω_panel,6)
 
   vX = panel_to_cartesian(normal_vec)
   norm_vec_cf = panelwise_cellfield(vX,Ω_panel,panel_ids)
   norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
 
-  @check l2(norm_vec_cf-norm_vec_from_basis_cf,dΩ) < 1e-12
+  # the above are vectors in the ambient space, so do not need to use metric to
+  # compute error
+  e  = norm_vec_cf-norm_vec_from_basis_cf
+  e_l2 =  sqrt(sum(∫( (e⋅e)*meas_cf )dΩ))
+
+  @test e_l2 < 1e-12
 
   if return_vtk
     lvl = nref(nc(panel_model))
@@ -46,8 +48,7 @@ end
 n_ref_lvls = 4
 models  = get_refined_models(n_ref_lvls)
 return_vtk = false
-dir = datadir("NormalTests")
-(!isdir(dir) && return_vtk) && mkdir(dir)
+dir = @__DIR__
 
 ################################################################################
 ## Unit normal to surface: k = a₁ × a₂
@@ -187,4 +188,4 @@ end
 
 @test true
 
-end
+end #module

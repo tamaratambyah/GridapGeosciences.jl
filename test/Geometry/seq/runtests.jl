@@ -1,0 +1,11 @@
+using Test
+
+@testset "CellMap" begin include("CellMapTests.jl") end
+
+@testset "NormalVector" begin include("NormalVectorTests.jl") end
+
+@testset "PanelIds" begin include("PanelIdsTests.jl") end
+
+@testset "Refinement" begin include("RefinementTests.jl") end
+
+@testset "SurfaceArea" begin include("SurfaceAreaTests.jl") end

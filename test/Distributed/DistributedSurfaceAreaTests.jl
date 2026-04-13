@@ -7,14 +7,11 @@ i.e. surface area = ∫ᵧ 1 = ∫ 1 √g
 
 module DistributedSurfaceAreaTests
 
-using MPI
-using PartitionedArrays
-using GridapGeosciences
-using GridapGeosciences.Distributed
-using GridapP4est
 using Gridap
-using GridapDistributed
+using GridapGeosciences
+using GridapP4est
 using Test
+
 
 import GridapGeosciences.Helpers: RADIUS
 
@@ -52,7 +49,7 @@ function main(distribute,nprocs)
     end
 
   end
-  # i_am_main(ranks) && println("test done ")
+
   @test true
 end
 
