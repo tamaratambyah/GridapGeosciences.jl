@@ -38,6 +38,8 @@ jobs:
           - mpi-l2-projection
           - mpi-laplacian
           - mpi-transient
+          - mpi-geometry
+          - mpi-models
     steps:
       - name: Install p4est/petsc dependencies
         run: |
