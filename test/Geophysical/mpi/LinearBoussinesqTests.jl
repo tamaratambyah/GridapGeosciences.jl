@@ -1,4 +1,5 @@
 using MPI, PartitionedArrays
+using GridapGeosciences
 include("../LinearBoussinesq.jl")
 
 MPI.Init()
