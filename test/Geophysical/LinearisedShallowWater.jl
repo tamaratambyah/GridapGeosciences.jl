@@ -34,7 +34,25 @@ using Test
 #   @check_error_code GridapPETSc.PETSC.KSPView(ksp[],C_NULL)
 # end
 
-include("Williamson2Test.jl")
+include("Williamson_functions.jl")
+
+
+a_e = 6.37e6 # m
+g = 9.8 # m/2
+ω = 7.29e-5 #s^-1
+T = 12*24*3600 #s
+H_0 = 2.94e4/g #m
+u_0 = 2*π*a_e/T #m/s
+
+L = a_e
+_τ = 1/ω
+
+_a = a_e/L
+_g = g*_τ^2/L
+_ω = ω*_τ
+_H_0 = H_0/L
+_T = T/_τ
+_u0 = u_0/L*_τ
 
 
 function linear_shallow_water_solver(panel_model,
@@ -229,24 +247,24 @@ function main(models::AbstractArray;ps=[2],_i_am_main=true)
   p_convergence_auto_test(ps,models,linear_shallow_water_solver,dir,h,vX,f,ls;_i_am_main=_i_am_main)
 end
 
-function main(distribute,nprocs;)
-  ranks = distribute(LinearIndices((nprocs,)))
+# function main(distribute,nprocs;)
+#   ranks = distribute(LinearIndices((nprocs,)))
 
-  n_ref_lvls = 4
+#   n_ref_lvls = 4
 
-  ## Distributed model: 2D
-  models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
-  main(models;_i_am_main=i_am_main(ranks))
+#   ## Distributed model: 2D
+#   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+#   main(models;_i_am_main=i_am_main(ranks))
 
-  ### P4test model: 2D
-  models = get_octree_refined_models(ranks,n_ref_lvls)
-  main(models;_i_am_main=i_am_main(ranks))
+#   ### P4test model: 2D
+#   models = get_octree_refined_models(ranks,n_ref_lvls)
+#   main(models;_i_am_main=i_am_main(ranks))
 
-  ### P4test model: 3D
-  models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
-  main(models;ps=[1],_i_am_main=i_am_main(ranks))
+#   ### P4test model: 3D
+#   models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+#   main(models;ps=[1],_i_am_main=i_am_main(ranks))
 
-end
+# end
 
 
 

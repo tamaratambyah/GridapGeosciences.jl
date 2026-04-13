@@ -172,24 +172,24 @@ function main(models::AbstractArray;ps=[2],_i_am_main=true)
   p_convergence_auto_test(ps,models,helmholtz_solver,dir,fX,ls;_i_am_main=_i_am_main)
 end
 
-function main(distribute,nprocs;)
-  ranks = distribute(LinearIndices((nprocs,)))
+# function main(distribute,nprocs;)
+#   ranks = distribute(LinearIndices((nprocs,)))
 
-  n_ref_lvls = 4
+#   n_ref_lvls = 4
 
-  ## Distributed model: 2D
-  models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
-  main(models;_i_am_main=i_am_main(ranks))
+#   ## Distributed model: 2D
+#   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+#   main(models;_i_am_main=i_am_main(ranks))
 
-  ### P4test model: 2D
-  models = get_octree_refined_models(ranks,n_ref_lvls)
-  main(models;_i_am_main=i_am_main(ranks))
+#   ### P4test model: 2D
+#   models = get_octree_refined_models(ranks,n_ref_lvls)
+#   main(models;_i_am_main=i_am_main(ranks))
 
-  # ### P4test model: 3D
-  # models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
-  # main(models;_i_am_main=i_am_main(ranks))
+#   # ### P4test model: 3D
+#   # models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+#   # main(models;_i_am_main=i_am_main(ranks))
 
-end
+# end
 
 
 

@@ -1,12 +1,17 @@
-# module LinearBoussinesqTestsMPI
 using MPI, PartitionedArrays
 include("../LinearBoussinesq.jl")
 
 MPI.Init()
 nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
+ranks = distribute_with_mpi(LinearIndices((prod(nprocs),)))
 
-with_mpi() do distribute
-  LinearisedBoussinesqTests.main(distribute,nprocs)
-end
+n_ref_lvls = 3
 
+### P4test model: 3D
+models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+LinearisedBoussinesqTests.main(models;_i_am_main=i_am_main(ranks))
+
+
+# with_mpi() do distribute
+#   LinearisedBoussinesqTests.main(distribute,nprocs)
 # end

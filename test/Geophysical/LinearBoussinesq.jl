@@ -294,16 +294,16 @@ function main(models::AbstractArray;ps=[1],_i_am_main=true)
 
 end
 
-function main(distribute,nprocs;)
-  ranks = distribute(LinearIndices((nprocs,)))
+# function main(distribute,nprocs;)
+#   ranks = distribute(LinearIndices((nprocs,)))
 
-  n_ref_lvls = 3
+#   n_ref_lvls = 3
 
-  ### P4test model: 3D
-  models = get_3D_octree_refined_models(ranks,n_ref_lvls)
-  main(models;_i_am_main=i_am_main(ranks))
+#   ### P4test model: 3D
+#   models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+#   main(models;_i_am_main=i_am_main(ranks))
 
-end
+# end
 
 
 end #module

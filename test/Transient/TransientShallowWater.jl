@@ -18,8 +18,8 @@ using GridapP4est
 using DrWatson
 using Test
 
-using MPI
-using PartitionedArrays
+# using MPI
+# using PartitionedArrays
 
 
 include("../Geophysical/Williamson_functions.jl")
@@ -216,20 +216,20 @@ function main(model;_i_am_main=true)
 end
 
 
-function main(distribute,nprocs;)
-  ranks = distribute(LinearIndices((nprocs,)))
+# function main(distribute,nprocs;)
+#   ranks = distribute(LinearIndices((nprocs,)))
 
-  ## Distributed model: 2D
-  models = get_distributed_refined_models(ranks,nprocs,3)
-  main(models[1];_i_am_main=i_am_main(ranks))
+#   ## Distributed model: 2D
+#   models = get_distributed_refined_models(ranks,nprocs,3)
+#   main(models[1];_i_am_main=i_am_main(ranks))
 
-  ### P4test model: 2D
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks;
-    num_initial_uniform_refinements=3)
-  panel_model = omodel.parametric_dmodel
-  main(panel_model;_i_am_main=i_am_main(ranks))
+#   ### P4test model: 2D
+#   omodel = ParametricOctreeDistributedDiscreteModel(ranks;
+#     num_initial_uniform_refinements=3)
+#   panel_model = omodel.parametric_dmodel
+#   main(panel_model;_i_am_main=i_am_main(ranks))
 
-end
+# end
 
 
 
