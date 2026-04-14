@@ -110,7 +110,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
   test_distributed_panel_ids(panel_model)
 
   # level 1
-  o3model = adapt_model(ranks,o3model)
+  o3model, = adapt_model(ranks,o3model)
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
@@ -121,7 +121,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
 
   # level 2
-  o3model = adapt_model(ranks,o3model)
+  o3model, = adapt_model(ranks,o3model)
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
