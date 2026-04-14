@@ -99,7 +99,6 @@ end
 @publish Helpers nc_horizontal
 @publish Helpers dx
 @publish Helpers dx_horizontal
-@publish Helpers get_ranks
 @publish Helpers convergence_rate
 
 @publish Distributed ParametricOctreeDistributedDiscreteModel

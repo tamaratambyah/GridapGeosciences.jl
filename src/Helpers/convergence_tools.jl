@@ -15,7 +15,7 @@ end
 function p_convergence_auto_test(ps::Vector{Int},
                                  models::AbstractArray,
                                  convergence_func,
-                                 dir::String,fargs...; 
+                                 dir::String,fargs...;
                                  _i_am_main=true)
 
   Dc = num_cell_dims(testitem(models))
@@ -272,18 +272,6 @@ function dx_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,
   vertical = THICKNESS/_nc_vertical(model)
   vertical ### single layer, so no sqrt
 end
-
-"""
-get_ranks
-"""
-function get_ranks(model::DiscreteModel)
-  return [true]
-end
-
-function get_ranks(dmodel::GridapDistributed.DistributedDiscreteModel)
-get_parts(dmodel)
-end
-
 
 
 function convergence_rate(dxs,errors)
