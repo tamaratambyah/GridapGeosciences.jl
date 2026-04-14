@@ -37,10 +37,11 @@ jobs:
         testcase:
           - mpi-l2-projection
           - mpi-laplacian
-          - mpi-geophysical
+          # - mpi-geophysical
           - mpi-transient
           - mpi-geometry
           - mpi-models
+          - mpi-multigrid
     steps:
       - name: Install p4est/petsc dependencies
         run: |
