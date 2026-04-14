@@ -10,14 +10,18 @@
 source $HOME/scripts/load-configs.sh
 source $HOME/scripts/load-intel.sh
 
-mpiexec -n 192 julia --project=$PBS_O_WORKDIR -e'
+mpiexec -n $PBS_NCPUS julia --project=$PBS_O_WORKDIR -e'
     using MPI
     using PartitionedArrays
-    include("tests/TransientCheckingpointingTests/TransientShallowWater_3D.jl") 
+    include("test/TransientCheckingpointingTests/TransientShallowWater_3D.jl") 
+
+    MPI.Init()
+    np = MPI.Comm_size(MPI.COMM_WORLD)
+    ranks = distribute_with_mpi(LinearIndices((np,)))
 
     with_mpi() do distribute
-        main_transient(distribute,192;restart=true,n_ref_lvls=6,p_fe=0,CFL=0.1)
-        # main_visualise(distribute,192;n_ref_lvls=6,p_fe=0)
+        main_transient(distribute,np;restart=false,n_ref_lvls=6,p_fe=0,CFL=0.1)
+        # main_visualise(distribute,np;n_ref_lvls=6,p_fe=0)
     end
 
 ' > /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.out.${PBS_JOBID} 2> /scratch/$PROJECT/tt4814/${PBS_JOBNAME}.err.${PBS_JOBID}

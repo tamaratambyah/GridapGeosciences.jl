@@ -19,16 +19,15 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-# include("../convergence_tools.jl")
-# include("helpers.jl")
-include("../Geophysical/Williamson2Test.jl")
-# include("../Geophysical/Williamson5Test.jl")
+include("helpers.jl")
+# include("../Geophysical/Williamson2Test.jl")
+include("../Geophysical/Williamson5Test.jl")
 
 
 
 function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,b::Function,
-  CFL=0.1,lss=(LUSolver(),LUSolver()),restart=false)
+  CFL=0.1,lss=(LUSolver(),LUSolver()),restart=false,freq=25)
 
   ls_ode, ls_diag = lss
 
@@ -157,6 +156,8 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   nsteps = _tF/ _dt
   dt = _tF/floor(nsteps)
   τ = 0.0#dt/2
+  dt = 0.004 ## for W5 only
+  τ = dt/2 ## for W5 only
 
   i_am_main(ranks) && println("nsteps = $nsteps")
   i_am_main(ranks) && println("dt = $dt, other dt = $_dt")
@@ -168,7 +169,7 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   ## iterate solution
   it = iterate(solT)
 
-  unwrap_sw(it,ranks,solT,dir,_tF)
+  unwrap_sw(it,ranks,solT,dir,_tF,freq)
 
 
 end
@@ -218,6 +219,9 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   vtk_dir = dir*"/vtk_data"
   (i_am_main(ranks) && !isdir(vtk_dir) ) && mkdir(vtk_dir)
 
+  latlon_dir = dir*"/latlon_data"
+  (i_am_main(ranks) && !isdir(latlon_dir) ) && mkdir(latlon_dir)
+
   dir_casimirs = dir*"/casimirs"
   (i_am_main(ranks) && !isdir(dir_casimirs)) && mkdir(dir_casimirs)
 
@@ -249,10 +253,8 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
   gravity = _g
 
-  cell_geo_map = geo_map_func(Ω_panel)
-
   labels = ["uh","ph","qh","Fh","Phih","vort", "vort-f"]
-  function make_vtk(t::Float64,xh,yh,cell_geo_map)
+  function make_vtk(t::Float64,xh,yh)
     uh,ph = xh
     qh,Fh,Φh = yh
     vort = qh*ph - cor_cf
@@ -260,7 +262,8 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     panel_cfs = [covarient_basis_cf⋅(1/meas_cf*uh), ph, qh, Fh, Φh, vort,vort_f]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk(Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
   end
 
   function casimirs(xh,yh,dΩ)
@@ -302,7 +305,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     ts[i] = t
     Masss[i], Energys[i], Enstropys[i], Vorts[i] = casimirs(xh,yh,dΩ)
 
-    return_vtk && make_vtk(t,xh,yh,cell_geo_map)
+    return_vtk && make_vtk(t,xh,yh)
 
     if mod(i,10) == 0
       dxx = dx(panel_model)
@@ -391,7 +394,7 @@ end
 #### Main run for transient solution
 ################################################################################
 function main_transient(distribute,nprocs;
-  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=1)
+  restart=false,options="",n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,return_vtk=1,freq=25)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
@@ -403,33 +406,25 @@ function main_transient(distribute,nprocs;
   f = panel_to_cartesian(f₀(ζ))
   b = panel_to_cartesian(topography)
 
-  ls_diag = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="diagnostic_solver")
-  ls_ode = CGSolver(JacobiLinearSolver();rtol=1-8,atol=1e-10,verbose=i_am_main(ranks),name="ode_solver")
+  ls_diag = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-12,verbose=i_am_main(ranks),name="diagnostic_solver")
+  ls_ode = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-12,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
 
   omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
-  _dir = datadir("TransientShallowWater_checkpointing")
+  _dir = datadir("TransientShallowWater_W5")
+  # _dir = datadir("TransientShallowWater_checkpointing")
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
   (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
-  transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,CFL,lss,restart)
-  e_u,e_p = convergence_post_process(panel_model,p_fe,dir)
+  # transient_shallow_water_solver(panel_model,p_fe,dir,h,vX,f,b,CFL,lss,restart,freq)
+  # e_u,e_p = convergence_post_process(panel_model,p_fe,dir)
   post_process(panel_model,p_fe,dir,f,Bool(return_vtk))
 
   i_am_main(ranks) && println("eu = $e_u, ep = $e_p")
   i_am_main(ranks) && println("--DONE--")
   @test true
-end
-
-
-MPI.Init()
-# nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
-ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-with_mpi() do distribute
-  main_transient(distribute,nprocs;restart=false,n_ref_lvls=3)
 end

@@ -1,18 +1,17 @@
 #!/bin/bash
-#PBS -P {{project}}
-#PBS -q {{q}} 
-#PBS -l walltime={{walltime}}
-#PBS -l ncpus={{ncpus}}
-#PBS -l mem={{mem}}
-#PBS -N {{{name}}}
+#PBS -P bt62
+#PBS -q normal
+#PBS -l walltime=08:00:00
+#PBS -l ncpus=96
+#PBS -l mem=384gb
+#PBS -N shallow_water_W5
 #PBS -l wd
-#PBS -o {{{o}}}
-#PBS -e {{{e}}} 
 
-source $HOME/scripts/load-configs-{{project}}.sh
+source $HOME/scripts/load-configs-bt62.sh
 source $HOME/scripts/load-intel.sh
+
  
-mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
+mpiexec -n $PBS_NCPUS julia --project=$PBS_O_WORKDIR -e'
   using PartitionedArrays
   using MPI
 
@@ -26,10 +25,9 @@ mpiexec -n {{ncpus}} julia --project=$PBS_O_WORKDIR -e'
 
   with_mpi() do distribute
       main_transient(distribute,np;restart=false,
-        n_ref_lvls={{nl}},p_fe={{order}},return_vtk={{return_vtk}}) 
+        n_ref_lvls=6,p_fe=1,return_vtk=1,freq=250) 
   end 
 
   i_am_main(ranks) && println("--DONE--")
 
-' 
-#> {{{o}}}.${PBS_JOBID} 2> {{{e}}}.${PBS_JOBID}
+'> /scratch/bt62/tt4814/${PBS_JOBNAME}.out.${PBS_JOBID} 2> /scratch/bt62/tt4814/${PBS_JOBNAME}.err.${PBS_JOBID}
