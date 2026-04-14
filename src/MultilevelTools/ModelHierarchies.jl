@@ -1,10 +1,12 @@
-function GridapSolvers.MultilevelTools.ModelHierarchy(coarse_model::ParametricOctreeDistributedDiscreteModel,n_ref_lvls::Int)
+function GridapSolvers.MultilevelTools.ModelHierarchy(
+    coarse_model::ParametricOctreeDistributedDiscreteModel,
+    n_ref_lvls::Int)
   println("gmg lvls = $(n_ref_lvls)")
 
   ranks = get_parts(coarse_model.parametric_dmodel)
 
   models = Vector{GridapDistributed.DistributedDiscreteModel}(undef,n_ref_lvls+1)
-  glues = Vector{MPIArray}(undef,n_ref_lvls)
+  # glues = Vector{MPIArray}(undef,n_ref_lvls)
 
   models[n_ref_lvls+1] = coarse_model.parametric_dmodel
 
@@ -12,11 +14,28 @@ function GridapSolvers.MultilevelTools.ModelHierarchy(coarse_model::ParametricOc
   for n in n_ref_lvls:-1:1
     model, glue = adapt_model(ranks,model)
     models[n] = model.parametric_dmodel
-    glues[n] = glue
+    # glues[n] = glue
   end
 
-  # return ModelHierarchy(models,glues)
   return GridapSolvers.MultilevelTools.ModelHierarchy(models)
+end
+
+function GridapSolvers.MultilevelTools.ModelHierarchy(
+  coarse_model::ParametricDiscreteModel,
+  n_ref_lvls::Int)
+  println("gmg lvls = $(n_ref_lvls)")
+
+  models = Vector{DiscreteModel}(undef,n_ref_lvls+1)
+  models[n_ref_lvls+1] = coarse_model
+
+  model = coarse_model
+  for n in n_ref_lvls:-1:1
+    model = Gridap.Adaptivity.refine(model)
+    models[n] = model
+  end
+
+  return GridapSolvers.MultilevelTools.ModelHierarchy(models)
+
 end
 
 # function GridapSolvers.MultilevelTools.ModelHierarchy(models::Vector{<:GridapDistributed.DistributedDiscreteModel},glues::Vector{<:MPIArray})
@@ -53,5 +72,5 @@ function adapt_model(ranks,
   model_vertically_refined = vertically_uniformly_refine(model)
   model_uniformly_refined = horizontally_uniformly_refine(model_vertically_refined)
 
-  return model_uniformly_refined
+  return model_uniformly_refined, false
 end
