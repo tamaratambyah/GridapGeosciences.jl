@@ -24,10 +24,10 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
 
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
   vec_contra_cf = panelwise_cellfield(contra_v(vecX),Ω_panel,panel_ids)
-  vec_proj_cf = covarient_basis_cf⋅vec_contra_cf
+  vec_proj_cf = covariant_basis_cf⋅vec_contra_cf
 
   reffe = ReferenceFE(lagrangian,VectorValue{Dc,Float64},p_fe)
   V = TestFESpace(panel_model, reffe; conformity=conf)
@@ -39,14 +39,14 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
   op = AffineFEOperator(a,l,U,V)
   vec_contra_h = solve(LUSolver(),op)
 
-  vec_proj_h = covarient_basis_cf ⋅vec_contra_h
+  vec_proj_h = covariant_basis_cf ⋅vec_contra_h
 
   _e = vec_contra_cf - vec_contra_h
   el2_proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))
 
 
   vec_contra_h  = interpolate(vec_contra_cf, V)
-  vec_interp_h = covarient_basis_cf ⋅vec_contra_h
+  vec_interp_h = covariant_basis_cf ⋅vec_contra_h
 
   _e = vec_contra_cf - vec_contra_h
   el2_interp =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))

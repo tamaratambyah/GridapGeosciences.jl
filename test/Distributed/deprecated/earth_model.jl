@@ -157,7 +157,7 @@ dΩ = Measure(Ω_panel,4*(p_fe+1))
 Ω_error = Triangulation(panel_model)
 dΩ_error = Measure(Ω_error,6*p_fe+1)
 
-covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω_panel,panel_ids)
 
 h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
@@ -194,7 +194,7 @@ tags = ["bottom_boundary",  "top_boundary"]
 
   u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
   u_perp_contra = panelwise_cellfield(contra_v_perp3D(vX),Ω_panel,panel_ids)
-  u_perp = covarient_basis_cf ⋅ u_perp_contra
+  u_perp = covariant_basis_cf ⋅ u_perp_contra
 
   sgrad_cf = panelwise_cellfield(sgrad(h),Ω_panel,panel_ids)
   sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
@@ -254,7 +254,7 @@ tags = ["bottom_boundary",  "top_boundary"]
   xh = FEFunction(X,x)
   uh,ph,bh = xh
 
-  uh_proj = covarient_basis_cf ⋅ uh
+  uh_proj = covariant_basis_cf ⋅ uh
   e_u = l2( (u_proj_cf - uh_proj),meas_cf,dΩ_error) # error in physical velocity u
   # e_u = l2( (u_contra_cf - uh),dΩ_error) # error in contr u
   e_p = l2((h_cf - ph),meas_cf,dΩ_error) # error in depth

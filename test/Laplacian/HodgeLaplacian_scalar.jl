@@ -59,7 +59,7 @@ function hodge_laplacian_scalar(panel_model,
   # metric information
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
   # manufactured RHS
   f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
@@ -105,15 +105,15 @@ function hodge_laplacian_scalar(panel_model,
   _e = f_panel_cf - ph
   el2_p = sqrt(sum(∫( (_e*_e)*meas_cf  )dΩ_error))
 
-  _e = (covarient_basis_cf⋅(1/meas_cf*uh)) - (- sigma_cf ) ### u = -∇p
+  _e = (covariant_basis_cf⋅(1/meas_cf*uh)) - (- sigma_cf ) ### u = -∇p
   el2_u = sqrt(sum(∫( (_e⋅_e)*meas_cf  )dΩ_error))
 
  _i_am_main && println("eu = $(el2_u), es = $(el2_p)")
 
   if return_vtk
     cellfields =  ["u"=> -sigma_cf ,
-    "uh"=>covarient_basis_cf⋅(1/meas_cf*uh),
-    "eu"=> (covarient_basis_cf⋅(1/meas_cf*uh)) - (-sigma_cf),
+    "uh"=>covariant_basis_cf⋅(1/meas_cf*uh),
+    "eu"=> (covariant_basis_cf⋅(1/meas_cf*uh)) - (-sigma_cf),
     "ph"=>ph, "p"=>f_panel_cf, "e"=>ph-f_panel_cf
                   ]
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",

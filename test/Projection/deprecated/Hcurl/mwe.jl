@@ -128,7 +128,7 @@ _d[1][12]
 
 metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
 meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
+covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
 
 _e = vec_contra_cf - vec_contra_h
 el2_interp =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))
@@ -181,7 +181,7 @@ _d[3][11]
 _d[1][12]
 
 
-vec_proj_h = covarient_basis_cf ⋅vec_contra_h
+vec_proj_h = covariant_basis_cf ⋅vec_contra_h
 
 _e = vec_contra_cf - vec_contra_h
 el2_proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ))

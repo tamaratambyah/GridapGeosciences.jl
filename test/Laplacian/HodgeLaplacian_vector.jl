@@ -70,7 +70,7 @@ function hodge_laplacian_vector(
   inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
 
 
@@ -142,9 +142,9 @@ function hodge_laplacian_vector(
 
 
   # cellfields = ["curlu"=>ccurlu_cov_cf,
-  #               "u"=>covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
+  #               "u"=>covariant_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
   #               "un"=>un_cf,
-  #               "curlu_cross"=>covarient_basis_cf ⋅ (inv_metric_cf⋅curlu_cross),
+  #               "curlu_cross"=>covariant_basis_cf ⋅ (inv_metric_cf⋅curlu_cross),
   #               "sigma"=>-sdiv_cf,
   #               "rhs"=>rhs_cov_cf
   #               ]
@@ -201,9 +201,9 @@ function hodge_laplacian_vector(
  _i_am_main && println("eu = $(el2_u), es = $(el2_s)")
 
   if return_vtk
-    cellfields =  ["u"=>covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
-    "uh"=>covarient_basis_cf ⋅ (inv_metric_cf⋅uh),
-    "eu"=>covarient_basis_cf ⋅ (inv_metric_cf⋅uh)-covarient_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
+    cellfields =  ["u"=>covariant_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
+    "uh"=>covariant_basis_cf ⋅ (inv_metric_cf⋅uh),
+    "eu"=>covariant_basis_cf ⋅ (inv_metric_cf⋅uh)-covariant_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
     "sh"=>sh, "s"=>sigma_cf, "e"=>sh-sigma_cf
                   ]
     writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",

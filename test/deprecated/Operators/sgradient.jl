@@ -10,7 +10,7 @@ function sgrad(panel_model,p_fe::Int,dir::String,func::Function)
   panel_ids = get_panel_ids(panel_model)
 
   f_panel_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
   contravarient_basis_cf = panelwise_cellfield(contravariant_basis,Ω_panel,panel_ids)
   inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
 
@@ -19,7 +19,7 @@ function sgrad(panel_model,p_fe::Int,dir::String,func::Function)
   gradf_cf = panelwise_cellfield(gradf,Ω_panel,panel_ids)
 
   grad_covarient =  contravarient_basis_cf ⋅ gradf_cf
-  grad_contravarient = covarient_basis_cf ⋅  (inv_metric_cf ⋅ gradf_cf)
+  grad_contravarient = covariant_basis_cf ⋅  (inv_metric_cf ⋅ gradf_cf)
 
   ### interpolate f into FE space, and then differentiate
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
@@ -28,7 +28,7 @@ function sgrad(panel_model,p_fe::Int,dir::String,func::Function)
   f_uh = interpolate(f_panel_cf,U)
 
   grad_covarient_uh =  contravarient_basis_cf ⋅ gradient(f_uh)
-  grad_contravarient_uh = covarient_basis_cf ⋅  (inv_metric_cf ⋅ gradient(f_uh))
+  grad_contravarient_uh = covariant_basis_cf ⋅  (inv_metric_cf ⋅ gradient(f_uh))
 
   e_con = grad_contravarient-grad_contravarient_uh
   e_cov = grad_covarient-grad_covarient_uh

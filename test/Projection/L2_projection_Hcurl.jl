@@ -30,11 +30,11 @@ function L2_projection_Hcurl(panel_model,
   inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
   ## covariant components
   vec_cov_cf = panelwise_cellfield(covar_v_3D(vecX),Ω_panel,panel_ids)
-  vec_proj_cf = covarient_basis_cf⋅ ( inv_metric_cf ⋅ vec_cov_cf)
+  vec_proj_cf = covariant_basis_cf⋅ ( inv_metric_cf ⋅ vec_cov_cf)
 
 
   reffe = ReferenceFE(nedelec,Float64,p_fe)
@@ -53,7 +53,7 @@ function L2_projection_Hcurl(panel_model,
   op = AffineFEOperator(a,l,U,V)
   uh_l2proj = solve(ls,op)
 
-  vec_proj_h = covarient_basis_cf ⋅ ( inv_metric_cf ⋅ uh_l2proj)
+  vec_proj_h = covariant_basis_cf ⋅ ( inv_metric_cf ⋅ uh_l2proj)
 
   _e = ( inv_metric_cf ⋅ uh_l2proj) - ( inv_metric_cf ⋅ vec_cov_cf)
   el2_proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))

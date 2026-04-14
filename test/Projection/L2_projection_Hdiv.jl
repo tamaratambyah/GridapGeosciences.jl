@@ -19,11 +19,11 @@ function L2_projection_Hdiv(panel_model,
 
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
   ### Piola mapping for Hdiv fields
   vec_piola_cf = panelwise_cellfield(piola(vecX),Ω_panel,panel_ids)
-  vec_proj_cf_piola = covarient_basis_cf⋅ ( 1/meas_cf* vec_piola_cf )
+  vec_proj_cf_piola = covariant_basis_cf⋅ ( 1/meas_cf* vec_piola_cf )
 
   reffe = ReferenceFE(raviart_thomas,Float64,p_fe)
   V = TestFESpace(panel_model, reffe; conformity=:HDiv)
@@ -45,7 +45,7 @@ function L2_projection_Hdiv(panel_model,
   op = AffineFEOperator(a,l,U,V)
   uh_l2proj = solve(ls,op)
 
-  vec_proj_h = covarient_basis_cf ⋅((1/meas_cf) * uh_l2proj)
+  vec_proj_h = covariant_basis_cf ⋅((1/meas_cf) * uh_l2proj)
   _e = vec_piola_cf - uh_l2proj
   e_l2proj =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*(1/meas_cf) )dΩ_error))
 

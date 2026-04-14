@@ -145,7 +145,7 @@ f_cf = panelwise_cellfield(f0,Ω,panel_ids)
 g = panelwise_cellfield(metric,Ω,panel_ids)
 ginv = panelwise_cellfield(inv_metric,Ω,panel_ids)
 meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
+covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
 Aperp = [0 -1
         1 0]
 Rperp = TensorValue(Aperp)
@@ -220,7 +220,7 @@ while !isnothing(it)
   i_am_main(ranks) && println(t)
 
   writevtk(Ω,"shallow_water_sol/solT_$t.vtu",
-      cellfields=["vel"=>covarient_basis_cf⋅(1/meas*uh),"p"=>ph,"vort"=>qh],
+      cellfields=["vel"=>covariant_basis_cf⋅(1/meas*uh),"p"=>ph,"vort"=>qh],
       append=false,geo_map=latlon_geo_map_func(Ω))
 
   it = iterate(solT, state)

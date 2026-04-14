@@ -35,10 +35,10 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
 
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
   vec_contra_cf = panelwise_cellfield(contra_v_3D(vecX),Ω_panel,panel_ids)
-  vec_proj_cf = covarient_basis_cf⋅vec_contra_cf
+  vec_proj_cf = covariant_basis_cf⋅vec_contra_cf
 
   reffe = ReferenceFE(lagrangian,VectorValue{Dc,Float64},p_fe)
   if conf == :HDiv || conf == :Hdiv
@@ -56,7 +56,7 @@ function interpolation(panel_model::GridapDistributed.GenericDistributedDiscrete
   # op = AffineFEOperator(a,l,U,V)
   # vec_contra_h = solve(LUSolver(),op)
 
-  vec_proj_h = covarient_basis_cf ⋅vec_contra_h
+  vec_proj_h = covariant_basis_cf ⋅vec_contra_h
 
   _e = vec_contra_cf - vec_contra_h
   e =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ))

@@ -23,7 +23,7 @@ function mass_conservation(panel_model,p_fe::Int,dir::String,func::Function,scal
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
@@ -52,8 +52,8 @@ function mass_conservation(panel_model,p_fe::Int,dir::String,func::Function,scal
     lvl = nref(nc(panel_model))
     cell_geo_map = geo_map_func(Ω_panel)
 
-    u_proj = covarient_basis_cf ⋅ vec_contra_cf
-    u_projh = covarient_basis_cf ⋅ uh
+    u_proj = covariant_basis_cf ⋅ vec_contra_cf
+    u_projh = covariant_basis_cf ⋅ uh
 
     panel_cfs = [ u_proj, u_projh, ph]
     labels = ["u0", "u_projh", "p"]

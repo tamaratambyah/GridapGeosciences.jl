@@ -74,10 +74,10 @@ for (t, xh) in solT
   i_am_main(ranks) && println("t = ", t)
 end
 
-covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 cell_geo_map = geo_map_func(Ω_panel)
 dir = datadir("TransientTest")
-writevtk(Ω_panel,dir*"/solT_test" * ".vtu", cellfields= ["uh"=>covarient_basis_cf⋅uh, "ph"=>ph],append=false,geo_map=cell_geo_map)
+writevtk(Ω_panel,dir*"/solT_test" * ".vtu", cellfields= ["uh"=>covariant_basis_cf⋅uh, "ph"=>ph],append=false,geo_map=cell_geo_map)
 
 
 ## extract free values
@@ -111,4 +111,4 @@ ph_load = interpolate(p_free_vals, P)
 # uh_load = interpolate(u_free_vals,U)
 # xh_load = interpolate([uh_load,ph_load],X) ## mutlifield
 
-writevtk(Ω_panel,dir*"/solT_loaded" * ".vtu", cellfields= ["uh"=>covarient_basis_cf⋅uh, "ph"=>ph, "eh"=>ph-ph_load],append=false,geo_map=cell_geo_map)
+writevtk(Ω_panel,dir*"/solT_loaded" * ".vtu", cellfields= ["uh"=>covariant_basis_cf⋅uh, "ph"=>ph, "eh"=>ph-ph_load],append=false,geo_map=cell_geo_map)

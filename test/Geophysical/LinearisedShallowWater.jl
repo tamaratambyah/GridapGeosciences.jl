@@ -61,11 +61,11 @@ function linear_shallow_water_solver(panel_model,
   # metric information
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
   h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
   u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
-  u_proj_cf = covarient_basis_cf ⋅(1/meas_cf * u_cf  )
+  u_proj_cf = covariant_basis_cf ⋅(1/meas_cf * u_cf  )
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
 
   p_int = interpolate(h_cf,P)
@@ -138,7 +138,7 @@ function linear_shallow_water_solver(panel_model,
   op = AffineFEOperator(biformX,get_liform(Dc),X,Y)
   uh,ph = solve(ls,op)
 
-  uh_proj = covarient_basis_cf ⋅ (1/meas_cf*uh)
+  uh_proj = covariant_basis_cf ⋅ (1/meas_cf*uh)
 
   _e = u_cf - uh
   e_u =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*(1/meas_cf) )dΩ_error))
