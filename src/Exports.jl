@@ -84,7 +84,7 @@ end
 @publish Helpers forward_map_3D
 @publish Helpers forward_jacobian_3D
 @publish Helpers forward_jacobian
-@publish Helpers covarient_basis
+@publish Helpers covariant_basis
 @publish Helpers forward_pinv_jacobian
 @publish Helpers contravariant_basis
 
@@ -127,6 +127,3 @@ end
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model
-
-@publish Checkpointing psave
-@publish Checkpointing pload

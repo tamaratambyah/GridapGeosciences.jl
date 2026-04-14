@@ -25,7 +25,7 @@ include("vector_projection_analytic_functions.jl")
 include("convergence_tools.jl")
 
 export ForwardMap
-export forward_map_2D, forward_jacobian_2D, covarient_basis, forward_pinv_jacobian
+export forward_map_2D, forward_jacobian_2D, covariant_basis, forward_pinv_jacobian
 export forward_map_3D, forward_jacobian_3D, forward_jacobian
 export contravariant_basis
 

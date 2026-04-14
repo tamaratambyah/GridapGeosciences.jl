@@ -11,7 +11,7 @@ perp_matrix(p) = αβ -> perp_matrix(p,αβ)
 
 
 forward_jacobian(p::Int) = x -> J(p,x)
-covarient_basis(p::Int) = x -> J(p,x)
+covariant_basis(p::Int) = x -> J(p,x)
 forward_pinv_jacobian(p) = x -> pinvJ(J(p)(x))
 function pinvJ(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
   @check D2 < D1 ## J = 3x2

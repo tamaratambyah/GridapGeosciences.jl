@@ -29,8 +29,6 @@ include("Distributed/Distributed.jl")
 
 include("MultilevelTools/MultilevelTools.jl")
 
-include("Checkpointing/Checkpointing.jl")
-
 include("Exports.jl")
 
 end
