@@ -25,12 +25,12 @@ The weak formulation in the parametric space is: find $\boldsymbol{u} \in H(\mat
 ```math
 \begin{align*}
 \int_{\mathcal{V}} \boldsymbol{u}\cdot(g \boldsymbol{v}) \frac{1}{\sqrt{g}}
-- \int_{\mathcal{V}} \varphi \nabla\cdot(\sqrt{g} \boldsymbol{v})
+- \int_{\mathcal{V}} \varphi \nabla\cdot \boldsymbol{v}
    &= \int_{\mathcal{V}} \boldsymbol{f}_1\cdot(g \boldsymbol{v}) \frac{1}{\sqrt{g}}
       - \int_{\mathcal{\partial\mathcal{V}}} \varphi_{bc} \boldsymbol{v}\cdot\boldsymbol{k}~\mathrm{d}S
 \qquad   \forall \boldsymbol{v} \in H(\mathrm{div},\mathcal{V}) \\
 \int_{\mathcal{V}} \varphi \psi \sqrt{g}
-+ \int_{\mathcal{V}} \psi \nabla\cdot(\sqrt{g} \boldsymbol{u})
++ \int_{\mathcal{V}} \psi \nabla\cdot \boldsymbol{u}
    &= \int_{\mathcal{V}} f_2 \psi \sqrt{g}
 \qquad   \forall \psi \in L^2(\mathcal{V})
 
@@ -217,9 +217,9 @@ via the contraviant Piola map. Then the $L^2$ norm of the error between
 the exact and numerical soltuions is computed as
 
 ````julia 
-covarient_basis_cf = panelwise_cellfield(covarient_basis,Ω,panel_ids)
-uh_proj = covarient_basis_cf ⋅ (1/meas * uh)
-u_proj_cf = covarient_basis_cf ⋅ (1/meas *u_cf )
+covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+uh_proj = covariant_basis_cf ⋅ (1/meas * uh)
+u_proj_cf = covariant_basis_cf ⋅ (1/meas *u_cf )
 eu = u_cf - uh
 eu_l2 = sqrt(sum(∫( eu⋅(g⋅eu)*(1/meas) )dΩ))
 ````
