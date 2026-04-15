@@ -15,7 +15,8 @@ using GridapPETSc
 using Test
 
 include("../convergence_tools.jl")
-include("helpers.jl")
+include("Checkpointing/Checkpointing.jl")
+include("Checkpointing/helpers.jl")
 
 
 function my_mean( Bu_n::SkeletonPair)
@@ -25,50 +26,6 @@ function my_mean( Bu_n::SkeletonPair)
 end
 
 
-# using MPI
-# using PartitionedArrays
-# MPI.Init()
-# np = MPI.Comm_size(MPI.COMM_WORLD)
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-# include("../Geophysical/Galewsky.jl")
-
-# include("../Geophysical/ThermogeostrophicBalanceTest.jl")
-
-# ζ = 0.0
-# n_ref_lvls = 6
-# p_fe = 1
-
-#   h = panel_to_cartesian(h₀(ζ))
-#   vX = panel_to_cartesian(tangent_vec(u₀(ζ)))
-#   f = panel_to_cartesian(f₀(ζ))
-#   B = panel_to_cartesian(B₀(ζ))
-
-#   ls_diag = CGSolver(JacobiLinearSolver();rtol=1-16,atol=1e-16,verbose=1,name="diagnostic_solver")
-#   ls_diag.log.depth = 4
-#   ls_ode = GMRESSolver(10;Pr=JacobiLinearSolver(),rtol=1-14,atol=1e-12,verbose=1,name="ode_solver")
-#   lss = (ls_ode,ls_diag)
-
-  # omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
-  # panel_model = omodel.parametric_dmodel
-
-#   _dir = datadir("TransientThermalShallowWater_checkpointing")
-#   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
-
-#   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"
-#   (i_am_main(ranks) && !isdir(dir) ) && mkdir(dir)
-
-# # transient parameters
-# CFL = 0.1
-# p_fe  = 1
-# gravity = _g
-# _H_0
-# _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
-# _nsteps = _tF/_dt
-# nsteps = ceil(_nsteps)
-# dt = floor(_tF/nsteps, sigdigits=1)
-
-# 1/0.004
 function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,B::Function,
   ε=1e-4,soft=true,
@@ -171,25 +128,27 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   ## transient weak form
   metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
   covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
   cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
   gravity = _g
-  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
 
   #### DIAGNOSTIC VARIABLES
   #### T = 0.5p
   assem_diag = SparseMatrixAssembler(X_diag,Y_diag,das)
 
   # vorticity
-  perp_matrix_cf = panelwise_cellfield(perp_matrix,Ω_panel,panel_ids)
-  resq(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (perp_matrix_cf⋅u)⋅∇(w)  )dΩ
+  Aperp = [0 -1
+            1 0]
+  Rperp = TensorValue(Aperp)
+  Rperp_cf = CellField(Rperp,Ω_panel)
+  resq(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (( (Rperp_cf⋅u)⋅inv_metric_cf)⋅∇(w))*meas_cf  )dΩ
 
   # mass flux
-  resF(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( (F⋅ (metric_cf⋅v))*meas_cf )dΩ - ∫( p*(u⋅(metric_cf⋅v))*meas_cf   )dΩ
+  resF(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( (F⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ - ∫( p*(u⋅(metric_cf⋅v))*(1/meas_cf)   )dΩ
 
   # Bernoulli potential
-  resΦ(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( 0.5*B*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*meas_cf  )dΩ
+  resΦ(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( 0.5*B*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )*ψ*(1/meas_cf)  )dΩ
 
   # Bouyancy
   resb(((u,p,B),(q,F,Φ,b)),(w,v,ψ,r)) = ∫( b*p*r*meas_cf  )dΩ - ∫( B*r*meas_cf  )dΩ
@@ -203,7 +162,7 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   )
   jac_y(t,((u,p,B),(q,F,Φ,b)),(dq,dF,dΦ,db),(w,v,ψ,r)) = (
       ∫( dq*p*w*meas_cf  )dΩ
-    + ∫( (dF⋅ (metric_cf⋅v))*meas_cf )dΩ
+    + ∫( (dF⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
     + ∫( dΦ*ψ*meas_cf  )dΩ
     + ∫( db*p*r*meas_cf  )dΩ
   )
@@ -221,43 +180,41 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
 
   # equation for depth and velocity:
   mass(t,(dut,dpt,dBt),(v,r,w)) = (
-      ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ
+      ∫( (dut⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
     + ∫( (dpt*r)*meas_cf )dΩ
     + ∫( (dBt*w)*meas_cf )dΩ
   )
 
-  res_p(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = ∫( r*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
+  res_p(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = ∫( r*(∇⋅F) )dΩ
 
   res_u(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = (
-            ∫( q*( (perp_matrix_cf⋅F) ⋅(metric_cf ⋅v))   )dΩ
-          - ∫( Φ*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-          + ∫( 0.5*(b*(∇(0.5*p)⋅v) )*meas_cf )dΩ
-          + ∫( -0.5*(b*(0.5*p))*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )  )dΩ
-          + ∫( -0.5*((0.5*p)*(∇(b)⋅v) )*meas_cf )dΩ
+            ∫( ( q*( (Rperp_cf⋅ F)⋅v))  )dΩ
+          - ∫( Φ*(∇⋅v) )dΩ
+          + ∫( 0.5*(b*(∇(0.5*p)⋅v) ) )dΩ
+          + ∫( -0.5*(b*(0.5*p))*(∇⋅v)  )dΩ
+          + ∫( -0.5*((0.5*p)*(∇(b)⋅v) ) )dΩ
       )
 
   u_s1(((u,p,B),(q,F,Φ,b)),(v,r,w)) = (
-      ∫( -0.5*my_mean((v*b)⋅n_Λ)*jump(0.5*p)*meas_cf_skel.plus   )dΛ
-    + ∫( 0.5*my_mean((v*(0.5*p))⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
+      ∫( -0.5*my_mean((v*b)⋅n_Λ)*jump(0.5*p)   )dΛ
+    + ∫( 0.5*my_mean((v*(0.5*p))⋅n_Λ)*jump(b)  )dΛ
   )
 
-  u_s2(((u,p,B),(q,F,Φ,b)),(v,r,w)) = ∫( -0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(v⋅n_Λ).plus )*jump(b)*jump(0.5*p)*meas_cf_skel.plus   )dΛ
+  u_s2(((u,p,B),(q,F,Φ,b)),(v,r,w)) = ∫( -0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(v⋅n_Λ).plus )*jump(b)*jump(0.5*p)   )dΛ
 
 
   res_B(((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = (
-      ∫( -0.5*(b*(∇(w)⋅F) )*meas_cf )dΩ
-    + ∫( 0.5*(b*w)*(F⋅grad_meas_cf + meas_cf*(∇⋅F) )  )dΩ
-    + ∫( 0.5*(w*(∇(b)⋅F) )*meas_cf )dΩ
+      ∫( -0.5*(b*(∇(w)⋅F) ) )dΩ
+    + ∫( 0.5*(b*w)*(∇⋅F)  )dΩ
+    + ∫( 0.5*(w*(∇(b)⋅F) ) )dΩ
   )
-
-
 
   B_s1(((u,p,B),(q,F,Φ,b)),(v,r,w)) = (
-      ∫( 0.5*my_mean((F*b)⋅n_Λ)*jump(w)*meas_cf_skel.plus   )dΛ
-    + ∫( -0.5*my_mean((F*w)⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
+      ∫( 0.5*my_mean((F*b)⋅n_Λ)*jump(w)   )dΛ
+    + ∫( -0.5*my_mean((F*w)⋅n_Λ)*jump(b)   )dΛ
   )
 
-  B_s2(((u,p,B),(q,F,Φ,b)),(v,r,w)) = ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(F⋅n_Λ).plus )*jump(b)*jump(w)*meas_cf_skel.plus   )dΛ
+  B_s2(((u,p,B),(q,F,Φ,b)),(v,r,w)) = ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(F⋅n_Λ).plus )*jump(b)*jump(w)   )dΛ
 
 
   res_x(t,((u,p,B),(q,F,Φ,b)),(v,r,w),(q0,F0,Φ0,b0)) = (
@@ -270,74 +227,23 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
     + B_s2(((u,p,B),(q,F,Φ,b)),(v,r,w))
   )
   jac_xt(t,((u,p,B),(q,F,Φ,b)),(dut,dpt,dBt),(v,r,w),(q0,F0,Φ0,b0)) = (
-      ∫( (dut⋅ (metric_cf⋅v))*meas_cf )dΩ
+      ∫( (dut⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ
     + ∫( (dpt*r)*meas_cf )dΩ
     + ∫( (dBt*w)*meas_cf )dΩ
   )
 
-  #### Linearised jacobian
-  jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-     ∫( r*((_H_0*du)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
-    )
-
-  jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-            ∫( q0*( (perp_matrix_cf⋅(_H_0*du)) ⋅(metric_cf ⋅v))   )dΩ
-          - ∫( (0.5*dB)*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
-          + ∫( 0.5*(b*(∇(0.5*dp)⋅v) )*meas_cf )dΩ
-          + ∫( -0.5*(b*(0.5*dp))*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )  )dΩ
-          + ∫( -0.5*((0.5*dp)*(∇(b)⋅v) )*meas_cf )dΩ
-      )
-
-  jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-    ∫( -0.5*(b*(∇(w)⋅(_H_0*du)) )*meas_cf )dΩ
-    + ∫( 0.5*(b*w)*((_H_0*du)⋅grad_meas_cf + meas_cf*(∇⋅(_H_0*du)) )  )dΩ
-    + ∫( 0.5*(w*(∇(b)⋅(_H_0*du)) )*meas_cf )dΩ
-  )
-
-
-  jac_u_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-      ∫( -0.5*my_mean((v*b)⋅n_Λ)*jump(0.5*dp)*meas_cf_skel.plus   )dΛ
-    + ∫( 0.5*my_mean((v*(0.5*dp))⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
-  )
-
-  jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-    ∫( -0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*(v⋅n_Λ).plus )*jump(b)*jump(0.5*dp)*meas_cf_skel.plus   )dΛ
-  )
-
-  jac_B_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-      ∫( 0.5*my_mean(((_H_0*du)*b)⋅n_Λ)*jump(w)*meas_cf_skel.plus   )dΛ
-    + ∫( -0.5*my_mean(((_H_0*du)*w)⋅n_Λ)*jump(b)*meas_cf_skel.plus   )dΛ
-  )
-
-  jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) = (
-    ∫( 0.5*( (upwinding_sign∘((F⋅ n_Λ).plus))*((_H_0*du)⋅n_Λ).plus )*jump(b)*jump(w)*meas_cf_skel.plus   )dΛ
-  )
-
-  # jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  (
-  #   jac_u(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  # + jac_u_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  # + jac_u_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  # + jac_p(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  # + jac_B(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  # + jac_B_s1(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  # + jac_B_s2(((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0))
-  # )
-
-  i_am_main(ranks) && println("using explicit jacobian")
   jac_x(t,((u,p,B),(q,F,Φ,b)),(du,dp,dB),(v,r,w),(q0,F0,Φ0,b0)) =  ∫( VectorValue(0,0)⋅(du⋅v) + 0*dp*r + 0*dB*w   )dΩ
 
-
   ####
-
   opT = TransientSemilinearFEOperator(mass,res_x,(jac_x,jac_xt),X_prog,Y_prog,assembler=assem_prog)
   opFE = FEOperator(res_y,jac_y,X_diag,Y_diag,assem_diag)
   opDAE = DAEFEOperator(opT,opFE,ls_diag)
 
   # transient parameters
-  _dt = dx(nc(panel_model))*CFL/(p_fe*sqrt(gravity*_H_0))
+  _dt = dx(panel_model)*CFL/(p_fe*sqrt(gravity*_H_0))
   _nsteps = _tF/_dt
   nsteps = ceil(_nsteps)
-  # dt = floor(_tF/nsteps, sigdigits=1)
+  dt = floor(_tF/nsteps, sigdigits=1)
   dt = 0.004
 
   i_am_main(ranks) && println("nsteps = $nsteps, other nsteps = ", _nsteps)
@@ -438,18 +344,16 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   gravity = _g
 
   _Ω_panel = Triangulation(panel_model)
-  cell_geo_map = geo_map_func(_Ω_panel)
 
   labels = ["uh","ph","Bh","bh","qh","Fh","Phih","vort","eta"]
-  function make_vtk(t::Float64,xh,yh,cell_geo_map)
+  function make_vtk(t::Float64,xh,yh)
     uh,ph,Bh = xh
     qh,Fh,Φh,bh = yh
     vort = qh*ph - cor_cf
     eta = qh*ph
-    panel_cfs = [covariant_basis_cf⋅uh, ph, Bh, bh, qh, Fh, Φh, vort, eta]
+    panel_cfs = [covariant_basis_cf⋅(1/meas_cf*uh), ph, Bh, bh, qh, Fh, Φh, vort, eta]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    # writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
     writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(_Ω_panel))
     writevtk(_Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(_Ω_panel))
   end
@@ -460,7 +364,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     vort = qh*ph - cor_cf
 
     ens = sum(∫( 0.5*(bh*bh*xh[2])*meas_cf  )dΩ)
-    energy = sum(∫( (0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1])) + 0.5*xh[2]*xh[3] )*meas_cf )dΩ)
+    energy = sum(∫( 0.5*xh[2]*( xh[1] ⋅(metric_cf⋅xh[1]))*(1/meas_cf) )dΩ  + ∫( 0.5*(xh[2]*xh[3])*meas_cf )dΩ)
     _mass = sum( ∫( xh[2]*meas_cf )dΩ  )
     _vort = sum( ∫( vort*meas_cf )dΩ  )
 
@@ -493,7 +397,7 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     ts[i] = t
     Masss[i], Energys[i], Entropys[i], Vorts[i] = casimirs(xh,yh,dΩ)
 
-    return_vtk && make_vtk(t,xh,yh,cell_geo_map)
+    return_vtk && make_vtk(t,xh,yh)
 
     if mod(i,10) == 0
       dxx = dx(panel_model)

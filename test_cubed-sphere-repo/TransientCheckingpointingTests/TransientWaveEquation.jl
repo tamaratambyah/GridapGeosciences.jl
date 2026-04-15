@@ -16,7 +16,9 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("helpers.jl")
+include("../convergence_tools.jl")
+include("Checkpointing/Checkpointing.jl")
+include("Checkpointing/helpers.jl")
 
 ## initial conditions
 vecX(XYZ) = zero(XYZ)

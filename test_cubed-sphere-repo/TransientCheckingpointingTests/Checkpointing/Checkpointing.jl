@@ -1,5 +1,3 @@
-module Checkpointing
-
 using PartitionedArrays
 using GridapDistributed
 using JLD2
@@ -132,7 +130,4 @@ end
 
 function to_local_storage(x::PSparseMatrix)
   map(PSparseMatrixLocalStorage,partition(x),partition(axes(x,1)),partition(axes(x,2)))
-end
-
-
 end

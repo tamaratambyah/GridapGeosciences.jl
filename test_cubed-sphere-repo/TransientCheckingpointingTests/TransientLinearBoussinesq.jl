@@ -23,8 +23,9 @@ using GridapPETSc
 
 import GridapGeosciences.Helpers: RADIUS, THICKNESS
 
-
-include("helpers.jl")
+include("../convergence_tools.jl")
+include("Checkpointing/Checkpointing.jl")
+include("Checkpointing/helpers.jl")
 
 a_e = 6.37e6/125 # m
 d = 5000 #m

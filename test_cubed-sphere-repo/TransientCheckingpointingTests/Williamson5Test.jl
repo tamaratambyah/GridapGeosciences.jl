@@ -1,4 +1,6 @@
-include("../Geophysical/Williamson_functions.jl")
+using DrWatson
+
+include(projectdir("test/Geophysical/Williamson_functions.jl"))
 
 # Topography
 function topography(xyz)

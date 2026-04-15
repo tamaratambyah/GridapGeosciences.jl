@@ -19,7 +19,9 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("helpers.jl")
+include("../convergence_tools.jl")
+include("Checkpointing/Checkpointing.jl")
+include("Checkpointing/helpers.jl")
 include("Williamson2Test_3D_testcase.jl")
 
 

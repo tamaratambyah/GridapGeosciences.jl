@@ -6,10 +6,8 @@ Note, I think equation (5.3) in the paper should have H^2
 """
 
 using DrWatson
-using JLD2
 
-include("../convergence_tools.jl")
-include("Williamson_functions.jl")
+include(projectdir("test/Geophysical/Williamson_functions.jl"))
 
 
 a_e = 6.37e6 # m

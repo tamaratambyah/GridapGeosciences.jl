@@ -4,14 +4,6 @@
 # reference:
 #   Galewsky, Scott and Polvani (2004) Tellus, 56A 429-440
 
-using MPI
-using PartitionedArrays
-
-using DrWatson
-using Gridap
-using GridapDistributed
-using GridapGeosciences
-using GridapGeosciences.Distributed
 
 
 a_e = 6.37e6 # m
@@ -21,7 +13,8 @@ g = 9.8 # m/2
 H₀ = 10000.0 #m
 h0 = 120.0 #m
 umax  = 80.0 #m/s
-TF = 20*(3600*24) #s
+# TF = 20*(3600*24) #s
+TF = 0.1*(3600*24) #s
 
 L = a_e
 _τ = 1/Ωₑ
@@ -113,39 +106,3 @@ function B₀(xyz)
   b = b₀(xyz)
   h*b
 end
-
-
-
-
-
-# dir = datadir("Galewsky")
-# !isdir(dir) && mkdir(dir)
-
-# MPI.Init()
-# ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-# n_ref_lvls = 5
-
-# o3model = GridapGeosciences.Distributed.ParametricOctreeDistributedDiscreteModel(ranks;
-#   num_initial_uniform_refinements=n_ref_lvls)
-# panel_model = o3model.parametric_dmodel
-
-
-# panel_ids = get_panel_ids(panel_model)
-# Ω_panel = Triangulation(panel_model)
-
-# vX = panel_to_cartesian(tangent_vec(u₀))
-# f = panel_to_cartesian(f₀)
-# h = panel_to_cartesian(h₀)
-# B = panel_to_cartesian(B₀)
-
-# u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-# f_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-# h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-# B_cf = panelwise_cellfield(B,Ω_panel,panel_ids)
-# covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-
-
-# writevtk(Ω_panel,dir*"/IC",
-#   cellfields=["u"=>covariant_basis_cf⋅u_contra_cf, "f"=>f_cf, "h"=>h_cf, "B"=>B_cf],
-# append=false, geo_map=geo_map_func(Ω_panel))

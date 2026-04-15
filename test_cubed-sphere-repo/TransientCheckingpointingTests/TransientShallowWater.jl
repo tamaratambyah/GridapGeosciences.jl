@@ -19,9 +19,11 @@ using GridapGeosciences
 using GridapPETSc
 using Test
 
-include("helpers.jl")
-# include("../Geophysical/Williamson2Test.jl")
-include("../Geophysical/Williamson5Test.jl")
+include("../convergence_tools.jl")
+include("Checkpointing/Checkpointing.jl")
+include("Checkpointing/helpers.jl")
+# include("Williamson2Test.jl")
+include("Williamson5Test.jl")
 
 
 
@@ -117,7 +119,7 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   resF(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( (F⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ - ∫( p*(u⋅(metric_cf⋅v))*(1/meas_cf)   )dΩ
 
   # Bernoulli potential
-  resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( gravity*(p+b_cf)*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )ψ*(1/meas_cf)  )dΩ
+  resΦ(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( Φ*ψ*meas_cf  )dΩ - ∫( gravity*(p+b_cf)*ψ*meas_cf  )dΩ - ∫( 0.5*( u ⋅(metric_cf⋅u) )*ψ*(1/meas_cf)  )dΩ
 
   res_y(t,((u,p),(q,F,Φ)),(w,v,ψ)) = resq(((u,p),(q,F,Φ)),(w,v,ψ)) + resF(((u,p),(q,F,Φ)),(w,v,ψ)) + resΦ(((u,p),(q,F,Φ)),(w,v,ψ))
   jac_y(t,((u,p),(q,F,Φ)),(dq,dF,dΦ),(w,v,ψ)) = ∫( dq*p*w*meas_cf  )dΩ + ∫( (dF⋅ (metric_cf⋅v))*(1/meas_cf) )dΩ + ∫( dΦ*ψ*meas_cf  )dΩ
