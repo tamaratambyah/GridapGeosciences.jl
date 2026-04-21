@@ -13,7 +13,6 @@ using GridapP4est
 using Test
 
 
-import GridapGeosciences.Helpers: RADIUS
 
 function compute_surface_area(model, degree::Int)
   Ω = Triangulation(model)
@@ -32,11 +31,12 @@ function main(distribute,nprocs)
   dist_models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
   p4est_models = get_octree_refined_models(ranks,n_ref_lvls)
   for degree in collect([2,4,6,8])
-    for (s_model,p4_model) in zip(dist_models,p4est_models)
-      extact_area = 4*π*RADIUS^2
+    for (d_model,p4_model) in zip(dist_models,p4est_models)
+      radius = get_radius(d_model)
+      extact_area = 4*π*radius^2
 
-      ### s_model
-      d_area = compute_surface_area(s_model, degree)
+      ### d_model
+      d_area = compute_surface_area(d_model, degree)
 
       ### p4est model
       p4_area = compute_surface_area(p4_model, degree)

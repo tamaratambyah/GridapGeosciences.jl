@@ -13,7 +13,6 @@ using GridapGeosciences
 using GridapP4est
 using Test
 
-import GridapGeosciences.Helpers: RADIUS
 
 function compute_surface_area(model, degree::Int)
   Ω = Triangulation(model)
@@ -29,7 +28,8 @@ function main(serial_models::AbstractArray)
 
   for degree in collect([2,4,6,8])
     for (s_model) in serial_models
-      extact_area = 4*π*RADIUS^2
+      radius = get_radius(s_model)
+      extact_area = 4*π*radius^2
 
       ### s_model
       s_area = compute_surface_area(s_model, degree)
