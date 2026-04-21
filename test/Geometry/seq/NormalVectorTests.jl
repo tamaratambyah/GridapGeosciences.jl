@@ -46,7 +46,8 @@ end
 
 
 n_ref_lvls = 4
-models  = get_refined_models(n_ref_lvls)
+radius = 1.0
+models  = get_refined_models(n_ref_lvls,radius)
 return_vtk = false
 dir = @__DIR__
 
@@ -62,7 +63,7 @@ end
 ################################################################################
 panel_model = models[4]
 panel_ids = get_panel_ids(panel_model)
-cell_geo_map = geo_map_func(panel_ids)
+cell_geo_map = geo_map_func(Triangulation(panel_model))
 
 topo = get_grid_topology(panel_model)
 Dc = num_cell_dims(topo)

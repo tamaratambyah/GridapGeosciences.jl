@@ -13,9 +13,9 @@ using GridapP4est
 using Test
 
 
-function fX(p)
+function fX(forward_map)
   function _f(αβ)
-    x = ForwardMap(p)(αβ)
+    x = forward_map(αβ)
     x[1]*x[2]*x[3]
   end
 end

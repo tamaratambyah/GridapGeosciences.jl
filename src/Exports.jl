@@ -7,7 +7,6 @@ end
 @publish Adaptivity refine
 
 
-@publish Fields ForwardMapPanel1
 @publish Fields MatMultField
 @publish Fields MyAffineField
 @publish Fields Cartesian2SphereicalMap
@@ -78,15 +77,9 @@ end
 @publish Helpers piola
 
 @publish Helpers ForwardMap
-@publish Helpers forward_maps
-@publish Helpers forward_map_2D
-@publish Helpers forward_jacobian_2D
-@publish Helpers forward_map_3D
-@publish Helpers forward_jacobian_3D
 @publish Helpers forward_jacobian
 @publish Helpers covariant_basis
 @publish Helpers forward_pinv_jacobian
-@publish Helpers contravariant_basis
 
 @publish Helpers p_convergence_auto_test
 @publish Helpers h_convergence_auto_test

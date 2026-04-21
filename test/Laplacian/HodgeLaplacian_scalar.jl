@@ -15,9 +15,9 @@ using GridapP4est
 using Test
 
 
-function fX(p)
+function fX(forward_map)
   function _f(α)
-    xyz = ForwardMap(p)(α)
+    xyz = forward_map(α)
     θϕr   = xyz2θϕr(xyz)
     sin(θϕr[2])
   end

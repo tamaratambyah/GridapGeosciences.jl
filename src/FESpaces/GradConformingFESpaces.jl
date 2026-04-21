@@ -51,6 +51,7 @@ end
 
 function evaluate!(cache,k::GenerateChangeOfBasisMatrixMap,reffe,cell_id)
   model = k.model
+  fwd_map_generator = get_forward_map_generator(model)
   D = num_cell_dims(model)
   face_to_master_cell_id = k.face_to_master_cell_id
   cell_faces, cache_cell_faces, panel_ids,  cache_panel_ids, cell_map, cache_cell_map,
@@ -85,8 +86,8 @@ function evaluate!(cache,k::GenerateChangeOfBasisMatrixMap,reffe,cell_id)
          node_lids_master = face_own_nodes[offset+pos_master]     
          for (inode, node_slave) in enumerate(node_lids_slave)
            node_master = node_lids_master[inode]
-           JM = forward_jacobian(master_cell_panel)(master_reffe_node_coordinates[node_master])
-           JSinv = forward_pinv_jacobian(current_cell_panel)(reffe_node_coordinates[node_slave])
+           JM = J(fwd_map_generator(master_cell_panel),master_reffe_node_coordinates[node_master]) 
+           JSinv = forward_pinv_jacobian(fwd_map_generator(current_cell_panel),reffe_node_coordinates[node_slave])
            coeffs = JSinv⋅JM
            dof_lids_slave_current_node = findall(x->x==node_slave,reffe.reffe.dofs.dof_to_node)
            change_matrix[dof_lids_slave_current_node,dof_lids_slave_current_node] .= Array(coeffs)

@@ -12,9 +12,9 @@ using GridapP4est
 using Test
 
 
-function fX(p)
+function fX(forward_map)
   function _f(αβ)
-    x = ForwardMap(p)(αβ)
+    x = forward_map(αβ)
     x[1]*x[2]*x[3]
   end
 end
@@ -94,7 +94,6 @@ end
 #### Auto convergence test
 ################################################################################
 function main(models::AbstractArray;ps=[2],_i_am_main=true)
-
   ls = LUSolver()
   dir = @__DIR__
   p_convergence_auto_test(ps,models,helmholtz_solver,dir,fX,ls;_i_am_main=_i_am_main)

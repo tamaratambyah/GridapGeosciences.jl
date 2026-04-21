@@ -5,16 +5,17 @@ using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.Ref
 using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using Gridap.Algebra, Gridap.FESpaces, Gridap.Helpers, Gridap.Arrays
 import Gridap.TensorValues: MultiValue
-using GridapDistributed
 using LinearAlgebra
 using FillArrays
-using Test
-using PartitionedArrays
+using Test # required for convergence tools (I believe it should not be here)
+using GridapDistributed # required for convergence tools (I believe it should not be here)
 
+# This using used to be in src/Helpers/forward_map_3D.jl, which is no longer in the project files
+# Essentially, we need in "convergence_tools.jl" the coarse_parametric_model() function, which is defined 
+# in GridapGeosciences.Geometry. I still need to understand how it is possible that one can include the 
+# whole GridapGeoosciences package in this Helpers module, without creating circular dependencies.
+using GridapGeosciences
 
-include("forward_map_2D.jl")
-include("forward_map_3D.jl")
-include("inverse_map.jl")
 include("ForwardMap.jl")
 include("overloads.jl")
 include("analytical_functions.jl")
@@ -24,10 +25,8 @@ include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
 include("convergence_tools.jl")
 
-export ForwardMap
-export forward_map_2D, forward_jacobian_2D, covariant_basis, forward_pinv_jacobian
-export forward_map_3D, forward_jacobian_3D, forward_jacobian
-export contravariant_basis
+export ForwardMap, ForwardMap2D, ForwardMap3D, ForwardMap2DGenerator, ForwardMap3DGenerator
+export forward_jacobian, covariant_basis
 
 export _sqrtg
 export pinvJ
@@ -45,8 +44,6 @@ export contra_v_comp3D, contra_v_perp3D
 export piola
 export g_star
 export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix, xyz2θϕ
-
-export forward_maps, RADIUS, THICKNESS
 
 export p_convergence_auto_test, h_convergence_auto_test
 export get_refined_models, get_distributed_refined_models, get_octree_refined_models, get_3D_octree_refined_models

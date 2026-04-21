@@ -17,16 +17,16 @@ using Test
 
 
 ## initial conditions
-function vecX(p)
+function vecX(forward_map)
   function _u(α)
-    XYZ = ForwardMap(p)(α)
+    XYZ = forward_map(α)
     zero(XYZ)
   end
 end
 
-function depth(p)
+function depth(forward_map)
   function _f(α)
-    XYZ = ForwardMap(p)(α)
+    XYZ = forward_map(α)
     1.0 + 0.01*exp(-5*((1-XYZ[1])^2+(0-XYZ[2])^2+(0-XYZ[3])^2))
   end
 end

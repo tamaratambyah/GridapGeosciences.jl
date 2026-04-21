@@ -10,17 +10,17 @@ include("L2_projection_Lagrangian_scalar.jl")
 include("L2_projection_Lagrangian_vector.jl")
 
 # Vector field in the tangent space of the sphere
-function uX(p)
+function uX(forward_map)
   function _u(α)
-    x = ForwardMap(p)(α)
+    x = forward_map(α)
     VectorValue(-x[2],x[1],0.0)
   end
 end
 
 # Scalar function
-function fS(p)
+function fS(forward_map)
   function f(αβ)
-    xyz = ForwardMap(p)(αβ)
+    xyz = forward_map(αβ)
     xyz[1]*xyz[2]*xyz[3]
   end
 end

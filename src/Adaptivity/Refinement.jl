@@ -80,7 +80,7 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::ParametricD
 
 
   ### construct the refined model and return adapted model
-  ref_model = ParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids)
+  ref_model = ParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids,get_forward_map_generator(model))
   return AdaptedDiscreteModel(ref_model,model,glue)
 end
 

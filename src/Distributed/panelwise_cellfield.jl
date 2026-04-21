@@ -70,20 +70,20 @@ end
 
 function geo_map_func(trian::DistributedTriangulation)
   # println("distributed geo map")
-
   model = get_background_model(trian)
+  model_metadata = get_forward_map_generator(model)
   owned_panel_ids = get_owned_panel_ids(model)
-  return geo_map_func(owned_panel_ids)
+  return geo_map_func(model_metadata, owned_panel_ids)
 end
 
 
-function geo_map_func(owned_panel_ids::AbstractArray)
+function geo_map_func(model_metadata,owned_panel_ids::AbstractArray)
   # println("distributed geo map")
 
   @assert typeof(owned_panel_ids) <: DebugArray || typeof(owned_panel_ids) <: MPIArray "\n Not distributed panel ids"
 
   cell_geo_map = map(owned_panel_ids) do pid
-    return lazy_map(p -> ForwardMap(p), pid)
+    return lazy_map(p -> model_metadata(p), pid)
   end
   return cell_geo_map
 end
@@ -93,20 +93,20 @@ function latlon_geo_map_func(trian::GridapDistributed.DistributedTriangulation)
   # println("distributed trian latlon geo map")
 
   model = get_background_model(trian)
+  model_metadata = get_forward_map_generator(model)
   owned_panel_ids = get_owned_panel_ids(model)
-  return latlon_geo_map_func(owned_panel_ids)
+  return latlon_geo_map_func(model_metadata, owned_panel_ids)
 end
 
-function latlon_geo_map_func(owned_panel_ids::AbstractArray)
+function latlon_geo_map_func(model_metadata, owned_panel_ids::AbstractArray)
   # println("distributed latlon geo map")
 
   @assert typeof(owned_panel_ids) <: DebugArray || typeof(owned_panel_ids) <: MPIArray "\n Not distributed panel ids"
 
   latlon_cell_geo_map = map(owned_panel_ids) do pid
-    cell_geo_map = lazy_map(p -> ForwardMap(p), pid)
+    cell_geo_map = lazy_map(p -> model_metadata(p), pid)
     fi = lazy_map(p->Cartesian2SphereicalMap(),pid)
     return lazy_map(∘, fi, cell_geo_map)
   end
-
   return latlon_cell_geo_map
 end

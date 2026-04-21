@@ -1,6 +1,6 @@
-function coarse_parametric_model(;a=π/4,npanels=6)
-  cube_model = coarse_cube_model(a,npanels)
-  panel_model = parametric_model(cube_model)
+function coarse_parametric_model(radius; a=π/4, npanels=6)
+  cube_model = coarse_cube_model(a, npanels)
+  panel_model = parametric_model(cube_model,radius)
   return panel_model
 end
 
@@ -10,7 +10,7 @@ function setup_panel_cmaps(cube_cmaps, panel_ids)
   panel_cmaps = lazy_map(∘,cube2panel_map,cube_cmaps)
 end
 
-function parametric_model(cube_model)
+function parametric_model(cube_model, radius)
   Dc = num_cell_dims(cube_model)
   Dp = num_point_dims(cube_model)
 
@@ -37,7 +37,7 @@ function parametric_model(cube_model)
   panel_topo = UnstructuredGridTopology(panel_nodes,get_cell_node_ids(cube_grid),get_cell_type(cube_topo),get_polytopes(cube_topo),OrientationStyle(cube_topo))
   panel_labels = FaceLabeling(panel_topo)
 
-  panel_model = ParametricDiscreteModel(panel_grid,panel_topo,panel_labels,panel_ids)
+  panel_model = ParametricDiscreteModel(panel_grid,panel_topo,panel_labels,panel_ids,radius)
 
   return panel_model
 end
@@ -48,6 +48,26 @@ struct ParametricDiscreteModel{Dc,Dp,Tp,B} <: DiscreteModel{Dc,Dp}
   grid_topology::UnstructuredGridTopology{Dc,Dp,Tp,B}
   face_labeling::FaceLabeling
   panel_ids::AbstractArray{Int}
+  forward_map_generator
+end
+
+function ParametricDiscreteModel(grid::UnstructuredGrid{2,2}, 
+                                 grid_topology::UnstructuredGridTopology{2,2}, 
+                                 face_labeling::FaceLabeling, 
+                                 panel_ids::AbstractArray{Int},
+                                 radius::Float64)
+  forward_map_generator = ForwardMap2DGenerator(radius) 
+  return ParametricDiscreteModel(grid, grid_topology, face_labeling, panel_ids, forward_map_generator)
+end
+
+function ParametricDiscreteModel(grid::UnstructuredGrid{3,3}, 
+                                 grid_topology::UnstructuredGridTopology{3,3}, 
+                                 face_labeling::FaceLabeling, 
+                                 panel_ids::AbstractArray{Int},
+                                 radius::Float64,
+                                 thickness::Float64)
+  forward_map_generator = ForwardMap3DGenerator(radius, thickness)
+  return ParametricDiscreteModel(grid, grid_topology, face_labeling, panel_ids, forward_map_generator)
 end
 
 Geometry.get_grid(model::ParametricDiscreteModel) = model.grid
@@ -55,3 +75,5 @@ Geometry.get_grid_topology(model::ParametricDiscreteModel) = model.grid_topology
 Geometry.get_face_labeling(model::ParametricDiscreteModel) = model.face_labeling
 get_panel_ids(model::ParametricDiscreteModel) = model.panel_ids
 Geometry.get_cell_map(model::ParametricDiscreteModel) = model.grid.cell_map
+get_forward_map_generator(model::ParametricDiscreteModel) = model.forward_map_generator
+get_forward_map_generator(model::AdaptedDiscreteModel{Dc,Dp,<:ParametricDiscreteModel}) where {Dc,Dp} = model.model.forward_map_generator

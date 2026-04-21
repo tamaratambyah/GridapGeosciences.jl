@@ -38,9 +38,10 @@ end
 
 nP = 6 # number of panels
 n_ref_lvls = 4 # number of refinement levels
+radius = 1.0 # radius of the sphere
 
-## get hirearchy of refined models
-panel_models  = get_refined_models(n_ref_lvls,true)
+## get hierarchy of refined models
+panel_models  = get_refined_models(n_ref_lvls,radius,true)
 
 ## Test the coarsest model is there
 nC_per_panel = Int(nc(panel_models[end]))

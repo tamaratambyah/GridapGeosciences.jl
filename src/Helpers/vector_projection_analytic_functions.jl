@@ -5,14 +5,13 @@ vector_length(u::VectorValue{2}) = sqrt(u[1]*u[1] + u[2]*u[2])
 # unit normal
 normal_vec(XYZ) = 1/sqrt(XYZ[1]*XYZ[1] + XYZ[2]*XYZ[2] + XYZ[3]*XYZ[3])*VectorValue(XYZ[1],XYZ[2],XYZ[3])
 
-function normal_vector_from_basis(p)
+function normal_vector_from_basis(forward_map)
   function _func(αβ)
-    J = forward_jacobian(p)(αβ)
-    a1 = VectorValue(J[1],J[2],J[3])
-    a2 = VectorValue(J[4],J[5],J[6])
+    Jac = J(forward_map,αβ)
+    a1 = VectorValue(Jac[1],Jac[2],Jac[3])
+    a2 = VectorValue(Jac[4],Jac[5],Jac[6])
     n = cross(a1,a2)
-
-    _n = n*(1/sqrtg(p,αβ) )
+    _n = n*(1/sqrtg(forward_map,αβ) )
     @check vector_length(_n) ≈ 1.0
     _n
   end
@@ -30,11 +29,16 @@ tangent_vec(vecX::Function) = XYZ -> vecX(XYZ) - (vecX(XYZ)⋅normal_vec(XYZ))�
 piola(vecX::Function,p::Int) = αβ -> sqrtg(p,αβ)*( forward_pinv_jacobian(p)(αβ)⋅ vecX(p)(αβ))
 piola(vecX::Function) = p -> piola(vecX,p)
 
+piola(vecX::Function,m::ForwardMap2Dor3D) = αβ -> sqrtg(m,αβ)*( forward_pinv_jacobian(m)(αβ)⋅vecX(m)(αβ))
+
 # Contravariat components of 3D vector vecX
 # The contravariatn mapping is  ̃u = J u
 # so u = J^† ̃u
-contra_v(vecX::Function,p::Int) = αβ -> forward_pinv_jacobian(p)(αβ)⋅ vecX(p)(αβ)
+contra_v(vecX::Function,p::Int) = αβ -> forward_pinv_jacobian(p)(αβ)⋅vecX(p)(αβ)
 contra_v(vecX::Function) = p -> contra_v(vecX,p)
+
+contra_v(vecX::Function,m::ForwardMap2Dor3D) = αβ -> forward_pinv_jacobian(m)(αβ)⋅vecX(m)(αβ)
+
 
 
 # extract compoents 1 or 2 of contravariat vector, and construct contravariat components of vec perp

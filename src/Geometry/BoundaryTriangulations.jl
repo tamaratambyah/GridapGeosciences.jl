@@ -162,12 +162,13 @@ This method is based on Santi's formula
 pushforward_normal(trian::BoundaryTriangulation) = _pushforward_normal(trian)
 function _pushforward_normal(trian)
   panel_model = get_background_model(trian)
+  panel_model_metadata = get_forward_map_generator(panel_model)
   n_2_2D = get_normal_vector(trian)
 
   face_panel_ids = get_panel_ids(trian)
   glue = get_glue(trian,Val(2))
 
-  face_geo_map = lazy_map(p -> ForwardMap(p), face_panel_ids)
+  face_geo_map = lazy_map(p -> panel_model_metadata(p), face_panel_ids)
   Jt = lazy_map(∇,face_geo_map)
   J = lazy_map(Operation(transpose),Jt)
 

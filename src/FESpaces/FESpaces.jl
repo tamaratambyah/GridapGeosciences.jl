@@ -24,8 +24,8 @@ import Gridap.Geometry: get_grid_topology, num_faces, num_cell_dims,
                         BodyFittedTriangulation
 import Gridap.Fields: Map, VectorValue, TensorValue, Point
 import Gridap.Arrays: array_cache, CachedMatrix, return_type, getindex!, testitem, lazy_map, IdentityVector, setsize!
-import GridapGeosciences.Geometry: ParametricDiscreteModel, get_panel_ids
-import GridapGeosciences.Helpers: forward_jacobian, forward_pinv_jacobian
+import GridapGeosciences.Geometry: ParametricDiscreteModel, get_panel_ids, get_forward_map_generator
+import GridapGeosciences.Helpers: J, forward_pinv_jacobian
 import Gridap.FESpaces: get_cell_shapefuns, get_cell_dof_basis, _use_clagrangian, H1Conformity
 import Gridap.Adaptivity: AdaptedDiscreteModel, AdaptedTriangulation
 import Gridap.Helpers: @notimplemented

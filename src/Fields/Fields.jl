@@ -9,17 +9,13 @@ using FillArrays
 
 
 using GridapGeosciences.Helpers
-import GridapGeosciences.Helpers: forward_map_2D, forward_map_3D
-import GridapGeosciences.Helpers: forward_jacobian_2D, forward_jacobian_3D, inverse_map, inverse_jacobian
+import GridapGeosciences.Helpers: forward_jacobian
 
-include("ForwardMapPanel1.jl")
-include("InverseMap.jl")
 include("MatMultField.jl")
 include("AffineField.jl")
 include("Cartesian2SphericalMap.jl")
 include("Cartesian2SphereicalMap3D.jl")
 
-export ForwardMapPanel1
 export MatMultField, MyAffineField
 export Cartesian2SphereicalMap
 export Cartesian2SphereicalMap3D

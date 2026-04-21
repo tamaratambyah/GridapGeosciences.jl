@@ -2,7 +2,7 @@
 get_panel_ids
 
 returns the panel id = 1,…,6, for unrefined and refined cubed models
-It is assumed that the coarset model has 1 cell per panel
+It is assumed that the coarsest model has 1 cell per panel
 """
 function get_panel_ids(args...)
   @abstractmethod
@@ -31,13 +31,15 @@ end
 
 
 function geo_map_func(trian::Triangulation)
+  model = get_background_model(trian)  
+  model_metadata = get_forward_map_generator(model)
   panel_ids = get_panel_ids(trian)
-  geo_map_func(panel_ids)
+  geo_map_func(model_metadata,panel_ids)
 end
 
-function geo_map_func(panel_ids::AbstractArray{Int})
+function geo_map_func(model_metadata, panel_ids::AbstractArray{Int})
   # println("serial geo map")
-  return lazy_map(p -> ForwardMap(p), panel_ids)
+  return lazy_map(p -> model_metadata(p), panel_ids)
 end
 
 ### latlon geo func

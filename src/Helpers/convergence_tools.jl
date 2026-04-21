@@ -50,21 +50,21 @@ returns an array of refined serial models where
   models[1] == most refined model
   models[end] == coarsest model
 """
-function get_refined_models(n_ref_lvls::Int,coarse_model=false)
-  panel_model = coarse_parametric_model()
+function get_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
+  panel_model = coarse_parametric_model(radius)
   panel_models = Vector{DiscreteModel}(undef,n_ref_lvls)
   for n in n_ref_lvls:-1:1
     panel_model = Gridap.Adaptivity.refine(panel_model)
     panel_models[n] = panel_model
   end
   if coarse_model
-    push!(panel_models,coarse_parametric_model())
+    push!(panel_models,coarse_parametric_model(radius))
   end
   panel_models
 end
 
-function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,coarse_s_model=false)
-  s_models  = get_refined_models(n_ref_lvls,coarse_s_model)
+function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,radius::Real,coarse_s_model=false)
+  s_models  = get_refined_models(n_ref_lvls,radius,coarse_s_model)
   dmodels, dpanel_ids, owned_panel_ids = get_distributed_refined_models(ranks,nprocs,s_models)
   dmodels
 end
@@ -126,7 +126,7 @@ end
 
 
 #### get array of dmodel - octree models
-function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
+function get_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_model=false)
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
@@ -142,7 +142,7 @@ function get_octree_refined_models(ranks,n_ref_lvls::Int,coarse_model=false)
   return dmodels
 end
 
-function get_3D_octree_refined_models(ranks,n_ref_lvls::Int)
+function get_3D_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,thickness::Real)
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
@@ -252,6 +252,7 @@ end
 
 
 ## element size
+const RADIUS = 1.0 # TO-DO
 function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
   tmp =  4*π*RADIUS^2/num_cells(model)
   sqrt(tmp)

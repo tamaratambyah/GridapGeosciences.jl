@@ -1,6 +1,11 @@
-function panelwise_cellfield(f::Function,trian::BodyFittedTriangulation,panel_ids::AbstractArray{Int})
+function panelwise_cellfield(f::Function,
+                             trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel},
+                             panel_ids::AbstractArray{Int}) where {Dc,Dp}
   @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
-  cell_field = map(p->GenericField(f(p)),panel_ids)
+  model = get_background_model(trian)
+  fwd_map_generator = get_forward_map_generator(model)
+  forward_maps = lazy_map(fwd_map_generator,panel_ids)
+  cell_field = lazy_map(m->GenericField(f(m)),forward_maps)
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end
 
@@ -53,8 +58,12 @@ function _boundary_cell_data(f::Function,trian,face_panel_ids::AbstractArray)
 
   @check length(face_panel_ids) == num_cells(trian) "\n Incorrect panel ids"
 
+  model = get_background_model(trian)
+  fwd_map_generator = get_forward_map_generator(model)
+  forward_maps = lazy_map(fwd_map_generator,face_panel_ids)
+
   # make physical cf
-  cell_field = map(p->GenericField(f(p)),face_panel_ids)
+  cell_field = map(m->GenericField(f(m)),forward_maps)
   cf = CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 
   glue = get_glue(trian,Val(2))
@@ -84,11 +93,6 @@ function panelwise_cellfield(f::Function,trian::SkeletonTriangulation)
 
   SkeletonPair(plus,minus)
 end
-
-
-
-
-
 
 function ambient_cellfield(panel_cf::CellField,ambient_trian::Triangulation,panel_ids::AbstractArray{Int})
   inv_f = lazy_map(p->InverseMap(p),panel_ids)
