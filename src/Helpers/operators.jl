@@ -35,7 +35,7 @@ sgrad(f::Function) = m -> sgrad(f,m)
 sgrad(f::Function,m::ForwardMap2Dor3D) = αβ -> J(m,αβ) ⋅ (inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
 
 ####### surf div
-_svid(vec::Function,m::ForwardMap2Dor3D) = αβ ->  sqrtg(m,αβ)*( vec(m)(αβ))
+_sdiv(f::Function,m::ForwardMap2Dor3D) = αβ ->  sqrtg(m,αβ)*( f(m)(αβ))
 surfdiv(vec::Function) = m -> surfdiv(vec,m)
 surfdiv(f::Function,m::ForwardMap2Dor3D) = αβ -> 1/sqrtg(m,αβ) * ( divergence(_sdiv(f,m))(αβ) )
 
