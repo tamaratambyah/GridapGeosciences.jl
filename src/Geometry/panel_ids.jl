@@ -32,14 +32,14 @@ end
 
 function geo_map_func(trian::Triangulation)
   model = get_background_model(trian)  
-  model_metadata = get_forward_map_generator(model)
+  fwd_map_generator = get_forward_map_generator(model)
   panel_ids = get_panel_ids(trian)
-  geo_map_func(model_metadata,panel_ids)
+  geo_map_func(fwd_map_generator,panel_ids)
 end
 
-function geo_map_func(model_metadata, panel_ids::AbstractArray{Int})
+function geo_map_func(fwd_map_generator, panel_ids::AbstractArray{Int})
   # println("serial geo map")
-  return lazy_map(p -> model_metadata(p), panel_ids)
+  return lazy_map(p -> fwd_map_generator(p), panel_ids)
 end
 
 ### latlon geo func
