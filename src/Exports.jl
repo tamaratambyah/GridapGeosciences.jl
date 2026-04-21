@@ -30,7 +30,8 @@ end
 @publish Geometry ParametricDiscreteModel
 @publish Geometry _pushforward_normal
 @publish Geometry _pullback_area_form
-
+@publish Geometry get_forward_map_generator
+@publish Geometry get_radius
 @publish Geometry panelwise_cellfield
 
 @publish ODEs DAEFEOperator

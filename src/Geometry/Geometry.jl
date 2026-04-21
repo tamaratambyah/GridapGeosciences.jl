@@ -45,4 +45,6 @@ export panelwise_cellfield
 export _pushforward_normal
 export _pullback_area_form
 
+export get_radius
+
 end

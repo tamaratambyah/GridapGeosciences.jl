@@ -51,18 +51,18 @@ struct ParametricDiscreteModel{Dc,Dp,Tp,B} <: DiscreteModel{Dc,Dp}
   forward_map_generator
 end
 
-function ParametricDiscreteModel(grid::UnstructuredGrid{2,2}, 
-                                 grid_topology::UnstructuredGridTopology{2,2}, 
-                                 face_labeling::FaceLabeling, 
+function ParametricDiscreteModel(grid::UnstructuredGrid{2,2},
+                                 grid_topology::UnstructuredGridTopology{2,2},
+                                 face_labeling::FaceLabeling,
                                  panel_ids::AbstractArray{Int},
                                  radius::Float64)
-  forward_map_generator = ForwardMap2DGenerator(radius) 
+  forward_map_generator = ForwardMap2DGenerator(radius)
   return ParametricDiscreteModel(grid, grid_topology, face_labeling, panel_ids, forward_map_generator)
 end
 
-function ParametricDiscreteModel(grid::UnstructuredGrid{3,3}, 
-                                 grid_topology::UnstructuredGridTopology{3,3}, 
-                                 face_labeling::FaceLabeling, 
+function ParametricDiscreteModel(grid::UnstructuredGrid{3,3},
+                                 grid_topology::UnstructuredGridTopology{3,3},
+                                 face_labeling::FaceLabeling,
                                  panel_ids::AbstractArray{Int},
                                  radius::Float64,
                                  thickness::Float64)
@@ -77,3 +77,8 @@ get_panel_ids(model::ParametricDiscreteModel) = model.panel_ids
 Geometry.get_cell_map(model::ParametricDiscreteModel) = model.grid.cell_map
 get_forward_map_generator(model::ParametricDiscreteModel) = model.forward_map_generator
 get_forward_map_generator(model::AdaptedDiscreteModel{Dc,Dp,<:ParametricDiscreteModel}) where {Dc,Dp} = model.model.forward_map_generator
+
+function get_radius(model::Union{ParametricDiscreteModel,AdaptedDiscreteModel{Dc,Dp,<:ParametricDiscreteModel}}) where {Dc,Dp}
+  generator = get_forward_map_generator(model)
+  return generator.radius
+end

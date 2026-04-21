@@ -252,9 +252,9 @@ end
 
 
 ## element size
-const RADIUS = 1.0 # TO-DO
 function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
-  tmp =  4*π*RADIUS^2/num_cells(model)
+  radius = get_radius(model)
+  tmp =  4*π*radius^2/num_cells(model)
   sqrt(tmp)
 end
 
@@ -265,7 +265,8 @@ function dx(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
 end
 
 function dx_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
-  horizontal = 4*π*RADIUS^2/(nc_horizontal(model)*6)
+  radius = get_radius(model)
+  horizontal = 4*π*radius^2/(nc_horizontal(model)*6)
   sqrt(horizontal) ## quads so have to sqrt
 end
 
