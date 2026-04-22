@@ -118,6 +118,8 @@ end
 # @publish Distributed BoundaryTriangulation
 @publish Distributed pullback_area_form
 @publish Distributed pushforward_normal
+@publish Distributed get_forward_map_generator
+@publish Distributed get_radius
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model

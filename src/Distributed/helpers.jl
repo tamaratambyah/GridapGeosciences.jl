@@ -38,10 +38,10 @@ end
 
 
 ### return distributed version of serial model after n_ref_lvls of refinement
-function get_distributed_panel_model(ranks,nprocs,n_ref_lvls::Int)
+function get_distributed_panel_model(ranks,nprocs,n_ref_lvls::Int,radius)
 
   # get refined models in serial
-  s_panel_model = coarse_parametric_model()
+  s_panel_model = coarse_parametric_model(radius)
   for n in 1:n_ref_lvls
     s_panel_model = Gridap.Adaptivity.refine(s_panel_model)
   end
@@ -59,6 +59,6 @@ function get_distributed_panel_model(ranks,nprocs,n_ref_lvls::Int)
   # distribute the model
   dmodel = UnstructuredDiscreteModel(DiscreteModel(ranks,Adaptivity.get_model(s_panel_model),fine_cell_to_part))
   dpanel_ids, = distributed_panel_ids(dmodel,spanel_ids)
-  panel_model = DistributedParametricDiscreteModel(dmodel,dpanel_ids)
+  panel_model = DistributedParametricDiscreteModel(dmodel,dpanel_ids,radius)
  return panel_model
 end

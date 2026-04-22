@@ -73,6 +73,7 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
   # get refined models in serial
   spanel_ids = map(m->get_panel_ids(m),s_models)
   s_model_coarse = s_models[end]
+  radii = map(m->get_radius(m),s_models)
 
   # extract the models and glues in arrays
   models = map(m->Adaptivity.get_model(m),s_models[1:end-1])
@@ -110,7 +111,7 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
   # the coarsest model is the last in the list
   coarse_dmodel = DiscreteModel(ranks,models[end],cell_to_part[end])
   dpanel_ids[end],owned_panel_ids[end] = distributed_panel_ids(coarse_dmodel,spanel_ids[end])
-  dmodels[end] = DistributedParametricDiscreteModel(coarse_dmodel,dpanel_ids[end])
+  dmodels[end] = DistributedParametricDiscreteModel(coarse_dmodel,dpanel_ids[end],radii[end])
 
   # loop backwards through refinement levels
   for level in length(models)-1:-1:1
@@ -119,7 +120,7 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
     glue = DistributedAdaptivityGlue(glues[level],parent,child)
     dpanel_ids[level],owned_panel_ids[level] = distributed_panel_ids(child,spanel_ids[level])
 
-    dmodels[level] = DistributedParametricDiscreteModel(child, dpanel_ids[level])
+    dmodels[level] = DistributedParametricDiscreteModel(child, dpanel_ids[level],radii[level])
   end
   return dmodels, dpanel_ids, owned_panel_ids
 end

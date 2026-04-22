@@ -22,7 +22,7 @@ import GridapGeosciences.Geometry: _CCAM_panel_wise_node_ids
 import GridapGeosciences.Geometry: _CCAM_cube_nodes_3d
 import GridapGeosciences.Geometry: setup_panel_cmaps
 import GridapGeosciences.Geometry: panelwise_cellfield, geo_map_func, latlon_geo_map_func
-import GridapGeosciences.Geometry: get_panel_ids
+import GridapGeosciences.Geometry: get_panel_ids, get_forward_map_generator, get_radius
 import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
 import GridapGeosciences.Helpers: ForwardMap
 using GridapGeosciences.Fields
@@ -50,6 +50,7 @@ export ParametricOctreeDistributedDiscreteModel
 export Parametric3DOctreeDistributedDiscreteModel
 export DistributedParametricDiscreteModel
 export panelwise_cellfield, geo_map_func, get_panel_ids, latlon_geo_map_func
+export get_forward_map_generator, get_radius
 export writevtk, createvtk, write_vtk_file, create_vtk_file, create_pvtk_file
 export _make_pvd_distributed
 export distributed_panel_ids

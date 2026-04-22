@@ -10,7 +10,8 @@ const DistributedParametricDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDis
 
 function DistributedParametricDiscreteModel(
   model::GridapDistributed.DistributedDiscreteModel,
-  dpanel_ids::AbstractArray
+  dpanel_ids::AbstractArray,
+  radius
 )
   gids = get_cell_gids(model)
 
@@ -31,10 +32,11 @@ function DistributedParametricDiscreteModel(
     # extract the owned panel ids
     # owned_cells = own_to_local(cids)
     # panel_ids = pids[owned_cells]
-    ParametricDiscreteModel(grid,topo,labels,pids)
+    ParametricDiscreteModel(grid,topo,labels,pids,radius)
    end
 
-  metadata = nothing
+  ## I am unsure where to put the radius, store in metadata for now
+  metadata = radius
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids;metadata)
 end
 
@@ -64,4 +66,22 @@ function get_owned_panel_ids(dmodel::DistributedParametricDiscreteModel)
   end
   return panel_ids
 
+end
+
+function get_forward_map_generator(dmodel::DistributedParametricDiscreteModel)
+  return map(get_forward_map_generator,local_views(dmodel))
+end
+
+## TO DO:
+## We want get_radius to return 1 radius value I think.
+## How to circumvent the scaling on debug array issue?
+## This is why I put the radius in the metadata
+function get_radius(dmodel::DistributedParametricDiscreteModel)
+  ## the radius should be the same for all lmodels
+
+  # radii =  map(get_radius,local_views(dmodel))
+  # @check all(map(t -> t === first(radii), radii))
+  # return first(radii)
+
+  return dmodel.metadata
 end
