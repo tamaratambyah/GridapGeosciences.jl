@@ -61,6 +61,7 @@ To obtain a refined 3D parametric model, we pass $\ell$ levels of refinement to 
 
 ````julia 
 ℓ = 2
+radius = 1.0
 octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
                   num_horizontal_uniform_refinements=ℓ,
                   num_vertical_uniform_refinements=ℓ);
@@ -124,19 +125,19 @@ We consider the method of manufactured solutions for analytic solutions defined 
 \widetilde{\varphi} &= \exp( -(y^2 + z^2) )
 \end{align*}
 ```
-These analytic solutions are defined as a function of the panel index $p$, as follows:
+These analytic solutions are defined as a function of the forward map, as follows:
 
 ````julia 
-function u(p)
+function u(forward_map)
   function _u(α)
-    x = ForwardMap(p)(α)
+    x = forward_map(α)
     VectorValue(-x[2],x[1],0.0)
   end
 end
 
-function φ(p)
+function φ(forward_map)
   function _φ(α)
-    x = ForwardMap(p)(α)
+    x = forward_map(α)
     exp(-(x[2]^2+x[3]^2))
   end
 end

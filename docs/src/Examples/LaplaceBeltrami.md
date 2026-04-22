@@ -43,9 +43,10 @@ then apply $\ell$ levels of refinement:
 
 ````julia 
 ℓ = 3
-model = coarse_parametric_model()
+radius = 1.0
+model = coarse_parametric_model(radius)
 for n in collect(1:ℓ)
-    model = Gridap.Adaptivity.refine(model)
+    global model = Gridap.Adaptivity.refine(model)
 end
 ````
 
@@ -76,12 +77,12 @@ U = TrialFESpace(V)
 
 ## Manufactured solution
 We consider the method of manufactured solutions for analytic solution, $\widetilde{u} = xyz$.
-This is defined as a function of the panel index $p$, as follows:
+This is defined as a function of the forward map, as follows:
 
 ````julia 
-function u(p)
+function u(forward_map)
   function _u(α)
-    x = ForwardMap(p)(α)
+    x = forward_map(α)
     x[1]*x[2]*x[3]
   end
 end

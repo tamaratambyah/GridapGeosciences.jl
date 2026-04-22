@@ -58,9 +58,10 @@ then apply $\ell$ levels of refinement:
 
 ````julia 
 ℓ = 3
-model = coarse_parametric_model()
+radius = 1.0
+model = coarse_parametric_model(radius)
 for n in collect(1:ℓ)
-    model = Gridap.Adaptivity.refine(model)
+    global model = Gridap.Adaptivity.refine(model)
 end
 ````
 
@@ -74,6 +75,7 @@ The volume triangulation and assoicated panel ides can be extracted as per usual
 ````julia 
 Ω = Triangulation(model)
 panel_ids = get_panel_ids(model)
+fwd_map_generator = get_forward_map_generator(model)
 ````
 
 The skeleton triangulation, skeleton normal vector and skeleton panel ids are:
@@ -91,7 +93,7 @@ and plot the result on $\Lambda$:
 ````julia 
 n_ambient = pushforward_normal(Λ)
 cellfields = ["amb_n_plus"=>n_ambient.plus, "amb_n_minus"=>n_ambient.minus, "amb_n_total"=>n_ambient.minus+n_ambient.plus ]
-skel_geo_map = lazy_map(p -> ForwardMap(p), skel_panel_ids.plus)
+skel_geo_map = lazy_map(p -> fwd_map_generator(p), skel_panel_ids.plus)
 writevtk(Λ,"ambient_skeleton_normal",cellfields=cellfields,append=false,geo_map=skel_geo_map)
 ````
 
@@ -113,19 +115,19 @@ The initial condition and velocity field is
 \widetilde{\boldsymbol{\beta}} &= (-y,x,0)
 \end{align*}
 ```
-This is defined as a function of the panel index as follows:
+This is defined as a function of the forward map as follows:
 
 ````julia 
-function uₓ(p)
+function uₓ(forward_map)
   function _f(α)
-    x = evaluate(ForwardMap(p),α)
+    x = forward_map(α)
     exp(-(x[2]^2 + x[3]^2))
   end
 end
 
-function βₓ(p)
+function βₓ(forward_map)
   function _f(α)
-    x = evaluate(ForwardMap(p),α)
+    x = forward_map(α)
     VectorValue(-x[2],x[1],0)
   end
 end
