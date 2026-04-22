@@ -1,38 +1,38 @@
-struct ForwardMap2D <: Field 
+struct ForwardMap2D{T<:Real} <: Field 
   panel::Int64
-  radius::Float64
+  radius::T
 end
 
-struct ForwardMap2DGenerator <: Map
-  radius::Float64
-  forward_maps::Vector{ForwardMap2D}
-  ForwardMap2DGenerator(radius::Float64) = 
-     new(radius, [ForwardMap2D(p, radius) for p in 1:6])
+struct ForwardMap2DGenerator{T<:Real} <: Map
+  radius::T
+  forward_maps::Vector{ForwardMap2D{T}}
+  ForwardMap2DGenerator(radius::T) where {T<:Real}  = 
+     new{T}(radius, [ForwardMap2D(p, radius) for p in 1:6])
 end
 
-Gridap.Arrays.evaluate!(cache,f::ForwardMap2DGenerator,p::Int) = f.forward_maps[p]
+Gridap.Arrays.evaluate!(cache,f::ForwardMap2DGenerator,p::Integer) = f.forward_maps[p]
 
-struct ForwardMap3D <: Field
+struct ForwardMap3D{T<:Real} <: Field
   panel::Int64
-  radius::Float64
-  thickness::Float64
+  radius::T
+  thickness::T
 end
 
-struct ForwardMap3DGenerator <: Map
-  radius::Float64
-  thickness::Float64
-  forward_maps::Vector{ForwardMap3D}
-  ForwardMap3DGenerator(radius::Float64, thickness::Float64) = 
-     new(radius, thickness, [ForwardMap3D(p, radius, thickness) for p in 1:6])
+struct ForwardMap3DGenerator{T<:Real} <: Map
+  radius::T
+  thickness::T
+  forward_maps::Vector{ForwardMap3D{T}}
+  ForwardMap3DGenerator(radius::T, thickness::T) where {T<:Real} = 
+     new{T}(radius, thickness, [ForwardMap3D(p, radius, thickness) for p in 1:6])
 end
 
-Gridap.Arrays.evaluate!(cache,f::ForwardMap3DGenerator,p::Int) = f.forward_maps[p]
+Gridap.Arrays.evaluate!(cache,f::ForwardMap3DGenerator,p::Integer) = f.forward_maps[p]
 
-function ForwardMap(p::Int,radius)
+function ForwardMap(p::Integer,radius)
   return ForwardMap2D(p, radius)
 end
 
-function ForwardMap(p::Int,radius,thickness)
+function ForwardMap(p::Integer,radius,thickness)
   return ForwardMap3D(p, radius, thickness)
 end
 
@@ -102,8 +102,8 @@ function _evaluate_forward_map_2d(p::Val{6},radius,αβ)
     return radius*Point(X,Y,Z)
 end
 
-_evaluate_forward_jacobian_2d(p::Int,radius::Float64,αβ) = transpose(gradient(forward_map_2d(p,radius))(αβ))
-forward_map_2d(p::Int,radius::Float64) = αβ -> _evaluate_forward_map_2d(Val(p),radius,αβ)
+_evaluate_forward_jacobian_2d(p::Integer,radius::Real,αβ) = transpose(gradient(forward_map_2d(p,radius))(αβ))
+forward_map_2d(p::Integer,radius::Real) = αβ -> _evaluate_forward_map_2d(Val(p),radius,αβ)
 
 
 function Gridap.Arrays.return_cache(f::ForwardMap2D,cellx::AbstractArray{<:VectorValue{2}})
@@ -158,7 +158,7 @@ end
 ########## 3D ########
 ################################################################################
 
-function _evaluate_forward_map_3d(p::Val{P},radius::Float64,thickness::Float64,γαβ::VectorValue{3}) where P
+function _evaluate_forward_map_3d(p::Val{P},radius::T,thickness::T,γαβ::VectorValue{3}) where {P<:Integer,T<:Real}
   #### recall the first coordinate in P6est is the extrusion!
   γ,α,β = γαβ
 
@@ -170,8 +170,8 @@ function _evaluate_forward_map_3d(p::Val{P},radius::Float64,thickness::Float64,�
   return XYZ_surf + thickness*γ*normal_vec(XYZ_surf)
 end
 
-forward_map_3d(p::Int,radius::Float64,thickness::Float64) = γαβ -> _evaluate_forward_map_3d(Val(p),radius,thickness,γαβ)
-_evaluate_forward_jacobian_3d(p::Int,radius::Float64,thickness::Float64,γαβ) = transpose(gradient(forward_map_3d(p,radius,thickness))(γαβ))
+forward_map_3d(p::Integer,radius::T,thickness::T) where T<:Real = γαβ -> _evaluate_forward_map_3d(Val(p),radius,thickness,γαβ)
+_evaluate_forward_jacobian_3d(p::Integer,radius::T,thickness::T,γαβ) where T<:Real = transpose(gradient(forward_map_3d(p,radius,thickness))(γαβ))
 
 function Gridap.Arrays.return_cache(f::ForwardMap3D,cellx::AbstractArray{<:VectorValue{3}})
   return similar(cellx,VectorValue{3,Float64})

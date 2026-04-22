@@ -43,19 +43,19 @@ function parametric_model(cube_model, radius)
 end
 
 
-struct ParametricDiscreteModel{Dc,Dp,Tp,B} <: DiscreteModel{Dc,Dp}
+struct ParametricDiscreteModel{Dc,Dp,Tp,B,Tf} <: DiscreteModel{Dc,Dp}
   grid::UnstructuredGrid{Dc,Dp,Tp,B}
   grid_topology::UnstructuredGridTopology{Dc,Dp,Tp,B}
   face_labeling::FaceLabeling
   panel_ids::AbstractArray{Int}
-  forward_map_generator
+  forward_map_generator::Tf
 end
 
 function ParametricDiscreteModel(grid::UnstructuredGrid{2,2},
                                  grid_topology::UnstructuredGridTopology{2,2},
                                  face_labeling::FaceLabeling,
                                  panel_ids::AbstractArray{Int},
-                                 radius::Float64)
+                                 radius::Real)
   forward_map_generator = ForwardMap2DGenerator(radius)
   return ParametricDiscreteModel(grid, grid_topology, face_labeling, panel_ids, forward_map_generator)
 end
@@ -64,8 +64,8 @@ function ParametricDiscreteModel(grid::UnstructuredGrid{3,3},
                                  grid_topology::UnstructuredGridTopology{3,3},
                                  face_labeling::FaceLabeling,
                                  panel_ids::AbstractArray{Int},
-                                 radius::Float64,
-                                 thickness::Float64)
+                                 radius::Real,
+                                 thickness::Real)
   forward_map_generator = ForwardMap3DGenerator(radius, thickness)
   return ParametricDiscreteModel(grid, grid_topology, face_labeling, panel_ids, forward_map_generator)
 end

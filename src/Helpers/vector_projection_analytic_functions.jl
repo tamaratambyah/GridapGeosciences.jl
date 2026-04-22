@@ -31,7 +31,7 @@ piola(vecX::Function) = p -> piola(vecX,p)
 
 piola(vecX::Function,m::ForwardMap2Dor3D) = αβ -> sqrtg(m,αβ)*( forward_pinv_jacobian(m)(αβ)⋅vecX(m)(αβ))
 
-# Contravariat components of 3D vector vecX
+# Contravariant components of 3D vector vecX
 # The contravariatn mapping is  ̃u = J u
 # so u = J^† ̃u
 contra_v(vecX::Function,p::Int) = αβ -> forward_pinv_jacobian(p)(αβ)⋅vecX(p)(αβ)
