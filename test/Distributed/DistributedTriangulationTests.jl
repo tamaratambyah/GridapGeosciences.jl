@@ -36,7 +36,8 @@ function test_distributedParametricDiscreteModel(distribute,nprocs)
   # i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
 
   n_ref_lvls = 2
-  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  radius = 1
+  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
 
   model = dmodels[2]
 

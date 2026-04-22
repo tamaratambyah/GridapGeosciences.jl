@@ -32,7 +32,8 @@ function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 2
-  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  radius = 1
+  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
   panel_model = dmodels[2]
 
   Ω_panel = Triangulation(panel_model)
@@ -50,7 +51,8 @@ function main(distribute,nprocs)
   test_debug_vector_equality(out)
 
   # Method 2: Santi's formula
-  cell_geo_map = geo_map_func(panel_ids)
+  forward_map_generator = get_forward_map_generator(panel_model)
+  cell_geo_map = geo_map_func(forward_map_generator,panel_ids)
   n = pushforward_normal(Λ,cell_geo_map)
   out = (n.plus+n.minus)(pts)
   test_debug_vector_equality(out)

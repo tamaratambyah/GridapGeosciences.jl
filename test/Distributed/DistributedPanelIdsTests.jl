@@ -33,6 +33,12 @@ function test_distributed_panel_ids(dpanel_model)
 
 end
 
+function main(distribute,nprocs)
+  test_distributedParametricDiscreteModel(distribute,nprocs)
+  test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
+  test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
+end
+
 
 function test_distributedParametricDiscreteModel(distribute,nprocs)
 
@@ -41,20 +47,13 @@ function test_distributedParametricDiscreteModel(distribute,nprocs)
   # i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
 
   n_ref_lvls = 2
-  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  radius = 1
+  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
 
   test_distributed_panel_ids(dmodels[1])
 
   @test true
 end
-
-
-function main(distribute,nprocs)
-  test_distributedParametricDiscreteModel(distribute,nprocs)
-  test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
-  test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
-end
-
 
 
 function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
