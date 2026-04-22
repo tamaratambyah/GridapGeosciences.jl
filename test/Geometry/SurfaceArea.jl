@@ -42,25 +42,29 @@ function main(serial_models::AbstractArray)
 end
 
 
-function main(distribute,nprocs;n_ref_lvls=3)
+function main(distribute,nprocs;n_ref_lvls=3,radii=[1.0,2.0])
   ranks = distribute(LinearIndices((nprocs,)))
 
-  serial_models = get_refined_models(n_ref_lvls)
+  for radius in radii
 
-  p4test_models = get_octree_refined_models(ranks,n_ref_lvls)
-  for degree in collect([2,4,6,8])
-    for (s_model,d_model) in zip(serial_models,p4test_models)
+    serial_models = get_refined_models(n_ref_lvls,radius)
 
-      ### s_model
-      s_area = compute_surface_area(s_model, degree)
+    p4test_models = get_octree_refined_models(ranks,n_ref_lvls)
+    for degree in collect([2,4,6,8])
+      for (s_model,d_model) in zip(serial_models,p4test_models)
 
-      ### d_model
-      d_area = compute_surface_area(d_model, degree)
+        ### s_model
+        s_area = compute_surface_area(s_model, degree)
 
-      @test s_area ≈ d_area
+        ### d_model
+        d_area = compute_surface_area(d_model, degree)
 
+        @test s_area ≈ d_area
+
+      end
     end
   end
+
 end
 
 
