@@ -45,6 +45,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 # ## Discrete model
 # To obtain a refined 2D parametric model, we pass $\ell$ levels of refinement:
 ℓ = 2
+radius = 1.0
 omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=ℓ)
 model = omodel.parametric_dmodel
 
@@ -91,11 +92,11 @@ gravity = gₑ*(1/ωₑ)^2/aₑ
 H₀ = Hₑ/aₑ
 u₀ = uₑ/aₑ*(1/ωₑ)
 
-# The initial conditions are defined as a function of the panel index $p$ as follows:
-function u0(p)
+# The initial conditions are defined as a function of the forward map as follows:
+function u0(forward_map)
   function _u₀(α)
   ζ = 0.0
-  xyz = evaluate(ForwardMap(p),α)
+  xyz = forward_map(α)
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,r = θϕr
   u     = u₀*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
@@ -110,10 +111,10 @@ function u0(p)
   end
 end
 
-function h0(p)
+function h0(forward_map)
   function _h₀(α)
   ζ = 0.0
-  xyz = evaluate(ForwardMap(p),α)
+  xyz = forward_map(α)
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,r = θϕr
   h  = -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ)
@@ -121,10 +122,10 @@ function h0(p)
   end
 end
 
-function f0(p)
+function f0(forward_map)
   function _f₀(α)
     ζ = 0.0
-    xyz = evaluate(ForwardMap(p),α)
+    xyz = forward_map(α)
     θϕr   = xyz2θϕr(xyz)
     θ,ϕ,r = θϕr
     2.0*ω*( -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ) )

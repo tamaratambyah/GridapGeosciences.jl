@@ -28,6 +28,10 @@ if TESTCASE ∈ ("all", "seq", "seq-multigrid")
   include("Multigrid/seq/runtests.jl")
 end
 
+if TESTCASE ∈ ("all", "seq", "seq-tutorials")
+  include("Examples/seq/runtests.jl")
+end
+
 # MPI tests
 if TESTCASE ∈ ("all", "mpi", "mpi-l2-projection")
    include("Projection/mpi/runtests.jl")
@@ -55,4 +59,8 @@ end
 
 if TESTCASE ∈ ("all", "mpi", "mpi-multigrid")
   include("Multigrid/mpi/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "seq", "mpi-tutorials")
+  include("Examples/mpi/runtests.jl")
 end
