@@ -7,7 +7,9 @@
 ################################################################################
 const DistributedParametricDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:ParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
 
-
+# Note the dmodel passed in does not have ParametricDiscreteModel as local models
+# Thus, we need to explicitly pass the radius to the constructor as well
+# I am unsure where to put the radius, store in metadata for now
 function DistributedParametricDiscreteModel(
   model::GridapDistributed.DistributedDiscreteModel,
   dpanel_ids::AbstractArray,
@@ -35,7 +37,6 @@ function DistributedParametricDiscreteModel(
     ParametricDiscreteModel(grid,topo,labels,pids,radius)
    end
 
-  ## I am unsure where to put the radius, store in metadata for now
   metadata = radius
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids;metadata)
 end
