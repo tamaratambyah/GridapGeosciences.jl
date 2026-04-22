@@ -73,7 +73,7 @@ end
 
 function get_radius(dmodel::DistributedParametricDiscreteModel)
   radii =  map(get_radius,local_views(dmodel))
-  radius = eltype(radii)
+  radius = zero(eltype(radii))
   map(radii) do r  
     radius = r 
   end 
