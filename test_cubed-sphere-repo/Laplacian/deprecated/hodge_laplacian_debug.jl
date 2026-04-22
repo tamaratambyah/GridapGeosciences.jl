@@ -33,7 +33,9 @@ dir = datadir("HodgeLaplacianConvergence")
 
 n_ref_lvls = 3
 ps = [0,1]
-models  = get_3D_octree_refined_models(ranks,n_ref_lvls)
+radius = 1.0
+thickness = 0.19
+models  = get_3D_octree_refined_models(ranks,n_ref_lvls,radius,thickness)
 ls = LUSolver()
 
 panel_model = models[2]

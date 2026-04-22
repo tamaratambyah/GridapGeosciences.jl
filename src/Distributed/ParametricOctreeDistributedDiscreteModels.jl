@@ -29,10 +29,15 @@ struct ParametricOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteMode
   parametric_dmodel::B
 end
 
+function get_radius(dmodel::ParametricOctreeDistributedDiscreteModel)
+  return get_radius(dmodel.parametric_dmodel)
+end
+
+
 # TO-THINK: not sure if radius of the cubed sphere is required?
 # Right now, in the serial version of the code, we are passing the length of the cube edges
 # (see coarse_cube_surface_3D function)
-function ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+function ParametricOctreeDistributedDiscreteModel(ranks, radius::Real; num_initial_uniform_refinements=0)
    coarse_model = _create_parametric_octree_dmodel_coarse_model()
    octree_dmodel, cell_wise_vertex_alpha_beta_coordinates, cell_panels =
            _generate_octree_dmodel_alpha_beta_coordinates_and_panels(ranks,
@@ -44,7 +49,8 @@ function ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_ref
    # Build the proc-local ParametricDiscreteModels
    parametric_models = _setup_parametric_models(octree_dmodel,
                                                 cell_wise_vertex_alpha_beta_coordinates,
-                                                cell_panels)
+                                                cell_panels,
+                                                radius)
 
    # Build the GenericDistributedDiscreteModel
    generic_dmodel = GenericDistributedDiscreteModel(parametric_models, get_cell_gids(octree_dmodel.dmodel))
@@ -53,7 +59,8 @@ end
 
 function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{2,2},
                                   cell_wise_vertex_alpha_beta_coordinates,
-                                  cell_panels)
+                                  cell_panels,
+                                  radius::Real)
 
    map(local_views(octree_dmodel.dmodel),
        cell_wise_vertex_alpha_beta_coordinates,
@@ -75,7 +82,8 @@ function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{
         ParametricDiscreteModel(panel_grid,
                                 otopo,
                                 olabels,
-                                cell_panels)
+                                cell_panels,
+                                radius)
    end
 end
 
@@ -419,7 +427,8 @@ function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel
    # Build the proc-local ParametricDiscreteModels
    parametric_models = _setup_parametric_models(adapted_octree_dmodel,
                                                 cell_wise_vertex_alpha_beta,
-                                                cell_panels)
+                                                cell_panels,
+                                                get_radius(model))
 
    adaptive_models = map(parametric_models,
                          local_views(model.parametric_dmodel),

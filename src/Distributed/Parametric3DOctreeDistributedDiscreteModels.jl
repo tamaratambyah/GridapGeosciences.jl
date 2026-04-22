@@ -5,7 +5,7 @@ struct Parametric3DOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteMo
   parametric_dmodel::B
 end
 
-function Parametric3DOctreeDistributedDiscreteModel(ranks;
+function Parametric3DOctreeDistributedDiscreteModel(ranks,radius::Real,thickness::Real;
                                                     num_horizontal_uniform_refinements=0,
                                                     num_vertical_uniform_refinements=0)
 
@@ -24,7 +24,9 @@ function Parametric3DOctreeDistributedDiscreteModel(ranks;
     # Build the proc-local ParametricDiscreteModels
     parametric_models = _setup_parametric_models(octree_dmodel,
                                                  cell_wise_vertex_alpha_beta_gamma_coordinates,
-                                                 cell_panels)
+                                                 cell_panels,
+                                                 radius,
+                                                 thickness)
 
     # Build the GenericDistributedDiscreteModel
     generic_dmodel = GenericDistributedDiscreteModel(parametric_models, get_cell_gids(octree_dmodel.dmodel))
@@ -33,7 +35,9 @@ end
 
 function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{3,3},
                                  cell_wise_vertex_alpha_beta_gamma_coordinates,
-                                 cell_panels)
+                                 cell_panels,
+                                 radius,
+                                 thickness)
 
     map(local_views(octree_dmodel.dmodel),
                     cell_wise_vertex_alpha_beta_gamma_coordinates,
@@ -54,7 +58,9 @@ function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{
         ParametricDiscreteModel(panel_grid,
                                 otopo,
                                 olabels,
-                                cell_panels)
+                                cell_panels,
+                                radius,
+                                thickness)
     end
 end
 

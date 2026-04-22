@@ -13,7 +13,7 @@ const DistributedParametricDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDis
 function DistributedParametricDiscreteModel(
   model::GridapDistributed.DistributedDiscreteModel,
   dpanel_ids::AbstractArray,
-  radius
+  radius::Real
 )
   gids = get_cell_gids(model)
 

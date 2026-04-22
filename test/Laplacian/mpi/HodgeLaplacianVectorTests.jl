@@ -9,5 +9,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(nprocs),)))
 n_ref_lvls = 3
 
 ### P4test model: 3D
-models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+radius = 1.0
+thickness = 0.19
+models = get_3D_octree_refined_models(ranks,n_ref_lvls,radius,thickness)
 HodgeLaplacianVectorTests.main(models;_i_am_main=i_am_main(ranks))

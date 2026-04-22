@@ -48,6 +48,8 @@ function rho(α,β)
   return sqrt(1.0 + tan(α)*tan(α) + tan(β)*tan(β) )
 end
 
+## IMPORTANT NOTE: We cannot annotate αβ as a VectorValue{3} because Forward AD
+## algorithms will not be able to differentiate through the function if we do.
 function _evaluate_forward_map_2d(p::Val{1},radius,αβ)
     α,β = αβ
     ρ = rho(α,β)
@@ -158,7 +160,9 @@ end
 ########## 3D ########
 ################################################################################
 
-function _evaluate_forward_map_3d(p::Val{P},radius::T,thickness::T,γαβ::VectorValue{3}) where {P<:Integer,T<:Real}
+## IMPORTANT NOTE: We cannot annotate γαβ as a VectorValue{3} because Forward AD
+## algorithms will not be able to differentiate through the function if we do.  
+function _evaluate_forward_map_3d(p::Val{P},radius::T,thickness::T,γαβ) where {P,T<:Real}
   #### recall the first coordinate in P6est is the extrusion!
   γ,α,β = γαβ
 
@@ -176,7 +180,6 @@ _evaluate_forward_jacobian_3d(p::Integer,radius::T,thickness::T,γαβ) where T<
 function Gridap.Arrays.return_cache(f::ForwardMap3D,cellx::AbstractArray{<:VectorValue{3}})
   return similar(cellx,VectorValue{3,Float64})
 end
-
 
 function Gridap.Arrays.evaluate!(cache,
                                  f::ForwardMap3D,
