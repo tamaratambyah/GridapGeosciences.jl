@@ -7,8 +7,9 @@ MPI.Init()
 nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 ranks = distribute_with_mpi(LinearIndices((prod(nprocs),)))
 
+radius = 1
 ## Distributed model: 2D
-models = get_distributed_refined_models(ranks,nprocs,3)
+models = get_distributed_refined_models(ranks,nprocs,3,radius)
 TransientShallowWaterTests.main(models[1];_i_am_main=i_am_main(ranks))
 
 ### P4test model: 2D
