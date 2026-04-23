@@ -131,7 +131,7 @@ function get_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_mod
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
-    parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks, radius;    
+    parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks, radius;
                                                                         num_initial_uniform_refinements=n)
     dmodels[i] = parametric_octree_dmodel.parametric_dmodel
   end
@@ -274,7 +274,8 @@ function dx_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{
 end
 
 function dx_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
-  vertical = THICKNESS/_nc_vertical(model)
+  thickness = get_thickness(model)
+  vertical = thickness/_nc_vertical(model)
   vertical ### single layer, so no sqrt
 end
 

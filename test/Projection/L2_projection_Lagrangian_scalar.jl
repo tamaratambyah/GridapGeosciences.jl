@@ -90,7 +90,7 @@ end
 
 # Dc = 2
 
-# # models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls)
+# # models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls,radius) : get_3D_octree_refined_models(ranks,n_ref_lvls)
 # models = get_refined_models(n_ref_lvls)
 # for conf in [:L2, :H1]
 #   _dir = dir*"/scalar_func_$(Dc)D_"*String(conf)

@@ -74,8 +74,17 @@ end
 function get_radius(dmodel::DistributedParametricDiscreteModel)
   radii =  map(get_radius,local_views(dmodel))
   radius = zero(eltype(radii))
-  map(radii) do r  
-    radius = r 
-  end 
+  map(radii) do r
+    radius = r
+  end
   return radius
+end
+
+function get_thickness(dmodel::DistributedParametricDiscreteModel{3,3})
+  Ts =  map(get_thickness,local_views(dmodel))
+  thickness = zero(eltype(Ts))
+  map(Ts) do t
+    thickness = t
+  end
+  return thickness
 end

@@ -30,7 +30,7 @@ function main(distribute,nprocs)
   n_ref_lvls = 3
   for radius in [1,2]
     dist_models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
-    p4est_models = get_octree_refined_models(ranks,n_ref_lvls)
+    p4est_models = get_octree_refined_models(ranks,n_ref_lvls,radius)
     for degree in collect([2,4,6,8])
       for (d_model,p4_model) in zip(dist_models,p4est_models)
         radius = get_radius(d_model)

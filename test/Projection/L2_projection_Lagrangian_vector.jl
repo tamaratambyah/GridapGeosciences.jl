@@ -91,7 +91,7 @@ end
 # !isdir(dir) && mkdir(dir)
 
 # Dc = 3
-# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls,radius) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 
 # Dc = 2
 # models = get_refined_models(n_ref_lvls)

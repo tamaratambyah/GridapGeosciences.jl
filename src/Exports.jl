@@ -32,6 +32,7 @@ end
 @publish Geometry _pullback_area_form
 @publish Geometry get_forward_map_generator
 @publish Geometry get_radius
+@publish Geometry get_thickness
 @publish Geometry panelwise_cellfield
 
 @publish ODEs DAEFEOperator
@@ -120,6 +121,7 @@ end
 @publish Distributed pushforward_normal
 @publish Distributed get_forward_map_generator
 @publish Distributed get_radius
+@publish Distributed get_thickness
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model

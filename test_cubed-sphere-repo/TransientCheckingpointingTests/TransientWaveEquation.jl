@@ -201,7 +201,8 @@ function main_transient(distribute,nprocs;
   _dir = datadir("TransientWaveEquation_checkpointing")
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1
+  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"

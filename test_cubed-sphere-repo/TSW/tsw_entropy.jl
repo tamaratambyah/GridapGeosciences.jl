@@ -18,8 +18,8 @@ nls_tols = (;atol=1e-16,rtol=1e-11,maxiter=50)
 
 n_ref_lvls = 4
 p = 1
-
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+radius = 1
+omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
 model = omodel.parametric_dmodel
 
 

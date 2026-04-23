@@ -56,7 +56,8 @@ function main_transient(distribute,nprocs;
 
   lss = (ls_ode,ls_diag)
 
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1
+  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   _dir = datadir("TransientThermalShallowWater_Galewsky_K2")
@@ -91,7 +92,8 @@ function main_visualise(distribute,nprocs;
 
   f = panel_to_cartesian(f₀)
 
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1
+  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   _dir = datadir("TransientThermalShallowWater_Galewsky_K2")

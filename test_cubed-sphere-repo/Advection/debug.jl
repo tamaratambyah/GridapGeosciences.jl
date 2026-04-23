@@ -44,7 +44,7 @@ end
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-models = get_octree_refined_models(ranks,3)
+models = get_octree_refined_models(ranks,3,radius)
 # models = get_refined_models(2)
 # models =  get_distributed_refined_models(ranks,nprocs,2)
 

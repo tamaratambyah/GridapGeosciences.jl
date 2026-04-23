@@ -84,7 +84,7 @@ ps = [1]
 dir = datadir("InterpolationConvergence")
 !isdir(dir) && mkdir(dir)
 
-models = get_octree_refined_models(ranks,n_ref_lvls)
+models = get_octree_refined_models(ranks,n_ref_lvls,radius)
 _dir = dir*"/H1_interpolate_scalar_func_2D"
 !isdir(_dir) && mkdir(_dir)
 p_convergence_test(ranks,ps,models,interpolation,_dir,func,true)

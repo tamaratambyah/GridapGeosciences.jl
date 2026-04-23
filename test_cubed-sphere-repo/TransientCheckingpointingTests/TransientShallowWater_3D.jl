@@ -382,8 +382,8 @@ function main_transient(distribute,nprocs;
   -g_ksp_converged_reason
   -g_ksp_monitor
   """
-
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  radius,thickness = 1.0, 1e-4
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
         num_horizontal_uniform_refinements=n_ref_lvls,
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
@@ -420,7 +420,8 @@ function main_visualise(distribute,nprocs;
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Transient SW 3D visualise")
 
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  radius,thickness = 1.0, 1e-4
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=n_ref_lvls,
   num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel

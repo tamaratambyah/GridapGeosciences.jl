@@ -39,7 +39,7 @@ end
 # (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 
-# models =  get_octree_refined_models(ranks,n_ref_lvls)
+# models =  get_octree_refined_models(ranks,n_ref_lvls,radius)
 # # models  = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,false)
 
 

@@ -188,6 +188,8 @@ end
 function main_transient(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_vtk=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
+  radius = 1
+
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("transient_advection_supg")
 
@@ -195,7 +197,7 @@ function main_transient(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_
   u = panel_to_cartesian(u0)
   v = nondivergent_velocity
 
-  parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = parametric_octree_dmodel.parametric_dmodel
 
   dir = datadir("TransientAdvectionSUPG_Laurentz_Octree_$(p_fe)_CN")
