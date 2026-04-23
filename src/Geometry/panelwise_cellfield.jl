@@ -9,16 +9,20 @@ function panelwise_cellfield(f::Function,
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end
 
+function panelwise_cellfield(f::Function,trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel}) where {Dc,Dp}
+  panel_ids = get_panel_ids(trian)
+  panelwise_cellfield(f,trian,panel_ids)
+end
+
 ### For Adapted Triangulations, return cellfield on the atrian
 function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids::AbstractArray{Int})
-  # println("Adapted Triangulation")
   cf = panelwise_cellfield(f,atrian.trian,panel_ids)
   panelwise_cellfield(cf,atrian)
 end
 
 function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation)
-  # println("Adapted Boundary Triangulation")
-  cf = panelwise_cellfield(f,atrian.trian)
+  panel_ids = get_panel_ids(atrian)
+  cf = panelwise_cellfield(f,atrian,panel_ids)
   panelwise_cellfield(cf,atrian)
 end
 
