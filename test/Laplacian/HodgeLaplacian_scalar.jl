@@ -37,7 +37,6 @@ function hodge_laplacian_scalar(panel_model,
   end
   @check degree > 0 "Zero quad!!"
 
-  panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
@@ -57,14 +56,14 @@ function hodge_laplacian_scalar(panel_model,
   X = MultiFieldFESpace([U, P])
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = panelwise_cellfield(metric,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
 
   # manufactured RHS
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  sigma_cf = panelwise_cellfield(sgrad(f),Ω_panel,panel_ids)
-  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+  f_panel_cf = panelwise_cellfield(f,Ω_panel)
+  sigma_cf = panelwise_cellfield(sgrad(f),Ω_panel)
+  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel)
   rhs = -slap_panel_cf
   f_int = interpolate(f_panel_cf,P)
 

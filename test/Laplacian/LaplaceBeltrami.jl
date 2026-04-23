@@ -32,7 +32,6 @@ function laplace_beltrami_solver(panel_model,
   _i_am_main && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
 
   degree = 6*(p_fe+1)
-  panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
@@ -40,10 +39,10 @@ function laplace_beltrami_solver(panel_model,
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1, constraint=:zeromean)
   U = TrialFESpace(V)
 
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+  f_panel_cf = panelwise_cellfield(f,Ω_panel)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel)
 
   @check sum(∫(f_panel_cf*meas_cf)dΩ) < 1e-14 "Function must be zero mean to solve with zeromean FE space!"
 
