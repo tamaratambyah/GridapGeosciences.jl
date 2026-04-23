@@ -107,7 +107,7 @@ function linear_shallow_water_solver(panel_model,
   Rperp_cf = CellField(Rperp,Ω_panel)
 
   ## In 3D, we construct ̃k using the area measure
-  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
   normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
   normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel,panel_ids)

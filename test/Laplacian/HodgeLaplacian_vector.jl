@@ -17,11 +17,11 @@ using Test
 
 
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
-contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
+contra_v_3D(vecX::Function,p) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 
 function uX(p)
@@ -108,7 +108,7 @@ function hodge_laplacian_vector(
   curlw_cov(p) = x -> 1/sqrtg(p,x)*metric(p,x)⋅curlw(p,x)
 
   # area measure
-  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
 
   #### Covariant componetsn of (surfcurl u)× surfnormal

@@ -21,11 +21,11 @@ include("../convergence_tools.jl")
 include("Williamson2Test_3D_testcase.jl")
 # include("CurlConformingFESpacesFixes.jl")
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 contravariant_basis_3D(p) = x -> inv_tranpose_jacobian(p)(x)
 
@@ -35,7 +35,7 @@ covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 contra_surfcurl(vec::Function,p::Int) = x -> 1/sqrtg(p,x) * (curl(covar_v_3D(vec,p))(x) )
 contra_surfcurl(vec::Function) = p -> contra_surfcurl(vec,p)
 
-surfcurl(vec::Function,p::Int) = x -> forward_jacobian_3D(p,x) ⋅ contra_surfcurl(vec,p)(x)
+surfcurl(vec::Function,p::Int) = x -> forward_jacobian(p,x) ⋅ contra_surfcurl(vec,p)(x)
 surfcurl(vec::Function) = p -> surfcurl(vec,p)
 
 cov_surfcurl(vec::Function,p::Int) = x -> metric(p,x)⋅contra_surfcurl(vec,p)(x)

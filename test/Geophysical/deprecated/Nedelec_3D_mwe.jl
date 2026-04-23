@@ -127,15 +127,15 @@ _b0 = b_0/LV
 _tF = TF/_τ
 
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
-contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
+contra_v_3D(vecX::Function) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 contravariant_basis_3D(p) = x -> inv_tranpose_jacobian(p)(x)
 
-covar_v_3D(vecX::Function,p::Int) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
+covar_v_3D(vecX::Function,p) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
 covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
 

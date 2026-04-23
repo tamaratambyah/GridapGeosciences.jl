@@ -25,8 +25,8 @@ include("Checkpointing/helpers.jl")
 include("Williamson2Test_3D_testcase.jl")
 
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
-covar_v_3D(vecX::Function,p::Int) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
+covar_v_3D(vecX::Function,p) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
 covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
 
@@ -277,7 +277,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
   gravity = _g
 
-  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
   n_3D(p) = x -> VectorValue(1,0,0)/area_meas(p)(x)
 

@@ -49,7 +49,7 @@ fX(XYZ::VectorValue{3}) = XYZ[1]*XYZ[2]*XYZ[3]
 p = 1
 
 mapps = [forward_map_2D, forward_map_3D]
-jacs = [ forward_jacobian_2D, forward_jacobian_3D]
+jacs = [ forward_jacobian_2D, forward_jacobian]
 pts = [αβ, γαβ]
 
  for (_my_map,_my_J,pt) in zip(mapps,jacs,pts)

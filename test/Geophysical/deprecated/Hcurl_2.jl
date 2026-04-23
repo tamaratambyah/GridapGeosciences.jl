@@ -64,8 +64,8 @@ p_fe = 1
 #     # n
 # end
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
-contra_v_3D(vecX::Function,p::Int) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
+contra_v_3D(vecX::Function,p) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
 # f_vec = panel_to_cartesian(f_vec₀)

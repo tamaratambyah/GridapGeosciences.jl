@@ -1,6 +1,6 @@
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
-covar_v_3D(vecX::Function,p::Int) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
-covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
+covar_v_3D(vecX::Function,m) = αβ -> transpose_jacobian(m)(αβ) ⋅ vecX(m)(αβ)
+covar_v_3D(vecX::Function) = m -> covar_v_3D(vecX,m)
 
 function L2_projection_Hcurl(panel_model,
                              p_fe::Int,

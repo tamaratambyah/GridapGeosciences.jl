@@ -12,13 +12,13 @@ include("../../convergence_tools.jl")
 # include("../../Geophysical/CurlConformingFESpacesFixes.jl")
 
 ## pullback 3D vector to 3D chart
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
-contra_v_3D(vecX::Function,p::Int) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
+contra_v_3D(vecX::Function,p) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
-covar_v_3D(vecX::Function,p::Int) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
+covar_v_3D(vecX::Function,p) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
 covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
 MPI.Init()
