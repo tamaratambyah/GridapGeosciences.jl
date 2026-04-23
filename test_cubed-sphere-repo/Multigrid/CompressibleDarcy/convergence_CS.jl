@@ -92,7 +92,7 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   C = c ≠ 0 ? 1/c : 0.0
 
   n_gmg_lvls = 1
-  radius = 1
+  radius = 1.0
   model0 = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n)
   mh = ModelHierarchy(model0,n_gmg_lvls)
 

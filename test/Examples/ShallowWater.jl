@@ -224,5 +224,5 @@ while !isnothing(it)
       cellfields=["vel"=>covariant_basis_cf⋅(1/meas*uh),"p"=>ph,"vort"=>qh],
       append=false,geo_map=latlon_geo_map_func(Ω))
 
-  it = iterate(solT, state)
+  global it = iterate(solT, state)
 end

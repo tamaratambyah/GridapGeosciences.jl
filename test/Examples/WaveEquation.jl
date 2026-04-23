@@ -71,9 +71,9 @@ writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
 Γ_bottom = BoundaryTriangulation(model,tags=["bottom_boundary"])
 Γ_intermediate = BoundaryTriangulation(model,tags=["intermediate_boundary"])
 
-writevtk(Γ_bottom,"boundary_bottom",append=false,geo_map=geo_map_func(get_panel_ids(Γ_bottom)))
-writevtk(Γ_top,"boundary_top",append=false,geo_map=geo_map_func(get_panel_ids(Γ_top)))
-writevtk(Γ_intermediate,"boundary_intermediate",append=false,geo_map=geo_map_func(get_panel_ids(Γ_intermediate)))
+writevtk(Γ_bottom,"boundary_bottom",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_bottom)))
+writevtk(Γ_top,"boundary_top",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_top)))
+writevtk(Γ_intermediate,"boundary_intermediate",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_intermediate)))
 
 # In this test, we have non-homogeneous boundary conditions. So we need to create
 # a boundary trangulation, and include the appropriate boundary term that arises

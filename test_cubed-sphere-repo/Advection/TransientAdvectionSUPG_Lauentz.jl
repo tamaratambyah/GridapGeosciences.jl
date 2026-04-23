@@ -188,7 +188,7 @@ end
 function main_transient(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_vtk=false)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  radius = 1
+  radius = 1.0
 
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("transient_advection_supg")

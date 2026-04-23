@@ -70,9 +70,9 @@ function L2_projection_Hcurl(panel_model,
 end
 
 ### Since we are in 3D, does not have to be in the tangent space of the 3D sphere
-# function uX(p)
+# function uX(forward_map)
 #   function f(γαβ)
-#     xyz = forward_map_3D(p)(γαβ)
+#     xyz = forward_map(γαβ)
 #     # VectorValue(xyz[1],xyz[2],xyz[3])
 #     # VectorValue(xyz[2], 0.0, 0.0)
 #     VectorValue(0.0,xyz[3],xyz[1]^2)

@@ -32,7 +32,7 @@ function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 2
-  radius = 1
+  radius = 1.0
   dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
   panel_model = dmodels[2]
 

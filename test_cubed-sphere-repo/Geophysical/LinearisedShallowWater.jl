@@ -251,7 +251,7 @@ end
 #   ranks = distribute(LinearIndices((nprocs,)))
 
 #   n_ref_lvls = 4
-# radius = 1
+# radius = 1.0
 # thickness = 0.19
 #   ## Distributed model: 2D
 #   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
