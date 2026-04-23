@@ -98,20 +98,20 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   tags = ["bottom_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
-  cell_geo_map = geo_map_func(get_panel_ids(Γ))
+  cell_geo_map = geo_map_func(get_forward_map_generator(panel_model),get_panel_ids(Γ))
   test_triangulation(Γ)
   # writevtk(Γ,dir*"/boundary_bottom",append=false,geo_map=cell_geo_map)
 
   tags = ["top_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
   Γ.trians.item_ref[].parent.glue.face_to_bgface
-  cell_geo_map = geo_map_func(get_panel_ids(Γ))
+  cell_geo_map = geo_map_func(get_forward_map_generator(panel_model),get_panel_ids(Γ))
   test_triangulation(Γ)
   # writevtk(Γ,dir*"/boundary_top",append=false,geo_map=cell_geo_map)
 
   tags = ["intermediate_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
-  cell_geo_map = geo_map_func(get_panel_ids(Γ))
+  cell_geo_map = geo_map_func(get_forward_map_generator(panel_model),get_panel_ids(Γ))
   test_triangulation(Γ)
   # writevtk(Γ,dir*"/boundary_intermediate",append=false,geo_map=cell_geo_map)
 
