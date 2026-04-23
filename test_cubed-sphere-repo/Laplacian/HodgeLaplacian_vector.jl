@@ -44,9 +44,9 @@ contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 
-function uX(p)
+function uX(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     # VectorValue(-xyz[2],xyz[1],0.0)
 
     r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)

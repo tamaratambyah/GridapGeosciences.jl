@@ -24,9 +24,9 @@ contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 
-function uX(p)
+function uX(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     # VectorValue(-xyz[2],xyz[1],0.0)
 
     r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)
@@ -75,19 +75,19 @@ function hodge_laplacian_vector(
 
 
   # covarient components of u
-  function ucov(p)
+  function ucov(forward_map)
     function _u(γαβ)
-      u = uX(p)(γαβ)
-      J = transpose_jacobian(p)(γαβ)
+      u = uX(forward_map)(γαβ)
+      J = transpose_jacobian(forward_map)(γαβ)
       J⋅u
     end
   end
 
   # u ⋅ n on the surface
-  function unX(p)
+  function unX(forward_map)
     function _u(γαβ)
-      xyz = forward_map_3D(p)(γαβ)
-      u = uX(p)(γαβ)
+      xyz = forward_map(γαβ)
+      u = uX(forward_map)(γαβ)
       n = normal_vec(xyz)
       u⋅n
     end

@@ -67,9 +67,9 @@ covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
 
 
 
-function uX(p)
+function uX(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     VectorValue(-xyz[2],xyz[1],0.0)
 
     # r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)
@@ -88,9 +88,9 @@ function ucov(p)
   end
 end
 
-function unX(p)
+function unX(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     u = uX(p)(γαβ)
     n = normal_vec(xyz)
     u⋅n
@@ -117,10 +117,6 @@ area_meas(1)(Point(1,1,1))
 
 wcrossk_cov(p) = x -> 1/sqrtg(p,x) * metric(p,x)⋅(wcov(p,x) × (VectorValue(1,0,0)/area_meas(p)(x)) )
 wcrossk_cov(1)(Point(1,1,1))
-
-
-
-
 
 _sdiv_u(p) = x -> sqrtg(p)(x)* contra_v_3D(uX,p)(x)
 sdiv_u(p) = x -> 1/sqrtg(p)(x) * ( divergence(_sdiv_u(p) )(x) )
