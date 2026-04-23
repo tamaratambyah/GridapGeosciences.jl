@@ -60,7 +60,7 @@ U = TrialFESpace(V)
 # ## Manufactured solution
 # We consider the method of manufactured solutions for analytic solution, $\widetilde{u} = xyz$.
 # This is defined as a function of the forward map, as follows:
-function u(forward_map)
+function uₓ(forward_map)
   function _u(α)
     x = forward_map(α)
     x[1]*x[2]*x[3]
@@ -68,8 +68,8 @@ function u(forward_map)
 end
 
 # The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
-u_cf = panelwise_cellfield(u,Ω,panel_ids)
-slap_cf = panelwise_cellfield(surflap(u),Ω,panel_ids)
+u_cf = panelwise_cellfield(uₓ,Ω,panel_ids)
+slap_cf = panelwise_cellfield(surflap(uₓ),Ω,panel_ids)
 rhs = -slap_cf
 
 # ## Weak form
