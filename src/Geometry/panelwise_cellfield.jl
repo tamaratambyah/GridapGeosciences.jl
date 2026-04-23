@@ -21,8 +21,7 @@ function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids:
 end
 
 function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation)
-  panel_ids = get_panel_ids(atrian)
-  cf = panelwise_cellfield(f,atrian,panel_ids)
+  cf = panelwise_cellfield(f,atrian.trian)
   panelwise_cellfield(cf,atrian)
 end
 
