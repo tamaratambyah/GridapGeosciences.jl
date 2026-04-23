@@ -49,7 +49,7 @@ function main(distribute,nprocs;n_ref_lvls=3,radii=[1.0,2.0])
 
     serial_models = get_refined_models(n_ref_lvls,radius)
 
-    p4test_models = get_octree_refined_models(ranks,n_ref_lvls)
+    p4test_models = get_octree_refined_models(ranks,n_ref_lvls,radius)
     for degree in collect([2,4,6,8])
       for (s_model,d_model) in zip(serial_models,p4test_models)
 

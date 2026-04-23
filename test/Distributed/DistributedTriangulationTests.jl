@@ -60,7 +60,8 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   # i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
 
   n_ref_lvls = 2
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1
+  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   model = omodel.parametric_dmodel
 
   trian = Triangulation(model)
@@ -80,9 +81,10 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
+  radius,thickness = 1.0, 0.19
   # i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
   n_ref_lvls = 2
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=n_ref_lvls, num_vertical_uniform_refinements=n_ref_lvls);
   panel_model = o3model.parametric_dmodel
 

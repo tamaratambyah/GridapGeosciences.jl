@@ -18,8 +18,8 @@ n_ref_lvls = 3
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
+radius = 1
+omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
 
 function initial_panel_refinement(omodel::ParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(omodel.octree_dmodel)

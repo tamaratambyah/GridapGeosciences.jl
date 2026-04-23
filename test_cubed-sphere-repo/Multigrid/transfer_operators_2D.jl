@@ -22,7 +22,8 @@ MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 n_ref_lvls = 3
-model0 = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+radius = 1
+model0 = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=0)
 mh = ModelHierarchy(model0,n_ref_lvls)
 
 f = panel_to_cartesian(fθϕ)

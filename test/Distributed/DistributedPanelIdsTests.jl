@@ -62,8 +62,10 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
 
   # i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
 
+  radius = 1.0
+
   # level 0
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=0)
   panel_model = omodel.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
@@ -76,7 +78,7 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = omodel.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
+  _omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
   _panel_model = _omodel.parametric_dmodel
   test_distributed_panel_ids(_panel_model)
 
@@ -86,7 +88,7 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = omodel.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=2)
+  _omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=2)
   _panel_model = _omodel.parametric_dmodel
   test_distributed_panel_ids(_panel_model)
 
@@ -102,8 +104,10 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   # i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
 
+  radius,thickness = 1.0, 0.19
+
   # level 0
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks, radius,thickness;
         num_horizontal_uniform_refinements=0, num_vertical_uniform_refinements=0);
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
@@ -113,7 +117,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
        num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
   _panel_model = _o3model.parametric_dmodel
   test_distributed_panel_ids(_panel_model)
@@ -124,7 +128,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
       num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
   _panel_model = _o3model.parametric_dmodel
   test_distributed_panel_ids(_panel_model)

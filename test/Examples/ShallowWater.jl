@@ -46,7 +46,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 # To obtain a refined 2D parametric model, we pass $\ell$ levels of refinement:
 ℓ = 2
 radius = 1.0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=ℓ)
+omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=ℓ)
 model = omodel.parametric_dmodel
 
 # ## Triangulation

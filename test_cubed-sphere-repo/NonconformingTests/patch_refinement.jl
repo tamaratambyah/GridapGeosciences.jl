@@ -15,7 +15,8 @@ dir = datadir("Omodel_2D_refinement")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 # level 0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=3)
+radius = 1
+omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=3)
 panel_model = omodel.parametric_dmodel
 num_cells(panel_model)
 Ω_panel = Triangulation(panel_model)

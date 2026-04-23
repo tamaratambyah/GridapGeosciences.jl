@@ -9,8 +9,8 @@ MPI.Init()
 nprocs = prod(MPI.Comm_size(MPI.COMM_WORLD))
 ranks = distribute_with_mpi(LinearIndices((prod(nprocs),)))
 
-
-o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+radius,thickness = 1.0, 0.19
+o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
 num_horizontal_uniform_refinements=0, num_vertical_uniform_refinements=0);
 
 # level 1

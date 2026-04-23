@@ -68,7 +68,7 @@ end
 #   dir_convergence = dir*"/convergence"
 #   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-#   octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+#   octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
 #     num_horizontal_uniform_refinements=n_ref,
 #     num_vertical_uniform_refinements=n_ref);
 #   panel_model = octree3_model.parametric_dmodel
@@ -285,9 +285,9 @@ end
 #   ranks = distribute(LinearIndices((nprocs,)))
 
 #   n_ref_lvls = 3
-
+# radius,thickness = 1,0.19
 #   ### P4test model: 3D
-#   models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+#   models = get_3D_octree_refined_models(ranks,n_ref_lvls,radius,thickness)
 #   main(models;_i_am_main=i_am_main(ranks))
 
 # end

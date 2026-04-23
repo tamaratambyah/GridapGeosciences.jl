@@ -125,7 +125,7 @@ function main(distribute,nprocs;octree=false)
     i_am_main(ranks) && println("Distributed test")
     if octree
       i_am_main(ranks) && println("Octrees")
-      models =  get_octree_refined_models(ranks,n_ref_lvls)
+      models =  get_octree_refined_models(ranks,n_ref_lvls,radius)
     else
       models,  = get_distributed_refined_models(ranks,nprocs,models)
     end

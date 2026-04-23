@@ -14,7 +14,9 @@ using Test
 function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  radius,thickness = 1.0, 0.19
+
+  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
   panel_model = o3model.parametric_dmodel
 
