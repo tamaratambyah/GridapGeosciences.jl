@@ -83,7 +83,7 @@ function get_radius(model::Union{ParametricDiscreteModel,AdaptedDiscreteModel{Dc
   return generator.radius
 end
 
-function get_thickness(model::ParametricDiscreteModel{3,3})
+function get_thickness(model::Union{ParametricDiscreteModel{3,3},AdaptedDiscreteModel{3,3,<:ParametricDiscreteModel}})
   generator = get_forward_map_generator(model)
   return generator.thickness
 end
