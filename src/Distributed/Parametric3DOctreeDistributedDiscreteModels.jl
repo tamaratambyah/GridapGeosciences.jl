@@ -5,6 +5,14 @@ struct Parametric3DOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteMo
   parametric_dmodel::B
 end
 
+function get_radius(dmodel::Parametric3DOctreeDistributedDiscreteModel)
+  return get_radius(dmodel.parametric_dmodel)
+end
+
+function get_thickness(dmodel::Parametric3DOctreeDistributedDiscreteModel)
+  return get_thickness(dmodel.parametric_dmodel)
+end
+
 function Parametric3DOctreeDistributedDiscreteModel(ranks,radius::Real,thickness::Real;
                                                     num_horizontal_uniform_refinements=0,
                                                     num_vertical_uniform_refinements=0)
@@ -338,7 +346,9 @@ function vertically_uniformly_refine(parametric_model::Parametric3DOctreeDistrib
    # Build the proc-local ParametricDiscreteModels
    parametric_models = _setup_parametric_models(ref_model,
                                                 cell_coordinates,
-                                                panels)
+                                                panels,
+                                                get_radius(parametric_model),
+                                                get_thickness(parametric_model))
 
    adaptive_models = map(parametric_models,
                          local_views(parametric_model.parametric_dmodel),
@@ -443,7 +453,9 @@ function horizontally_uniformly_refine(parametric_model::Parametric3DOctreeDistr
    # Build the proc-local ParametricDiscreteModels
    parametric_models = _setup_parametric_models(ref_model,
                                                 cell_coordinates,
-                                                panels)
+                                                panels,
+                                                get_radius(parametric_model),
+                                                get_thickness(parametric_model))
 
    adaptive_models = map(parametric_models,
                          local_views(parametric_model.parametric_dmodel),
