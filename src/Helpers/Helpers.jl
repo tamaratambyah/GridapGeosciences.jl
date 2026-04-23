@@ -43,7 +43,6 @@ export vector_length, normal_vec, tangent_vec
 export contra_v, contra_v_comp, contra_v_perp, projection_v
 export contra_v_comp3D, contra_v_perp3D
 export piola
-export g_star
 export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix, xyz2θϕ
 
 export p_convergence_auto_test, h_convergence_auto_test

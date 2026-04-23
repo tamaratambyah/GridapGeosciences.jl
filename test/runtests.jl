@@ -61,6 +61,6 @@ if TESTCASE ∈ ("all", "mpi", "mpi-multigrid")
   include("Multigrid/mpi/runtests.jl")
 end
 
-if TESTCASE ∈ ("all", "seq", "mpi-tutorials")
+if TESTCASE ∈ ("all", "mpi", "mpi-tutorials")
   include("Examples/mpi/runtests.jl")
 end

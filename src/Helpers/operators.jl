@@ -38,7 +38,3 @@ sgrad(f::Function,m::ForwardMap2Dor3D) = αβ -> J(m,αβ) ⋅ (inv_metric(m,α�
 _sdiv(f::Function,m::ForwardMap2Dor3D) = αβ ->  sqrtg(m,αβ)*( f(m)(αβ))
 surfdiv(vec::Function) = m -> surfdiv(vec,m)
 surfdiv(f::Function,m::ForwardMap2Dor3D) = αβ -> 1/sqrtg(m,αβ) * ( divergence(_sdiv(f,m))(αβ) )
-
-##### g⋅n for 3D thick sphere
-g_star(f::Function) = m -> g_star(f,m)
-g_star(f::Function,m::ForwardMap2Dor3D) = αβ -> metric(m,αβ) ⋅ VectorValue(1.0,0.0,0.0)

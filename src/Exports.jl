@@ -62,7 +62,6 @@ end
 @publish Helpers surfdiv
 @publish Helpers contr_gradf
 @publish Helpers sgrad
-@publish Helpers g_star
 @publish Helpers panel_to_cartesian
 @publish Helpers panel_to_latlon
 

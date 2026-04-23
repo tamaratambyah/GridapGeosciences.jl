@@ -55,7 +55,7 @@ To obtain a refined 2D parametric model, we pass $\ell$ levels of refinement:
 ````julia 
 ℓ = 2
 radius = 1.0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=ℓ)
+omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=ℓ)
 model = omodel.parametric_dmodel
 ````
 
@@ -269,7 +269,7 @@ while !isnothing(it)
       cellfields=["vel"=>covariant_basis_cf⋅(1/meas*uh),"p"=>ph,"vort"=>qh],
       append=false,geo_map=latlon_geo_map_func(Ω))
 
-  it = iterate(solT, state)
+  global it = iterate(solT, state)
 end
 ````
 

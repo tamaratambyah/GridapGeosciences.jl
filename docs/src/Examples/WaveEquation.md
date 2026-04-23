@@ -61,8 +61,8 @@ To obtain a refined 3D parametric model, we pass $\ell$ levels of refinement to 
 
 ````julia 
 ℓ = 2
-radius = 1.0
-octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+radius,thickness = 1.0, 0.19
+octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
                   num_horizontal_uniform_refinements=ℓ,
                   num_vertical_uniform_refinements=ℓ);
 model = octree3_model.parametric_dmodel
@@ -85,9 +85,9 @@ to the BoundaryTriangulation constructor
 Γ_bottom = BoundaryTriangulation(model,tags=["bottom_boundary"])
 Γ_intermediate = BoundaryTriangulation(model,tags=["intermediate_boundary"])
 
-writevtk(Γ_bottom,"boundary_bottom",append=false,geo_map=geo_map_func(get_panel_ids(Γ_bottom)))
-writevtk(Γ_top,"boundary_top",append=false,geo_map=geo_map_func(get_panel_ids(Γ_top)))
-writevtk(Γ_intermediate,"boundary_intermediate",append=false,geo_map=geo_map_func(get_panel_ids(Γ_intermediate)))
+writevtk(Γ_bottom,"boundary_bottom",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_bottom)))
+writevtk(Γ_top,"boundary_top",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_top)))
+writevtk(Γ_intermediate,"boundary_intermediate",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_intermediate)))
 ````
 
 In this test, we have non-homogeneous boundary conditions. So we need to create

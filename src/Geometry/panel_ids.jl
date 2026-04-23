@@ -38,7 +38,6 @@ function geo_map_func(trian::Triangulation)
 end
 
 function geo_map_func(fwd_map_generator, panel_ids::AbstractArray{Int})
-  # println("serial geo map")
   return lazy_map(p -> fwd_map_generator(p), panel_ids)
 end
 
@@ -53,11 +52,8 @@ end
 ### here we have to compose separate maps so vtk uses the cellwise-version of
 ### Cartesian2SphereicalMap()
 function latlon_geo_map_func(fwd_map_generator,panel_ids::AbstractArray{Int})
-  println("latlon serial geo map")
-
   cell_geo_map = geo_map_func(fwd_map_generator,panel_ids)
   fi = lazy_map(p->Cartesian2SphereicalMap(),panel_ids)
   latlon_cell_geo_map = lazy_map(∘, fi, cell_geo_map)
-
   return latlon_cell_geo_map
 end

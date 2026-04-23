@@ -19,11 +19,11 @@ function Parametric3DOctreeDistributedDiscreteModel(ranks,radius::Real,thickness
 
     msg = """\n
     For performance reasons, radius and thickness variables must be of the same type.
-    Currently the type of radius is $(eltype(radius)), while the type of thickness is
-    $(eltype(thickness)).
+    Currently the type of radius is $(typeof(radius)), while the type of thickness is
+    $(typeof(thickness)).
       """
 
-    @assert eltype(radius) == eltype(thickness) msg
+    @assert typeof(radius) == typeof(thickness) msg
 
     coarse_model = _create_parametric_octree_dmodel_coarse_model()
 
