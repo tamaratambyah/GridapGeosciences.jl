@@ -78,14 +78,6 @@ end
 # auto_contra_v(vecX::Function) = p -> auto_contra_v(vecX,p)
 
 
-# # extract compoents 1 or 2 of contravariat vector, and construct contravariat components of vec perp
-# auto_contra_v_comp(vecX::Function,p::Int,comp::Int) = x -> (auto_forward_pinv_jacobian(p)(x)⋅ vecX(p)(x))[comp]
-# auto_contra_v_comp(vecX::Function,comp::Int) = p -> auto_contra_v_comp(vecX,p,comp)
-
-# auto_contra_v_perp(vecX::Function,p::Int) = x -> sqrtg(p,x)*(
-#         auto_inv_metric(p,x) ⋅ VectorValue( -contra_v_comp(vecX,p,2)(x), contra_v_comp(vecX,p,1)(x) ) )
-# auto_contra_v_perp(vecX::Function) = p -> auto_contra_v_perp(vecX,p)
-
 
 # # projection of 3D vector vecX
 # auto_projection_v(vecX::Function,p::Int) = x -> auto_forward_jacobian(p)(x) ⋅ contra_v(vecX,p)(x)

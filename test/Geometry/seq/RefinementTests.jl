@@ -14,8 +14,8 @@ using Test
 ### Check the Dc, Dp of the coarse model
 radius = 1.0
 panel_model = coarse_parametric_model(radius)
-panel_ids = get_panel_ids(panel_model)
-# writevtk(Triangulation(panel_model),"ambient_grid_ref_lvl0",append=false,geo_map=geo_map_func(panel_ids))
+# trian = Triangulation(panel_model)
+# writevtk(trian,"ambient_grid_ref_lvl0",append=false,geo_map=geo_map_func(trian))
 
 @test num_point_dims(panel_model) == num_cell_dims(panel_model) == 2
 

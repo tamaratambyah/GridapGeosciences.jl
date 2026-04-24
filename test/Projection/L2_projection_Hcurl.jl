@@ -25,15 +25,14 @@ function L2_projection_Hcurl(panel_model,
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
-  panel_ids = get_panel_ids(panel_model)
 
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel)
+  metric_cf = panelwise_cellfield(metric,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
 
   ## covariant components
-  vec_cov_cf = panelwise_cellfield(covar_v_3D(vecX),Ω_panel,panel_ids)
+  vec_cov_cf = panelwise_cellfield(covar_v_3D(vecX),Ω_panel)
   vec_proj_cf = covariant_basis_cf⋅ ( inv_metric_cf ⋅ vec_cov_cf)
 
 

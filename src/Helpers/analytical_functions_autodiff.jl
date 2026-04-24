@@ -7,10 +7,3 @@ detg(m::ForwardMap2Dor3D,x)  = det(metric(m,x))
 sqrtg(m::ForwardMap2Dor3D,x)  = sqrt(detg(m,x))
 forward_jacobian(m::ForwardMap2Dor3D,x) = J(m,x)
 forward_pinv_jacobian(m::ForwardMap2Dor3D,x) = pinvJ(J(m,x))
-
-########## perp operator
-function perp_matrix(m::ForwardMap2D,αβ)
-  @check length(αβ) == 2 "\n perp only defined for 2D"
-  m = metric(m,αβ)
-  TensorValue{2,2}( -m[1,2], m[1,1], -m[2,2], m[1,2] )
-end

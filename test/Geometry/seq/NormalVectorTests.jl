@@ -9,23 +9,35 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
+using Gridap.Helpers
 
 ################################################################################
 #### Test unit normal vectors
 ################################################################################
+function normal_vector_from_basis(forward_map)
+  function _func(αβ)
+    Jac = forward_jacobian(forward_map)(αβ)
+    a1 = VectorValue(Jac[1],Jac[2],Jac[3])
+    a2 = VectorValue(Jac[4],Jac[5],Jac[6])
+    n = cross(a1,a2)
+    _n = n*(1/sqrtg(forward_map,αβ) )
+    @check Gridap.TensorValues.meas(_n) ≈ 1.0
+    _n
+  end
+end
+
 
 function test_normal_unit_vector(panel_model,return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
-  panel_ids = get_panel_ids(panel_model)
   dΩ = Measure(Ω_panel,6)
 
   vX = panel_to_cartesian(normal_vec)
-  norm_vec_cf = panelwise_cellfield(vX,Ω_panel,panel_ids)
-  norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  norm_vec_cf = panelwise_cellfield(vX,Ω_panel)
+  norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
 
   # the above are vectors in the ambient space, so do not need to use metric to
   # compute error
@@ -36,7 +48,7 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = geo_map_func(panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [ norm_vec_cf,norm_vec_from_basis_cf]
     labels = ["normal", "n"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
@@ -62,7 +74,6 @@ end
 ## Face normals -- for 1 model
 ################################################################################
 panel_model = models[4]
-panel_ids = get_panel_ids(panel_model)
 cell_geo_map = geo_map_func(Triangulation(panel_model))
 
 topo = get_grid_topology(panel_model)
@@ -167,12 +178,11 @@ V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:
 U = TrialFESpace(V)
 
 Ω_panel = Triangulation(panel_model)
-panel_ids = get_panel_ids(panel_model)
 Λ = SkeletonTriangulation(panel_model)
 n_Λ = get_normal_vector(Λ)
 pts = get_cell_points(Λ)
 
-_vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+_vel = panelwise_cellfield(contra_v(vX),Ω_panel)
 vel = interpolate(_vel,U)
 
 diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))
