@@ -8,9 +8,6 @@ using LinearAlgebra
 using FillArrays
 
 
-using GridapGeosciences.Helpers
-import GridapGeosciences.Helpers: forward_jacobian
-
 include("ForwardMap.jl")
 include("MatMultField.jl")
 include("AffineField.jl")
@@ -18,6 +15,7 @@ include("Cartesian2SphericalMap.jl")
 
 export ForwardMap, ForwardMap2D, ForwardMap3D, ForwardMap2DGenerator, ForwardMap3DGenerator
 export ForwardMap2Dor3D, ForwardMap2Dor3DGenerator
+export J
 export MatMultField, MyAffineField
 export Cartesian2SphericalMap
 

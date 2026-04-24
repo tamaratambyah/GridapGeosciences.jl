@@ -12,10 +12,10 @@ using FillArrays
 import Gridap.Geometry: TriangulationView
 
 using GridapGeosciences.Fields
-import GridapGeosciences.Fields: MatMultField, forward_jacobian
+import GridapGeosciences.Fields: MatMultField
 
 using GridapGeosciences.Helpers
-import GridapGeosciences.Helpers: inv_metric
+import GridapGeosciences.Helpers: inv_metric, forward_jacobian
 
 include("panel_ids.jl")
 include("cube_surface.jl")

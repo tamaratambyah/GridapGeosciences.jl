@@ -1,4 +1,4 @@
-panel_to_cartesian(fX::Function,m::ForwardMap2Dor3D) = x -> fX(m(x))
+panel_to_cartesian(fX::Function,m::Field) = x -> fX(m(x))
 panel_to_cartesian(fX::Function) = m -> panel_to_cartesian(fX,m)
 
 function cartesian_to_latlon(XYZ::VectorValue{3})

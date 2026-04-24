@@ -1,15 +1,25 @@
+# here Field means ForwardMap2Dor3D
+# J comes from Fields
+
+Jt(m::Field,x) = transpose(J(m,x))
+metric(m::Field,x) = Jt(m,x)⋅J(m,x)
+inv_metric(m::Field,x) = inv(metric(m,x))
+detg(m::Field,x)  = det(metric(m,x))
+sqrtg(m::Field,x)  = sqrt(detg(m,x))
+forward_jacobian(m::Field,x) = J(m,x)
+forward_pinv_jacobian(m::Field,x) = pinvJ(J(m,x))
 
 
-J(m::ForwardMap2Dor3D) = x -> J(m,x)
-Jt(m::ForwardMap2Dor3D) = x -> Jt(m,x)
-metric(m::ForwardMap2Dor3D) = x -> metric(m,x)
-inv_metric(m::ForwardMap2Dor3D) = x -> inv_metric(m,x)
-detg(m::ForwardMap2Dor3D)  = x -> detg(m,x)
-sqrtg(m::ForwardMap2Dor3D)  = x -> sqrtg(m,x)
-grad_meas(m::ForwardMap2Dor3D) = x -> gradient(sqrtg(m))(x)
-covariant_basis(m::ForwardMap2Dor3D) = x -> J(m,x)
-forward_jacobian(m::ForwardMap2Dor3D) = x -> J(m,x)
-forward_pinv_jacobian(m::ForwardMap2Dor3D) = x -> pinvJ(J(m,x))
+J(m::Field) = x -> J(m,x)
+Jt(m::Field) = x -> Jt(m,x)
+metric(m::Field) = x -> metric(m,x)
+inv_metric(m::Field) = x -> inv_metric(m,x)
+detg(m::Field)  = x -> detg(m,x)
+sqrtg(m::Field)  = x -> sqrtg(m,x)
+grad_meas(m::Field) = x -> gradient(sqrtg(m))(x)
+covariant_basis(m::Field) = x -> J(m,x)
+forward_jacobian(m::Field) = x -> J(m,x)
+forward_pinv_jacobian(m::Field) = x -> pinvJ(J(m,x))
 
 function pinvJ(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
   @check D2 < D1 ## J = 3x2
@@ -23,18 +33,18 @@ end
 
 ####### surface laplacin
 surflap(f::Function) = m -> surflap(f,m)
-surflap(f::Function,m::ForwardMap2Dor3D) = αβ -> 1/sqrtg(m,αβ) * ( divergence(W(f,m))(αβ) )
-W(f::Function,m::ForwardMap2Dor3D) = αβ ->  sqrtg(m,αβ)*( inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
+surflap(f::Function,m::Field) = αβ -> 1/sqrtg(m,αβ) * ( divergence(W(f,m))(αβ) )
+W(f::Function,m::Field) = αβ ->  sqrtg(m,αβ)*( inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
 
 ####### contra of sgrad
 contr_gradf(f::Function) = m -> contr_gradf(f,m)
-contr_gradf(f::Function,m::ForwardMap2Dor3D) = αβ -> inv_metric(m,αβ) ⋅ gradient(f(m))(αβ)
+contr_gradf(f::Function,m::Field) = αβ -> inv_metric(m,αβ) ⋅ gradient(f(m))(αβ)
 
 ####### sgrad
 sgrad(f::Function) = m -> sgrad(f,m)
-sgrad(f::Function,m::ForwardMap2Dor3D) = αβ -> J(m,αβ) ⋅ (inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
+sgrad(f::Function,m::Field) = αβ -> J(m,αβ) ⋅ (inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
 
 ####### surf div
-_sdiv(f::Function,m::ForwardMap2Dor3D) = αβ ->  sqrtg(m,αβ)*( f(m)(αβ))
+_sdiv(f::Function,m::Field) = αβ ->  sqrtg(m,αβ)*( f(m)(αβ))
 surfdiv(vec::Function) = m -> surfdiv(vec,m)
-surfdiv(f::Function,m::ForwardMap2Dor3D) = αβ -> 1/sqrtg(m,αβ) * ( divergence(_sdiv(f,m))(αβ) )
+surfdiv(f::Function,m::Field) = αβ -> 1/sqrtg(m,αβ) * ( divergence(_sdiv(f,m))(αβ) )

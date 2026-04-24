@@ -1,4 +1,4 @@
-struct ForwardMap2D{T<:Real} <: Field 
+struct ForwardMap2D{T<:Real} <: Field
   panel::Int64
   radius::T
 end
@@ -6,7 +6,7 @@ end
 struct ForwardMap2DGenerator{T<:Real} <: Map
   radius::T
   forward_maps::Vector{ForwardMap2D{T}}
-  ForwardMap2DGenerator(radius::T) where {T<:Real}  = 
+  ForwardMap2DGenerator(radius::T) where {T<:Real}  =
      new{T}(radius, [ForwardMap2D(p, radius) for p in 1:6])
 end
 
@@ -22,7 +22,7 @@ struct ForwardMap3DGenerator{T<:Real} <: Map
   radius::T
   thickness::T
   forward_maps::Vector{ForwardMap3D{T}}
-  ForwardMap3DGenerator(radius::T, thickness::T) where {T<:Real} = 
+  ForwardMap3DGenerator(radius::T, thickness::T) where {T<:Real} =
      new{T}(radius, thickness, [ForwardMap3D(p, radius, thickness) for p in 1:6])
 end
 
@@ -39,6 +39,8 @@ end
 const ForwardMap2Dor3D = Union{ForwardMap2D, ForwardMap3D}
 const ForwardMap2Dor3DGenerator = Union{ForwardMap2DGenerator, ForwardMap3DGenerator}
 
+J(m::ForwardMap2Dor3D,x) = _evaluate_forward_jacobian_2d(m.panel,m.radius,x)
+J(m::ForwardMap2Dor3D,x) = _evaluate_forward_jacobian_3d(m.panel,m.radius,m.thickness,x)
 
 ################################################################################
 ########## 2D ########
@@ -112,12 +114,12 @@ function Gridap.Arrays.return_cache(f::ForwardMap2D,cellx::AbstractArray{<:Vecto
   return similar(cellx,VectorValue{3,Float64})
 end
 
-function Gridap.Arrays.evaluate!(cache,f::ForwardMap2D,cellx::AbstractArray{<:VectorValue{2}}) 
+function Gridap.Arrays.evaluate!(cache,f::ForwardMap2D,cellx::AbstractArray{<:VectorValue{2}})
   cache .= _evaluate_forward_map_2d.(Val(f.panel),f.radius,cellx)
   return cache
 end
 
-function Gridap.Arrays.evaluate!(cache,f::ForwardMap2D,x::VectorValue{2}) 
+function Gridap.Arrays.evaluate!(cache,f::ForwardMap2D,x::VectorValue{2})
   return _evaluate_forward_map_2d(Val(f.panel),f.radius,x)
 end
 
@@ -161,7 +163,7 @@ end
 ################################################################################
 
 ## IMPORTANT NOTE: We cannot annotate γαβ as a VectorValue{3} because Forward AD
-## algorithms will not be able to differentiate through the function if we do.  
+## algorithms will not be able to differentiate through the function if we do.
 function _evaluate_forward_map_3d(p::Val{P},radius::T,thickness::T,γαβ) where {P,T<:Real}
   #### recall the first coordinate in P6est is the extrusion!
   γ,α,β = γαβ
@@ -220,10 +222,9 @@ function Gridap.Arrays.evaluate!(cache,
   setsize!(cache,size(cellx))
   radius = f.object.radius
   thickness = f.object.thickness
-  cache.array .= transpose.(_evaluate_forward_jacobian_3d.(f.object.panel,cellx,radius,thickness))
+  cache.array .= transpose.(_evaluate_forward_jacobian_3d.(f.object.panel,radius,thickness,cellx))
   return cache.array
 end
-
 
 function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:ForwardMap3D},x::VectorValue{3})
   zero(TensorValue{3,3,Float64})
@@ -232,6 +233,5 @@ end
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:ForwardMap3D},x::VectorValue{3})
   radius = f.object.radius
   thickness = f.object.thickness
-  return transpose(_evaluate_forward_jacobian_3d(f.object.panel,x,radius,thickness))
+  return transpose(_evaluate_forward_jacobian_3d(f.object.panel,radius,thickness,x))
 end
-
