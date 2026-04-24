@@ -109,7 +109,7 @@ function latlon_geo_map_func(fwd_map_generator::AbstractArray, owned_panel_ids::
 
   latlon_cell_geo_map = map(owned_panel_ids,fwd_map_generator) do pid, generator
     cell_geo_map = lazy_map(p -> generator(p), pid)
-    fi = lazy_map(p->Cartesian2SphereicalMap(),pid)
+    fi = lazy_map(p->Cartesian2SphericalMap(),pid)
     return lazy_map(∘, fi, cell_geo_map)
   end
   return latlon_cell_geo_map

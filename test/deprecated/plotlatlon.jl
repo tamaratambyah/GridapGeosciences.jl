@@ -73,7 +73,7 @@ for pid in collect(1:6)
 end
 
 ### map all points of the sphere
-fi = lazy_map(p->Cartesian2SphereicalMap(),panel_ids)
+fi = lazy_map(p->Cartesian2SphericalMap(),panel_ids)
 latlon_cell_geo_map = lazy_map(∘, fi, cell_geo_map)
 θϕ = lazy_map(evaluate,latlon_cell_geo_map,coords)
 # function lazy_collect(cache,a)
@@ -110,7 +110,7 @@ panel_ids = get_panel_ids(panel_model)
 f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
 
 # cell_geo_map = geo_map_func(Ω_panel)
-# fi = lazy_map(p->Cartesian2SphereicalMap(p),panel_ids)
+# fi = lazy_map(p->Cartesian2SphericalMap(p),panel_ids)
 # latlon_cell_geo_map = lazy_map(∘, fi, cell_geo_map)
 latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)
 
@@ -154,7 +154,7 @@ writevtk(Ω_panel,dir*"/distributed_latlon_model",cellfields=cellfields,append=f
 #   coords = lazy_map(evaluate,cmap,ref_points)
 #   ab5 = coords[p1]
 #   cell_geo_map = lazy_map(p -> ForwardMap(5), collect(1:sum(p1)))
-#   # fi = lazy_map(p->Cartesian2SphereicalMap(p),collect(1:sum(p1)))
+#   # fi = lazy_map(p->Cartesian2SphericalMap(p),collect(1:sum(p1)))
 #   # latlon_cell_geo_map = lazy_map(∘, fi, cell_geo_map)
 
 #   return lazy_map(evaluate,cell_geo_map,ab5)
@@ -166,7 +166,7 @@ writevtk(Ω_panel,dir*"/distributed_latlon_model",cellfields=cellfields,append=f
 #   coords = lazy_map(evaluate,cmap,ref_points)
 #   ab5 = coords[p1]
 #   cell_geo_map = lazy_map(p -> ForwardMap(5), collect(1:sum(p1)))
-#   fi = lazy_map(p->Cartesian2SphereicalMap(5),collect(1:sum(p1)))
+#   fi = lazy_map(p->Cartesian2SphericalMap(5),collect(1:sum(p1)))
 #   latlon_cell_geo_map = lazy_map(∘, fi, cell_geo_map)
 
 #   return lazy_map(evaluate,latlon_cell_geo_map,ab5)

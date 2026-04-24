@@ -9,8 +9,8 @@ end
 
 @publish Fields MatMultField
 @publish Fields MyAffineField
-@publish Fields Cartesian2SphereicalMap
-@publish Fields Cartesian2SphereicalMap3D
+@publish Fields Cartesian2SphericalMap
+@publish Fields Cartesian2SphericalMap3D
 
 @publish Geometry get_panel_ids
 @publish Geometry geo_map_func

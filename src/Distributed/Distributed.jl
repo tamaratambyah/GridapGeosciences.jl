@@ -27,7 +27,7 @@ import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
 import GridapGeosciences.Helpers: ForwardMap
 using GridapGeosciences.Fields
 using GridapGeosciences.Visualisation
-import GridapGeosciences.Fields: Cartesian2SphereicalMap
+import GridapGeosciences.Fields: Cartesian2SphericalMap
 
 import Gridap.Visualization: writevtk, createvtk, write_vtk_file, create_vtk_file, create_pvtk_file
 

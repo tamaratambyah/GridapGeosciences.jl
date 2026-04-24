@@ -1,4 +1,4 @@
-struct Cartesian2SphereicalMap3D <: Field
+struct Cartesian2SphericalMap3D <: Field
 end
 
 """
@@ -7,19 +7,19 @@ The forward map goes 3D -> 3D.
   ϕ = atan(Z,sqrt(X^2 + Y^2))
   r = sqrt(X^2 + Y^2 + Z^2)
 
-  For future consideration: remove Cartesian2SphereicalMap, and obtain θϕ as
+  For future consideration: remove Cartesian2SphericalMap, and obtain θϕ as
   [θ   = [1 0 0   [θ
    ϕ]     0 1 0]   ϕ
                    r]
 """
 
-function Gridap.Arrays.return_cache(f::Cartesian2SphereicalMap3D,cellx::AbstractArray{<:VectorValue{3}})
+function Gridap.Arrays.return_cache(f::Cartesian2SphericalMap3D,cellx::AbstractArray{<:VectorValue{3}})
   out = similar(cellx,VectorValue{3,Float64})
   return out
 end
 
 
-function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap3D,cellx::AbstractArray{<:VectorValue{3}} )
+function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphericalMap3D,cellx::AbstractArray{<:VectorValue{3}} )
   # println("cell map")
   out = cache
 
@@ -55,12 +55,12 @@ function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap3D,cellx::Abstr
 end
 
 
-function Gridap.Arrays.return_cache(f::Cartesian2SphereicalMap3D,x::VectorValue{3})
+function Gridap.Arrays.return_cache(f::Cartesian2SphericalMap3D,x::VectorValue{3})
   y = zero(VectorValue{3,Float64})
   return y
 end
 
-function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap3D,x::VectorValue{3})
+function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphericalMap3D,x::VectorValue{3})
   # println("single point")
   y = cache
   y = xyz2θϕr(x)

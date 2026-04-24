@@ -14,10 +14,10 @@ import GridapGeosciences.Helpers: forward_jacobian
 include("MatMultField.jl")
 include("AffineField.jl")
 include("Cartesian2SphericalMap.jl")
-include("Cartesian2SphereicalMap3D.jl")
+include("Cartesian2SphericalMap3D.jl")
 
 export MatMultField, MyAffineField
-export Cartesian2SphereicalMap
-export Cartesian2SphereicalMap3D
+export Cartesian2SphericalMap
+export Cartesian2SphericalMap3D
 
 end

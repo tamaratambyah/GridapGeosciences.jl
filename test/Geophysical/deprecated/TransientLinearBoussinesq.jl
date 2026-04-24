@@ -194,7 +194,7 @@ function transient_linear_boussinesq_solver(
 
   latlon_cell_geo_map = map(owned_panel_ids) do pid
     cell_geo_map = lazy_map(p -> ForwardMap(p), pid)
-    fi = lazy_map(p->Cartesian2SphereicalMap3D(),pid)
+    fi = lazy_map(p->Cartesian2SphericalMap3D(),pid)
     return lazy_map(∘, fi, cell_geo_map)
   end
 
