@@ -9,6 +9,7 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
+using Gridap.Helpers
 
 ################################################################################
 #### Test unit normal vectors
