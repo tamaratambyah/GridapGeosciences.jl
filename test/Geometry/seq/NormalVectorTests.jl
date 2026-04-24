@@ -13,6 +13,18 @@ using Gridap.Geometry
 ################################################################################
 #### Test unit normal vectors
 ################################################################################
+function normal_vector_from_basis(forward_map)
+  function _func(αβ)
+    Jac = J(forward_map,αβ)
+    a1 = VectorValue(Jac[1],Jac[2],Jac[3])
+    a2 = VectorValue(Jac[4],Jac[5],Jac[6])
+    n = cross(a1,a2)
+    _n = n*(1/sqrtg(forward_map,αβ) )
+    @check Gridap.TensorValues.meas(_n) ≈ 1.0
+    _n
+  end
+end
+
 
 function test_normal_unit_vector(panel_model,return_vtk=false)
   lvl = nref(nc(panel_model))
