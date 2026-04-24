@@ -21,8 +21,8 @@ using GridapP4est
 using Test
 using GridapPETSc
 
-import GridapGeosciences.Helpers: RADIUS, THICKNESS
-
+RADIUS = 1.0
+THICKNESS = 0.19
 include("../convergence_tools.jl")
 include("Checkpointing/Checkpointing.jl")
 include("Checkpointing/helpers.jl")

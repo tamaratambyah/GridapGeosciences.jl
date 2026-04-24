@@ -107,7 +107,9 @@ end
 #   end
 # end
 
-import GridapGeosciences.Helpers: RADIUS, THICKNESS
+
+RADIUS = 1.0
+THICKNESS = 1e-4
 
 #### Parameters
 a_e = 6.37e6
