@@ -9,7 +9,7 @@ using LinearAlgebra
 using FillArrays
 
 using GridapGeosciences.Fields
-import GridapGeosciences.Fields: J
+import GridapGeosciences.Fields: J, normal_vec
 
 include("overloads.jl")
 include("operators.jl")
@@ -25,7 +25,7 @@ export metric, inv_metric
 export surflap, surfdiv, contr_gradf, sgrad
 
 export panel_to_cartesian
-export normal_vec, tangent_vec
+export tangent_vec
 export contra_v, projection_v
 export piola
 export xyz2θϕr, θϕ2xyz, xyz2θϕ

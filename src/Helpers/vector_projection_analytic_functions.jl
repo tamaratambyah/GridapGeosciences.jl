@@ -1,8 +1,3 @@
-# unit normal
-normal_vec(XYZ) = 1/sqrt(XYZ[1]*XYZ[1] + XYZ[2]*XYZ[2] + XYZ[3]*XYZ[3])*VectorValue(XYZ[1],XYZ[2],XYZ[3])
-
-
-
 #### In the following functions, vecX(XYZ) == 3D vector
 
 # tangent component of aribitary 3D vector vecX

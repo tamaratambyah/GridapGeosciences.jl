@@ -11,6 +11,7 @@ end
 @publish Fields MyAffineField
 @publish Fields Cartesian2SphericalMap
 @publish Fields ForwardMap
+@publish Fields normal_vec
 
 @publish Geometry get_panel_ids
 @publish Geometry geo_map_func
@@ -54,14 +55,12 @@ end
 @publish Helpers metric
 @publish Helpers inv_metric
 
-
 @publish Helpers surflap
 @publish Helpers surfdiv
 @publish Helpers contr_gradf
 @publish Helpers sgrad
 @publish Helpers panel_to_cartesian
 
-@publish Helpers normal_vec
 @publish Helpers tangent_vec
 @publish Helpers contra_v
 @publish Helpers projection_v
