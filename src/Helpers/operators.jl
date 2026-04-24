@@ -1,7 +1,6 @@
 # here Field means ForwardMap2Dor3D
 # J comes from Fields
-J(m::Field,x) = _evaluate_forward_jacobian_2d(m.panel,m.radius,x)
-J(m::Field,x) = _evaluate_forward_jacobian_3d(m.panel,m.radius,m.thickness,x)
+
 
 Jt(m::Field,x) = transpose(J(m,x))
 metric(m::Field,x) = Jt(m,x)⋅J(m,x)

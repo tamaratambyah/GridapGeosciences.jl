@@ -11,6 +11,9 @@ using Test
 using Gridap.Geometry
 using Gridap.Helpers
 
+include("../../convergence_tools.jl")
+
+
 ################################################################################
 #### Test unit normal vectors
 ################################################################################

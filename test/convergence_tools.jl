@@ -1,6 +1,12 @@
 """
 auto convergence tests
 """
+
+using Gridap
+using Gridap.Geometry
+using GridapDistributed
+using GridapP4est
+
 function test_slope(slope,p_fe,Dc)
   if slope >= p_fe
     return true
@@ -52,7 +58,7 @@ returns an array of refined serial models where
 """
 function get_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
   panel_model = coarse_parametric_model(radius)
-  panel_models = Vector{DiscreteModel}(undef,n_ref_lvls)
+  panel_models = Vector{Gridap.Geometry.DiscreteModel}(undef,n_ref_lvls)
   for n in n_ref_lvls:-1:1
     panel_model = Gridap.Adaptivity.refine(panel_model)
     panel_models[n] = panel_model

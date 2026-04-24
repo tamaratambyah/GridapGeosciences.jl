@@ -10,10 +10,9 @@ using LinearAlgebra
 using FillArrays
 using JLD2
 
+include("Fields/Fields.jl")
 
 include("Helpers/Helpers.jl")
-
-include("Fields/Fields.jl")
 
 include("Geometry/Geometry.jl")
 

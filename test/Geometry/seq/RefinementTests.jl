@@ -11,6 +11,8 @@ using GridapGeosciences
 using Gridap.Helpers,  Gridap.Adaptivity
 using Test
 
+include("../../convergence_tools.jl")
+
 ### Check the Dc, Dp of the coarse model
 radius = 1.0
 panel_model = coarse_parametric_model(radius)

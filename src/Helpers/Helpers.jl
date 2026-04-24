@@ -16,13 +16,12 @@ using PartitionedArrays # required for convergence tools (I believe it should no
 # in GridapGeosciences.Geometry. I still need to understand how it is possible that one can include the
 # whole GridapGeoosciences package in this Helpers module, without creating circular dependencies
 using GridapGeosciences.Fields
-import GridapGeosciences.Fields: _evaluate_forward_jacobian_2d, _evaluate_forward_jacobian_3d
+import GridapGeosciences.Fields: J
 
 include("overloads.jl")
 include("operators.jl")
 include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
-include("convergence_tools.jl")
 
 export forward_jacobian, covariant_basis
 
@@ -38,9 +37,5 @@ export contra_v, projection_v
 export piola
 export xyz2θϕr, θϕ2xyz, xyz2θϕ
 
-export p_convergence_auto_test, h_convergence_auto_test
-export get_refined_models, get_distributed_refined_models, get_octree_refined_models, get_3D_octree_refined_models
-export nref, nc, nc_horizontal, dx, dx_horizontal
-export convergence_rate
 
 end
