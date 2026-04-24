@@ -41,9 +41,7 @@ for n in collect(1:ℓ)
     global model = Gridap.Adaptivity.refine(model)
 end
 
-# Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array:
-panel_ids = get_panel_ids(model)
-
+# Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.
 # Using the panel ids, we can visualise the triangulation in the ambient space of the sphere
 # or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk:
 Ω = Triangulation(model)
@@ -68,16 +66,16 @@ function uₓ(forward_map)
 end
 
 # The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
-u_cf = panelwise_cellfield(uₓ,Ω,panel_ids)
-slap_cf = panelwise_cellfield(surflap(uₓ),Ω,panel_ids)
+u_cf = panelwise_cellfield(uₓ,Ω)
+slap_cf = panelwise_cellfield(surflap(uₓ),Ω)
 rhs = -slap_cf
 
 # ## Weak form
 # To define the weak form, we first obtain panelwise cellfields of the inverse metric and meas,
 # and then write the bilinear and linear forms using Gridap's high level API.
 # We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
-invg = panelwise_cellfield(inv_metric,Ω,panel_ids)
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
+invg = panelwise_cellfield(inv_metric,Ω)
+meas = panelwise_cellfield(sqrtg,Ω)
 dΩ = Measure(Ω,6*order)
 poisson_biform(u,v) = ∫((gradient(v)⋅(invg⋅gradient(u)))*meas )dΩ
 poisson_liform(v) = ∫((rhs*v)*meas)dΩ

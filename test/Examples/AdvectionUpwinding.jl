@@ -63,7 +63,6 @@ end
 #
 # The volume triangulation and assoicated panel ides can be extracted as per usual:
 Ω = Triangulation(model)
-panel_ids = get_panel_ids(model)
 fwd_map_generator = get_forward_map_generator(model)
 
 # The skeleton triangulation, skeleton normal vector and skeleton panel ids are:
@@ -112,8 +111,8 @@ end
 
 # Then converted into a panelwise cellfield, where we extract the contravariant components
 # for the velocity:
-u = panelwise_cellfield(uₓ,Ω,panel_ids)
-β =  panelwise_cellfield(contra_v(βₓ),Ω,panel_ids)
+u = panelwise_cellfield(uₓ,Ω)
+β =  panelwise_cellfield(contra_v(βₓ),Ω)
 
 # ## Weak form
 # The weak form is written as a transient problem using  using Gridap's high level API.
@@ -126,7 +125,7 @@ function my_mean( Bu_n::Gridap.Geometry.SkeletonPair)
   0.5*( plus - minus  )
 end
 
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
+meas = panelwise_cellfield(sqrtg,Ω)
 meas_skel = panelwise_cellfield(sqrtg,Λ)
 upwind = 0.5*abs((β⋅n_Λ).plus)
 dΩ = Measure(Ω,4*order)

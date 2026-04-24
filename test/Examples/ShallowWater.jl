@@ -52,7 +52,6 @@ model = omodel.parametric_dmodel
 # ## Triangulation
 # Now we extract the triangulated and the panel ids associated to each cell:
 Ω = Triangulation(model)
-panel_ids = get_panel_ids(model)
 
 
 # ## FE Spaces
@@ -134,19 +133,19 @@ end
 
 # Then converted into a panelwise cellfield, where we extract the contravariant components
 # for the velocity:
-u_cf = panelwise_cellfield(piola(u0),Ω,panel_ids)
-h_cf = panelwise_cellfield(h0,Ω,panel_ids)
-f_cf = panelwise_cellfield(f0,Ω,panel_ids)
+u_cf = panelwise_cellfield(piola(u0),Ω)
+h_cf = panelwise_cellfield(h0,Ω)
+f_cf = panelwise_cellfield(f0,Ω)
 
 
 # ## Weak form
 # To define the weak form, we require the metric and measure, as well as the
 # the matrix that represents the perp operator.
 # We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
-g = panelwise_cellfield(metric,Ω,panel_ids)
-ginv = panelwise_cellfield(inv_metric,Ω,panel_ids)
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+g = panelwise_cellfield(metric,Ω)
+ginv = panelwise_cellfield(inv_metric,Ω)
+meas = panelwise_cellfield(sqrtg,Ω)
+covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω)
 Aperp = [0 -1
         1 0]
 Rperp = TensorValue(Aperp)
