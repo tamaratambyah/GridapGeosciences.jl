@@ -49,7 +49,6 @@ function wave_solver(panel_model,
   _i_am_main && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
 
   degree = 5*(p_fe+1)
-  panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
@@ -64,12 +63,12 @@ function wave_solver(panel_model,
   X = MultiFieldFESpace([U, P])
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = panelwise_cellfield(metric,Ω_panel)
+  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
 
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+  h_cf = panelwise_cellfield(h,Ω_panel)
+  u_cf = panelwise_cellfield(piola(vX),Ω_panel)
   u_proj_cf = covariant_basis_cf ⋅(1/meas_cf * u_cf  )
 
   p_int = interpolate(h_cf,P)
