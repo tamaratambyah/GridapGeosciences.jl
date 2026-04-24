@@ -12,7 +12,6 @@ using GridapGeosciences.Geometry
 import Gridap.Visualization: writevtk, createvtk, write_vtk_file, create_vtk_file
 
 include("Vtk.jl")
-# include("helpers.jl")
 include("createpvd.jl")
 
 export make_pvd

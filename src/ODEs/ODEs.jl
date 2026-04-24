@@ -31,7 +31,7 @@ import Gridap.ODEs: AbstractTableau
 import Gridap.ODEs: AbstractQuasilinearODE, AbstractSemilinearODE
 using LinearAlgebra
 import Gridap.ODEs: get_weights, get_nodes,get_matrix
-import Gridap.ODEs: RungeKutta, ThetaMethod
+import Gridap.ODEs: RungeKutta
 import Gridap.ODEs: ODESolver
 import Gridap.ODEs: TableauType, ExplicitTableau, ImplicitTableau
 
@@ -43,8 +43,6 @@ include("ODEOperators.jl")
 include("ODEOpsFromTFEOps.jl")
 include("StageOperators.jl")
 include("RungeKuttaEX.jl")
-include("RungeKuttaDIM.jl")
-# include("ThetaMethod.jl")
 
 export DAEFEOperator
 export LinearStageOperator

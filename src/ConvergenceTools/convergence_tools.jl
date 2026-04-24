@@ -150,7 +150,7 @@ function get_3D_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,thickne
   dmodels = Vector{DistributedParametricDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
-    octree3_model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+    octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
                         num_horizontal_uniform_refinements=n,
                         num_vertical_uniform_refinements=n);
     dmodels[i] = octree3_model.parametric_dmodel
