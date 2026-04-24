@@ -86,7 +86,6 @@ function advection_dg_solver(
 
   meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
   meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
-  _meas_cf = CellField(_sqrtg,Ω_panel )
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 

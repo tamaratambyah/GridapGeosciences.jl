@@ -16,9 +16,8 @@ using GridapP4est
 using Test
 
 
-import GridapGeosciences.Helpers: RADIUS, THICKNESS
-THICKNESS
-RADIUS
+THICKNESS = 0.19
+RADIUS = 1.0
 
 a_e = 6.37e6/125 # m
 d = 5000 #m

@@ -16,7 +16,7 @@ using Gridap.Helpers
 ################################################################################
 function normal_vector_from_basis(forward_map)
   function _func(αβ)
-    Jac = J(forward_map,αβ)
+    Jac = forward_jacobian(forward_map)(αβ)
     a1 = VectorValue(Jac[1],Jac[2],Jac[3])
     a2 = VectorValue(Jac[4],Jac[5],Jac[6])
     n = cross(a1,a2)
