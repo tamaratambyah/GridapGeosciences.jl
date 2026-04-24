@@ -3,7 +3,7 @@ module ConvergenceTools
 
 using Test
 using Gridap
-using Gridap.Geometry
+using Gridap.Geometry, Gridap.Adaptivity
 using GridapDistributed
 using GridapP4est
 using PartitionedArrays
