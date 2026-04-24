@@ -40,8 +40,7 @@ export surflap, surfdiv, contr_gradf, sgrad
 export panel_to_cartesian, panel_to_latlon
 export normal_vector_from_basis
 export vector_length, normal_vec, tangent_vec
-export contra_v, contra_v_comp, contra_v_perp, projection_v
-export contra_v_comp3D, contra_v_perp3D
+export contra_v, projection_v
 export piola
 export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix, xyz2θϕ
 

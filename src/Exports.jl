@@ -69,12 +69,8 @@ end
 @publish Helpers normal_vec
 @publish Helpers tangent_vec
 @publish Helpers contra_v
-@publish Helpers contra_v_comp
-@publish Helpers contra_v_perp
 @publish Helpers projection_v
 @publish Helpers normal_vector_from_basis
-@publish Helpers contra_v_comp3D
-@publish Helpers contra_v_perp3D
 @publish Helpers piola
 
 @publish Helpers ForwardMap
