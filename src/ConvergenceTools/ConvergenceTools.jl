@@ -9,6 +9,7 @@ using GridapP4est
 using PartitionedArrays
 
 using GridapGeosciences.Geometry
+using GridapGeosciences.Distributed
 
 include("convergence_tools.jl")
 
