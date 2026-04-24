@@ -334,7 +334,8 @@ function vertically_uniformly_refine(parametric_model::Parametric3DOctreeDistrib
    adaptive_models = map(local_views(parametric_model.octree_dmodel),
                            local_views(fmodel),
                            adaptivity_glue) do model, fmodel, glue
-           Gridap.Adaptivity.AdaptedDiscreteModel(fmodel,model,glue)
+           parent = isa(model,AdaptedDiscreteModel) ? model.model : model
+           Gridap.Adaptivity.AdaptedDiscreteModel(fmodel,parent,glue)
    end
    fmodel = GridapDistributed.GenericDistributedDiscreteModel(adaptive_models,get_cell_gids(fmodel))
    ref_model = OctreeDistributedDiscreteModel(3,3,
@@ -361,8 +362,9 @@ function vertically_uniformly_refine(parametric_model::Parametric3DOctreeDistrib
                          local_views(ref_model.dmodel)) do parametric_model,
                                                            parametric_model_parent,
                                                            octree_dmodel_adapted_model
+        parent = isa(parametric_model_parent,AdaptedDiscreteModel) ? parametric_model_parent.model : parametric_model_parent
         Gridap.Adaptivity.AdaptedDiscreteModel(parametric_model,
-                                               parametric_model_parent,
+                                               parent,
                                                get_adaptivity_glue(octree_dmodel_adapted_model))
    end
    generic_dmodel =
@@ -441,7 +443,8 @@ function horizontally_uniformly_refine(parametric_model::Parametric3DOctreeDistr
     adaptive_models = map(local_views(parametric_model.octree_dmodel),
                            local_views(fmodel),
                            adaptivity_glue) do model, fmodel, glue
-           Gridap.Adaptivity.AdaptedDiscreteModel(fmodel,model,glue)
+           parent = isa(model,AdaptedDiscreteModel) ? model.model : model
+           Gridap.Adaptivity.AdaptedDiscreteModel(fmodel,parent,glue)
    end
    fmodel = GridapDistributed.GenericDistributedDiscreteModel(adaptive_models,get_cell_gids(fmodel))
    ref_model = OctreeDistributedDiscreteModel(3,3,
@@ -468,8 +471,9 @@ function horizontally_uniformly_refine(parametric_model::Parametric3DOctreeDistr
                          local_views(ref_model.dmodel)) do parametric_model,
                                                            parametric_model_parent,
                                                            octree_dmodel_adapted_model
+        parent = isa(parametric_model_parent,AdaptedDiscreteModel) ? parametric_model_parent.model : parametric_model_parent
         Gridap.Adaptivity.AdaptedDiscreteModel(parametric_model,
-                                               parametric_model_parent,
+                                               parent,
                                                get_adaptivity_glue(octree_dmodel_adapted_model))
    end
    generic_dmodel =

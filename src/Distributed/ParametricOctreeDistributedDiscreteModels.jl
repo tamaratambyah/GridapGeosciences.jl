@@ -390,9 +390,10 @@ function _adapt_octree_dmodel(octree_dmodel::OctreeDistributedDiscreteModel,
 
 
   adapted_models = map(local_views(octree_dmodel.dmodel), local_views(new_dmodel), adaptivity_glue) do parent_model,
-                                                                                                 new_model,
-                                                                                                      glue
-      Gridap.Adaptivity.AdaptedDiscreteModel(new_model, parent_model, glue)
+                                                                                                       new_model,
+                                                                                                       glue
+      parent = isa(parent_model,AdaptedDiscreteModel) ? parent_model.model : parent_model
+      Gridap.Adaptivity.AdaptedDiscreteModel(new_model, parent, glue)
   end
   adapted_dmodel=GridapDistributed.DistributedDiscreteModel(adapted_models,get_cell_gids(new_dmodel))
 
@@ -435,8 +436,9 @@ function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel
                          local_views(adapted_octree_dmodel.dmodel)) do parametric_model,
                                                                        parametric_model_parent,
                                                                        octree_dmodel_adapted_model
+      parent = isa(parametric_model_parent,AdaptedDiscreteModel) ? parametric_model_parent.model : parametric_model_parent
       Gridap.Adaptivity.AdaptedDiscreteModel(parametric_model,
-                                             parametric_model_parent,
+                                             parent,
                                              get_adaptivity_glue(octree_dmodel_adapted_model))
    end
    generic_dmodel = GenericDistributedDiscreteModel(adaptive_models, get_cell_gids(adapted_octree_dmodel.dmodel))
