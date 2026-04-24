@@ -15,8 +15,6 @@ using GridapGeosciences
 using GridapP4est
 using Test
 
-include("../convergence_tools.jl")
-
 
 inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
 contra_v_3D(vecX::Function,p) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)

@@ -2,11 +2,6 @@
 auto convergence tests
 """
 
-using Gridap
-using Gridap.Geometry
-using GridapDistributed
-using GridapP4est
-
 function test_slope(slope,p_fe,Dc)
   if slope >= p_fe
     return true

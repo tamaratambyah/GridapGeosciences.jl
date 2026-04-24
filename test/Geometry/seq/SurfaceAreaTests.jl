@@ -1,6 +1,4 @@
-
 include("../SurfaceArea.jl")
-include("../../convergence_tools.jl")
 
 ## Serial model: 2D
 n_ref_lvls = 4

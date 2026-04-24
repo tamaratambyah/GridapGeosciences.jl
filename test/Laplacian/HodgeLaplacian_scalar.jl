@@ -14,9 +14,6 @@ using GridapGeosciences
 using GridapP4est
 using Test
 
-include("../convergence_tools.jl")
-
-
 function fX(forward_map)
   function _f(α)
     xyz = forward_map(α)

@@ -11,8 +11,6 @@ using GridapGeosciences
 using Test
 using Gridap.Geometry
 
-include("../../convergence_tools.jl")
-
 function test_cell_maps(panel_model,cart_model)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")

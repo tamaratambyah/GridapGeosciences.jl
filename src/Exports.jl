@@ -100,3 +100,16 @@ end
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model
+
+@publish ConvergenceTools p_convergence_auto_test
+@publish ConvergenceTools h_convergence_auto_test
+@publish ConvergenceTools get_refined_models
+@publish ConvergenceTools get_distributed_refined_models
+@publish ConvergenceTools get_octree_refined_models
+@publish ConvergenceTools get_3D_octree_refined_models
+@publish ConvergenceTools nref
+@publish ConvergenceTools nc
+@publish ConvergenceTools nc_horizontal
+@publish ConvergenceTools dx
+@publish ConvergenceTools dx_horizontal
+@publish ConvergenceTools convergence_rate

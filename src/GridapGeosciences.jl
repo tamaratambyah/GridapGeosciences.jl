@@ -8,7 +8,7 @@ using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using Gridap.Algebra, Gridap.FESpaces
 using LinearAlgebra
 using FillArrays
-using JLD2
+
 
 include("Fields/Fields.jl")
 
@@ -27,6 +27,8 @@ include("Visualisation/Visualisation.jl")
 include("Distributed/Distributed.jl")
 
 include("MultilevelTools/MultilevelTools.jl")
+
+include("ConvergenceTools/ConvergenceTools.jl")
 
 include("Exports.jl")
 
