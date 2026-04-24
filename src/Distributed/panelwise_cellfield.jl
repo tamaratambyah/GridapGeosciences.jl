@@ -16,15 +16,14 @@
 #### This function is Alberto's solution to the issue with ghost+local on
 #### octree periodic meshes. See issue %%%% in GridapP4est
 function panelwise_cellfield(f::Function,
-  trian::GridapDistributed.DistributedTriangulation,
-  panel_ids::AbstractArray)
+  trian::GridapDistributed.DistributedTriangulation)
 
   # println("new panelwise cellfield")
 
   panel_model = trian.model
 
-  fields = map(panel_ids,local_views(panel_model)) do panel_ids, lmodel
-    panelwise_cellfield(f,Triangulation(lmodel),panel_ids)
+  fields = map(local_views(panel_model)) do lmodel
+    panelwise_cellfield(f,Triangulation(lmodel))
   end
 
   trians = map(local_views(panel_model)) do lmodel
@@ -35,10 +34,6 @@ function panelwise_cellfield(f::Function,
   GridapDistributed.DistributedCellField(fields,_trian)
 end
 
-function panelwise_cellfield(f::Function,trian::GridapDistributed.DistributedTriangulation)
-  panel_ids = get_panel_ids(trian)
-  panelwise_cellfield(f,trian,panel_ids)
-end
 
 # function panelwise_cellfield(f::Function,
 #   trian::GridapDistributed.DistributedTriangulation)
