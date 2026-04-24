@@ -19,7 +19,6 @@ using GridapGeosciences
 
 include("ForwardMap.jl")
 include("overloads.jl")
-include("analytical_functions.jl")
 include("analytical_functions_autodiff.jl")
 include("operators.jl")
 include("coordinate_mappings.jl")
@@ -29,12 +28,10 @@ include("convergence_tools.jl")
 export ForwardMap, ForwardMap2D, ForwardMap3D, ForwardMap2DGenerator, ForwardMap3DGenerator
 export forward_jacobian, covariant_basis
 
-export _sqrtg
 export pinvJ
 export sqrtg,  detg
 export grad_meas
 export metric, inv_metric
-export perp_matrix
 export surflap, surfdiv, contr_gradf, sgrad
 
 export panel_to_cartesian, panel_to_latlon

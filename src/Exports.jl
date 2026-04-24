@@ -49,7 +49,6 @@ end
 @publish Helpers spherical_to_cartesian_matrix
 @publish Helpers xyz2θϕ
 
-@publish Helpers _sqrtg
 @publish Helpers sqrtg
 @publish Helpers detg
 @publish Helpers grad_meas
@@ -57,7 +56,6 @@ end
 @publish Helpers inv_metric
 
 
-@publish Helpers perp_matrix
 @publish Helpers surflap
 @publish Helpers surfdiv
 @publish Helpers contr_gradf
