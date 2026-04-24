@@ -37,7 +37,6 @@ function main(distribute,nprocs)
   panel_model = dmodels[2]
 
   Ω_panel = Triangulation(panel_model)
-  panel_ids = get_panel_ids(panel_model)
   Λ = SkeletonTriangulation(with_ghost,panel_model)
   n_Λ = get_normal_vector(Λ)
   pts = get_cell_points(Λ)
@@ -51,6 +50,7 @@ function main(distribute,nprocs)
   test_debug_vector_equality(out)
 
   # Method 2: Santi's formula
+  panel_ids = get_panel_ids(panel_model)
   forward_map_generator = get_forward_map_generator(panel_model)
   cell_geo_map = geo_map_func(forward_map_generator,panel_ids)
   n = pushforward_normal(Λ,cell_geo_map)
@@ -80,7 +80,7 @@ function main(distribute,nprocs)
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  _vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+  _vel = panelwise_cellfield(contra_v(vX),Ω_panel)
   vel = interpolate(_vel,U)
 
   diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))(pts)

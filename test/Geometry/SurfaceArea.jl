@@ -16,10 +16,9 @@ using Test
 
 function compute_surface_area(model, degree::Int)
   Ω = Triangulation(model)
-  panel_ids = get_panel_ids(model)
   dΩ = Measure(Ω,degree)
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
+  meas_cf = panelwise_cellfield(sqrtg,Ω)
   surface_area = sum( ∫( 1.0*meas_cf )dΩ )
   return surface_area
 end
