@@ -11,13 +11,10 @@ using Test # required for convergence tools (I believe it should not be here)
 using GridapDistributed # required for convergence tools (I believe it should not be here)
 using PartitionedArrays # required for convergence tools (I believe it should not be here)
 
-# This using used to be in src/Helpers/forward_map_3D.jl, which is no longer in the project files
-# Essentially, we need in "convergence_tools.jl" the coarse_parametric_model() function, which is defined
-# in GridapGeosciences.Geometry. I still need to understand how it is possible that one can include the
-# whole GridapGeoosciences package in this Helpers module, without creating circular dependencies.
-using GridapGeosciences
 
-include("ForwardMap.jl")
+using GridapGeosciences.Fields
+import GridapGeosciences.Fields: ForwardMap2D, ForwardMap3D, ForwardMap2Dor3D
+
 include("overloads.jl")
 include("analytical_functions_autodiff.jl")
 include("operators.jl")
@@ -25,7 +22,6 @@ include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
 include("convergence_tools.jl")
 
-export ForwardMap, ForwardMap2D, ForwardMap3D, ForwardMap2DGenerator, ForwardMap3DGenerator
 export forward_jacobian, covariant_basis
 
 export pinvJ

@@ -24,7 +24,7 @@ import GridapGeosciences.Geometry: setup_panel_cmaps
 import GridapGeosciences.Geometry: panelwise_cellfield, geo_map_func, latlon_geo_map_func
 import GridapGeosciences.Geometry: get_panel_ids, get_forward_map_generator, get_radius, get_thickness
 import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
-import GridapGeosciences.Helpers: ForwardMap
+import GridapGeosciences.Fields: ForwardMap
 using GridapGeosciences.Fields
 using GridapGeosciences.Visualisation
 import GridapGeosciences.Fields: Cartesian2SphericalMap

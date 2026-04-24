@@ -10,7 +10,7 @@ end
 @publish Fields MatMultField
 @publish Fields MyAffineField
 @publish Fields Cartesian2SphericalMap
-@publish Fields Cartesian2SphericalMap3D
+@publish Fields ForwardMap
 
 @publish Geometry get_panel_ids
 @publish Geometry geo_map_func
@@ -69,7 +69,6 @@ end
 @publish Helpers projection_v
 @publish Helpers piola
 
-@publish Helpers ForwardMap
 @publish Helpers forward_jacobian
 @publish Helpers covariant_basis
 @publish Helpers forward_pinv_jacobian
