@@ -46,7 +46,6 @@ end
 
 @publish Helpers xyz2θϕr
 @publish Helpers θϕ2xyz
-@publish Helpers spherical_to_cartesian_matrix
 @publish Helpers xyz2θϕ
 
 @publish Helpers sqrtg
@@ -61,7 +60,6 @@ end
 @publish Helpers contr_gradf
 @publish Helpers sgrad
 @publish Helpers panel_to_cartesian
-@publish Helpers panel_to_latlon
 
 @publish Helpers normal_vec
 @publish Helpers tangent_vec
