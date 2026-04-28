@@ -166,7 +166,7 @@ function advection_dg_solver(
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe", cellfields=cellfields,append=false)
   end
 
     ### convergence output for DrWatson

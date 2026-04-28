@@ -159,7 +159,7 @@ function transient_advection_supg_solver(
   if return_vtk
     panel_cfs = [uh0, covariant_basis_cf⋅ get_velocity(0.0), uh0-uh0]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false)
     # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[uh0],["uh"])
   end
 
@@ -198,7 +198,7 @@ function transient_advection_supg_solver(
       panel_cfs = [uh, covariant_basis_cf⋅ get_velocity(t), uh-uh0]
       cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+      writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false)
       # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[uh],["uh"])
     end
     counter = counter + 1
@@ -206,7 +206,7 @@ function transient_advection_supg_solver(
 
   panel_cfs = [_uh, covariant_basis_cf⋅ get_velocity(_t), _uh-uh0]
   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-  writevtk(Ω_panel,_dir*"/solT_final_nref$(lvl)_p$(p_fe).vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  writevtk_with_cell_geomap(cell_geo_map,Ω_panel,_dir*"/solT_final_nref$(lvl)_p$(p_fe).vtu", cellfields=cellfields,append=false)
 
 
   push!(ts,_t)

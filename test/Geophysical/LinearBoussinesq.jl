@@ -199,8 +199,8 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
     panel_cfs = [h_cf, u_proj_cf, b_cf, ph, uh_proj, bh, h_cf-ph, u_proj_cf-uh_proj , b_cf-bh]
     labels = ["p","u_proj", "b", "ph", "uh_proj", "bh", "ep","eu", "eb"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
-    cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+    cellfields=cellfields,append=false)
   end
 
   return e_u, e_p, e_b

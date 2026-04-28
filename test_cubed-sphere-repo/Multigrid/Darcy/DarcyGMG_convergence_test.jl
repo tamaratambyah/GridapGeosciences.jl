@@ -175,7 +175,7 @@ function darcy_gmg_solver(
     cell_geo_map = geo_map_func(get_panel_ids(Ω))
     latlon_cell_geo_map = latlon_geo_map_func(get_panel_ids(Ω))
 
-    writevtk(Ω,dir*"/darcy_GMG_nref$(lvl)_p$(p_fe)_alpha$(α)",cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω,dir*"/darcy_GMG_nref$(lvl)_p$(p_fe)_alpha$(α)",cellfields=cellfields,append=false)
   end
 
   dir_convergence = dir*"/convergence"

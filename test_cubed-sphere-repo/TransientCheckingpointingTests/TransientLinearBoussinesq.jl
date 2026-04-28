@@ -281,8 +281,8 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
     uh,ph,bh = xh
     panel_cfs = [covariant_basis_cf⋅(1/meas_cf*uh), ph, bh]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t",cellfields=cellfields,append=false,geo_map=cell_geo_map)
-    writevtk(Ω_panel,vtk_latlon_dir*"/solT_$t",cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,vtk_dir*"/solT_$t",cellfields=cellfields,append=false)
+    writevtk_with_cell_geomap(latlon_cell_geo_map,Ω_panel,vtk_latlon_dir*"/solT_$t",cellfields=cellfields,append=false)
   end
 
   folders = readdir(sim_dir)

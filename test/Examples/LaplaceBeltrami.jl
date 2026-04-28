@@ -43,10 +43,10 @@ end
 
 # Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.
 # Using the panel ids, we can visualise the triangulation in the ambient space of the sphere
-# or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk:
+# or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk_with_cell_geomap:
 Ω = Triangulation(model)
-writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
-writevtk(Ω,"latlon_model",append=false,geo_map=latlon_geo_map_func(Ω))
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"sphere_model",append=false)
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"latlon_model",append=false)
 
 # ## FE Spaces
 # Now that we have a discrete model, we define trial and test spaces using Gridap's high level API.
@@ -92,5 +92,5 @@ el2 = sqrt(sum(∫((e⋅e)*meas)dΩ))
 
 # ## Post processing
 # The solution can be visualised in the ambient space by passing a
-# cell-wise array of geometrical maps to Gridap's writevtk function
-writevtk(Ω,"laplace_beltrami",cellfields=["u"=>u_cf,"uh"=>uh,"eu"=>e],append=false,geo_map=geo_map_func(Ω))
+# cell-wise array of geometrical maps to our writevtk_with_cell_geomap function
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"laplace_beltrami",cellfields=["u"=>u_cf,"uh"=>uh,"eu"=>e],append=false)

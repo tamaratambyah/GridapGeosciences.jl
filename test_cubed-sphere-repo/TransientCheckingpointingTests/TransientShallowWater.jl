@@ -264,8 +264,8 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     panel_cfs = [covariant_basis_cf⋅(1/meas_cf*uh), ph, qh, Fh, Φh, vort,vort_f]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
-    writevtk(Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
+    writevtk_with_cell_geomap(latlon_cell_geo_map(Ω_panel),Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
   end
 
   function casimirs(xh,yh,dΩ)

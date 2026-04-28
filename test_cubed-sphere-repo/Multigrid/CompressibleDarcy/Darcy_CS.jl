@@ -203,6 +203,6 @@ sqrt(sum(∫( (ep⋅ep)*meas_cf )dΩ_error )) # 1e-5
 using DrWatson
 dir = datadir("Multigrid")
 !isdir(dir) && mkdir(dir)
-writevtk(Ω,dir*"/darcy_CS",
+writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,dir*"/darcy_CS",
         cellfields= ["uh"=>uh_proj, "ph"=>ph, "eu"=>eu, "ep"=>ep],
-        append=false,geo_map=latlon_geo_map_func(Ω))
+        append=false)

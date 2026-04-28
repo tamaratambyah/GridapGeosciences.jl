@@ -60,9 +60,9 @@ octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thicknes
 model = octree3_model.parametric_dmodel
 
 # We can visualise the triangulation in the ambient space of the 3D cubed sphere
-# by passing a cellwise array of geometrical maps to writevtk:
+# by passing a cellwise array of geometrical maps to writevtk_with_cell_geomap:
 Ω = Triangulation(model)
-writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"sphere_model",append=false)
 
 # The 3D cubed sphere model has tags associated to the bottom, top and intermediate
 # boundary cells. We can visualise each componeont of the model by passing the appropriate tag
@@ -71,9 +71,14 @@ writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
 Γ_bottom = BoundaryTriangulation(model,tags=["bottom_boundary"])
 Γ_intermediate = BoundaryTriangulation(model,tags=["intermediate_boundary"])
 
-writevtk(Γ_bottom,"boundary_bottom",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_bottom)))
-writevtk(Γ_top,"boundary_top",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_top)))
-writevtk(Γ_intermediate,"boundary_intermediate",append=false,geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_intermediate)))
+geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_bottom))
+writevtk_with_cell_geomap(geo_map,Γ_bottom,"boundary_bottom",append=false)
+
+geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_top))
+writevtk_with_cell_geomap(geo_map,Γ_top,"boundary_top",append=false)
+
+geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_intermediate))
+writevtk_with_cell_geomap(geo_map,Γ_intermediate,"boundary_intermediate",append=false)
 
 # In this test, we have non-homogeneous boundary conditions. So we need to create
 # a boundary trangulation, and include the appropriate boundary term that arises
@@ -179,8 +184,8 @@ eu_l2 = sqrt(sum(∫( eu⋅(g⋅eu)*(1/meas) )dΩ))
 
 # ## Post processing
 # The solution can be visualised in the ambient space by passing a
-# cell-wise array of geometrical maps to Gridap's writevtk function
-writevtk(Ω,"wave_equation",
+# cell-wise array of geometrical maps to our writevtk_with_cell_geomap function
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"wave_equation",
         cellfields=["p"=>phi_cf,"ph"=>ph,"ep"=>ep,
                 "uamb"=>u_proj_cf,"uamb_h"=>uh_proj, "eu"=>eu],
-        append=false,geo_map=geo_map_func(Ω))
+        append=false)

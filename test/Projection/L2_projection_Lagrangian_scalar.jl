@@ -51,8 +51,8 @@ function L2_projection_Lagrangian_scalar(panel_model,
     panel_cfs = [f_cf, fh_l2proj,  _e, gradient(fh_l2proj) ]
     labels = ["u","uh", "e" , "grad"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(conf),
-            cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(conf),
+            cellfields=cellfields,append=false)
   end
 
   return e_l2proj,e_interp,false

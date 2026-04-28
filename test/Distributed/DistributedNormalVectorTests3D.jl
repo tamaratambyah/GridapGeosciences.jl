@@ -48,7 +48,7 @@ function main(distribute,nprocs)
   #   panel_cfs = [ n_mapped,norm_vec_cf,norm_vec_cf-n_mapped]
   #   labels = ["n_mapped", "n_vec", "diff"]
   #   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-  #   writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  #   writevtk_with_cell_geomap(geo_map_func(Ω_panel),dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false)
   # end
 
 end

@@ -218,9 +218,9 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   Ep = sqrt(sum(∫( (ep⋅ep)*meas_cf )dΩ_error )) # 1e-5
 
   if Bool(return_vtk)
-    writevtk(Ω,dir*"/$(simName)",
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,dir*"/$(simName)",
       cellfields= ["uh"=>uh_proj, "ph"=>ph, "eu"=>eu, "ep"=>ep, "u"=>u_proj_cf],
-      append=false,geo_map=latlon_geo_map_func(Ω))
+      append=false)
   end
 
   output = @strdict Eu Ep gmg_iters cg_iters kylov_iters n order c α itu itp

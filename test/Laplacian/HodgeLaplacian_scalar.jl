@@ -114,9 +114,8 @@ function hodge_laplacian_scalar(panel_model,
     "eu"=> (covariant_basis_cf⋅(1/meas_cf*uh)) - (-sigma_cf),
     "ph"=>ph, "p"=>f_panel_cf, "e"=>ph-f_panel_cf
                   ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
-            cellfields=cellfields,
-            append=false,geo_map= geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+            cellfields=cellfields,append=false)
   end
 
 

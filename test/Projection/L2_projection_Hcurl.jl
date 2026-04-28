@@ -61,8 +61,8 @@ function L2_projection_Hcurl(panel_model,
     cellfields=["uproj"=> vec_proj_cf,
               "uprojh"=>vec_proj_h,
               "eproj"=>vec_proj_cf-vec_proj_h, ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
-          append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
+          append=false)
   end
 
   return  el2_proj,e_interp, false

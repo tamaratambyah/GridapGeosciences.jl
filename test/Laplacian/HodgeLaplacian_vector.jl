@@ -146,9 +146,9 @@ function hodge_laplacian_vector(
   #               "sigma"=>-sdiv_cf,
   #               "rhs"=>rhs_cov_cf
   #               ]
-  # writevtk(Ω_panel,dir*"/sol",
+  # writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/sol",
   #         cellfields=cellfields,
-  #         append=false,geo_map= geo_map_func(Ω_panel))
+  #         append=false)
 
 
   ## FE spaces
@@ -204,9 +204,8 @@ function hodge_laplacian_vector(
     "eu"=>covariant_basis_cf ⋅ (inv_metric_cf⋅uh)-covariant_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
     "sh"=>sh, "s"=>sigma_cf, "e"=>sh-sigma_cf
                   ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
-            cellfields=cellfields,
-            append=false,geo_map= geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+            cellfields=cellfields,append=false)
   end
 
 

@@ -139,8 +139,8 @@ function wave_solver(panel_model,
     labels = ["p","u_proj", "ph", "uh_proj", "ep","eu"]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_D$Dc",
-            cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_D$Dc",
+            cellfields=cellfields,append=false)
   end
 
   return e_u,e_p,false

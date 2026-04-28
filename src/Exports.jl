@@ -39,10 +39,10 @@ end
 @publish ODEs DAEFEOperator
 
 @publish Visualisation make_pvd
-@publish Visualisation writevtk
-@publish Visualisation createvtk
-@publish Visualisation write_vtk_file
-@publish Visualisation create_vtk_file
+@publish Visualisation writevtk_with_cell_geomap
+@publish Visualisation createvtk_with_cell_geomap
+@publish Visualisation write_vtk_file_with_cell_geomap
+@publish Visualisation create_vtk_file_with_cell_geomap
 @publish Visualisation mapped_vtkpoints
 
 @publish Helpers xyz2θϕr
@@ -77,11 +77,11 @@ end
 @publish Distributed latlon_geo_map_func
 @publish Distributed panelwise_cellfield
 
-@publish Distributed writevtk
-@publish Distributed createvtk
-@publish Distributed write_vtk_file
-@publish Distributed create_vtk_file
-@publish Distributed create_pvtk_file
+@publish Distributed writevtk_with_cell_geomap
+@publish Distributed createvtk_with_cell_geomap
+@publish Distributed write_vtk_file_with_cell_geomap
+@publish Distributed create_vtk_file_with_cell_geomap
+@publish Distributed create_pvtk_file_with_cell_geomap
 
 @publish Distributed _make_pvd_distributed
 @publish Distributed distributed_panel_ids

@@ -7,23 +7,12 @@ If no geo_map is provided, then evaluate the regular visualisation grid.
 Need to dispatch through writevtk/createvtk to create_vtk_file
 """
 
-# function check_geo_map_kwarg(kwargs...)
-#   geo_map = nothing
 
-#   _kwargs = Dict(kwargs)
-#   if haskey(_kwargs, :geo_map)
-#       geo_map = _kwargs[:geo_map]
-#   end
-#   return geo_map
-# end
-
-
-function Gridap.Visualization.writevtk(args...;geo_map=nothing,
+function writevtk_with_cell_geomap(geo_map::AbstractArray,args...;
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...)
   map(Gridap.Visualization.visualization_data(args...;kwargs...)) do visdata
-    write_vtk_file(
+    write_vtk_file_with_cell_geomap(geo_map,
       visdata.grid,visdata.filebase,celldata=visdata.celldata,nodaldata=visdata.nodaldata,
-      geo_map=geo_map,
       compress=compress, append=append, ascii=ascii, vtkversion=vtkversion
     )
   end
@@ -31,46 +20,36 @@ end
 
 """
 """
-function Gridap.Visualization.createvtk(args...;geo_map=nothing,
+function createvtk_with_cell_geomap(geo_map::AbstractArray,args...;
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...)
   v = Gridap.Visualization.visualization_data(args...;kwargs...)
   @notimplementedif length(v) != 1
   visdata = first(v)
-  Gridap.Visualization.create_vtk_file(
+  create_vtk_file_with_cell_geomap(geo_map,
     visdata.grid,visdata.filebase,celldata=visdata.celldata,nodaldata=visdata.nodaldata,
-    geo_map=geo_map,
     compress=compress, append=append, ascii=ascii, vtkversion=vtkversion
   )
 end
 
-function Gridap.Visualization.write_vtk_file(
+function write_vtk_file_with_cell_geomap(
+  geo_map::AbstractArray,
   trian::Grid, filebase; celldata=Dict(), nodaldata=Dict(),
-  geo_map=nothing,
   compress=false, append=true, ascii=false, vtkversion=:default
 )
-  vtkfile = Gridap.Visualization.create_vtk_file(
+  vtkfile = create_vtk_file_with_cell_geomap(geo_map,
     trian, filebase, celldata=celldata, nodaldata=nodaldata,
-    geo_map=geo_map,
     compress=compress, append=append, ascii=ascii, vtkversion=vtkversion
   )
   outfiles = Gridap.Visualization.vtk_save(vtkfile)
 end
 
-function Gridap.Visualization.create_vtk_file(
+function create_vtk_file_with_cell_geomap(geo_map::AbstractArray,
   trian::Grid, filebase; celldata=Dict(), nodaldata=Dict(),
-  geo_map=nothing,
   compress=false, append=true, ascii=false, vtkversion=:default
 )
-  # println("my vis")
 
-  # compute the regular visualisation points
-  points = Gridap.Visualization._vtkpoints(trian)
-
-  ## if geo_map provided, map the points to ambient space
-  if geo_map != nothing
-    points = mapped_vtkpoints(trian,geo_map)
-  end
-
+  ## Map the points to ambient space
+  points = mapped_vtkpoints(trian,geo_map)
 
   cells = Gridap.Visualization._vtkcells(trian)
   vtkfile = Gridap.Visualization.vtk_grid(

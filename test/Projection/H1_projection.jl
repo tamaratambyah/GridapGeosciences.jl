@@ -71,8 +71,8 @@ function interpolation(panel_model,p_fe::Int,dir::String,func::Function,return_v
     panel_cfs = [f_panel_cf, f_uh,  _e, gradient(f_uh) ]
     labels = ["u","uh", "e" , "grad"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(:H1),
-            cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(:H1),
+            cellfields=cellfields,append=false)
   # end
 
   return el2,eh1,false

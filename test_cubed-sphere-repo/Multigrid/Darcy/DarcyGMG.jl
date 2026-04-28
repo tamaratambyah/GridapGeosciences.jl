@@ -189,4 +189,4 @@ latlon_cell_geo_map = latlon_geo_map_func(get_panel_ids(Ω))
 
 dir = datadir("Multigrid")
 !isdir(dir) && mkdir(dir)
-writevtk(Ω,dir*"/darcy_sphere_alpha$(α)_ref",cellfields=cellfields,append=false,geo_map=latlon_cell_geo_map)
+writevtk_with_cell_geomap(latlon_cell_geo_map,Ω,dir*"/darcy_sphere_alpha$(α)_ref",cellfields=cellfields,append=false)

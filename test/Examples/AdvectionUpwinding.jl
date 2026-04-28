@@ -76,7 +76,7 @@ skel_panel_ids = get_panel_ids(Λ)
 n_ambient = pushforward_normal(Λ)
 cellfields = ["amb_n_plus"=>n_ambient.plus, "amb_n_minus"=>n_ambient.minus, "amb_n_total"=>n_ambient.minus+n_ambient.plus ]
 skel_geo_map = lazy_map(p -> fwd_map_generator(p), skel_panel_ids.plus)
-writevtk(Λ,"ambient_skeleton_normal",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+writevtk_with_cell_geomap(skel_geo_map,Λ,"ambient_skeleton_normal",cellfields=cellfields,append=false)
 
 
 # ## FE Spaces
@@ -160,11 +160,11 @@ solT = solve(solver, opT, t₀, tF, uh₀)
 # The transient solution is post-processed and inspected in Paraview:
 mkpath("transient_sol/results")
 createpvd("transient_sol/results") do pvd
-  pvd[0] = createvtk(Ω, "transient_sol/results/results_0" * ".vtu",
-            cellfields=["u"=>uh₀],append=false,geo_map=geo_map_func(Ω))
+  pvd[0] = createvtk_with_cell_geomap(geo_map_func(Ω), Ω, "transient_sol/results/results_0" * ".vtu",
+            cellfields=["u"=>uh₀],append=false)
   for (t, uh) in solT
     println("t = $t")
-    pvd[t] = createvtk(Ω, "transient_sol/results/results_$t" * ".vtu",
-            cellfields=["u"=>uh],append=false,geo_map=geo_map_func(Ω))
+    pvd[t] = createvtk_with_cell_geomap(geo_map_func(Ω),Ω, "transient_sol/results/results_$t" * ".vtu",
+            cellfields=["u"=>uh],append=false)
   end
 end

@@ -15,7 +15,7 @@ using Test
 radius = 1.0
 panel_model = coarse_parametric_model(radius)
 # trian = Triangulation(panel_model)
-# writevtk(trian,"ambient_grid_ref_lvl0",append=false,geo_map=geo_map_func(trian))
+# writevtk_with_cell_geomap(geo_map_func(trian),trian,"ambient_grid_ref_lvl0",append=false)
 
 @test num_point_dims(panel_model) == num_cell_dims(panel_model) == 2
 

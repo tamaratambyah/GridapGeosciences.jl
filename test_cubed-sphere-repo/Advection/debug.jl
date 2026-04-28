@@ -159,4 +159,4 @@ cell_geo_map = geo_map_func(get_panel_ids(Ω_panel))
 labels = ["uh","u","eu"]
 panel_cfs = [uh,u_cf,uh-u_cf]
 cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Ω_panel,dir*"/advection", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/advection", cellfields=cellfields,append=false)

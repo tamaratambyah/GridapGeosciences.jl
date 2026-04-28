@@ -53,7 +53,7 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
     panel_cfs = [ norm_vec_cf,norm_vec_from_basis_cf]
     labels = ["normal", "n"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false)
   end
 end
 
@@ -129,7 +129,7 @@ if return_vtk
 
   skel_panel_ids = get_panel_ids(trian)
   skel_geo_map = lazy_map(p -> ForwardMap(p), skel_panel_ids.plus)
-  writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+  writevtk_with_cell_geomap(skel_geo_map,trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false)
 end
 ################################################################################
 ## DG tests
@@ -165,7 +165,7 @@ if return_vtk
 
   skel_panel_ids = get_panel_ids(Λ)
   skel_geo_map = lazy_map(p -> ForwardMap(p), skel_panel_ids.plus)
-  writevtk(Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+  writevtk_with_cell_geomap(skel_geo_map,Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false)
 end
 
 ################################################################################
@@ -195,7 +195,7 @@ if return_vtk
   labels = ["upwind_plus","upwind_minus","upwind_diff"]
   panel_cfs = [abs((vel⋅ n_Λ).plus),abs((vel⋅ n_Λ).minus),abs((vel⋅ n_Λ).minus)-abs((vel⋅ n_Λ).plus)]
   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-  writevtk(Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false,geo_map=skel_geo_map)
+  writevtk_with_cell_geomap(skel_geo_map,Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false)
 end
 
 @test true

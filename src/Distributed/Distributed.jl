@@ -14,9 +14,9 @@ using PartitionedArrays
 
 import GridapDistributed: DistributedCellField, DistributedTriangulation
 import GridapDistributed: DistributedFaceLabeling
-
 import GridapDistributed: DistributedDiscreteModel, GenericDistributedDiscreteModel
 import GridapDistributed: BoundaryTriangulation
+
 using GridapGeosciences.Geometry
 import GridapGeosciences.Geometry: _CCAM_panel_wise_node_ids
 import GridapGeosciences.Geometry: _CCAM_cube_nodes_3d
@@ -24,12 +24,14 @@ import GridapGeosciences.Geometry: setup_panel_cmaps
 import GridapGeosciences.Geometry: panelwise_cellfield, geo_map_func, latlon_geo_map_func
 import GridapGeosciences.Geometry: get_panel_ids, get_forward_map_generator, get_radius, get_thickness
 import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
-import GridapGeosciences.Fields: ForwardMap
-using GridapGeosciences.Fields
-using GridapGeosciences.Visualisation
-import GridapGeosciences.Fields: Cartesian2SphericalMap
 
-import Gridap.Visualization: writevtk, createvtk, write_vtk_file, create_vtk_file, create_pvtk_file
+using GridapGeosciences.Fields
+import GridapGeosciences.Fields: ForwardMap, Cartesian2SphericalMap
+
+using GridapGeosciences.Visualisation
+import GridapGeosciences.Visualisation: writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
+import GridapGeosciences.Visualisation: createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap
+
 
 include("ParametricOctreeDistributedDiscreteModels.jl")
 include("Parametric3DOctreeDistributedDiscreteModels.jl")
@@ -51,7 +53,8 @@ export Parametric3DOctreeDistributedDiscreteModel
 export DistributedParametricDiscreteModel
 export panelwise_cellfield, geo_map_func, get_panel_ids, latlon_geo_map_func
 export get_forward_map_generator, get_radius, get_thickness
-export writevtk, createvtk, write_vtk_file, create_vtk_file, create_pvtk_file
+export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
+export createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap, create_pvtk_file_mapped
 export _make_pvd_distributed
 export distributed_panel_ids
 export DistributedAdaptivityGlue

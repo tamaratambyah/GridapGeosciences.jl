@@ -142,9 +142,9 @@ cellfields = ["curlu"=>ccurlu_cov_cf,
               "sigma"=>-sdiv_cf,
               "rhs"=>covariant_basis_cf ⋅ (inv_metric_cf⋅ rhs_cov_cf)
                ]
-writevtk(Ω_panel,dir*"/sol",
+writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/sol",
         cellfields=cellfields,
-        append=false,geo_map= geo_map_func(Ω_panel))
+        append=false)
 
 
 

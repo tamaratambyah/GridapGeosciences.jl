@@ -66,7 +66,7 @@ end
 #   model = models[i].parametric_dmodel
 #   Ω = Triangulation(model)
 #   cell_geo_map = latlon_geo_map_func(Ω)
-#   writevtk(Ω,dir*"/model_$ref",append=false, geo_map=cell_geo_map);
+#   writevtk_with_cell_geomap(cell_geo_map,Ω,dir*"/model_$ref",append=false);
 # end
 
 include("../Geophysical/Williamson2Test.jl")
@@ -132,10 +132,10 @@ function Hdiv(
 
   if return_vtk
     cell_geo_map = latlon_geo_map_func(Ω_panel)
-    writevtk(Ω_panel,dir*"/Hdiv_nref$(lvl)_p$p_fe",
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/Hdiv_nref$(lvl)_p$p_fe",
       cellfields=["uh"=>covariant_basis_cf⋅u_h,"error_u"=>e,
               "div_u"=>Πdiv_u,"div_uh"=>div_uh,
-              "error_div"=>Πdiv_u-div_uh],append=false, geo_map=cell_geo_map);
+              "error_div"=>Πdiv_u-div_uh],append=false);
   end
 
   if conff
