@@ -1,6 +1,6 @@
 module GridapGeosciences
 
-__precompile__(false)
+# __precompile__(false)
 
 using Gridap
 using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.ReferenceFEs

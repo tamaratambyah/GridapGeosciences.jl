@@ -121,14 +121,14 @@ function Gridap.ODEs.LinearStageOperator(
 end
 
 ## helper for nonPvectors
-function PartitionedArrays.consistent!(a::Vector)
-  # println("my consistent")
-  a
-end
+# function PartitionedArrays.consistent!(a::Vector)
+#   # println("my consistent")
+#   a
+# end
 
 #### overloads to allow for Pvectors in distributed
 function Gridap.Algebra.solve!(
-  x::AbstractVector,
+  x::PVector,
   ls::LinearSolver, lop::LinearStageOperator,
   ns::Nothing
 )
@@ -152,7 +152,7 @@ function Gridap.Algebra.solve!(
 end
 
 function Gridap.Algebra.solve!(
-  x::AbstractVector,
+  x::PVector,
   ls::LinearSolver, lop::LinearStageOperator,
   ns
 )

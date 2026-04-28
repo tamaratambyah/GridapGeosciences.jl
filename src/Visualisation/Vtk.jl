@@ -7,6 +7,17 @@ If no geo_map is provided, then evaluate the regular visualisation grid.
 Need to dispatch through writevtk/createvtk to create_vtk_file
 """
 
+# function check_geo_map_kwarg(kwargs...)
+#   geo_map = nothing
+
+#   _kwargs = Dict(kwargs)
+#   if haskey(_kwargs, :geo_map)
+#       geo_map = _kwargs[:geo_map]
+#   end
+#   return geo_map
+# end
+
+
 function Gridap.Visualization.writevtk(args...;geo_map=nothing,
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...)
   map(Gridap.Visualization.visualization_data(args...;kwargs...)) do visdata

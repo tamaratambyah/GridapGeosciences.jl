@@ -39,9 +39,9 @@ Base.size(a::LinearCombinationDofVector) = (size(a.values,2),)
 Base.IndexStyle(::LinearCombinationDofVector) = IndexLinear()
 Base.getindex(::LinearCombinationDofVector{T},::Integer) where T = T()
 
-function linear_combination(a::AbstractMatrix{<:Number}, b::AbstractVector{<:Dof})
-  LinearCombinationDofVector(a,b)
-end
+# function linear_combination(a::AbstractMatrix{<:Number}, b::AbstractVector{<:Dof})
+#   LinearCombinationDofVector(a,b)
+# end
 
 function return_cache(b::LinearCombinationDofVector,field)
   k = LinearCombinationMap(:)
@@ -58,11 +58,11 @@ function evaluate!(cache,b::LinearCombinationDofVector,field)
   return evaluate!(ck,k,fx,transpose(b.values))
 end
 
-# This constructor overload is NOT in Gridap 0.20.x. 
-# We needed so that the method 
+# This constructor overload is NOT in Gridap 0.20.x.
+# We needed so that the method
 # Base.getindex(::LinearCombinationDofVector{T},::Integer) where T = T()
 # above does not throw an error. In Gridap 0.20.x, there is NO constructor
-# for PointValue without arguments. I think this should be reported as 
+# for PointValue without arguments. I think this should be reported as
 # an issue in Gridap.
 function PointValue{Point{D,Float64}}() where D
    return PointValue(ntuple(_->0.0,D))
