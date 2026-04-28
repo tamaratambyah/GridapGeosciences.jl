@@ -254,6 +254,41 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   ns = numerical_setup(ss,A)
   rmul!(b,-1)
 
+  solve!(x,ns,b)
+
+  LinearSolverCache(A,b,ns)
+end
+
+function Gridap.Algebra.solve!(x::AbstractVector,
+                ls::LinearSolver,
+                op::DAENonlinearOperator,
+                cache)
+  # println("my DAE linear solver")
+  fill!(x,zero(eltype(x)))
+  b = cache.b
+  A = cache.A
+  ns = cache.ns
+  Gridap.Algebra.residual!(b, op, x)
+  Gridap.Algebra.jacobian!(A, op, x)
+  numerical_setup!(ns,A)
+  rmul!(b,-1)
+
+  solve!(x,ns,b)
+
+  cache
+end
+
+function Gridap.Algebra.solve!(x::PVector,
+  ls::LinearSolver,
+  op::DAENonlinearOperator,
+  cache::Nothing)
+  fill!(x,zero(eltype(x)))
+  b = Gridap.Algebra.residual(op, x)
+  A = Gridap.Algebra.jacobian(op, x)
+  ss = symbolic_setup(ls, A)
+  ns = numerical_setup(ss,A)
+  rmul!(b,-1)
+
   _x = Gridap.Algebra.allocate_in_domain(A)
   fill!(_x,0.0)
   Gridap.Algebra.solve!(_x,ns,b)
@@ -263,10 +298,10 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   LinearSolverCache(A,b,ns)
 end
 
-function Gridap.Algebra.solve!(x::AbstractVector,
-                ls::LinearSolver,
-                op::DAENonlinearOperator,
-                cache)
+function Gridap.Algebra.solve!(x::PVector,
+  ls::LinearSolver,
+  op::DAENonlinearOperator,
+  cache)
   # println("my DAE linear solver")
   fill!(x,zero(eltype(x)))
   b = cache.b
