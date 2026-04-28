@@ -176,7 +176,10 @@ function _get_cell_dof_basis(T::Type{<:VectorValue},
                               cell_reffe::AbstractArray{<:GenericLagrangianRefFE},
                               change_of_basis_matrices)
   dof_basis = lazy_map(get_dof_basis,cell_reffe)
-  inv_change_of_basis_matrices = lazy_map(transpose, lazy_map(inv, change_of_basis_matrices))
+  # IMPORTANT NOTE: Once we move to Gridap 0.20, we can replace collect∘transpose by transpose.
+  #                 This is because the linear_combination available in Gridap 0.19 only supports
+  #                 the case where the change of basis matrix is of type Matrix. 
+  inv_change_of_basis_matrices = lazy_map(collect∘transpose, lazy_map(inv, change_of_basis_matrices))
   return lazy_map(linear_combination, inv_change_of_basis_matrices, dof_basis)
 end
 
