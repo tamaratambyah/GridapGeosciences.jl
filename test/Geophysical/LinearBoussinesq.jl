@@ -119,16 +119,16 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
 
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
 
-  h_cf = panelwise_cellfield(h,Ω_panel)
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel)
+  h_cf = ParametricCellField(h,Ω_panel)
+  u_cf = ParametricCellField(piola(vX),Ω_panel)
   u_proj_cf = covariant_basis_cf ⋅(1/meas_cf * u_cf  )
-  b_cf = panelwise_cellfield(b,Ω_panel)
-  omega_cf = panelwise_cellfield(f,Ω_panel)
+  b_cf = ParametricCellField(b,Ω_panel)
+  omega_cf = ParametricCellField(f,Ω_panel)
 
   p_int = interpolate(h_cf,P)
   u_int = interpolate(u_cf,U)
@@ -138,7 +138,7 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
   _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
   normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
-  normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel)
+  normal_3D_cf = ParametricCellField(normal_3D,Ω_panel)
 
   coriolis_term((u,p,b),(v,q,r)) = ∫( omega_cf*( normal_3D_cf ×( metric_cf⋅u*(1/meas_cf)  ) )⋅(metric_cf⋅v)*(1/meas_cf)  )dΩ
   bouyancy_term(b,v) = ∫( b*(normal_3D_cf⋅v)  )dΩ # v ∈ Hdiv, b ∈ L2

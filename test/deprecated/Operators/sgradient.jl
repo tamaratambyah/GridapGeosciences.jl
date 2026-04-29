@@ -9,14 +9,14 @@ function sgrad(panel_model,p_fe::Int,dir::String,func::Function)
   Ω_panel = Triangulation(panel_model)
   panel_ids = get_panel_ids(panel_model)
 
-  f_panel_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  contravarient_basis_cf = panelwise_cellfield(contravariant_basis,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(func,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  contravarient_basis_cf = ParametricCellField(contravariant_basis,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
 
   ### analytic gradient -- need to define new function to trigger automatric differentiation
   gradf(p) = αβ -> gradient(func(p))(αβ)
-  gradf_cf = panelwise_cellfield(gradf,Ω_panel,panel_ids)
+  gradf_cf = ParametricCellField(gradf,Ω_panel,panel_ids)
 
   grad_covarient =  contravarient_basis_cf ⋅ gradf_cf
   grad_contravarient = covariant_basis_cf ⋅  (inv_metric_cf ⋅ gradf_cf)

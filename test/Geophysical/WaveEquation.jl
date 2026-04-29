@@ -63,12 +63,12 @@ function wave_solver(panel_model,
   X = MultiFieldFESpace([U, P])
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
-  h_cf = panelwise_cellfield(h,Ω_panel)
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel)
+  h_cf = ParametricCellField(h,Ω_panel)
+  u_cf = ParametricCellField(piola(vX),Ω_panel)
   u_proj_cf = covariant_basis_cf ⋅(1/meas_cf * u_cf  )
 
   p_int = interpolate(h_cf,P)

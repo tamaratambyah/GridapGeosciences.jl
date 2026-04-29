@@ -34,7 +34,7 @@ end
 @publish Geometry get_forward_map_generator
 @publish Geometry get_radius
 @publish Geometry get_thickness
-@publish Geometry panelwise_cellfield
+@publish Geometry ParametricCellField
 
 @publish ODEs DAEFEOperator
 
@@ -74,7 +74,7 @@ end
 @publish Distributed DistributedParametricDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed latlon_geo_map_func
-@publish Distributed panelwise_cellfield
+@publish Distributed ParametricCellField
 
 @publish Distributed writevtk_with_cell_geomap
 @publish Distributed createvtk_with_cell_geomap

@@ -40,11 +40,11 @@ function interpolation(panel_model,p_fe::Int,dir::String,func::Function,return_v
   dΩ = Measure(Ω_panel,10*p_fe)
   panel_ids = get_panel_ids(panel_model)
 
-  f_panel_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(func,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
 
-  slap_panel_cf =  panelwise_cellfield(surflap(func),Ω_panel,panel_ids)
+  slap_panel_cf =  ParametricCellField(surflap(func),Ω_panel,panel_ids)
 
   i_am_main(ranks) && println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
 

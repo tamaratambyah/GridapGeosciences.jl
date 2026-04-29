@@ -61,7 +61,7 @@ function fV(p)
     VectorValue(0.0,xyz[3],xyz[1]^2)
   end
 end
-vec_contra_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
+vec_contra_cf = ParametricCellField(contra_v_3D(fV),Ω,panel_ids)
 
 ### lowest order nedelec
 order = 0
@@ -126,9 +126,9 @@ _d[1][10]
 _d[3][11]
 _d[1][12]
 
-metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+metric_cf = ParametricCellField(metric,Ω,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
 
 _e = vec_contra_cf - vec_contra_h
 el2_interp =  sqrt(sum(∫( _e⋅(metric_cf⋅_e)*meas_cf )dΩ_error))

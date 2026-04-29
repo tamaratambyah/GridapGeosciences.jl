@@ -15,15 +15,15 @@ function mass_conservation(panel_model,p_fe::Int,dir::String,func::Function,scal
   dΩ = Measure(Ω_panel,2*(p_fe+1))
 
   vec_contra_cf = if scalar_field
-    panelwise_cellfield(contr_gradf(func),Ω_panel,panel_ids)
+    ParametricCellField(contr_gradf(func),Ω_panel,panel_ids)
   else
-    panelwise_cellfield(contra_v(func),Ω_panel,panel_ids)
+    ParametricCellField(contra_v(func),Ω_panel,panel_ids)
   end
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)

@@ -56,15 +56,15 @@ function transient_wave_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapD
   X = MultiFieldFESpace([U, P])
 
   ## initial conditions
-  h_cf = panelwise_cellfield(h,Ω_panel)
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel)
+  h_cf = ParametricCellField(h,Ω_panel)
+  u_cf = ParametricCellField(piola(vX),Ω_panel)
   xh0 = interpolate([u_cf,h_cf],X)
   t0 = 0.0
 
 
   ## transient weak form
-  metric_cf = panelwise_cellfield(metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
 
   mass(t, (dtu,dtp), (v,q)) = ∫( (v⋅ (metric_cf⋅dtu))*(1/meas_cf) )dΩ  + ∫( (q*dtp)*meas_cf )dΩ
   res(t,(u,p),(v,q)) =  ∫( q*(∇⋅u) )dΩ - ∫( p*(∇⋅v) )dΩ

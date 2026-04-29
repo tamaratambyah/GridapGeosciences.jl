@@ -107,13 +107,13 @@ function Hdiv(
   W = FESpace(panel_model, ReferenceFE(lagrangian, Float64, p_fe); conformity=:L2)
   R = TrialFESpace(W)
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
 
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
 
   Πdiv_u = interpolate(sdiv_cf,R)
   sum(∫( Πdiv_u  )dΩ )

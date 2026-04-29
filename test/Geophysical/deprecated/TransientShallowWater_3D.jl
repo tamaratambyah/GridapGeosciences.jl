@@ -73,22 +73,22 @@ function transient_shallow_water_solver_3D(
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
   # initial conditions
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+  h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+  b_cf = ParametricCellField(b,Ω_panel,panel_ids)
   h_h = interpolate(h_cf-b_cf,P)
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
   u_contra_h = interpolate(u_contra_cf,U)
   xh0 = interpolate([u_contra_h,h_h],X_prog)
 
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
 
   # weak forms
-  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  detg_cf = ParametricCellField(detg,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   #### DIAGNOSTIC VARIABLES
 
@@ -108,7 +108,7 @@ function transient_shallow_water_solver_3D(
     return VectorValue(0,v[1],v[2])
   end
 
-  perp_matrix_cf = panelwise_cellfield(perp_matrix_3D,Ω_panel,panel_ids)
+  perp_matrix_cf = ParametricCellField(perp_matrix_3D,Ω_panel,panel_ids)
   resq(((u,p),(q,F,Φ)),(w,v,ψ)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (( extract_2D∘(u,perp_matrix_cf)) )⋅∇(w)  )dΩ
 
   # mass flux

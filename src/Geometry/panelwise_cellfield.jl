@@ -1,4 +1,4 @@
-function panelwise_cellfield(f::Function,
+function ParametricCellField(f::Function,
                              trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel},
                              panel_ids::AbstractArray{Int}) where {Dc,Dp}
   @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
@@ -9,35 +9,35 @@ function panelwise_cellfield(f::Function,
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end
 
-function panelwise_cellfield(f::Function,trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel}) where {Dc,Dp}
+function ParametricCellField(f::Function,trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel}) where {Dc,Dp}
   panel_ids = get_panel_ids(trian)
-  panelwise_cellfield(f,trian,panel_ids)
+  ParametricCellField(f,trian,panel_ids)
 end
 
 ### For Adapted Triangulations, return cellfield on the atrian
-function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation,panel_ids::AbstractArray{Int})
-  cf = panelwise_cellfield(f,atrian.trian,panel_ids)
-  panelwise_cellfield(cf,atrian)
+function ParametricCellField(f::Function,atrian::AdaptedTriangulation,panel_ids::AbstractArray{Int})
+  cf = ParametricCellField(f,atrian.trian,panel_ids)
+  ParametricCellField(cf,atrian)
 end
 
-function panelwise_cellfield(f::Function,atrian::AdaptedTriangulation)
-  cf = panelwise_cellfield(f,atrian.trian)
-  panelwise_cellfield(cf,atrian)
+function ParametricCellField(f::Function,atrian::AdaptedTriangulation)
+  cf = ParametricCellField(f,atrian.trian)
+  ParametricCellField(cf,atrian)
 end
 
-function panelwise_cellfield(cf::CellField,atrian::AdaptedTriangulation)
+function ParametricCellField(cf::CellField,atrian::AdaptedTriangulation)
   GenericCellField(get_data(cf),atrian,DomainStyle(cf))
 end
 
-function panelwise_cellfield(cf::SkeletonPair,atrian::AdaptedTriangulation)
+function ParametricCellField(cf::SkeletonPair,atrian::AdaptedTriangulation)
   plus = GenericCellField(get_data(cf.plus),atrian,ReferenceDomain())
   minus = GenericCellField(get_data(cf.minus),atrian,ReferenceDomain())
   return SkeletonPair(plus,minus)
 end
 
 
-function panelwise_cellfield(f::Function,trian::TriangulationView)
-  panelwise_cellfield(f,trian.parent)
+function ParametricCellField(f::Function,trian::TriangulationView)
+  ParametricCellField(f,trian.parent)
 end
 
 
@@ -45,12 +45,12 @@ end
 ### Thus, return cellfield on the reference domain
 
 ### Boundary
-function panelwise_cellfield(f::Function,trian::BoundaryTriangulation)
+function ParametricCellField(f::Function,trian::BoundaryTriangulation)
   face_panel_ids = get_panel_ids(trian)
-  panelwise_cellfield(f,trian,face_panel_ids)
+  ParametricCellField(f,trian,face_panel_ids)
 end
 
-function panelwise_cellfield(f::Function,trian::BoundaryTriangulation,face_panel_ids::AbstractArray{Int})
+function ParametricCellField(f::Function,trian::BoundaryTriangulation,face_panel_ids::AbstractArray{Int})
   _face_cf = _boundary_cell_data(f,trian,face_panel_ids)
   face_cf = GenericCellField(_face_cf,trian,ReferenceDomain())
   return face_cf
@@ -82,16 +82,16 @@ function _boundary_cell_data(f::Function,trian,face_panel_ids::AbstractArray)
 end
 
 ### Skeleton - left and right boundary triangulations returned as SkeletonPair
-function panelwise_cellfield(f::Function,trian::SkeletonTriangulation)
+function ParametricCellField(f::Function,trian::SkeletonTriangulation)
   # panel_ids = get_panel_ids(trian)
   ### plus
   # _face_cf_plus = _boundary_cell_data(f,trian.plus,panel_ids.plus)
-  _face_cf_plus = panelwise_cellfield(f,trian.plus)
+  _face_cf_plus = ParametricCellField(f,trian.plus)
   plus = GenericCellField(get_data(_face_cf_plus),trian,ReferenceDomain())
 
   #### minus
   # _face_cf_minus = _boundary_cell_data(f,trian.minus,panel_ids.minus)
-  _face_cf_minus = panelwise_cellfield(f,trian.minus)
+  _face_cf_minus = ParametricCellField(f,trian.minus)
   minus = GenericCellField(get_data(_face_cf_minus),trian,ReferenceDomain())
 
   SkeletonPair(plus,minus)

@@ -26,13 +26,13 @@ function L2_projection_Hcurl(panel_model,
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
 
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel)
-  metric_cf = panelwise_cellfield(metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
   ## covariant components
-  vec_cov_cf = panelwise_cellfield(covar_v_3D(vecX),Ω_panel)
+  vec_cov_cf = ParametricCellField(covar_v_3D(vecX),Ω_panel)
   vec_proj_cf = covariant_basis_cf⋅ ( inv_metric_cf ⋅ vec_cov_cf)
 
 

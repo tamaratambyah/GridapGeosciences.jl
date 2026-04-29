@@ -62,7 +62,7 @@ function main(distribute,nprocs)
   ### check sqrt(g) is continuous across skeleton
   ### check |Jg^-1 n| - pullback of area form
   ##############################################################################
-  meas_cf = panelwise_cellfield(sqrtg,Λ)
+  meas_cf = ParametricCellField(sqrtg,Λ)
   out = (meas_cf.plus-meas_cf.minus)(pts)
   test_debug_equality(out)
 
@@ -80,7 +80,7 @@ function main(distribute,nprocs)
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  _vel = panelwise_cellfield(contra_v(vX),Ω_panel)
+  _vel = ParametricCellField(contra_v(vX),Ω_panel)
   vel = interpolate(_vel,U)
 
   diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))(pts)

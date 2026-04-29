@@ -31,11 +31,11 @@ function mixed_helmholtz_solver(
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,2*(p_fe+1))
 
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  sigma_cf = panelwise_cellfield(contr_gradf(f),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contr_gradf(f)),Ω_panel,panel_ids)
-  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(f,Ω_panel,panel_ids)
+  sigma_cf = ParametricCellField(contr_gradf(f),Ω_panel,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contr_gradf(f)),Ω_panel,panel_ids)
+  slap_panel_cf =  ParametricCellField(surflap(f),Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
   gradu_cf = covariant_basis_cf ⋅ sigma_cf
 
   rhs_cf = f_panel_cf + sdiv_cf
@@ -52,9 +52,9 @@ function mixed_helmholtz_solver(
   Y = MultiFieldFESpace([V, T])
   X = MultiFieldFESpace([U, S])
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
 
   biform1((u,s),(v,t)) = ∫( (s⋅ (metric_cf⋅t))*meas_cf )dΩ + ∫( u*(t⋅grad_meas_cf + meas_cf*(∇⋅t) ) )dΩ
   biform2((u,s),(v,t)) = ∫( (u*v)*meas_cf )dΩ + ∫( v*(s⋅grad_meas_cf + meas_cf*(∇⋅s) ) )dΩ

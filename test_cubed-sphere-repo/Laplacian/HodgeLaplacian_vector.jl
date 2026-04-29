@@ -121,10 +121,10 @@ function hodge_laplacian_vector(
   nΓ = get_normal_vector(Γ)
 
   ## metric information
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
 
 
@@ -183,15 +183,15 @@ function hodge_laplacian_vector(
 
   ### Rhs function
   rhs(p) = x-> curlw_cov(p)(x) - graddiv_cov(p)(x)
-  rhs_cov_cf = panelwise_cellfield(rhs,Ω_panel,panel_ids)
+  rhs_cov_cf = ParametricCellField(rhs,Ω_panel,panel_ids)
 
-  u_cov_cf = panelwise_cellfield(ucov,Ω_panel,panel_ids)
-  ccurlu_cov_cf = panelwise_cellfield(curlw_cov,Ω_panel,panel_ids)
-  un_cf = panelwise_cellfield(unX,Ω_panel,panel_ids)
-  curlu_cross = panelwise_cellfield(wcrossk_cov,Ω_panel,panel_ids)
-  curlu_cf = panelwise_cellfield(curlu,Ω_panel,panel_ids)
+  u_cov_cf = ParametricCellField(ucov,Ω_panel,panel_ids)
+  ccurlu_cov_cf = ParametricCellField(curlw_cov,Ω_panel,panel_ids)
+  un_cf = ParametricCellField(unX,Ω_panel,panel_ids)
+  curlu_cross = ParametricCellField(wcrossk_cov,Ω_panel,panel_ids)
+  curlu_cf = ParametricCellField(curlu,Ω_panel,panel_ids)
 
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v_3D(uX)),Ω_panel,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contra_v_3D(uX)),Ω_panel,panel_ids)
   sigma_cf = -sdiv_cf
 
 

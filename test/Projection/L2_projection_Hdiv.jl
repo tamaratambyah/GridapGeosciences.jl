@@ -16,12 +16,12 @@ function L2_projection_Hdiv(panel_model,
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
   ### Piola mapping for Hdiv fields
-  vec_piola_cf = panelwise_cellfield(piola(vecX),Ω_panel)
+  vec_piola_cf = ParametricCellField(piola(vecX),Ω_panel)
   vec_proj_cf_piola = covariant_basis_cf⋅ ( 1/meas_cf* vec_piola_cf )
 
   reffe = ReferenceFE(raviart_thomas,Float64,p_fe)

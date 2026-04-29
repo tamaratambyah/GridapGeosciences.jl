@@ -41,15 +41,15 @@ Y = MultiFieldFESpace([V, Q])
 X = MultiFieldFESpace([U, P])
 
 ## initial conditions
-h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-vec_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+vec_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
 xh0 = interpolate([vec_contra_cf,h_cf],X)
 
 
 ## transient weak form
-metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
 
 mass(t, (dtu,dtp), (v,q)) = ∫( (v⋅ (metric_cf⋅ dtu) )*meas_cf )dΩ + ∫( (q*dtp)*meas_cf )dΩ
 res(t,(u,p),(v,q)) =  ∫( q*(u⋅grad_meas_cf + meas_cf*(∇⋅u) )  )dΩ - ∫( p*(v⋅grad_meas_cf + meas_cf*(∇⋅v) ) )dΩ
@@ -74,7 +74,7 @@ for (t, xh) in solT
   i_am_main(ranks) && println("t = ", t)
 end
 
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 cell_geo_map = geo_map_func(Ω_panel)
 dir = datadir("TransientTest")
 writevtk(Ω_panel,dir*"/solT_test" * ".vtu", cellfields= ["uh"=>covariant_basis_cf⋅uh, "ph"=>ph],append=false,geo_map=cell_geo_map)

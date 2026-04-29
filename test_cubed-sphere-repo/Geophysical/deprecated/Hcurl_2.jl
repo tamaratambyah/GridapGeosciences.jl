@@ -41,8 +41,8 @@ panel_ids = get_panel_ids(panel_model)
 Ω_panel = Triangulation(das,panel_model)
 dΩ = Measure(Ω_panel,4)
 dΩ_error = Measure(Ω_panel,8)
-metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
 ## finite element space with boundry conditions
 tags = ["top_boundary", "bottom_boundary"]
@@ -69,7 +69,7 @@ contra_v_3D(vecX::Function,p::Int) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(�
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
 # f_vec = panel_to_cartesian(f_vec₀)
-# f_cf = panelwise_cellfield(contra_v_3D(f_vec),Ω_panel,panel_ids)
+# f_cf = ParametricCellField(contra_v_3D(f_vec),Ω_panel,panel_ids)
 
 function fV(p)
   function f(γαβ)
@@ -79,7 +79,7 @@ function fV(p)
 end
 
 
-f_cf = panelwise_cellfield(contra_v_3D(fV),Ω_panel,panel_ids)
+f_cf = ParametricCellField(contra_v_3D(fV),Ω_panel,panel_ids)
 
 R = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl)
 H = TrialFESpace(R)
@@ -90,7 +90,7 @@ gradh = gradient(f_h)
 
 # check the XX component
 scalar(xyz) = 2*xyz[1]
-s_cf = panelwise_cellfield(panel_to_cartesian(scalar),Ω_panel,panel_ids)
+s_cf = ParametricCellField(panel_to_cartesian(scalar),Ω_panel,panel_ids)
 
 
 latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)

@@ -11,13 +11,13 @@ function vector_perp(panel_model,p_fe::Int,dir::String,vX::Function,return_vtk=f
   panel_ids = get_panel_ids(panel_model)
   dΩ = Measure(Ω_panel,4*p_fe)
 
-  norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel,panel_ids)
-  u_proj_cf = panelwise_cellfield(projection_v(vX),Ω_panel,panel_ids)
+  norm_vec_from_basis_cf = ParametricCellField(normal_vector_from_basis,Ω_panel,panel_ids)
+  u_proj_cf = ParametricCellField(projection_v(vX),Ω_panel,panel_ids)
   u_perp = cross(norm_vec_from_basis_cf,u_proj_cf)
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  jacobian_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
-  u_perp_contra = panelwise_cellfield(contra_v_perp(vX),Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  jacobian_cf = ParametricCellField(forward_jacobian,Ω_panel,panel_ids)
+  u_perp_contra = ParametricCellField(contra_v_perp(vX),Ω_panel,panel_ids)
 
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
   U = TrialFESpace(V)

@@ -18,7 +18,7 @@ function compute_surface_area(model, degree::Int)
   Ω = Triangulation(model)
   dΩ = Measure(Ω,degree)
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω)
+  meas_cf = ParametricCellField(sqrtg,Ω)
   surface_area = sum( ∫( 1.0*meas_cf )dΩ )
   return surface_area
 end

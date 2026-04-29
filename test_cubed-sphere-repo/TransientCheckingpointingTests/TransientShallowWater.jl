@@ -74,20 +74,20 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   ## initial conditions
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
 
-    u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+    u_cf = ParametricCellField(piola(vX),Ω_panel,panel_ids)
     u_int = interpolate(u_cf,U)
 
-    h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-    b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+    h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+    b_cf = ParametricCellField(b,Ω_panel,panel_ids)
     h_int = interpolate(h_cf-b_cf,P)
 
     xh0 = interpolate_everywhere([u_int,h_int],X_prog(0.0))
@@ -101,9 +101,9 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   t0,xh0 = (restart) ? load_last(ranks,X_prog(0.0),prog_dir,simName) : initial_condition()
 
   ## transient weak form
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
-  b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+  b_cf = ParametricCellField(b,Ω_panel,panel_ids)
 
   #### DIAGNOSTIC VARIABLES
   # vorticity
@@ -249,10 +249,10 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   X_diag = TransientMultiFieldFESpace([H,U,P]) # q, F, Φ
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
 
   labels = ["uh","ph","qh","Fh","Phih","vort", "vort-f"]
@@ -349,9 +349,9 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
   X_prog = TransientMultiFieldFESpace([U,P]) # u, p
   Y_prog = MultiFieldFESpace([V,Q]) # u, p
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
 
   f_folders = readdir(final_dir)
   i_folders = readdir(initial_dir)

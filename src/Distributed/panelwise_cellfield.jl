@@ -1,4 +1,4 @@
-# function panelwise_cellfield(f::Function,
+# function ParametricCellField(f::Function,
 #   trian::GridapDistributed.DistributedTriangulation,
 #   panel_ids::AbstractArray)
 
@@ -8,14 +8,14 @@
 #   fields = map(trian.trians,partition(gids),panel_ids) do t,cid,pid
 #     owned_cells = own_to_local(cid)
 #     panel_ids = pid[owned_cells]
-#     panelwise_cellfield(f,t,panel_ids)
+#     ParametricCellField(f,t,panel_ids)
 #   end
 #   GridapDistributed.DistributedCellField(fields,trian)
 # end
 
 #### This function is Alberto's solution to the issue with ghost+local on
 #### octree periodic meshes. See issue %%%% in GridapP4est
-function panelwise_cellfield(f::Function,
+function ParametricCellField(f::Function,
   trian::GridapDistributed.DistributedTriangulation)
 
   # println("new panelwise cellfield")
@@ -23,7 +23,7 @@ function panelwise_cellfield(f::Function,
   panel_model = trian.model
 
   fields = map(local_views(panel_model)) do lmodel
-    panelwise_cellfield(f,Triangulation(lmodel))
+    ParametricCellField(f,Triangulation(lmodel))
   end
 
   trians = map(local_views(panel_model)) do lmodel
@@ -35,18 +35,18 @@ function panelwise_cellfield(f::Function,
 end
 
 
-# function panelwise_cellfield(f::Function,
+# function ParametricCellField(f::Function,
 #   trian::GridapDistributed.DistributedTriangulation)
 #   # println("old panelwise cellfield -- skeleton")
 #   fields = map(trian.trians) do t
-#     panelwise_cellfield(f,t)
+#     ParametricCellField(f,t)
 #   end
 #   GridapDistributed.DistributedCellField(fields,trian)
 # end
 
 ### This function is Alberto's solution to the issue with ghost+local on
 ### octree periodic meshes. See issue %%%% in GridapP4est
-# function panelwise_cellfield(f::Function,
+# function ParametricCellField(f::Function,
 #   trian::GridapDistributed.DistributedTriangulation)
 
 #   println("new panelwise cellfield for skeleton mesh")
@@ -54,8 +54,8 @@ end
 #   panel_model = trian.model
 
 #   fields = map(local_views(panel_model)) do lmodel
-#     panelwise_cellfield(f,SkeletonTriangulation(lmodel))
-#     # panelwise_cellfield(f,trian)
+#     ParametricCellField(f,SkeletonTriangulation(lmodel))
+#     # ParametricCellField(f,trian)
 #   end
 
 #   # trians = map(local_views(panel_model)) do lmodel

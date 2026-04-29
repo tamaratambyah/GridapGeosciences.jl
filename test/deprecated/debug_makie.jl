@@ -11,7 +11,7 @@ s_models = get_refined_models(3)
 model = s_models[2]
 Ω_panel = Triangulation(model)
 panel_ids = get_panel_ids(model)
-u_cf = panelwise_cellfield(f_sin,Ω_panel,panel_ids)
+u_cf = ParametricCellField(f_sin,Ω_panel,panel_ids)
 
 
 Q = TestFESpace(model, ReferenceFE(lagrangian,Float64,1); conformity=:L2)
@@ -69,7 +69,7 @@ save_mesh(dir,model)
 
 Ω_panel = Triangulation(model)
 panel_ids = get_panel_ids(model)
-u_cf = panelwise_cellfield(f_sin,Ω_panel,panel_ids)
+u_cf = ParametricCellField(f_sin,Ω_panel,panel_ids)
 
 Q = TestFESpace(model, ReferenceFE(lagrangian,Float64,1); conformity=:L2)
 P = TrialFESpace(Q)

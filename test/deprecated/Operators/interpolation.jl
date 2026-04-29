@@ -11,7 +11,7 @@ function interpolation(panel_model,p_fe::Int,dir::String,func::Function)
   dΩ = Measure(Ω_panel,2*p_fe+1)
   panel_ids = get_panel_ids(panel_model)
 
-  f_panel_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(func,Ω_panel,panel_ids)
 
   ### interpolate f into FE space, and then differentiate
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)

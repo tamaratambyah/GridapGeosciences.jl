@@ -25,7 +25,7 @@ include("ambient_model.jl")
 include("BoundaryTriangulations.jl")
 include("SkeletonTriangulations.jl")
 include("AdaptedTriangulations.jl")
-include("panelwise_cellfield.jl")
+include("ParametricCellField.jl")
 include("TriangulationView.jl")
 include("TriangulationPanelIds.jl")
 
@@ -41,7 +41,7 @@ export ParametricDiscreteModel
 
 export get_nodes_from_coords
 
-export panelwise_cellfield
+export ParametricCellField
 export _pushforward_normal
 export _pullback_area_form
 

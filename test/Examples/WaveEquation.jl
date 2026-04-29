@@ -126,8 +126,8 @@ end
 # Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.
 # This is used to generate a panelwise cellfield of the analytic functions, where
 # we extra the contravariant Piola component for the velocity:
-u_cf = panelwise_cellfield(piola(u),Ω)
-phi_cf = panelwise_cellfield(φ,Ω)
+u_cf = ParametricCellField(piola(u),Ω)
+phi_cf = ParametricCellField(φ,Ω)
 
 # Interpolate the exact solution into the FE spae
 p_int = interpolate(phi_cf,P)
@@ -136,8 +136,8 @@ u_int = interpolate(u_cf,U)
 # ## Weak form
 # The weak form is written as a mulitifield problem using  using Gridap's high level API.
 # We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
-meas = panelwise_cellfield(sqrtg,Ω)
-g = panelwise_cellfield(metric,Ω)
+meas = ParametricCellField(sqrtg,Ω)
+g = ParametricCellField(metric,Ω)
 degree = 4*(order+1)
 dΩ = Measure(Ω,degree)
 dΓ = Measure(Γ,degree)
@@ -175,7 +175,7 @@ ep_l2 = sqrt(sum(∫((ep⋅ep)*meas)dΩ))
 # For the velocity, the parametric velocity field is pushed to the ambient space
 # via the contraviant Piola map. Then the $L^2$ norm of the error between
 # the exact and numerical soltuions is computed as
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω)
 uh_proj = covariant_basis_cf ⋅ (1/meas * uh)
 u_proj_cf = covariant_basis_cf ⋅ (1/meas *u_cf )
 eu = u_cf - uh

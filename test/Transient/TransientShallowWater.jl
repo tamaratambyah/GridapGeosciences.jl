@@ -81,16 +81,16 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
 
   ## initial conditions
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel)
+  u_cf = ParametricCellField(piola(vX),Ω_panel)
   u_int = interpolate(u_cf,U)
 
-  h_cf = panelwise_cellfield(h,Ω_panel)
-  b_cf = panelwise_cellfield(b,Ω_panel)
+  h_cf = ParametricCellField(h,Ω_panel)
+  b_cf = ParametricCellField(b,Ω_panel)
   h_int = interpolate(h_cf-b_cf,P)
 
   xh0 = interpolate_everywhere([u_int,h_int],X_prog(0.0))
@@ -98,9 +98,9 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   tF = _tF
 
   ## transient weak form
-  cor_cf = panelwise_cellfield(f,Ω_panel)
+  cor_cf = ParametricCellField(f,Ω_panel)
   gravity = _g
-  b_cf = panelwise_cellfield(b,Ω_panel)
+  b_cf = ParametricCellField(b,Ω_panel)
 
   #### DIAGNOSTIC VARIABLES
   # vorticity

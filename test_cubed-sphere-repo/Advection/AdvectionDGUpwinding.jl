@@ -70,9 +70,9 @@ function advection_dg_solver(
 
   _rhs(p) = αβ -> u(p)(αβ) + surfdiv(contra_v(uvX))(p)(αβ)
 
-  v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
-  rhs_cf = panelwise_cellfield(_rhs,Ω_panel,panel_ids)
+  v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  u_cf = ParametricCellField(u,Ω_panel,panel_ids)
+  rhs_cf = ParametricCellField(_rhs,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TrialFESpace(Q)
@@ -84,8 +84,8 @@ function advection_dg_solver(
 
   vel = v_contr_cf
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  meas_cf_skel = ParametricCellField(sqrtg,Λ)
 
   a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 
@@ -93,8 +93,8 @@ function advection_dg_solver(
   a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
   # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*_meas_cf   )dΛ
 
-  # jac_cf = panelwise_cellfield(forward_jacobian,Λ)
-  # ginv_cf = panelwise_cellfield(inv_metric,Λ)
+  # jac_cf = ParametricCellField(forward_jacobian,Λ)
+  # ginv_cf = ParametricCellField(inv_metric,Λ)
   # a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf_skel.plus   )dΛ
   # a_s1(u,v) = ∫( _my_other_mean(jac_cf,vel,u,meas_cf_skel)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)   )dΛ
 

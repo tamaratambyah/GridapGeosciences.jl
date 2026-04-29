@@ -133,19 +133,19 @@ end
 
 # Then converted into a panelwise cellfield, where we extract the contravariant components
 # for the velocity:
-u_cf = panelwise_cellfield(piola(u0),Ω)
-h_cf = panelwise_cellfield(h0,Ω)
-f_cf = panelwise_cellfield(f0,Ω)
+u_cf = ParametricCellField(piola(u0),Ω)
+h_cf = ParametricCellField(h0,Ω)
+f_cf = ParametricCellField(f0,Ω)
 
 
 # ## Weak form
 # To define the weak form, we require the metric and measure, as well as the
 # the matrix that represents the perp operator.
 # We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
-g = panelwise_cellfield(metric,Ω)
-ginv = panelwise_cellfield(inv_metric,Ω)
-meas = panelwise_cellfield(sqrtg,Ω)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω)
+g = ParametricCellField(metric,Ω)
+ginv = ParametricCellField(inv_metric,Ω)
+meas = ParametricCellField(sqrtg,Ω)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω)
 Aperp = [0 -1
         1 0]
 Rperp = TensorValue(Aperp)

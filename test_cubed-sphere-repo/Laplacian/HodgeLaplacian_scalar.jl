@@ -79,14 +79,14 @@ function hodge_laplacian_scalar(panel_model,
   X = MultiFieldFESpace([U, P])
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   # manufactured RHS
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  sigma_cf = panelwise_cellfield(sgrad(f),Ω_panel,panel_ids)
-  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(f,Ω_panel,panel_ids)
+  sigma_cf = ParametricCellField(sgrad(f),Ω_panel,panel_ids)
+  slap_panel_cf =  ParametricCellField(surflap(f),Ω_panel,panel_ids)
   rhs = -slap_panel_cf
   f_int = interpolate(f_panel_cf,P)
 

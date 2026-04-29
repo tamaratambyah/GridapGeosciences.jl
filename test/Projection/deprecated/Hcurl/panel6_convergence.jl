@@ -73,11 +73,11 @@ function nedelec_convergence(_panel_model::GridapDistributed.GenericDistributedD
   Ω_p6 = Triangulation(Ω,mask)
   dΩ_p6 = Measure(Ω_p6,8)
 
-  metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
 
-  vec_contra_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
+  vec_contra_cf = ParametricCellField(contra_v_3D(fV),Ω,panel_ids)
   vec_proj_cf = covariant_basis_cf ⋅ vec_contra_cf
 
   ### lowest order nedelec

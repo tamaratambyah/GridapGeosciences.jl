@@ -21,7 +21,7 @@ using GridapGeosciences.Geometry
 import GridapGeosciences.Geometry: _CCAM_panel_wise_node_ids
 import GridapGeosciences.Geometry: _CCAM_cube_nodes_3d
 import GridapGeosciences.Geometry: setup_panel_cmaps
-import GridapGeosciences.Geometry: panelwise_cellfield, geo_map_func, latlon_geo_map_func
+import GridapGeosciences.Geometry: ParametricCellField, geo_map_func, latlon_geo_map_func
 import GridapGeosciences.Geometry: get_panel_ids, get_forward_map_generator, get_radius, get_thickness
 import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
 
@@ -36,7 +36,7 @@ import GridapGeosciences.Visualisation: createvtk_with_cell_geomap, create_vtk_f
 include("ParametricOctreeDistributedDiscreteModels.jl")
 include("Parametric3DOctreeDistributedDiscreteModels.jl")
 include("DistributedParametricDiscreteModel.jl")
-include("panelwise_cellfield.jl")
+include("ParametricCellField.jl")
 include("panel_ids.jl")
 include("Vtk.jl")
 include("createpvd.jl")
@@ -51,7 +51,7 @@ include("GradConformingFESpaces.jl")
 export ParametricOctreeDistributedDiscreteModel
 export Parametric3DOctreeDistributedDiscreteModel
 export DistributedParametricDiscreteModel
-export panelwise_cellfield, geo_map_func, get_panel_ids, latlon_geo_map_func
+export ParametricCellField, geo_map_func, get_panel_ids, latlon_geo_map_func
 export get_forward_map_generator, get_radius, get_thickness
 export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
 export createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap, create_pvtk_file_with_cell_geomap

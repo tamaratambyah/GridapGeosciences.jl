@@ -177,23 +177,23 @@ X_prog = MultiFieldFESpace([U,P]) # u, p
 Y_prog = MultiFieldFESpace([V,Q]) # u, p
 
 ## initial conditions
-u_contra_cf = panelwise_cellfield(contra_v_3D(u_vec_3D),Ω_panel,panel_ids)
+u_contra_cf = ParametricCellField(contra_v_3D(u_vec_3D),Ω_panel,panel_ids)
 u_contra_h = interpolate(u_contra_cf,U)
 
-h_cf = panelwise_cellfield(h_3D,Ω_panel,panel_ids)
+h_cf = ParametricCellField(h_3D,Ω_panel,panel_ids)
 h_h = interpolate(h_cf,P)
 
 xh0 = interpolate_everywhere([u_contra_h,h_h],X_prog)
 
-inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-jac_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
+inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+jac_cf = ParametricCellField(forward_jacobian,Ω_panel,panel_ids)
 area_meas_cf = Operation(norm)(jac_cf⋅(inv_metric_cf ⋅nΓ) )
 
 gravity = _g
-f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
+f_cov_cf = ParametricCellField(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
 
 
 uh,ph = xh0

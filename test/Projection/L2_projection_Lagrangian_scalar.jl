@@ -21,8 +21,8 @@ function L2_projection_Lagrangian_scalar(panel_model,
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
 
-  f_cf = panelwise_cellfield(func,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  f_cf = ParametricCellField(func,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
 
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=conf)
   U = TrialFESpace(V)

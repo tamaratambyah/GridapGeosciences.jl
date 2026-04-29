@@ -57,7 +57,7 @@ function fV(p)
   end
 end
 ### pull with JT -> to a 1-form i.e. covariant vector (index down)
-vec_cov_cf = panelwise_cellfield(covar_v_3D(fV),Ω,panel_ids)
+vec_cov_cf = ParametricCellField(covar_v_3D(fV),Ω,panel_ids)
 
 ### lowest order nedelec
 order = 0

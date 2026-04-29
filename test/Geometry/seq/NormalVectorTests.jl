@@ -36,9 +36,9 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
   dΩ = Measure(Ω_panel,6)
 
   vX = panel_to_cartesian(normal_vec)
-  norm_vec_cf = panelwise_cellfield(vX,Ω_panel)
-  norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
+  norm_vec_cf = ParametricCellField(vX,Ω_panel)
+  norm_vec_from_basis_cf = ParametricCellField(normal_vector_from_basis,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
 
   # the above are vectors in the ambient space, so do not need to use metric to
   # compute error
@@ -140,9 +140,9 @@ end
 Λ = SkeletonTriangulation(panel_model)
 pts = get_cell_points(Λ)
 n_Λ = get_normal_vector(Λ)
-meas_cf = panelwise_cellfield(sqrtg,Λ)
-inv_metric_cf = panelwise_cellfield(inv_metric,Λ)
-jac_cf = panelwise_cellfield(forward_jacobian,Λ)
+meas_cf = ParametricCellField(sqrtg,Λ)
+inv_metric_cf = ParametricCellField(inv_metric,Λ)
+jac_cf = ParametricCellField(forward_jacobian,Λ)
 area_form_cf = pullback_area_form(Λ)
 
 # test equality of plus and minus side of sqrt(g)
@@ -183,7 +183,7 @@ U = TrialFESpace(V)
 n_Λ = get_normal_vector(Λ)
 pts = get_cell_points(Λ)
 
-_vel = panelwise_cellfield(contra_v(vX),Ω_panel)
+_vel = ParametricCellField(contra_v(vX),Ω_panel)
 vel = interpolate(_vel,U)
 
 diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))

@@ -141,9 +141,9 @@ function transient_linear_boussinesq_solver(
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
 
-    h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-    u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
-    b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+    h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+    u_cf = ParametricCellField(piola(vX),Ω_panel,panel_ids)
+    b_cf = ParametricCellField(b,Ω_panel,panel_ids)
 
     xh0 = interpolate([u_cf,h_cf,b_cf],X)
     t = 0.0
@@ -155,17 +155,17 @@ function transient_linear_boussinesq_solver(
   simName = "solT"
   t0,xh0 = (restart) ? load_last(ranks,X,sim_dir,simName) : initial_condition()
 
-  omega_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  omega_cf = ParametricCellField(f,Ω_panel,panel_ids)
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
   ## In 3D, we construct ̃k using the area measure
   _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
   normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
-  normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel,panel_ids)
+  normal_3D_cf = ParametricCellField(normal_3D,Ω_panel,panel_ids)
 
   coriolis_term((u,p,b),(v,q,r)) = ∫( omega_cf*( normal_3D_cf ×( metric_cf⋅u*(1/meas_cf)  ) )⋅(metric_cf⋅v)*(1/meas_cf)  )dΩ
   bouyancy_term(b,v) = ∫( b*(normal_3D_cf⋅v)  )dΩ # v ∈ Hdiv, b ∈ L2
@@ -270,8 +270,8 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   Y = MultiFieldFESpace([V, Q, W])
   X = MultiFieldFESpace([U, P, B])
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
   cell_geo_map = geo_map_func(Ω_panel)
   latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)

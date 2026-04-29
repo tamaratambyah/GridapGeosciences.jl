@@ -11,10 +11,10 @@ function vector_proj(panel_model,p_fe::Int,dir::String,vecX::Function,return_vtk
   dΩ = Measure(Ω_panel,4*p_fe)
   panel_ids = get_panel_ids(panel_model)
 
-  vec_phys = panelwise_cellfield(vecX,Ω_panel,panel_ids)
-  vec_project = panelwise_cellfield(projection_v(vecX),Ω_panel,panel_ids)
-  vec_contra_cf = panelwise_cellfield(contra_v(vecX),Ω_panel,panel_ids)
-  jacobian_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
+  vec_phys = ParametricCellField(vecX,Ω_panel,panel_ids)
+  vec_project = ParametricCellField(projection_v(vecX),Ω_panel,panel_ids)
+  vec_contra_cf = ParametricCellField(contra_v(vecX),Ω_panel,panel_ids)
+  jacobian_cf = ParametricCellField(forward_jacobian,Ω_panel,panel_ids)
 
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,p_fe); conformity=:HDiv)
   U = TrialFESpace(V)

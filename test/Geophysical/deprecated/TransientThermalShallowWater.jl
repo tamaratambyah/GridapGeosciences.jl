@@ -107,34 +107,34 @@ function tsw_solver(
 
 
   ## initial conditions
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
   u_contra_h = interpolate(u_contra_cf,U)
   u_proj_h = covariant_basis_cf ⋅ u_contra_h
 
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  B_cf = panelwise_cellfield(B,Ω_panel,panel_ids)
+  h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+  B_cf = ParametricCellField(B,Ω_panel,panel_ids)
   h_h = interpolate(h_cf,P)
   B_h = interpolate(B_cf,P)
 
   xh0 = interpolate_everywhere([u_contra_h,h_h,B_h],X_prog(0.0))
 
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
 
 
   # mectrics required in weak forms
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
+  meas_cf_skel = ParametricCellField(sqrtg,Λ)
 
 
   #### DIAGNOSTIC VARIABLES
   assem_diag = SparseMatrixAssembler(X_diag,Y_diag,das)
 
   # vorticity
-  perp_matrix_cf = panelwise_cellfield(perp_matrix,Ω_panel,panel_ids)
+  perp_matrix_cf = ParametricCellField(perp_matrix,Ω_panel,panel_ids)
   resq(((u,p,B),(q,F,Φ,T,b)),(w,v,ψ,s,r)) = ∫( q*p*w*meas_cf  )dΩ - ∫( cor_cf*w*meas_cf  )dΩ - ∫( (perp_matrix_cf⋅u)⋅∇(w)  )dΩ
 
   # mass flux

@@ -28,9 +28,9 @@ function get_patch_smoothers(sh,biform,qdegree)
     dΩ = Measure(Ω,qdegree)
 
     panel_ids  = get_panel_ids(Ω)
-    metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-    meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-    grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+    metric_cf = ParametricCellField(metric,Ω,panel_ids)
+    meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+    grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
     ap = (u,v) -> biform(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf)
     solver = PatchBasedSmoothers.PatchSolver(
@@ -50,9 +50,9 @@ function get_bilinear_form(mh_lev,biform,qdegree)
   dΩ = Measure(Ω,qdegree)
 
   panel_ids  = get_panel_ids(Ω)
-  metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
   return (u,v) -> biform(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf)
 end
@@ -83,14 +83,14 @@ function darcy_gmg_solver(
   dΩ = Measure(Ω,qdegree)
   panel_ids = get_panel_ids(model)
 
-  h_cf = panelwise_cellfield(h,Ω,panel_ids)
-  u_proj_cf = panelwise_cellfield(projection_v(vX),Ω,panel_ids)
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω,panel_ids)
+  h_cf = ParametricCellField(h,Ω,panel_ids)
+  u_proj_cf = ParametricCellField(projection_v(vX),Ω,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω,panel_ids)
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
-  sgrad_cf = panelwise_cellfield(sgrad(h),Ω,panel_ids)
-  pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
+  sgrad_cf = ParametricCellField(sgrad(h),Ω,panel_ids)
+  pinvJ_cf = ParametricCellField(forward_pinv_jacobian,Ω,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contra_v(vX)),Ω,panel_ids)
 
   # manufacture rhs functions
   rhs_vector = u_proj_cf + sgrad_cf
@@ -106,9 +106,9 @@ function darcy_gmg_solver(
   Y = MultiFieldFESpace([V,Q];style=mfs)
 
 
-  metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
   graddiv(u,v,dΩ,meas_cf,grad_meas_cf) = ∫( α*(1/meas_cf)*(v⋅grad_meas_cf + meas_cf*(∇⋅v) )*(u⋅grad_meas_cf + meas_cf*(∇⋅u) ) )dΩ
   biform_u(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf) = ∫( u⋅(metric_cf⋅v)*meas_cf )dΩ + graddiv(u,v,dΩ,meas_cf,grad_meas_cf)
@@ -153,7 +153,7 @@ function darcy_gmg_solver(
   xh = FEFunction(X,x)
   uh,ph = xh
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
   uh_proj = covariant_basis_cf⋅uh
 
   e_u = sqrt(l2( (u_proj_cf - uh_proj),meas_cf,dΩ)) # error in physical velocity u

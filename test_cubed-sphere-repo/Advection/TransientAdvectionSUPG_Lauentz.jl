@@ -51,13 +51,13 @@ function transient_advection_supg_solver(
   dΩ = Measure(Ω_panel,degree)
 
 
-  # v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
+  # v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  u_cf = ParametricCellField(u,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
   P = TransientTrialFESpace(Q)
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
   # supg stabilisation parameter
   _dx = dx(panel_model)
@@ -76,7 +76,7 @@ function transient_advection_supg_solver(
   function get_velocity(t)
     vecX(XYZ) = v(t)(XYZ)
     vX = panel_to_cartesian(tangent_vec(vecX))
-    v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+    v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
     return v_contr_cf
   end
 
@@ -101,7 +101,7 @@ function transient_advection_supg_solver(
   # solver = RungeKutta(ls, ls, dt, :EXRK_SSP_3_3)
   solT = solve(solver, opT, t0, tF, uh0)
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   cell_geo_map = geo_map_func(Ω_panel)
   labels = ["uh","v", "eu"]

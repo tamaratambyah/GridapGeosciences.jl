@@ -34,9 +34,9 @@ function get_patch_smoothers(sh,biform,qdegree)
     dΩ = Measure(Ω,qdegree)
 
     panel_ids = get_panel_ids(model)
-    metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-    meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-    grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+    metric_cf = ParametricCellField(metric,Ω,panel_ids)
+    meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+    grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
     ap = (u,v) -> biform(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf)
     solver = PatchBasedSmoothers.PatchSolver(
@@ -56,9 +56,9 @@ function get_bilinear_form(mh_lev,biform,qdegree)
   dΩ = Measure(Ω,qdegree)
 
   panel_ids = get_panel_ids(model)
-  metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
   return (u,v) -> biform(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf)
 end
@@ -106,23 +106,23 @@ include("../../Geophysical/Williamson2Test.jl")
 h = panel_to_cartesian(h₀(0.0))
 vX = panel_to_cartesian(tangent_vec(u₀(0.0)))
 
-h_cf = panelwise_cellfield(h,Ω,panel_ids)
-u_proj_cf = panelwise_cellfield(projection_v(vX),Ω,panel_ids)
-u_contra_cf = panelwise_cellfield(contra_v(vX),Ω,panel_ids)
+h_cf = ParametricCellField(h,Ω,panel_ids)
+u_proj_cf = ParametricCellField(projection_v(vX),Ω,panel_ids)
+u_contra_cf = ParametricCellField(contra_v(vX),Ω,panel_ids)
 
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
-sgrad_cf = panelwise_cellfield(sgrad(h),Ω,panel_ids)
-pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω,panel_ids)
-sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
+sgrad_cf = ParametricCellField(sgrad(h),Ω,panel_ids)
+pinvJ_cf = ParametricCellField(forward_pinv_jacobian,Ω,panel_ids)
+sdiv_cf =  ParametricCellField(surfdiv(contra_v(vX)),Ω,panel_ids)
 
 # manufacture rhs functions
 rhs_vector = u_proj_cf + sgrad_cf
 rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
 rhs_scalar = C*h_cf + sdiv_cf
 
-metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+metric_cf = ParametricCellField(metric,Ω,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
 
 biform_u(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf) = ( ∫( u⋅(metric_cf⋅v)*meas_cf )dΩ
@@ -191,7 +191,7 @@ xh = FEFunction(X,x)
 uh,ph = xh
 
 dΩ_error = Measure(Ω,2*qdegree)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
 uh_proj = covariant_basis_cf⋅uh
 
 eu = u_proj_cf - uh_proj

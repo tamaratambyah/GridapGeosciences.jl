@@ -136,8 +136,8 @@ Then converted into a panelwise cellfield, where we extract the contravariant co
 for the velocity:
 
 ````julia 
-u = panelwise_cellfield(uₓ,Ω)
-β =  panelwise_cellfield(contra_v(βₓ),Ω)
+u = ParametricCellField(uₓ,Ω)
+β =  ParametricCellField(contra_v(βₓ),Ω)
 ````
 
 ## Weak form
@@ -153,8 +153,8 @@ function my_mean( Bu_n::Gridap.Geometry.SkeletonPair)
   0.5*( plus - minus  )
 end
 
-meas = panelwise_cellfield(sqrtg,Ω)
-meas_skel = panelwise_cellfield(sqrtg,Λ)
+meas = ParametricCellField(sqrtg,Ω)
+meas_skel = ParametricCellField(sqrtg,Λ)
 upwind = 0.5*abs((β⋅n_Λ).plus)
 dΩ = Measure(Ω,4*order)
 dΛ = Measure(Λ,4*order)

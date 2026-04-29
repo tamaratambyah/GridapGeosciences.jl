@@ -157,13 +157,13 @@ dΩ = Measure(Ω_panel,4*(p_fe+1))
 Ω_error = Triangulation(panel_model)
 dΩ_error = Measure(Ω_error,6*p_fe+1)
 
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω_panel,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+pinvJ_cf = ParametricCellField(forward_pinv_jacobian,Ω_panel,panel_ids)
 
-h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-u_proj_cf = panelwise_cellfield(projection_v(vX),Ω_panel,panel_ids)
-omega_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+u_proj_cf = ParametricCellField(projection_v(vX),Ω_panel,panel_ids)
+omega_cf = ParametricCellField(f,Ω_panel,panel_ids)
+b_cf = ParametricCellField(b,Ω_panel,panel_ids)
 
 
 
@@ -192,15 +192,15 @@ tags = ["bottom_boundary",  "top_boundary"]
   Y = MultiFieldFESpace([V, Q, W])
   X = MultiFieldFESpace([U, P, B])
 
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_perp_contra = panelwise_cellfield(contra_v_perp3D(vX),Ω_panel,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  u_perp_contra = ParametricCellField(contra_v_perp3D(vX),Ω_panel,panel_ids)
   u_perp = covariant_basis_cf ⋅ u_perp_contra
 
-  sgrad_cf = panelwise_cellfield(sgrad(h),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
-  bn_cf = panelwise_cellfield(_bn,Ω_panel,panel_ids)
-  un_cf = panelwise_cellfield(_un,Ω_panel,panel_ids)
-  g_star_cf = panelwise_cellfield(g_star,Ω_panel,panel_ids)
+  sgrad_cf = ParametricCellField(sgrad(h),Ω_panel,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
+  bn_cf = ParametricCellField(_bn,Ω_panel,panel_ids)
+  un_cf = ParametricCellField(_un,Ω_panel,panel_ids)
+  g_star_cf = ParametricCellField(g_star,Ω_panel,panel_ids)
 
   # manufacture rhs functions
   rhs_bouyancy = b_cf + _N^2*un_cf
@@ -209,10 +209,10 @@ tags = ["bottom_boundary",  "top_boundary"]
   rhs_con_vector = pinvJ_cf ⋅ rhs_vector # exact contravariant component
 
   # weak forms
-  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  detg_cf = ParametricCellField(detg,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
 
   #### Velocity
   Aperp = [0 0 0

@@ -105,7 +105,7 @@ b = panel_to_cartesian(b0)
 
 Ω_panel = Triangulation(panel_model)
 panel_ids = get_panel_ids(Ω_panel)
-b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+b_cf = ParametricCellField(b,Ω_panel,panel_ids)
 
 owned_panel_ids = get_owned_panel_ids(panel_model)
 

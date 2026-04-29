@@ -20,11 +20,11 @@ function L2_projection_Lagrangian_vector(panel_model,
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
-  vec_contra_cf = panelwise_cellfield(contra_v(vecX),Ω_panel)
+  vec_contra_cf = ParametricCellField(contra_v(vecX),Ω_panel)
   vec_proj_cf = covariant_basis_cf⋅vec_contra_cf
 
   reffe  = ReferenceFE(lagrangian,VectorValue{Dc, Float64},p_fe)

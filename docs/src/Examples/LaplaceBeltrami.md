@@ -86,8 +86,8 @@ end
 The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
 
 ````julia 
-u_cf = panelwise_cellfield(uₓ,Ω)
-slap_cf = panelwise_cellfield(surflap(uₓ),Ω)
+u_cf = ParametricCellField(uₓ,Ω)
+slap_cf = ParametricCellField(surflap(uₓ),Ω)
 rhs = -slap_cf
 ````
 
@@ -97,8 +97,8 @@ and then write the bilinear and linear forms using Gridap's high level API.
 We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
 
 ````julia 
-invg = panelwise_cellfield(inv_metric,Ω)
-meas = panelwise_cellfield(sqrtg,Ω)
+invg = ParametricCellField(inv_metric,Ω)
+meas = ParametricCellField(sqrtg,Ω)
 dΩ = Measure(Ω,6*order)
 poisson_biform(u,v) = ∫((gradient(v)⋅(invg⋅gradient(u)))*meas )dΩ
 poisson_liform(v) = ∫((rhs*v)*meas)dΩ

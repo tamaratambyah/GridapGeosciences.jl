@@ -107,7 +107,7 @@ panel_model = panel_models[1]
 panel_ids = get_panel_ids(panel_model)
 
 Ω_panel = Triangulation(panel_model)
-f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+f_panel_cf = ParametricCellField(f,Ω_panel,panel_ids)
 
 # cell_geo_map = geo_map_func(Ω_panel)
 # fi = lazy_map(p->Cartesian2SphericalMap(p),panel_ids)
@@ -133,7 +133,7 @@ omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_ref
 panel_model = omodel.parametric_dmodel
 Ω_panel = Triangulation(panel_model)
 panel_ids = get_panel_ids(panel_model)
-f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+f_panel_cf = ParametricCellField(f,Ω_panel,panel_ids)
 
 cell_geo_map = geo_map_func(Ω_panel)
 latlon_cell_geo_map = latlon_geo_map_func(Ω_panel)

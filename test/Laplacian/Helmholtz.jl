@@ -35,10 +35,10 @@ function helmholtz_solver(panel_model,
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
   U = TrialFESpace(V)
 
-  f_panel_cf = panelwise_cellfield(f,Ω_panel)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel)
-  slap_panel_cf = panelwise_cellfield(surflap(f),Ω_panel)
+  f_panel_cf = ParametricCellField(f,Ω_panel)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  slap_panel_cf = ParametricCellField(surflap(f),Ω_panel)
 
   rhs_cf = f_panel_cf + slap_panel_cf
 
