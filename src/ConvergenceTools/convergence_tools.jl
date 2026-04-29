@@ -147,7 +147,7 @@ function get_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_mod
 end
 
 function get_3D_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,thickness::Real)
-  dmodels = Vector{CubedSphere2DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
+  dmodels = Vector{CubedSphere3DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
     octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
