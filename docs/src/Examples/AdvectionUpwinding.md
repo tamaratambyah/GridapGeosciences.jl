@@ -74,7 +74,6 @@ The volume triangulation and assoicated panel ides can be extracted as per usual
 
 ````julia 
 Ω = Triangulation(model)
-panel_ids = get_panel_ids(model)
 fwd_map_generator = get_forward_map_generator(model)
 ````
 
@@ -94,7 +93,7 @@ and plot the result on $\Lambda$:
 n_ambient = pushforward_normal(Λ)
 cellfields = ["amb_n_plus"=>n_ambient.plus, "amb_n_minus"=>n_ambient.minus, "amb_n_total"=>n_ambient.minus+n_ambient.plus ]
 skel_geo_map = lazy_map(p -> fwd_map_generator(p), skel_panel_ids.plus)
-writevtk(Λ,"ambient_skeleton_normal",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+writevtk_with_cell_geomap(skel_geo_map,Λ,"ambient_skeleton_normal",cellfields=cellfields,append=false)
 ````
 
 ## FE Spaces
@@ -137,8 +136,8 @@ Then converted into a panelwise cellfield, where we extract the contravariant co
 for the velocity:
 
 ````julia 
-u = panelwise_cellfield(uₓ,Ω,panel_ids)
-β =  panelwise_cellfield(contra_v(βₓ),Ω,panel_ids)
+u = panelwise_cellfield(uₓ,Ω)
+β =  panelwise_cellfield(contra_v(βₓ),Ω)
 ````
 
 ## Weak form
@@ -154,7 +153,7 @@ function my_mean( Bu_n::Gridap.Geometry.SkeletonPair)
   0.5*( plus - minus  )
 end
 
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
+meas = panelwise_cellfield(sqrtg,Ω)
 meas_skel = panelwise_cellfield(sqrtg,Λ)
 upwind = 0.5*abs((β⋅n_Λ).plus)
 dΩ = Measure(Ω,4*order)
@@ -199,12 +198,12 @@ The transient solution is post-processed and inspected in Paraview:
 ````julia 
 mkpath("transient_sol/results")
 createpvd("transient_sol/results") do pvd
-  pvd[0] = createvtk(Ω, "transient_sol/results/results_0" * ".vtu",
-            cellfields=["u"=>uh₀],append=false,geo_map=geo_map_func(Ω))
+  pvd[0] = createvtk_with_cell_geomap(geo_map_func(Ω), Ω, "transient_sol/results/results_0" * ".vtu",
+            cellfields=["u"=>uh₀],append=false)
   for (t, uh) in solT
     println("t = $t")
-    pvd[t] = createvtk(Ω, "transient_sol/results/results_$t" * ".vtu",
-            cellfields=["u"=>uh],append=false,geo_map=geo_map_func(Ω))
+    pvd[t] = createvtk_with_cell_geomap(geo_map_func(Ω),Ω, "transient_sol/results/results_$t" * ".vtu",
+            cellfields=["u"=>uh],append=false)
   end
 end
 ````

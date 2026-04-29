@@ -50,19 +50,14 @@ for n in collect(1:ℓ)
 end
 ````
 
-Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array:
-
-````julia 
-panel_ids = get_panel_ids(model)
-````
-
+Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.
 Using the panel ids, we can visualise the triangulation in the ambient space of the sphere
-or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk:
+or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk_with_cell_geomap:
 
 ````julia 
 Ω = Triangulation(model)
-writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
-writevtk(Ω,"latlon_model",append=false,geo_map=latlon_geo_map_func(Ω))
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"sphere_model",append=false)
+writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,"latlon_model",append=false)
 ````
 
 ## FE Spaces
@@ -80,7 +75,7 @@ We consider the method of manufactured solutions for analytic solution, $\wideti
 This is defined as a function of the forward map, as follows:
 
 ````julia 
-function u(forward_map)
+function uₓ(forward_map)
   function _u(α)
     x = forward_map(α)
     x[1]*x[2]*x[3]
@@ -91,8 +86,8 @@ end
 The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
 
 ````julia 
-u_cf = panelwise_cellfield(u,Ω,panel_ids)
-slap_cf = panelwise_cellfield(surflap(u),Ω,panel_ids)
+u_cf = panelwise_cellfield(uₓ,Ω)
+slap_cf = panelwise_cellfield(surflap(uₓ),Ω)
 rhs = -slap_cf
 ````
 
@@ -102,8 +97,8 @@ and then write the bilinear and linear forms using Gridap's high level API.
 We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
 
 ````julia 
-invg = panelwise_cellfield(inv_metric,Ω,panel_ids)
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
+invg = panelwise_cellfield(inv_metric,Ω)
+meas = panelwise_cellfield(sqrtg,Ω)
 dΩ = Measure(Ω,6*order)
 poisson_biform(u,v) = ∫((gradient(v)⋅(invg⋅gradient(u)))*meas )dΩ
 poisson_liform(v) = ∫((rhs*v)*meas)dΩ
@@ -127,10 +122,10 @@ el2 = sqrt(sum(∫((e⋅e)*meas)dΩ))
 
 ## Post processing
 The solution can be visualised in the ambient space by passing a
-cell-wise array of geometrical maps to Gridap's writevtk function
+cell-wise array of geometrical maps to our writevtk_with_cell_geomap function
 
 ````julia 
-writevtk(Ω,"laplace_beltrami",cellfields=["u"=>u_cf,"uh"=>uh,"eu"=>e],append=false,geo_map=geo_map_func(Ω))
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"laplace_beltrami",cellfields=["u"=>u_cf,"uh"=>uh,"eu"=>e],append=false)
 ````
 
 ---

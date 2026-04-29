@@ -64,7 +64,6 @@ Now we extract the triangulated and the panel ids associated to each cell:
 
 ````julia 
 Ω = Triangulation(model)
-panel_ids = get_panel_ids(model)
 ````
 
 ## FE Spaces
@@ -163,9 +162,9 @@ Then converted into a panelwise cellfield, where we extract the contravariant co
 for the velocity:
 
 ````julia 
-u_cf = panelwise_cellfield(piola(u0),Ω,panel_ids)
-h_cf = panelwise_cellfield(h0,Ω,panel_ids)
-f_cf = panelwise_cellfield(f0,Ω,panel_ids)
+u_cf = panelwise_cellfield(piola(u0),Ω)
+h_cf = panelwise_cellfield(h0,Ω)
+f_cf = panelwise_cellfield(f0,Ω)
 ````
 
 ## Weak form
@@ -174,10 +173,10 @@ the matrix that represents the perp operator.
 We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
 
 ````julia 
-g = panelwise_cellfield(metric,Ω,panel_ids)
-ginv = panelwise_cellfield(inv_metric,Ω,panel_ids)
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+g = panelwise_cellfield(metric,Ω)
+ginv = panelwise_cellfield(inv_metric,Ω)
+meas = panelwise_cellfield(sqrtg,Ω)
+covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω)
 Aperp = [0 -1
         1 0]
 Rperp = TensorValue(Aperp)
@@ -265,9 +264,9 @@ while !isnothing(it)
 
   i_am_main(ranks) && println(t)
 
-  writevtk(Ω,"shallow_water_sol/solT_$t.vtu",
+  writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,"shallow_water_sol/solT_$t.vtu",
       cellfields=["vel"=>covariant_basis_cf⋅(1/meas*uh),"p"=>ph,"vort"=>qh],
-      append=false,geo_map=latlon_geo_map_func(Ω))
+      append=false)
 
   global it = iterate(solT, state)
 end

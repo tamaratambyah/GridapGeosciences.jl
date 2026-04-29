@@ -63,7 +63,6 @@ end
 
 @publish Helpers tangent_vec
 @publish Helpers contra_v
-@publish Helpers projection_v
 @publish Helpers piola
 
 @publish Helpers forward_jacobian

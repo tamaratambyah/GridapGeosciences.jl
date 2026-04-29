@@ -26,7 +26,7 @@ export surflap, surfdiv, contr_gradf, sgrad
 
 export panel_to_cartesian
 export tangent_vec
-export contra_v, projection_v
+export contra_v
 export piola
 export xyz2θϕr, θϕ2xyz, xyz2θϕ
 

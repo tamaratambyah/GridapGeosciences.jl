@@ -54,7 +54,7 @@ export DistributedParametricDiscreteModel
 export panelwise_cellfield, geo_map_func, get_panel_ids, latlon_geo_map_func
 export get_forward_map_generator, get_radius, get_thickness
 export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
-export createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap, create_pvtk_file_mapped
+export createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap, create_pvtk_file_with_cell_geomap
 export _make_pvd_distributed
 export distributed_panel_ids
 export DistributedAdaptivityGlue

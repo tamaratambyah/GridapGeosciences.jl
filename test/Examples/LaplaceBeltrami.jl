@@ -46,7 +46,7 @@ end
 # or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk_with_cell_geomap:
 Ω = Triangulation(model)
 writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"sphere_model",append=false)
-writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"latlon_model",append=false)
+writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,"latlon_model",append=false)
 
 # ## FE Spaces
 # Now that we have a discrete model, we define trial and test spaces using Gridap's high level API.

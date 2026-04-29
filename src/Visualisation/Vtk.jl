@@ -3,8 +3,6 @@ To visualise on the sphere (and other mapped domains), we trick vtk to plot
 cellvalues on a visualisation mesh that is different to the one used for
 evaluation of cell/node data.
 This is achieved by evaluating a cellwise geo_map in _vtkpoints.
-If no geo_map is provided, then evaluate the regular visualisation grid.
-Need to dispatch through writevtk/createvtk to create_vtk_file
 """
 
 
