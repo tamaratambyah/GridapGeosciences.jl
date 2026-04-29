@@ -56,12 +56,6 @@ function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphericalMap,cellx::Abstract
   return out
 end
 
-
-function Gridap.Arrays.return_cache(f::Cartesian2SphericalMap,x::VectorValue{3})
-  y = zero(VectorValue{2,Float64})
-  return y
-end
-
 function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphericalMap,x::VectorValue{3})
   out = cache
 
