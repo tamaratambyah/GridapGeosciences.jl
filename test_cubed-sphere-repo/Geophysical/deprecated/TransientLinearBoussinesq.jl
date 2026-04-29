@@ -250,7 +250,7 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk
 
   # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
 
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks;
           num_horizontal_uniform_refinements=n_ref_lvls,
           num_vertical_uniform_refinements=n_ref_lvls)
 

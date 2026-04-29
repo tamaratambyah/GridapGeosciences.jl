@@ -19,7 +19,7 @@ nls_tols = (;atol=1e-16,rtol=1e-11,maxiter=50)
 n_ref_lvls = 4
 p = 1
 radius = 1.0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
 model = omodel.parametric_dmodel
 
 

@@ -35,7 +35,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 #################### sphere
 n_ref_lvls = 0
 
-o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+o3model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks;
         num_horizontal_uniform_refinements=n_ref_lvls,
         num_vertical_uniform_refinements=0)
 panel_model = o3model.parametric_dmodel

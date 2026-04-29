@@ -202,7 +202,7 @@ function main_transient(distribute,nprocs;
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
   radius = 1.0
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"

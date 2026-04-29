@@ -166,7 +166,7 @@ end
 #   # created the folder
 #   PartitionedArrays.barrier(ranks)
 
-#   octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+#   octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
 #     num_horizontal_uniform_refinements=n_ref,
 #     num_vertical_uniform_refinements=n_ref);
 #   panel_model = octree3_model.parametric_dmodel

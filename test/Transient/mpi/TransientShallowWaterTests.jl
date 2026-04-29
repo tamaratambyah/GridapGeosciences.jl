@@ -13,7 +13,7 @@ models = get_distributed_refined_models(ranks,nprocs,3,radius)
 TransientShallowWaterTests.main(models[1];_i_am_main=i_am_main(ranks))
 
 ### P4test model: 2D
-omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius;
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
   num_initial_uniform_refinements=3)
 panel_model = omodel.parametric_dmodel
 TransientShallowWaterTests.main(panel_model;_i_am_main=i_am_main(ranks))

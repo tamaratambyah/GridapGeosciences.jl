@@ -14,7 +14,7 @@ using GridapGeosciences.Geometry
 import GridapGeosciences.Geometry: ParametricDiscreteModel
 
 using GridapGeosciences.Distributed
-import GridapGeosciences.Distributed: ParametricOctreeDistributedDiscreteModel
+import GridapGeosciences.Distributed: CubedSphere2DParametricOctreeDistributedDiscreteModel
 import GridapGeosciences.Distributed: vertically_uniformly_refine, horizontally_uniformly_refine
 
 include("ModelHierarchies.jl")

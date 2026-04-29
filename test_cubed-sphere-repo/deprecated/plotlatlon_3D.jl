@@ -23,7 +23,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 
 num_horizontal_uniform_refinements = 5
 num_vertical_uniform_refinements = 5
-o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
                                            num_horizontal_uniform_refinements=num_horizontal_uniform_refinements,
                                            num_vertical_uniform_refinements=num_vertical_uniform_refinements);
 

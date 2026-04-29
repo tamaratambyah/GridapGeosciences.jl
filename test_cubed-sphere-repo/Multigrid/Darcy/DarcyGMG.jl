@@ -57,7 +57,7 @@ MPI.Init()
 np = MPI.Comm_size(MPI.COMM_WORLD)
 parts = distribute_with_mpi(LinearIndices((np,)))
 np_per_level = [(1,1),(1,1)]
-model0 = ParametricOctreeDistributedDiscreteModel(parts; num_initial_uniform_refinements=1)
+model0 = CubedSphere2DParametricOctreeDistributedDiscreteModel(parts; num_initial_uniform_refinements=1)
 n_ref_lvls = length(np_per_level)
 mh = ModelHierarchy(model0,n_ref_lvls)
 

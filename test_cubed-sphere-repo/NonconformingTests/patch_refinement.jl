@@ -16,7 +16,7 @@ dir = datadir("Omodel_2D_refinement")
 
 # level 0
 radius = 1.0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=3)
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=3)
 panel_model = omodel.parametric_dmodel
 num_cells(panel_model)
 Ω_panel = Triangulation(panel_model)
@@ -25,7 +25,7 @@ get_panel_ids(Ω_panel)
 cell_geo_map = geo_map_func(Ω_panel)
 writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/model0",append=false)
 
-function _adapt_model(ranks,model::ParametricOctreeDistributedDiscreteModel)
+function _adapt_model(ranks,model::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(model.octree_dmodel)
   panel_model = model.parametric_dmodel
   panel_ids = get_panel_ids(panel_model)
@@ -91,7 +91,7 @@ mass_conservation(panel_model,p_fe,dir,func,scalar_field,return_vtk)
 
 
 
-function _adapt_model_1(ranks,model::ParametricOctreeDistributedDiscreteModel)
+function _adapt_model_1(ranks,model::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(model.octree_dmodel)
   panel_model = model.parametric_dmodel
   panel_ids = get_panel_ids(panel_model)

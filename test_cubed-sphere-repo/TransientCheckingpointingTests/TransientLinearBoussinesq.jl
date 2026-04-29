@@ -334,7 +334,7 @@ function main_transient(distribute,nprocs;
   ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
 
   radius,thickness = 1.0,0.19
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
           num_horizontal_uniform_refinements=n_ref_lvls,
           num_vertical_uniform_refinements=n_ref_lvls)
 

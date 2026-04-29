@@ -33,7 +33,7 @@ end
 function test_distributedParametricDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphere2DParametricDistributedDiscreteModel")
 
   n_ref_lvls = 2
   radius = 1.0
@@ -57,11 +57,11 @@ end
 function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphere2DParametricOctreeDistributedDiscreteModel")
 
   n_ref_lvls = 2
   radius = 1.0
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   model = omodel.parametric_dmodel
 
   trian = Triangulation(model)
@@ -82,9 +82,9 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
   radius,thickness = 1.0, 0.19
-  # i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test 3D CubedSphere3DParametricOctreeDistributedDiscreteModel")
   n_ref_lvls = 2
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=n_ref_lvls, num_vertical_uniform_refinements=n_ref_lvls);
   panel_model = o3model.parametric_dmodel
 

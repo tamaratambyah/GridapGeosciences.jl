@@ -383,7 +383,7 @@ function main_transient(distribute,nprocs;
   -g_ksp_monitor
   """
   radius,thickness = 1.0, 1e-4
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
         num_horizontal_uniform_refinements=n_ref_lvls,
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
@@ -421,7 +421,7 @@ function main_visualise(distribute,nprocs;
   i_am_main(ranks) && println("Transient SW 3D visualise")
 
   radius,thickness = 1.0, 1e-4
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=n_ref_lvls,
   num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel

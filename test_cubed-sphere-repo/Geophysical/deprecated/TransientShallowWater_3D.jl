@@ -224,7 +224,7 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,ζ=0.0,ret
   f = panel_to_cartesian(f₀(ζ))
   b = panel_to_cartesian(topography)
 
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks;
   num_horizontal_uniform_refinements=n_ref_lvls,num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
 

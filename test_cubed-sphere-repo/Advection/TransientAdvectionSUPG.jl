@@ -255,7 +255,7 @@ function main_transient(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_
   v = nondivergent_velocity
 
   radius = 1.0
-  parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
+  parametric_octree_dmodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = parametric_octree_dmodel.parametric_dmodel
   # panel_model = get_distributed_panel_model(ranks,nprocs,n_ref_lvls)
 

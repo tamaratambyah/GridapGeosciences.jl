@@ -3,8 +3,8 @@ In this module, we test the panel ids from the BodyFittedTriangulation trian are
 equivalent to the panel ids from the model.
 We also test the length of the panel ids is equvialent to the number of cells.
 Do this for:
-  - DistributedParametricDiscreteModel
-  - ParametricOctreeDistributedDiscreteModel
+  - CubedSphere2DParametricDistributedDiscreteModel
+  - CubedSphere2DParametricOctreeDistributedDiscreteModel
   - ParametricOctree3DistributedDiscreteModel
 """
 
@@ -44,7 +44,7 @@ function test_distributedParametricDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphere2DParametricDistributedDiscreteModel")
 
   n_ref_lvls = 2
   radius = 1.0
@@ -60,12 +60,12 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphere2DParametricOctreeDistributedDiscreteModel")
 
   radius = 1.0
 
   # level 0
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=0)
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=0)
   panel_model = omodel.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
@@ -78,7 +78,7 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = omodel.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
+  _omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
   _panel_model = _omodel.parametric_dmodel
   test_distributed_panel_ids(_panel_model)
 
@@ -88,7 +88,7 @@ function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = omodel.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=2)
+  _omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=2)
   _panel_model = _omodel.parametric_dmodel
   test_distributed_panel_ids(_panel_model)
 
@@ -102,12 +102,12 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test 3D CubedSphere3DParametricOctreeDistributedDiscreteModel")
 
   radius,thickness = 1.0, 0.19
 
   # level 0
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks, radius,thickness;
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks, radius,thickness;
         num_horizontal_uniform_refinements=0, num_vertical_uniform_refinements=0);
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
@@ -117,7 +117,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  _o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
        num_horizontal_uniform_refinements=1, num_vertical_uniform_refinements=1);
   _panel_model = _o3model.parametric_dmodel
   test_distributed_panel_ids(_panel_model)
@@ -128,7 +128,7 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
   panel_model = o3model.parametric_dmodel
   test_distributed_panel_ids(panel_model)
 
-  _o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  _o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
       num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
   _panel_model = _o3model.parametric_dmodel
   test_distributed_panel_ids(_panel_model)

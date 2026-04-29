@@ -412,7 +412,7 @@ function main_transient(distribute,nprocs;
   ls_ode = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-12,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
   radius = 1.0
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   _dir = datadir("TransientShallowWater_W5")

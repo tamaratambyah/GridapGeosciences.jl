@@ -26,7 +26,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 #################### sphere
 n_ref_lvls = 0
 
-omodel = GridapGeosciences.Distributed.ParametricOctreeDistributedDiscreteModel(ranks;
+omodel = GridapGeosciences.Distributed.CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks;
   num_initial_uniform_refinements=n_ref_lvls)
 _panel_model = omodel.parametric_dmodel
 panel_model = _panel_model.models.item # get the serial model

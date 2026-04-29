@@ -6,7 +6,7 @@ const CUBE_SURFACE_HALF_EDGE = π/4
 
 # Ideas:
 # * GenericDistributedDiscreteModel should be created out of OctreeDistributedDiscreteModel
-# * Many methods of ParametricOctreeDistributedDiscreteModel should be forwarded to the underlying
+# * Many methods of CubedSphere2DParametricOctreeDistributedDiscreteModel should be forwarded to the underlying
 #   GenericDistributedDiscreteModel
 # * At some point, we should create the 3D coordinates of the nodes in the cube surface
 # * To this end, we can use a cell-wise, DG-like array, to be transformed into a nodal-like array,
@@ -17,19 +17,19 @@ const CUBE_SURFACE_HALF_EDGE = π/4
 
 
 """
-   ParametricOctreeDistributedDiscreteModel{2,2}
+   CubedSphere2DParametricOctreeDistributedDiscreteModel{2,2}
    octree_dmodel manages the topology of the parametric mesh
    parametric_dmodel includes a distributed array of proc-local ParametricDiscreteModel{2,2} objects
 """
 
-struct ParametricOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteModel{2,2},
+struct CubedSphere2DParametricOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteModel{2,2},
                                                B<:GenericDistributedDiscreteModel{2,2}} <: DistributedDiscreteModel{2,2}
 
   octree_dmodel::A
   parametric_dmodel::B
 end
 
-function get_radius(dmodel::ParametricOctreeDistributedDiscreteModel)
+function get_radius(dmodel::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   return get_radius(dmodel.parametric_dmodel)
 end
 
@@ -37,7 +37,7 @@ end
 # TO-THINK: not sure if radius of the cubed sphere is required?
 # Right now, in the serial version of the code, we are passing the length of the cube edges
 # (see coarse_cube_surface_3D function)
-function ParametricOctreeDistributedDiscreteModel(ranks, radius::Real; num_initial_uniform_refinements=0)
+function CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius::Real; num_initial_uniform_refinements=0)
    coarse_model = _create_parametric_octree_dmodel_coarse_model()
    octree_dmodel, cell_wise_vertex_alpha_beta_coordinates, cell_panels =
            _generate_octree_dmodel_alpha_beta_coordinates_and_panels(ranks,
@@ -54,7 +54,7 @@ function ParametricOctreeDistributedDiscreteModel(ranks, radius::Real; num_initi
 
    # Build the GenericDistributedDiscreteModel
    generic_dmodel = GenericDistributedDiscreteModel(parametric_models, get_cell_gids(octree_dmodel.dmodel))
-   ParametricOctreeDistributedDiscreteModel(octree_dmodel, generic_dmodel)
+   CubedSphere2DParametricOctreeDistributedDiscreteModel(octree_dmodel, generic_dmodel)
 end
 
 function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{2,2},
@@ -412,7 +412,7 @@ function _adapt_octree_dmodel(octree_dmodel::OctreeDistributedDiscreteModel,
   adapted_omodel, cell_coordinates, panels, adaptivity_glue
 end
 
-function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel,
+function Gridap.Adaptivity.adapt(model::CubedSphere2DParametricOctreeDistributedDiscreteModel,
                                  refinement_and_coarsening_flags::MPIArray{<:Vector})
 
    coarse_cell_vertices_alpha_beta = setup_coarse_cell_vertices_alpha_beta_coordinates()
@@ -442,5 +442,5 @@ function Gridap.Adaptivity.adapt(model::ParametricOctreeDistributedDiscreteModel
                                              get_adaptivity_glue(octree_dmodel_adapted_model))
    end
    generic_dmodel = GenericDistributedDiscreteModel(adaptive_models, get_cell_gids(adapted_octree_dmodel.dmodel))
-   ParametricOctreeDistributedDiscreteModel(adapted_octree_dmodel, generic_dmodel), adaptivity_glue
+   CubedSphere2DParametricOctreeDistributedDiscreteModel(adapted_octree_dmodel, generic_dmodel), adaptivity_glue
 end

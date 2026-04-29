@@ -19,9 +19,9 @@ n_ref_lvls = 3
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 radius = 1.0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
 
-function initial_panel_refinement(omodel::ParametricOctreeDistributedDiscreteModel)
+function initial_panel_refinement(omodel::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(omodel.octree_dmodel)
   panel_model = omodel.parametric_dmodel
   panel_ids = get_panel_ids(panel_model)
@@ -42,7 +42,7 @@ ref_coarse_flags = initial_panel_refinement(omodel)
 fmodel, adaptivity_glue = Gridap.Adaptivity.adapt(omodel,ref_coarse_flags)
 
 
-function refine_all(omodel::ParametricOctreeDistributedDiscreteModel)
+function refine_all(omodel::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(omodel.octree_dmodel)
   ref_coarse_flags=map(partition(cell_partition)) do indices
     flags=zeros(Cint,length(indices))
@@ -53,7 +53,7 @@ function refine_all(omodel::ParametricOctreeDistributedDiscreteModel)
 end
 
 
-models = Vector{ParametricOctreeDistributedDiscreteModel}(undef,n_ref_lvls+1)
+models = Vector{CubedSphere2DParametricOctreeDistributedDiscreteModel}(undef,n_ref_lvls+1)
 models[end] = fmodel
 for (i,n) in enumerate(n_ref_lvls:-1:1)
   fmodel = refine_all(fmodel)
@@ -90,7 +90,7 @@ plot_convergence_from_saved(dir,simName,["sum div","m"])
 
 
 function Hdiv(
-  model::ParametricOctreeDistributedDiscreteModel,
+  model::CubedSphere2DParametricOctreeDistributedDiscreteModel,
   p_fe::Int,dir::String,vX::Function,ls=LUSolver(),conff=false,return_vtk=false)
 
   panel_model = model.parametric_dmodel

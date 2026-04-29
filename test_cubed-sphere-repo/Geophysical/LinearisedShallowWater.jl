@@ -200,10 +200,10 @@ end
 #   f = panel_to_cartesian(f₀(ζ))
 
 #   omodel = if Dc == 2
-#     ParametricOctreeDistributedDiscreteModel(ranks, radius;
+#     CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
 #     num_initial_uniform_refinements=n_ref)
 #   elseif Dc == 3
-#     Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+#     CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
 #         num_horizontal_uniform_refinements=n_ref,
 #         num_vertical_uniform_refinements=n_ref);
 #   end

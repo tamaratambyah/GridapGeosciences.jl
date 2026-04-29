@@ -1,19 +1,19 @@
-struct Parametric3DOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteModel{3,3},
+struct CubedSphere3DParametricOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteModel{3,3},
                                                   B<:GenericDistributedDiscreteModel{3,3}} <: DistributedDiscreteModel{3,3}
 
   octree_dmodel::A
   parametric_dmodel::B
 end
 
-function get_radius(dmodel::Parametric3DOctreeDistributedDiscreteModel)
+function get_radius(dmodel::CubedSphere3DParametricOctreeDistributedDiscreteModel)
   return get_radius(dmodel.parametric_dmodel)
 end
 
-function get_thickness(dmodel::Parametric3DOctreeDistributedDiscreteModel)
+function get_thickness(dmodel::CubedSphere3DParametricOctreeDistributedDiscreteModel)
   return get_thickness(dmodel.parametric_dmodel)
 end
 
-function Parametric3DOctreeDistributedDiscreteModel(ranks,radius::Real,thickness::Real;
+function CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius::Real,thickness::Real;
                                                     num_horizontal_uniform_refinements=0,
                                                     num_vertical_uniform_refinements=0)
 
@@ -44,7 +44,7 @@ function Parametric3DOctreeDistributedDiscreteModel(ranks,radius::Real,thickness
 
     # Build the GenericDistributedDiscreteModel
     generic_dmodel = GenericDistributedDiscreteModel(parametric_models, get_cell_gids(octree_dmodel.dmodel))
-    Parametric3DOctreeDistributedDiscreteModel(octree_dmodel, generic_dmodel)
+    CubedSphere3DParametricOctreeDistributedDiscreteModel(octree_dmodel, generic_dmodel)
 end
 
 function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{3,3},
@@ -279,7 +279,7 @@ function _generate_octree_alpha_beta_gamma_coordinates_and_panels(ranks,
 end
 
 
-function vertically_uniformly_refine(parametric_model::Parametric3DOctreeDistributedDiscreteModel)
+function vertically_uniformly_refine(parametric_model::CubedSphere3DParametricOctreeDistributedDiscreteModel)
   ptr_new_pXest = GridapP4est._vertically_uniformly_refine!(parametric_model.octree_dmodel)
 
   pXest_type = parametric_model.octree_dmodel.pXest_type
@@ -370,10 +370,10 @@ function vertically_uniformly_refine(parametric_model::Parametric3DOctreeDistrib
    generic_dmodel =
       GenericDistributedDiscreteModel(adaptive_models, get_cell_gids(ref_model.dmodel))
 
-   Parametric3DOctreeDistributedDiscreteModel(ref_model, generic_dmodel)
+   CubedSphere3DParametricOctreeDistributedDiscreteModel(ref_model, generic_dmodel)
 end
 
-function horizontally_uniformly_refine(parametric_model::Parametric3DOctreeDistributedDiscreteModel)
+function horizontally_uniformly_refine(parametric_model::CubedSphere3DParametricOctreeDistributedDiscreteModel)
 
     num_cols = GridapP4est.num_locally_owned_columns(parametric_model.octree_dmodel)
     _refinement_and_coarsening_flags = map(num_cols) do num_cols
@@ -479,5 +479,5 @@ function horizontally_uniformly_refine(parametric_model::Parametric3DOctreeDistr
    generic_dmodel =
       GenericDistributedDiscreteModel(adaptive_models, get_cell_gids(ref_model.dmodel))
 
-   Parametric3DOctreeDistributedDiscreteModel(ref_model, generic_dmodel)
+   CubedSphere3DParametricOctreeDistributedDiscreteModel(ref_model, generic_dmodel)
 end

@@ -78,7 +78,7 @@ ranks = distribute_with_mpi(LinearIndices((np,)))
 p_fe = 1
 n_gmg_lvls = 2
 radius = 1.0
-model0 = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
+model0 = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
 mh = ModelHierarchy(model0,n_gmg_lvls)
 
 model = get_model(mh,1)

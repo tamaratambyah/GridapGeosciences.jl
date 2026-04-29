@@ -67,7 +67,7 @@ function single_layer_shallow_water_vorticity(
   i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
 
   ## make new model with only 1 cell in vertical
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks;
         num_horizontal_uniform_refinements=lvl_h,
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel

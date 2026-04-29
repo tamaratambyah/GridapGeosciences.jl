@@ -16,7 +16,7 @@ function main(distribute,nprocs)
 
   radius,thickness = 1.0, 0.19
 
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
   panel_model = o3model.parametric_dmodel
 

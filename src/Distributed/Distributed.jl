@@ -33,9 +33,9 @@ import GridapGeosciences.Visualisation: writevtk_with_cell_geomap, write_vtk_fil
 import GridapGeosciences.Visualisation: createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap
 
 
-include("ParametricOctreeDistributedDiscreteModels.jl")
-include("Parametric3DOctreeDistributedDiscreteModels.jl")
-include("DistributedParametricDiscreteModel.jl")
+include("CubedSphere2DParametricOctreeDistributedDiscreteModel.jl")
+include("CubedSphere3DParametricOctreeDistributedDiscreteModel.jl")
+include("CubedSphere2DParametricDistributedDiscreteModel.jl")
 include("ParametricCellField.jl")
 include("panel_ids.jl")
 include("Vtk.jl")
@@ -48,9 +48,9 @@ import GridapDistributed: generate_gids, _find_vector_type, _add_distributed_con
 import GridapGeosciences.FESpaces: _generate_face_to_master_cell_id, _generate_change_of_basis_matrices, _get_value_type, ParamTrianType
 include("GradConformingFESpaces.jl")
 
-export ParametricOctreeDistributedDiscreteModel
-export Parametric3DOctreeDistributedDiscreteModel
-export DistributedParametricDiscreteModel
+export CubedSphere2DParametricOctreeDistributedDiscreteModel
+export CubedSphere3DParametricOctreeDistributedDiscreteModel
+export CubedSphere2DParametricDistributedDiscreteModel
 export ParametricCellField, geo_map_func, get_panel_ids, latlon_geo_map_func
 export get_forward_map_generator, get_radius, get_thickness
 export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap

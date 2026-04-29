@@ -1,5 +1,5 @@
 function GridapSolvers.MultilevelTools.ModelHierarchy(
-    coarse_model::ParametricOctreeDistributedDiscreteModel,
+    coarse_model::CubedSphere2DParametricOctreeDistributedDiscreteModel,
     n_ref_lvls::Int)
   println("gmg lvls = $(n_ref_lvls)")
 
@@ -57,7 +57,7 @@ end
 # end
 
 function adapt_model(ranks,
-  model::ParametricOctreeDistributedDiscreteModel)
+  model::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(model.octree_dmodel)
   ref_flags=map(ranks,partition(cell_partition)) do rank,indices
       flags=zeros(Cint,length(indices))
@@ -68,7 +68,7 @@ function adapt_model(ranks,
 end
 
 function adapt_model(ranks,
-  model::Parametric3DOctreeDistributedDiscreteModel)
+  model::CubedSphere3DParametricOctreeDistributedDiscreteModel)
   model_vertically_refined = vertically_uniformly_refine(model)
   model_uniformly_refined = horizontally_uniformly_refine(model_vertically_refined)
 

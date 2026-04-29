@@ -69,9 +69,9 @@ end
 @publish Helpers covariant_basis
 @publish Helpers forward_pinv_jacobian
 
-@publish Distributed ParametricOctreeDistributedDiscreteModel
-@publish Distributed Parametric3DOctreeDistributedDiscreteModel
-@publish Distributed DistributedParametricDiscreteModel
+@publish Distributed CubedSphere2DParametricOctreeDistributedDiscreteModel
+@publish Distributed CubedSphere3DParametricOctreeDistributedDiscreteModel
+@publish Distributed CubedSphere2DParametricDistributedDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed latlon_geo_map_func
 @publish Distributed ParametricCellField

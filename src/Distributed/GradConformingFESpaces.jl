@@ -1,10 +1,10 @@
 function _generate_change_of_basis_matrices(model, cell_reffe, cell_l2g)
     face_to_master_cell_id = _generate_face_to_master_cell_id(model; cell_l2g=cell_l2g)
-    _generate_change_of_basis_matrices(model, cell_reffe; 
+    _generate_change_of_basis_matrices(model, cell_reffe;
                                        face_to_master_cell_id=face_to_master_cell_id)
 end
 
-function _generate_change_of_basis_matrices(model::DistributedParametricDiscreteModel, cell_reffes)
+function _generate_change_of_basis_matrices(model::CubedSphere2DParametricDistributedDiscreteModel, cell_reffes)
     is_vector = false
     map(cell_reffes) do cell_reffe
       T=_get_value_type(cell_reffe)
@@ -24,7 +24,7 @@ function _generate_change_of_basis_matrices(model::DistributedParametricDiscrete
         end
         p = PVector(cell_vecs, partition(cell_gids))
         wait(consistent!(p))
-        map(partition(p), cell_reffes) do cell_vecs, cell_reffes 
+        map(partition(p), cell_reffes) do cell_vecs, cell_reffes
           map((a,b)->reshape(a,(num_dofs(b),num_dofs(b))), cell_vecs, cell_reffes)
         end
     else
@@ -34,9 +34,9 @@ function _generate_change_of_basis_matrices(model::DistributedParametricDiscrete
     end
 end
 
-function FESpace(model::DistributedParametricDiscreteModel,
+function FESpace(model::CubedSphere2DParametricDistributedDiscreteModel,
                  reffe::Tuple{<:Lagrangian,Any, Any};
-                 split_own_and_ghost=false, 
+                 split_own_and_ghost=false,
                  constraint=nothing,
                  conformity=nothing,kwargs...)
 
@@ -44,7 +44,7 @@ function FESpace(model::DistributedParametricDiscreteModel,
      spaces = map(local_views(model)) do m
         FESpace(m, reffe; conformity=conformity, kwargs...)
      end
-  else 
+  else
      cell_reffes = map(local_views(model)) do m
          basis,reffe_args,reffe_kwargs = reffe
          cell_reffe = ReferenceFE(m,basis,reffe_args...;reffe_kwargs...)
@@ -54,7 +54,7 @@ function FESpace(model::DistributedParametricDiscreteModel,
         conf = Conformity(testitem(cell_reffe),conformity)
         cell_fe = CellFE(m,cell_reffe,conf,change_of_basis_matrices)
         FESpace(m, cell_fe; kwargs...)
-     end  
+     end
   end
   gids = generate_gids(model,spaces)
   trian = DistributedTriangulation(map(get_triangulation,spaces),model)
@@ -64,7 +64,7 @@ function FESpace(model::DistributedParametricDiscreteModel,
 end
 
 function FESpace(_trian::DistributedTriangulation{Dc,Dp,<:AbstractArray{<:ParamTrianType{Dc,Dp}}},
-                 reffe::Tuple{<:Lagrangian,Any, Any}; 
+                 reffe::Tuple{<:Lagrangian,Any, Any};
                  split_own_and_ghost=false,
                  constraint=nothing,
                  conformity=nothing,
