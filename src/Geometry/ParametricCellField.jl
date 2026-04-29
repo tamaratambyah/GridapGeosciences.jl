@@ -1,3 +1,36 @@
+"""
+ParametricCellField
+
+A ParametricCellField is returns an GenericCellField object, where the cell_field is an
+array of cell-wise functions.
+The user must define a function that given a forward map, returns a function
+that takes coordinates in parametric space as input, and returns the value of the function.
+This means ParametricCellField is different to CellField, where the user passes
+a function that takes points in physical space and returns the function evaluated in physical space.
+
+Example usage is:
+
+```
+function fX(forward_map)
+  function _f(αβ)
+    x = forward_map(αβ)
+    x[1]*x[2]*x[3]
+  end
+end
+
+f_cf = ParametricCellField(fX,Ω_panel)
+```
+
+
+The input function `fX` takes an ForwardMap object, and returns another function `_f`.
+Such function takes points in the local coordinate system of the chart, and returns the
+ambient field evaluated at parametric points.
+
+
+"""
+
+
+
 function ParametricCellField(f::Function,
                              trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel},
                              panel_ids::AbstractArray{Int}) where {Dc,Dp}
@@ -95,11 +128,4 @@ function ParametricCellField(f::Function,trian::SkeletonTriangulation)
   minus = GenericCellField(get_data(_face_cf_minus),trian,ReferenceDomain())
 
   SkeletonPair(plus,minus)
-end
-
-function ambient_cellfield(panel_cf::CellField,ambient_trian::Triangulation,panel_ids::AbstractArray{Int})
-  inv_f = lazy_map(p->InverseMap(p),panel_ids)
-  _cf = change_domain(panel_cf,DomainStyle(panel_cf),PhysicalDomain())
-  cf_mapped = lazy_map(Broadcasting(∘),get_data(_cf),inv_f)
-  CellData.GenericCellField(cf_mapped,ambient_trian,PhysicalDomain() )
 end

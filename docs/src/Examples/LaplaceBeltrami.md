@@ -73,6 +73,8 @@ U = TrialFESpace(V)
 ## Manufactured solution
 We consider the method of manufactured solutions for analytic solution, $\widetilde{u} = xyz$.
 This is defined as a function of the forward map, as follows:
+First we define a function that given a forward map, returns a function
+that takes coordinates in parametric space as input, and returns the value of the function.
 
 ````julia 
 function uₓ(forward_map)
@@ -83,10 +85,20 @@ function uₓ(forward_map)
 end
 ````
 
-The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
+This function is passed to the ParametricCellField:
 
 ````julia 
 u_cf = ParametricCellField(uₓ,Ω)
+````
+
+Similar to CellField, ParametricCellField returns an GenericCellField object, where the cell_field is an
+array of cell-wise functions. However, the acutal input function of ParametricCellField is defined
+differently  to CellField, where the user passes a function that takes points
+in physical space and returns the function evaluated in physical space.
+
+The cooresponding rhs forcing function is defined panelwise, as follows:
+
+````julia 
 slap_cf = ParametricCellField(surflap(uₓ),Ω)
 rhs = -slap_cf
 ````
