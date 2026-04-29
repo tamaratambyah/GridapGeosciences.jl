@@ -63,14 +63,10 @@ function Gridap.Arrays.return_cache(f::Cartesian2SphericalMap,x::VectorValue{3})
 end
 
 function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphericalMap,x::VectorValue{3})
-  # println("single point")
   out = cache
 
-  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
-  θ = rem2pi(atan(x[2], x[1]),RoundDown)
-  ϕ = asin(x[3]/r)
-
-  out = VectorValue(θ,ϕ)
-  # y = xyz2θϕ(x)
+  out = VectorValue(rem2pi(atan(x[2], x[1]),RoundDown),
+                    asin(x[3]/ (sqrt(x[1]^2 + x[2]^2 + x[3]^2)))
+                    )
   return out
 end
