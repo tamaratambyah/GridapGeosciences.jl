@@ -41,7 +41,7 @@ export CubedSphereParametricDiscreteModel
 
 export get_nodes_from_coords
 
-export ParametricCellField
+export ParametricCellField, CubedSphere2DParametricDiscreteModel, CubedSphere3DParametricDiscreteModel
 export _pushforward_normal
 export _pullback_area_form
 

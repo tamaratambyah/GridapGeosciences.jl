@@ -1,13 +1,16 @@
 ################################################################################
 #### CubedSphere2DParametricDistributedDiscreteModel
-#### Has serial CubedSphereParametricDiscreteModel underneath
+#### Has serial CubedSphere2DParametricDiscreteModel underneath
 #### The provided panel_ids are owned+ghost. Return only owned+ghost in get_panel_ids
 #### Return owned in get_owned_panel_ids
 #### Implemenet the interface of GridapDistributed.GenericDistributedDiscreteModel
 ################################################################################
-const CubedSphere2DParametricDistributedDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:CubedSphereParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
+const CubedSphereParametricDistributedDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:CubedSphereParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
 
-# Note the dmodel passed in does not have CubedSphereParametricDiscreteModel as local models
+const CubedSphere2DParametricDistributedDiscreteModel{T} = CubedSphereParametricDistributedDiscreteModel{2,2,T}
+const CubedSphere3DParametricDistributedDiscreteModel{T} = CubedSphereParametricDistributedDiscreteModel{3,3,T}
+
+# Note the dmodel passed in does not have CubedSphere2DParametricDiscreteModel as local models
 # Thus, we need to explicitly pass the radius to the constructor as well
 # I am unsure where to put the radius, store in metadata for now
 function CubedSphere2DParametricDistributedDiscreteModel(
@@ -34,20 +37,20 @@ function CubedSphere2DParametricDistributedDiscreteModel(
     # extract the owned panel ids
     # owned_cells = own_to_local(cids)
     # panel_ids = pids[owned_cells]
-    CubedSphereParametricDiscreteModel(grid,topo,labels,pids,radius)
+    CubedSphere2DParametricDiscreteModel(grid,topo,labels,pids,radius)
    end
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids)
 end
 
 ## these are local+ghost panel ids
 ## for dmodels where the local model is CubedSphereParametricDiscreteModel
-function get_panel_ids(dmodel::CubedSphere2DParametricDistributedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel{Dc,Dp}}) where {Dc,Dp}
+function get_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel{Dc,Dp}}) where {Dc,Dp}
   return map(get_panel_ids,local_views(dmodel))
 end
 
 ## these are local+ghost panel ids
 ## for omodels where the local model is AdaptedDiscreteModel
-function get_panel_ids(dmodel::CubedSphere2DParametricDistributedDiscreteModel{Dc,Dp,<:AdaptedDiscreteModel{Dc,Dp}}) where {Dc,Dp}
+function get_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel{Dc,Dp,<:AdaptedDiscreteModel{Dc,Dp}}) where {Dc,Dp}
   panel_ids = map(local_views(dmodel)) do lmodel
     get_panel_ids(lmodel.model)
   end
@@ -55,7 +58,7 @@ function get_panel_ids(dmodel::CubedSphere2DParametricDistributedDiscreteModel{D
 end
 
 # return owned here to assist with triangulations
-function get_owned_panel_ids(dmodel::CubedSphere2DParametricDistributedDiscreteModel)
+function get_owned_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel)
   gids = get_cell_gids(dmodel)
   dpanel_ids = get_panel_ids(dmodel)
 
@@ -67,11 +70,11 @@ function get_owned_panel_ids(dmodel::CubedSphere2DParametricDistributedDiscreteM
 
 end
 
-function get_forward_map_generator(dmodel::CubedSphere2DParametricDistributedDiscreteModel)
+function get_forward_map_generator(dmodel::CubedSphereParametricDistributedDiscreteModel)
   return map(get_forward_map_generator,local_views(dmodel))
 end
 
-function get_radius(dmodel::CubedSphere2DParametricDistributedDiscreteModel)
+function get_radius(dmodel::CubedSphereParametricDistributedDiscreteModel)
   radii =  map(get_radius,local_views(dmodel))
   radius = zero(eltype(radii))
   map(radii) do r
@@ -80,7 +83,13 @@ function get_radius(dmodel::CubedSphere2DParametricDistributedDiscreteModel)
   return radius
 end
 
-function get_thickness(dmodel::CubedSphere2DParametricDistributedDiscreteModel{3,3})
+function get_thickness(dmodel::CubedSphere2DParametricDistributedDiscreteModel)
+  @notimplemented """\n
+  The model is two dimensional, get_thickness not defined.
+  """
+end
+
+function get_thickness(dmodel::CubedSphere3DParametricDistributedDiscreteModel)
   Ts =  map(get_thickness,local_views(dmodel))
   thickness = zero(eltype(Ts))
   map(Ts) do t

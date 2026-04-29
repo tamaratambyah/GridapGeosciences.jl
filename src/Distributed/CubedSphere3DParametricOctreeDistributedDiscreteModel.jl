@@ -69,7 +69,7 @@ function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{
                                      OrientationStyle(ogrid),
                                      nothing,
                                      alpha_beta_gamma_cmap)
-        CubedSphereParametricDiscreteModel(panel_grid,
+        CubedSphere3DParametricDiscreteModel(panel_grid,
                                 otopo,
                                 olabels,
                                 cell_panels,

@@ -35,6 +35,8 @@ end
 @publish Geometry get_radius
 @publish Geometry get_thickness
 @publish Geometry ParametricCellField
+@publish Geometry CubedSphere2DParametricDiscreteModel
+@publish Geometry CubedSphere3DParametricDiscreteModel
 
 @publish ODEs DAEFEOperator
 

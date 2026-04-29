@@ -37,7 +37,7 @@ function parametric_model(cube_model, radius)
   panel_topo = UnstructuredGridTopology(panel_nodes,get_cell_node_ids(cube_grid),get_cell_type(cube_topo),get_polytopes(cube_topo),OrientationStyle(cube_topo))
   panel_labels = FaceLabeling(panel_topo)
 
-  panel_model = CubedSphereParametricDiscreteModel(panel_grid,panel_topo,panel_labels,panel_ids,radius)
+  panel_model = CubedSphere2DParametricDiscreteModel(panel_grid,panel_topo,panel_labels,panel_ids,radius)
 
   return panel_model
 end
@@ -51,7 +51,11 @@ struct CubedSphereParametricDiscreteModel{Dc,Dp,Tp,B,Tf} <: DiscreteModel{Dc,Dp}
   forward_map_generator::Tf
 end
 
-function CubedSphereParametricDiscreteModel(grid::UnstructuredGrid{2,2},
+const CubedSphere2DParametricDiscreteModel{Tp,B,Tf} = CubedSphereParametricDiscreteModel{2,2,Tp,B,Tf}
+const CubedSphere3DParametricDiscreteModel{Tp,B,Tf} = CubedSphereParametricDiscreteModel{3,3,Tp,B,Tf}
+
+
+function CubedSphere2DParametricDiscreteModel(grid::UnstructuredGrid{2,2},
                                  grid_topology::UnstructuredGridTopology{2,2},
                                  face_labeling::FaceLabeling,
                                  panel_ids::AbstractArray{Int},
@@ -60,7 +64,7 @@ function CubedSphereParametricDiscreteModel(grid::UnstructuredGrid{2,2},
   return CubedSphereParametricDiscreteModel(grid, grid_topology, face_labeling, panel_ids, forward_map_generator)
 end
 
-function CubedSphereParametricDiscreteModel(grid::UnstructuredGrid{3,3},
+function CubedSphere3DParametricDiscreteModel(grid::UnstructuredGrid{3,3},
                                  grid_topology::UnstructuredGridTopology{3,3},
                                  face_labeling::FaceLabeling,
                                  panel_ids::AbstractArray{Int},
@@ -83,7 +87,7 @@ function get_radius(model::Union{CubedSphereParametricDiscreteModel,AdaptedDiscr
   return generator.radius
 end
 
-function get_thickness(model::Union{CubedSphereParametricDiscreteModel{3,3},AdaptedDiscreteModel{3,3,<:CubedSphereParametricDiscreteModel}})
+function get_thickness(model::Union{CubedSphere3DParametricDiscreteModel,AdaptedDiscreteModel{3,3,<:CubedSphere3DParametricDiscreteModel}})
   generator = get_forward_map_generator(model)
   return generator.thickness
 end
