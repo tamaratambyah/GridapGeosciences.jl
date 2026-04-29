@@ -1,13 +1,13 @@
 ################################################################################
 #### CubedSphere2DParametricDistributedDiscreteModel
-#### Has serial ParametricDiscreteModel underneath
+#### Has serial CubedSphereParametricDiscreteModel underneath
 #### The provided panel_ids are owned+ghost. Return only owned+ghost in get_panel_ids
 #### Return owned in get_owned_panel_ids
 #### Implemenet the interface of GridapDistributed.GenericDistributedDiscreteModel
 ################################################################################
-const CubedSphere2DParametricDistributedDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:ParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
+const CubedSphere2DParametricDistributedDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:Union{<:CubedSphereParametricDiscreteModel{Dc,Dp},<:AdaptedDiscreteModel{Dc,Dp}}
 
-# Note the dmodel passed in does not have ParametricDiscreteModel as local models
+# Note the dmodel passed in does not have CubedSphereParametricDiscreteModel as local models
 # Thus, we need to explicitly pass the radius to the constructor as well
 # I am unsure where to put the radius, store in metadata for now
 function CubedSphere2DParametricDistributedDiscreteModel(
@@ -34,14 +34,14 @@ function CubedSphere2DParametricDistributedDiscreteModel(
     # extract the owned panel ids
     # owned_cells = own_to_local(cids)
     # panel_ids = pids[owned_cells]
-    ParametricDiscreteModel(grid,topo,labels,pids,radius)
+    CubedSphereParametricDiscreteModel(grid,topo,labels,pids,radius)
    end
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids)
 end
 
 ## these are local+ghost panel ids
-## for dmodels where the local model is ParametricDiscreteModel
-function get_panel_ids(dmodel::CubedSphere2DParametricDistributedDiscreteModel{Dc,Dp,<:ParametricDiscreteModel{Dc,Dp}}) where {Dc,Dp}
+## for dmodels where the local model is CubedSphereParametricDiscreteModel
+function get_panel_ids(dmodel::CubedSphere2DParametricDistributedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel{Dc,Dp}}) where {Dc,Dp}
   return map(get_panel_ids,local_views(dmodel))
 end
 

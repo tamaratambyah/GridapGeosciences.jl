@@ -62,7 +62,7 @@ To obtain a refined 3D parametric model, we pass $\ell$ levels of refinement to 
 ````julia 
 ℓ = 2
 radius,thickness = 1.0, 0.19
-octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks,radius,thickness;
+octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
                   num_horizontal_uniform_refinements=ℓ,
                   num_vertical_uniform_refinements=ℓ);
 model = octree3_model.parametric_dmodel

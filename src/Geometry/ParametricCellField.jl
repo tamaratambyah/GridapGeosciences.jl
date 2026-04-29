@@ -32,7 +32,7 @@ ambient field evaluated at parametric points.
 
 
 function ParametricCellField(f::Function,
-                             trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel},
+                             trian::BodyFittedTriangulation{Dc,Dp,<:CubedSphereParametricDiscreteModel},
                              panel_ids::AbstractArray{Int}) where {Dc,Dp}
   @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
   model = get_background_model(trian)
@@ -42,7 +42,7 @@ function ParametricCellField(f::Function,
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end
 
-function ParametricCellField(f::Function,trian::BodyFittedTriangulation{Dc,Dp,<:ParametricDiscreteModel}) where {Dc,Dp}
+function ParametricCellField(f::Function,trian::BodyFittedTriangulation{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp}
   panel_ids = get_panel_ids(trian)
   ParametricCellField(f,trian,panel_ids)
 end

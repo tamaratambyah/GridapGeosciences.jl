@@ -11,7 +11,7 @@ import GridapSolvers.MultilevelTools: ModelHierarchy
 using GridapP4est
 
 using GridapGeosciences.Geometry
-import GridapGeosciences.Geometry: ParametricDiscreteModel
+import GridapGeosciences.Geometry: CubedSphereParametricDiscreteModel
 
 using GridapGeosciences.Distributed
 import GridapGeosciences.Distributed: CubedSphere2DParametricOctreeDistributedDiscreteModel

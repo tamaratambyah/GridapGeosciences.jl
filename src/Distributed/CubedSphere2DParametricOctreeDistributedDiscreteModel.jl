@@ -19,7 +19,7 @@ const CUBE_SURFACE_HALF_EDGE = π/4
 """
    CubedSphere2DParametricOctreeDistributedDiscreteModel{2,2}
    octree_dmodel manages the topology of the parametric mesh
-   parametric_dmodel includes a distributed array of proc-local ParametricDiscreteModel{2,2} objects
+   parametric_dmodel includes a distributed array of proc-local CubedSphereParametricDiscreteModel{2,2} objects
 """
 
 struct CubedSphere2DParametricOctreeDistributedDiscreteModel{A<:OctreeDistributedDiscreteModel{2,2},
@@ -79,7 +79,7 @@ function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{
                                      nothing,
                                      alpha_beta_cmap)
 
-        ParametricDiscreteModel(panel_grid,
+        CubedSphereParametricDiscreteModel(panel_grid,
                                 otopo,
                                 olabels,
                                 cell_panels,

@@ -28,7 +28,7 @@ end
 @publish Geometry A_cube2panel
 @publish Geometry A_panel2cube
 @publish Geometry b_panel2cube
-@publish Geometry ParametricDiscreteModel
+@publish Geometry CubedSphereParametricDiscreteModel
 @publish Geometry _pushforward_normal
 @publish Geometry _pullback_area_form
 @publish Geometry get_forward_map_generator

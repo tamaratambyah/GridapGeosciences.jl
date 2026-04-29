@@ -55,7 +55,7 @@ To obtain a refined 2D parametric model, we pass $\ell$ levels of refinement:
 ````julia 
 ℓ = 2
 radius = 1.0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=ℓ)
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=ℓ)
 model = omodel.parametric_dmodel
 ````
 

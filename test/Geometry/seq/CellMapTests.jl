@@ -1,5 +1,5 @@
 """
-In this module, we test the cell maps of the serial ParametricDiscreteModel.
+In this module, we test the cell maps of the serial CubedSphereParametricDiscreteModel.
 Theoretically, the panel models should return the cell coordinates of a
 Cartesian panel. Test the evaluation of the cell maps on ref coords against
 a cartesian model at the same level of refinement

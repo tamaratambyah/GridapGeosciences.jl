@@ -20,7 +20,7 @@ import GridapGeosciences.Helpers: inv_metric, forward_jacobian
 include("panel_ids.jl")
 include("cube_surface.jl")
 include("panel_matrices.jl")
-include("parametric_model.jl")
+include("CubedSphereParametricDiscreteModel.jl")
 include("ambient_model.jl")
 include("BoundaryTriangulations.jl")
 include("SkeletonTriangulations.jl")
@@ -37,7 +37,7 @@ export generate_ptr, coarse_cube_model
 
 export coarse_parametric_model
 export R1p, A_cube2panel, A_panel2cube, b_panel2cube
-export ParametricDiscreteModel
+export CubedSphereParametricDiscreteModel
 
 export get_nodes_from_coords
 

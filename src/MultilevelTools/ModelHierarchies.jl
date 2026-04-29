@@ -21,7 +21,7 @@ function GridapSolvers.MultilevelTools.ModelHierarchy(
 end
 
 function GridapSolvers.MultilevelTools.ModelHierarchy(
-  coarse_model::ParametricDiscreteModel,
+  coarse_model::CubedSphereParametricDiscreteModel,
   n_ref_lvls::Int)
   println("gmg lvls = $(n_ref_lvls)")
 

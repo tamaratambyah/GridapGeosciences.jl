@@ -6,7 +6,7 @@
 #   topo = get_grid_topology(model)
 #   face_to_mask = get_isboundary_face(topo,Dc-1) # This is globally consistent
 
-#   ## for ParametricDiscreteModel, we want all cells all the internal cells
+#   ## for CubedSphereParametricDiscreteModel, we want all cells all the internal cells
 #   _face_to_mask = map(face_to_mask) do m
 #     return .!m
 #   end

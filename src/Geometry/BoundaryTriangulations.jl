@@ -1,6 +1,6 @@
 import Gridap.Geometry: FaceToCellGlue, FaceCompressedVector, push_normal
 
-function Geometry.BoundaryTriangulation(model::ParametricDiscreteModel,lcell::Integer=1)
+function Geometry.BoundaryTriangulation(model::CubedSphereParametricDiscreteModel,lcell::Integer=1)
   topo = get_grid_topology(model)
   Dc = num_cell_dims(model)
 
@@ -12,7 +12,7 @@ end
 
 
 function Geometry.BoundaryTriangulation(
-  model::ParametricDiscreteModel,
+  model::CubedSphereParametricDiscreteModel,
   bgface_to_mask::AbstractVector{Bool},
   bgface_to_lcell::AbstractVector{<:Integer}
   )
@@ -23,7 +23,7 @@ end
 
 
 function Geometry.BoundaryTriangulation(
-  model::ParametricDiscreteModel,
+  model::CubedSphereParametricDiscreteModel,
   face_to_bgface::AbstractVector{<:Integer},
   bgface_to_lcell::AbstractVector{<:Integer}
   )
