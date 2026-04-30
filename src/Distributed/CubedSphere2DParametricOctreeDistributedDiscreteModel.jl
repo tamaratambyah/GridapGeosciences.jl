@@ -79,7 +79,7 @@ function _setup_parametric_models(octree_dmodel::OctreeDistributedDiscreteModel{
                                      nothing,
                                      alpha_beta_cmap)
 
-        CubedSphereParametricDiscreteModel(panel_grid,
+        CubedSphere2DParametricDiscreteModel(panel_grid,
                                 otopo,
                                 olabels,
                                 cell_panels,

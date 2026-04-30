@@ -81,7 +81,7 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere
 
 
   ### construct the refined model and return adapted model
-  ref_model = CubedSphereParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids,get_radius(model))
+  ref_model = CubedSphere2DParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids,get_radius(model))
   return AdaptedDiscreteModel(ref_model,model,glue)
 end
 
