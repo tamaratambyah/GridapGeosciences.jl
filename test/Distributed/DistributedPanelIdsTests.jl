@@ -3,7 +3,7 @@ In this module, we test the panel ids from the BodyFittedTriangulation trian are
 equivalent to the panel ids from the model.
 We also test the length of the panel ids is equvialent to the number of cells.
 Do this for:
-  - CubedSphere2DParametricDistributedDiscreteModel
+  - CubedSphereParametricDistributedDiscreteModel
   - CubedSphere2DParametricOctreeDistributedDiscreteModel
   - ParametricOctree3DistributedDiscreteModel
 """
@@ -44,7 +44,7 @@ function test_distributedParametricDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test CubedSphere2DParametricDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphereParametricDistributedDiscreteModel")
 
   n_ref_lvls = 2
   radius = 1.0

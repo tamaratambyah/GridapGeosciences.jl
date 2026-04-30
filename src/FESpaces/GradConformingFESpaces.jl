@@ -1,6 +1,5 @@
-function _generate_face_to_master_cell_id(model::CubedSphereParametricDiscreteModel;
-                                          cell_l2g::AbstractVector{Int}=IdentityVector(num_cells(model)))
-  Dc = num_cell_dims(model)
+function _generate_face_to_master_cell_id(model::CubedSphereParametricDiscreteModel{Dc};
+                                          cell_l2g::AbstractVector{Int}=IdentityVector(num_cells(model))) where Dc
   grid_topology = get_grid_topology(model)
   face_to_master_cell_id = Vector{Vector{Int}}(undef, Dc)
   for i=1:Dc

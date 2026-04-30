@@ -4,7 +4,7 @@ function _generate_change_of_basis_matrices(model, cell_reffe, cell_l2g)
                                        face_to_master_cell_id=face_to_master_cell_id)
 end
 
-function _generate_change_of_basis_matrices(model::CubedSphere2DParametricDistributedDiscreteModel, cell_reffes)
+function _generate_change_of_basis_matrices(model::CubedSphereParametricDistributedDiscreteModel, cell_reffes)
     is_vector = false
     map(cell_reffes) do cell_reffe
       T=_get_value_type(cell_reffe)
@@ -34,7 +34,7 @@ function _generate_change_of_basis_matrices(model::CubedSphere2DParametricDistri
     end
 end
 
-function FESpace(model::CubedSphere2DParametricDistributedDiscreteModel,
+function FESpace(model::CubedSphereParametricDistributedDiscreteModel,
                  reffe::Tuple{<:Lagrangian,Any, Any};
                  split_own_and_ghost=false,
                  constraint=nothing,

@@ -28,15 +28,15 @@ end
 @publish Geometry A_cube2panel
 @publish Geometry A_panel2cube
 @publish Geometry b_panel2cube
-@publish Geometry CubedSphereParametricDiscreteModel
 @publish Geometry _pushforward_normal
 @publish Geometry _pullback_area_form
 @publish Geometry get_forward_map_generator
 @publish Geometry get_radius
 @publish Geometry get_thickness
 @publish Geometry ParametricCellField
-@publish Geometry CubedSphere2DParametricDiscreteModel
-@publish Geometry CubedSphere3DParametricDiscreteModel
+@publish Geometry CubedSphereParametricDiscreteModel
+# @publish Geometry CubedSphereParametricDiscreteModel
+# @publish Geometry CubedSphereParametricDiscreteModel
 
 @publish ODEs DAEFEOperator
 
@@ -73,7 +73,7 @@ end
 
 @publish Distributed CubedSphere2DParametricOctreeDistributedDiscreteModel
 @publish Distributed CubedSphere3DParametricOctreeDistributedDiscreteModel
-@publish Distributed CubedSphere2DParametricDistributedDiscreteModel
+@publish Distributed CubedSphereParametricDistributedDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed latlon_geo_map_func
 @publish Distributed ParametricCellField

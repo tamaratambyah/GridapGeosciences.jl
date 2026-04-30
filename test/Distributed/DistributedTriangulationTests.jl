@@ -33,7 +33,7 @@ end
 function test_distributedParametricDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test CubedSphere2DParametricDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphereParametricDistributedDiscreteModel")
 
   n_ref_lvls = 2
   radius = 1.0

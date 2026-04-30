@@ -105,14 +105,14 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
   end
 
   # construct array of distributed models, distributed panel ids (all + owned only)
-  dmodels = Vector{CubedSphere2DParametricDistributedDiscreteModel}(undef,length(models))
+  dmodels = Vector{CubedSphereParametricDistributedDiscreteModel}(undef,length(models))
   dpanel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
   owned_panel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
 
   # the coarsest model is the last in the list
   coarse_dmodel = DiscreteModel(ranks,models[end],cell_to_part[end])
   dpanel_ids[end],owned_panel_ids[end] = distributed_panel_ids(coarse_dmodel,spanel_ids[end])
-  dmodels[end] = CubedSphere2DParametricDistributedDiscreteModel(coarse_dmodel,dpanel_ids[end],radii[end])
+  dmodels[end] = CubedSphereParametricDistributedDiscreteModel(coarse_dmodel,dpanel_ids[end],radii[end])
 
   # loop backwards through refinement levels
   for level in length(models)-1:-1:1
@@ -121,7 +121,7 @@ function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:Discrete
     glue = DistributedAdaptivityGlue(glues[level],parent,child)
     dpanel_ids[level],owned_panel_ids[level] = distributed_panel_ids(child,spanel_ids[level])
 
-    dmodels[level] = CubedSphere2DParametricDistributedDiscreteModel(child, dpanel_ids[level],radii[level])
+    dmodels[level] = CubedSphereParametricDistributedDiscreteModel(child, dpanel_ids[level],radii[level])
   end
   return dmodels, dpanel_ids, owned_panel_ids
 end
@@ -129,7 +129,7 @@ end
 
 #### get array of dmodel - octree models
 function get_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_model=false)
-  dmodels = Vector{CubedSphere2DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
+  dmodels = Vector{CubedSphereParametricDistributedDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
     parametric_octree_dmodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
@@ -147,7 +147,7 @@ function get_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_mod
 end
 
 function get_3D_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,thickness::Real)
-  dmodels = Vector{CubedSphere3DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
+  dmodels = Vector{CubedSphereParametricDistributedDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
     octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;

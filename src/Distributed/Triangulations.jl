@@ -1,5 +1,5 @@
 # function GridapDistributed.BoundaryTriangulation(
-#   portion,model::CubedSphere2DParametricDistributedDiscreteModel,labels::DistributedFaceLabeling;tags=nothing)
+#   portion,model::CubedSphereParametricDistributedDiscreteModel,labels::DistributedFaceLabeling;tags=nothing)
 #   println("distributed booundary trian")
 #   Dc = num_cell_dims(model)
 

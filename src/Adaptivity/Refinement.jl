@@ -22,7 +22,7 @@ function Gridap.Adaptivity.refine(model::CubedSphereParametricDiscreteModel,args
   return Gridap.Adaptivity.refine(Gridap.Adaptivity.string_to_refinement(refinement_method, model),model,args...;kwargs...)
 end
 
-function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere2DParametricDiscreteModel;cells_to_refine=nothing)
+function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphereParametricDiscreteModel;cells_to_refine=nothing)
   Dc = num_cell_dims(model)
   panel_grid = get_grid(model)
   _ctopo = get_grid_topology(model)
@@ -81,7 +81,7 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphere
 
 
   ### construct the refined model and return adapted model
-  ref_model = CubedSphere2DParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids,get_radius(model))
+  ref_model = CubedSphereParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids,get_radius(model))
   return AdaptedDiscreteModel(ref_model,model,glue)
 end
 
