@@ -37,7 +37,7 @@ function parametric_model(cube_model, radius)
   panel_topo = UnstructuredGridTopology(panel_nodes,get_cell_node_ids(cube_grid),get_cell_type(cube_topo),get_polytopes(cube_topo),OrientationStyle(cube_topo))
   panel_labels = FaceLabeling(panel_topo)
 
-  panel_model = CubedSphereParametricDiscreteModel(panel_grid,panel_topo,panel_labels,panel_ids,radius)
+  panel_model = CubedSphere2DParametricDiscreteModel(panel_grid,panel_topo,panel_labels,panel_ids,radius)
 
   return panel_model
 end
