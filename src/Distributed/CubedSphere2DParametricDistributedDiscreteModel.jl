@@ -34,7 +34,7 @@ function CubedSphereParametricDistributedDiscreteModel(
     # extract the owned panel ids
     # owned_cells = own_to_local(cids)
     # panel_ids = pids[owned_cells]
-    CubedSphereParametricDiscreteModel(grid,topo,labels,pids,radius)
+    CubedSphere2DParametricDiscreteModel(grid,topo,labels,pids,radius)
    end
   return GridapDistributed.GenericDistributedDiscreteModel(models,gids)
 end

@@ -43,7 +43,7 @@ function parametric_model(cube_model, radius)
 end
 
 
-struct CubedSphereParametricDiscreteModel{Dc,Dp,Tp,B,Tf} <: DiscreteModel{Dc,Dp}
+struct CubedSphereParametricDiscreteModel{Dc,Dp,Tp,B,Tf<:Map} <: DiscreteModel{Dc,Dp}
   grid::UnstructuredGrid{Dc,Dp,Tp,B}
   grid_topology::UnstructuredGridTopology{Dc,Dp,Tp,B}
   face_labeling::FaceLabeling
