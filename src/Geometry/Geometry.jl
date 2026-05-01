@@ -48,4 +48,6 @@ export _pullback_area_form
 
 export get_radius, get_thickness
 
+export get_refined_models
+
 end

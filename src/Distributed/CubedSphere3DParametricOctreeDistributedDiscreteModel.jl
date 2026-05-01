@@ -13,7 +13,8 @@ function get_thickness(dmodel::CubedSphere3DParametricOctreeDistributedDiscreteM
   return get_thickness(dmodel.parametric_dmodel)
 end
 
-function CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius::Real,thickness::Real;
+function CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks::AbstractArray,
+                                                    radius::Real,thickness::Real;
                                                     num_horizontal_uniform_refinements=0,
                                                     num_vertical_uniform_refinements=0)
 

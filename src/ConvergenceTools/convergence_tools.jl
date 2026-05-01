@@ -46,23 +46,11 @@ end
 
 
 """
-get_refined_models
+get_distributed_refined_models
 returns an array of refined serial models where
   models[1] == most refined model
   models[end] == coarsest model
 """
-function get_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
-  panel_model = coarse_parametric_model(radius)
-  panel_models = Vector{Gridap.Geometry.DiscreteModel}(undef,n_ref_lvls)
-  for n in n_ref_lvls:-1:1
-    panel_model = Gridap.Adaptivity.refine(panel_model)
-    panel_models[n] = panel_model
-  end
-  if coarse_model
-    push!(panel_models,coarse_parametric_model(radius))
-  end
-  panel_models
-end
 
 function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,radius::Real,coarse_s_model=false)
   s_models  = get_refined_models(n_ref_lvls,radius,coarse_s_model)

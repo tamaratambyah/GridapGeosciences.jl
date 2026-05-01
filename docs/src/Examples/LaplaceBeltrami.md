@@ -44,10 +44,7 @@ then apply $\ell$ levels of refinement:
 ````julia 
 ℓ = 3
 radius = 1.0
-model = coarse_parametric_model(radius)
-for n in collect(1:ℓ)
-    global model = Gridap.Adaptivity.refine(model)
-end
+model = CubedSphere2DParametricDiscreteModel(radius;num_initial_uniform_refinements=ℓ)
 ````
 
 Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.

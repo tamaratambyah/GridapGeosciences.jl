@@ -40,7 +40,6 @@ include("ParametricCellField.jl")
 include("panel_ids.jl")
 include("Vtk.jl")
 include("createpvd.jl")
-include("helpers.jl")
 include("Triangulations.jl")
 
 import Gridap.FESpaces: FESpace

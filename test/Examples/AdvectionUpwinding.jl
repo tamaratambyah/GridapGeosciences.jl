@@ -51,10 +51,8 @@ using GridapSolvers
 # then apply $\ell$ levels of refinement:
 ℓ = 3
 radius = 1.0
-model = coarse_parametric_model(radius)
-for n in collect(1:ℓ)
-    global model = Gridap.Adaptivity.refine(model)
-end
+model = CubedSphere2DParametricDiscreteModel(radius;num_initial_uniform_refinements=ℓ)
+
 
 # ## Triangulation
 # This test requires both volume and skeleton triangulations.

@@ -37,7 +37,10 @@ end
 # TO-THINK: not sure if radius of the cubed sphere is required?
 # Right now, in the serial version of the code, we are passing the length of the cube edges
 # (see coarse_cube_surface_3D function)
-function CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius::Real; num_initial_uniform_refinements=0)
+function CubedSphere2DParametricOctreeDistributedDiscreteModel(
+      ranks::AbstractArray,
+      radius::Real;
+      num_initial_uniform_refinements=0)
    coarse_model = _create_parametric_octree_dmodel_coarse_model()
    octree_dmodel, cell_wise_vertex_alpha_beta_coordinates, cell_panels =
            _generate_octree_dmodel_alpha_beta_coordinates_and_panels(ranks,

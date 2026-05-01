@@ -37,6 +37,7 @@ end
 @publish Geometry CubedSphereParametricDiscreteModel
 @publish Geometry CubedSphere2DParametricDiscreteModel
 @publish Geometry CubedSphere3DParametricDiscreteModel
+@publish Geometry get_refined_models
 
 @publish ODEs DAEFEOperator
 
@@ -105,7 +106,6 @@ end
 
 @publish ConvergenceTools p_convergence_auto_test
 @publish ConvergenceTools h_convergence_auto_test
-@publish ConvergenceTools get_refined_models
 @publish ConvergenceTools get_distributed_refined_models
 @publish ConvergenceTools get_octree_refined_models
 @publish ConvergenceTools get_3D_octree_refined_models
