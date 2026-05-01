@@ -13,8 +13,8 @@ include("Vtk.jl")
 include("createpvd.jl")
 
 export make_pvd
-export writevtk_with_cell_geomap, write_with_cell_geomap
-export createvtk_with_cell_geomap,  create_with_cell_geomap
+export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
+export createvtk_with_cell_geomap,  create_vtk_file_with_cell_geomap
 export mapped_vtkpoints
 
 end
