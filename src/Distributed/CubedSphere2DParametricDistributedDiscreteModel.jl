@@ -46,18 +46,18 @@ end
 
 ## these are local+ghost panel ids
 ## for dmodels where the local model is CubedSphereParametricDiscreteModel
-function get_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel{T}) where {T}
+function get_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel{<:CubedSphereParametricDiscreteModel{Dc,Dp}}) where {Dc,Dp}
   return map(get_panel_ids,local_views(dmodel))
 end
 
 ## these are local+ghost panel ids
 ## for omodels where the local model is AdaptedDiscreteModel
-# function get_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel{Dc,Dp,<:AdaptedDiscreteModel{Dc,Dp}}) where {Dc,Dp}
-#   panel_ids = map(local_views(dmodel)) do lmodel
-#     get_panel_ids(lmodel.model)
-#   end
-#   return panel_ids
-# end
+function get_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel{<:AdaptedDiscreteModel{Dc,Dp}}) where {Dc,Dp}
+  panel_ids = map(local_views(dmodel)) do lmodel
+    get_panel_ids(lmodel.model)
+  end
+  return panel_ids
+end
 
 # return owned here to assist with triangulations
 function get_owned_panel_ids(dmodel::CubedSphereParametricDistributedDiscreteModel{T}) where {T}
