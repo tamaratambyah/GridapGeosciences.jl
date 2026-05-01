@@ -119,12 +119,7 @@ end
 # Nonlinear DAE operator #
 ######################
 
-import Gridap.ODEs: NonlinearOperator
-import Gridap.ODEs: ODEOperator
-import Gridap.Algebra: LinearSolver
-import Gridap.Algebra: LinearSolverCache
-import Gridap.Algebra: symbolic_setup, numerical_setup, numerical_setup!
-import Gridap.Algebra: NLSolver, NLSolversCache
+
 mutable struct DAENonlinearOperator <: NonlinearOperator
   odeop
   odeopcache
