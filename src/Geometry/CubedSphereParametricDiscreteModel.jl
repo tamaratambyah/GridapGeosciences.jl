@@ -51,8 +51,8 @@ struct CubedSphereParametricDiscreteModel{Dc,Dp,Tp,B,Tf} <: DiscreteModel{Dc,Dp}
   forward_map_generator::Tf
 end
 
-const CubedSphere2DParametricDiscreteModel{Tp,B,Tf} = CubedSphereParametricDiscreteModel{2,2}
-const CubedSphere3DParametricDiscreteModel{Tp,B,Tf} = CubedSphereParametricDiscreteModel{3,3}
+const CubedSphere2DParametricDiscreteModel{Tp,B,Tf} = CubedSphereParametricDiscreteModel{2,2,Tp,B,Tf}
+const CubedSphere3DParametricDiscreteModel{Tp,B,Tf} = CubedSphereParametricDiscreteModel{3,3,Tp,B,Tf}
 
 
 function CubedSphere2DParametricDiscreteModel(grid::UnstructuredGrid{2,2},
