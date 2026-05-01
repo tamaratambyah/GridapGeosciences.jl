@@ -3,7 +3,7 @@ In this module, we test the panel ids from the BodyFittedTriangulation trian are
 equivalent to the panel ids from the model.
 We also test the length of the panel ids is equvialent to the number of cells.
 Do this for:
-  - CubedSphereParametricDistributedDiscreteModel
+  - CubedSphere2DParametricDistributedDiscreteModel
   - CubedSphere2DParametricOctreeDistributedDiscreteModel
   - ParametricOctree3DistributedDiscreteModel
 """

@@ -59,6 +59,6 @@ function get_distributed_panel_model(ranks,nprocs,n_ref_lvls::Int,radius)
   # distribute the model
   dmodel = UnstructuredDiscreteModel(DiscreteModel(ranks,Adaptivity.get_model(s_panel_model),fine_cell_to_part))
   dpanel_ids, = distributed_panel_ids(dmodel,spanel_ids)
-  panel_model = CubedSphereParametricDistributedDiscreteModel(dmodel,dpanel_ids,radius)
+  panel_model = CubedSphere2DParametricDistributedDiscreteModel(dmodel,dpanel_ids,radius)
  return panel_model
 end

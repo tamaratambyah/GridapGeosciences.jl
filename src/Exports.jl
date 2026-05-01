@@ -74,6 +74,8 @@ end
 @publish Distributed CubedSphere2DParametricOctreeDistributedDiscreteModel
 @publish Distributed CubedSphere3DParametricOctreeDistributedDiscreteModel
 @publish Distributed CubedSphereParametricDistributedDiscreteModel
+@publish Distributed CubedSphere2DParametricDistributedDiscreteModel
+@publish Distributed CubedSphere3DParametricDistributedDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed latlon_geo_map_func
 @publish Distributed ParametricCellField

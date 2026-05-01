@@ -91,7 +91,7 @@ end
 function get_3D_octree_horizontal_refined_models(ranks,n_ref_lvls_horiztontal::Int,num_vertical_uniform_refinements=3)
   n_ref_lvls = n_ref_lvls_horiztontal
 
-  dmodels = Vector{CubedSphereParametricDistributedDiscreteModel}(undef,n_ref_lvls)
+  dmodels = Vector{CubedSphere3DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:2)
     octree3_model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(
@@ -108,7 +108,7 @@ end
 function get_3D_octree_vertical_refined_models(ranks,num_vertical_uniform_refinements::Int,n_ref_lvls_horiztontal=3)
   n_ref_lvls = num_vertical_uniform_refinements
 
-  dmodels = Vector{CubedSphereParametricDistributedDiscreteModel}(undef,n_ref_lvls)
+  dmodels = Vector{CubedSphere3DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
 
   for (i,n) in enumerate(n_ref_lvls:-1:1)
     octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
