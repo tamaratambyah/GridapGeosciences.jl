@@ -105,13 +105,13 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
 
-    covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-    u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+    covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+    u_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
     u_contra_h = interpolate(u_contra_cf,U)
     u_proj_h = covariant_basis_cf ⋅ u_contra_h
 
-    h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-    B_cf = panelwise_cellfield(B,Ω_panel,panel_ids)
+    h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+    B_cf = ParametricCellField(B,Ω_panel,panel_ids)
     h_h = interpolate(h_cf,P)
     B_h = interpolate(B_cf,P)
 
@@ -126,11 +126,11 @@ function transient_tsw_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapDi
   t0,xh0 = (restart) ? load_last(ranks,X_prog(0.0),prog_dir,simName) : initial_condition()
 
   ## transient weak form
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
 
   #### DIAGNOSTIC VARIABLES
@@ -337,10 +337,10 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   X_diag = TransientMultiFieldFESpace([H,U,P,P]) # q, F, Φ, b
   Y_diag = MultiFieldFESpace([R,V,Q,Q]) # q, F, Φ, b
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
 
   _Ω_panel = Triangulation(panel_model)
@@ -354,8 +354,8 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     panel_cfs = [covariant_basis_cf⋅(1/meas_cf*uh), ph, Bh, bh, qh, Fh, Φh, vort, eta]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(_Ω_panel))
-    writevtk(_Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(_Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(_Ω_panel),_Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
+    writevtk_with_cell_geomap(latlon_cell_geo_map(_Ω_panel),_Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
   end
 
   function casimirs(xh,yh,dΩ)
@@ -446,8 +446,8 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
   X_prog = TransientMultiFieldFESpace([U,P,P]) # u, p, B
   Y_prog = MultiFieldFESpace([V,Q,Q]) # u, p, B
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   f_folders = readdir(final_dir)
   i_folders = readdir(initial_dir)

@@ -63,6 +63,43 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   ss = symbolic_setup(ls, A)
   ns = numerical_setup(ss,A)
   rmul!(b,-1)
+  solve!(x,ns,b)
+
+  LinearSolverCache(A,b,ns)
+end
+
+function Gridap.Algebra.solve!(x::AbstractVector,
+  ls::LinearSolver,
+  op::DAENonlinearStageOperator,
+  cache)
+
+  # println("Non linear stage solve ")
+  fill!(x,zero(eltype(x)))
+  b = cache.b
+  A = cache.A
+  ns = cache.ns
+  residual!(b, op, x)
+  jacobian!(A, op, x)
+  numerical_setup!(ns,A)
+  rmul!(b,-1)
+
+  solve!(x,ns,b)
+  cache
+end
+
+
+
+function Gridap.Algebra.solve!(x::PVector,
+  ls::LinearSolver,
+  op::DAENonlinearStageOperator,
+  cache::Nothing)
+
+  fill!(x,zero(eltype(x)))
+  b = residual(op, x)
+  A = jacobian(op, x)
+  ss = symbolic_setup(ls, A)
+  ns = numerical_setup(ss,A)
+  rmul!(b,-1)
   # solve!(x,ns,b)
 
   _x = Gridap.Algebra.allocate_in_domain(A)
@@ -74,7 +111,7 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   LinearSolverCache(A,b,ns)
 end
 
-function Gridap.Algebra.solve!(x::AbstractVector,
+function Gridap.Algebra.solve!(x::PVector,
   ls::LinearSolver,
   op::DAENonlinearStageOperator,
   cache)
@@ -99,7 +136,6 @@ function Gridap.Algebra.solve!(x::AbstractVector,
   cache
 end
 
-
 #######################
 # LinearStageOperator #
 #######################
@@ -121,14 +157,14 @@ function Gridap.ODEs.LinearStageOperator(
 end
 
 ## helper for nonPvectors
-function PartitionedArrays.consistent!(a::Vector)
-  # println("my consistent")
-  a
-end
+# function PartitionedArrays.consistent!(a::Vector)
+#   # println("my consistent")
+#   a
+# end
 
 #### overloads to allow for Pvectors in distributed
 function Gridap.Algebra.solve!(
-  x::AbstractVector,
+  x::PVector,
   ls::LinearSolver, lop::LinearStageOperator,
   ns::Nothing
 )
@@ -152,7 +188,7 @@ function Gridap.Algebra.solve!(
 end
 
 function Gridap.Algebra.solve!(
-  x::AbstractVector,
+  x::PVector,
   ls::LinearSolver, lop::LinearStageOperator,
   ns
 )

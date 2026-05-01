@@ -9,14 +9,12 @@ using FillArrays
 
 using GridapGeosciences.Geometry
 
-import Gridap.Visualization: writevtk, createvtk, write_vtk_file, create_vtk_file
-
 include("Vtk.jl")
-# include("helpers.jl")
 include("createpvd.jl")
 
 export make_pvd
-export writevtk, createvtk, write_vtk_file, create_vtk_file
+export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
+export createvtk_with_cell_geomap,  create_vtk_file_with_cell_geomap
 export mapped_vtkpoints
 
 end

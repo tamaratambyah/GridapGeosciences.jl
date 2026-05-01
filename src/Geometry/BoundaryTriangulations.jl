@@ -1,6 +1,6 @@
 import Gridap.Geometry: FaceToCellGlue, FaceCompressedVector, push_normal
 
-function Geometry.BoundaryTriangulation(model::ParametricDiscreteModel,lcell::Integer=1)
+function Geometry.BoundaryTriangulation(model::CubedSphereParametricDiscreteModel,lcell::Integer=1)
   topo = get_grid_topology(model)
   Dc = num_cell_dims(model)
 
@@ -12,7 +12,7 @@ end
 
 
 function Geometry.BoundaryTriangulation(
-  model::ParametricDiscreteModel,
+  model::CubedSphereParametricDiscreteModel,
   bgface_to_mask::AbstractVector{Bool},
   bgface_to_lcell::AbstractVector{<:Integer}
   )
@@ -23,7 +23,7 @@ end
 
 
 function Geometry.BoundaryTriangulation(
-  model::ParametricDiscreteModel,
+  model::CubedSphereParametricDiscreteModel,
   face_to_bgface::AbstractVector{<:Integer},
   bgface_to_lcell::AbstractVector{<:Integer}
   )
@@ -162,12 +162,13 @@ This method is based on Santi's formula
 pushforward_normal(trian::BoundaryTriangulation) = _pushforward_normal(trian)
 function _pushforward_normal(trian)
   panel_model = get_background_model(trian)
+  panel_model_metadata = get_forward_map_generator(panel_model)
   n_2_2D = get_normal_vector(trian)
 
   face_panel_ids = get_panel_ids(trian)
   glue = get_glue(trian,Val(2))
 
-  face_geo_map = lazy_map(p -> ForwardMap(p), face_panel_ids)
+  face_geo_map = lazy_map(p -> panel_model_metadata(p), face_panel_ids)
   Jt = lazy_map(∇,face_geo_map)
   J = lazy_map(Operation(transpose),Jt)
 
@@ -179,7 +180,7 @@ function _pushforward_normal(trian)
   J_cf = GenericCellField(Gridap.Fields.MemoArray(J_face),trian,ReferenceDomain())
 
   # inv_cf = CellField(analytic_inv_metric,trian)
-  inv_cf = panelwise_cellfield(inv_metric,trian)
+  inv_cf = ParametricCellField(inv_metric,trian)
 
   _n_mapped = J_cf ⋅ (inv_cf  ⋅ n_2_2D )
   ff = Operation(sqrt)(  n_2_2D   ⋅ (inv_cf⋅ n_2_2D )  )
@@ -196,8 +197,8 @@ returns |Jg^{-1} ̂n|
 ##
 pullback_area_form(trian::BoundaryTriangulation) = _pullback_area_form(trian)
 function _pullback_area_form(trian)
-  inv_metric_cf = panelwise_cellfield(inv_metric,trian)
-  jac_cf = panelwise_cellfield(forward_jacobian,trian)
+  inv_metric_cf = ParametricCellField(inv_metric,trian)
+  jac_cf = ParametricCellField(forward_jacobian,trian)
   n_Λ = get_normal_vector(trian)
 
   Operation(norm)(jac_cf⋅(inv_metric_cf ⋅n_Λ) )

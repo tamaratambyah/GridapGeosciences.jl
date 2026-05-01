@@ -37,9 +37,8 @@ using Test
 # end
 
 
-import GridapGeosciences.Helpers: RADIUS, THICKNESS
-THICKNESS
-RADIUS
+THICKNESS = 0.19
+RADIUS = 1.0
 
 a_e = 6.37e6/125 # m
 d = 5000 #m
@@ -143,26 +142,26 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
 
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
 
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+  h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+  u_cf = ParametricCellField(piola(vX),Ω_panel,panel_ids)
   u_proj_cf = covariant_basis_cf ⋅(1/meas_cf * u_cf  )
-  b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
-  omega_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  b_cf = ParametricCellField(b,Ω_panel,panel_ids)
+  omega_cf = ParametricCellField(f,Ω_panel,panel_ids)
 
   p_int = interpolate(h_cf,P)
   u_int = interpolate(u_cf,U)
   b_int = interpolate(b_cf,B)
 
   ## In 3D, we construct ̃k using the area measure
-  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
   normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
-  normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel,panel_ids)
+  normal_3D_cf = ParametricCellField(normal_3D,Ω_panel,panel_ids)
 
   coriolis_term((u,p,b),(v,q,r)) = ∫( omega_cf*( normal_3D_cf ×( metric_cf⋅u*(1/meas_cf)  ) )⋅(metric_cf⋅v)*(1/meas_cf)  )dΩ
   bouyancy_term(b,v) = ∫( b*(normal_3D_cf⋅v)  )dΩ # v ∈ Hdiv, b ∈ L2
@@ -223,8 +222,8 @@ function linear_boussineseq(panel_model::GridapDistributed.GenericDistributedDis
     panel_cfs = [h_cf, u_proj_cf, b_cf, ph, uh_proj, bh, h_cf-ph, u_proj_cf-uh_proj , b_cf-bh]
     labels = ["p","u_proj", "b", "ph", "uh_proj", "bh", "ep","eu", "eb"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
-    cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+    cellfields=cellfields,append=false)
   end
 
   return e_u, e_p, e_b
@@ -250,8 +249,8 @@ end
 #   f = panel_to_cartesian(omega)
 #   b = panel_to_cartesian(b0)
 
-
-#   Parametric3DOctreeDistributedDiscreteModel(ranks;
+# radius,thickness = 1.0, 0.19
+#   CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
 #         num_horizontal_uniform_refinements=n_ref,
 #         num_vertical_uniform_refinements=n_ref);
 #   panel_model = omodel.parametric_dmodel
@@ -298,9 +297,9 @@ end
 #   ranks = distribute(LinearIndices((nprocs,)))
 
 #   n_ref_lvls = 3
-
+# radius,thickness = 1,0.19
 #   ### P4test model: 3D
-#   models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+#   models = get_3D_octree_refined_models(ranks,n_ref_lvls,radius,thickness)
 #   main(models;_i_am_main=i_am_main(ranks))
 
 # end

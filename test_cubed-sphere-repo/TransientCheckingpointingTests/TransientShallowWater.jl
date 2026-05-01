@@ -74,20 +74,20 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   ## initial conditions
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
 
-    u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+    u_cf = ParametricCellField(piola(vX),Ω_panel,panel_ids)
     u_int = interpolate(u_cf,U)
 
-    h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-    b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+    h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+    b_cf = ParametricCellField(b,Ω_panel,panel_ids)
     h_int = interpolate(h_cf-b_cf,P)
 
     xh0 = interpolate_everywhere([u_int,h_int],X_prog(0.0))
@@ -101,9 +101,9 @@ function transient_shallow_water_solver(panel_model::Union{<:DiscreteModel{2,2},
   t0,xh0 = (restart) ? load_last(ranks,X_prog(0.0),prog_dir,simName) : initial_condition()
 
   ## transient weak form
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
-  b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+  b_cf = ParametricCellField(b,Ω_panel,panel_ids)
 
   #### DIAGNOSTIC VARIABLES
   # vorticity
@@ -249,10 +249,10 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
   X_diag = TransientMultiFieldFESpace([H,U,P]) # q, F, Φ
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
   gravity = _g
 
   labels = ["uh","ph","qh","Fh","Phih","vort", "vort-f"]
@@ -264,8 +264,8 @@ function post_process(panel_model,p_fe::Int,dir::String,f::Function,return_vtk=f
     panel_cfs = [covariant_basis_cf⋅(1/meas_cf*uh), ph, qh, Fh, Φh, vort,vort_f]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
-    writevtk(Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
+    writevtk_with_cell_geomap(latlon_cell_geo_map(Ω_panel),Ω_panel,latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
   end
 
   function casimirs(xh,yh,dΩ)
@@ -349,9 +349,9 @@ function convergence_post_process(panel_model,p_fe::Int,dir::String)
   X_prog = TransientMultiFieldFESpace([U,P]) # u, p
   Y_prog = MultiFieldFESpace([V,Q]) # u, p
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
 
   f_folders = readdir(final_dir)
   i_folders = readdir(initial_dir)
@@ -411,8 +411,8 @@ function main_transient(distribute,nprocs;
   ls_diag = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-12,verbose=i_am_main(ranks),name="diagnostic_solver")
   ls_ode = CGSolver(JacobiLinearSolver();rtol=1e-12,atol=1e-12,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
-
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1.0
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   _dir = datadir("TransientShallowWater_W5")

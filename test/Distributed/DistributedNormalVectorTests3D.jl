@@ -14,18 +14,19 @@ using Test
 function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  radius,thickness = 1.0, 0.19
+
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=2, num_vertical_uniform_refinements=2);
   panel_model = o3model.parametric_dmodel
 
   Ω_panel =  Triangulation(panel_model)
-  panel_ids = get_panel_ids(panel_model)
   dΩ = Measure(Ω_panel,4)
 
   ## the normal in parametric space (γ,α,β) is (1,0,0)
   n3D_panel = CellField(VectorValue(1.0,0.0,0.0),Ω_panel)
-  J_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
-  inv_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  J_cf = ParametricCellField(forward_jacobian,Ω_panel)
+  inv_cf = ParametricCellField(inv_metric,Ω_panel)
 
   ## map the normal from parametric space -> ambient space
   _n_mapped = J_cf ⋅ (inv_cf  ⋅ n3D_panel )
@@ -34,9 +35,9 @@ function main(distribute,nprocs)
 
   ## the unit surface normal is given by the position vector
   vX = panel_to_cartesian(normal_vec)
-  norm_vec_cf = panelwise_cellfield(vX,Ω_panel,panel_ids)
+  norm_vec_cf = ParametricCellField(vX,Ω_panel)
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel)
   _e = norm_vec_cf-n_mapped
   e = sum(∫( _e⋅(metric_cf⋅_e ) )dΩ)
   @test e < 1e-12
@@ -47,7 +48,7 @@ function main(distribute,nprocs)
   #   panel_cfs = [ n_mapped,norm_vec_cf,norm_vec_cf-n_mapped]
   #   labels = ["n_mapped", "n_vec", "diff"]
   #   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-  #   writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  #   writevtk_with_cell_geomap(geo_map_func(Ω_panel),dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false)
   # end
 
 end

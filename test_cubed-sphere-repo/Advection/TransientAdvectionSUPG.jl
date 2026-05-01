@@ -67,13 +67,13 @@ function transient_advection_supg_solver(
   dΩ = Measure(Ω_panel,degree)
 
 
-  # v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
+  # v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  u_cf = ParametricCellField(u,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
   P = TransientTrialFESpace(Q)
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
   # supg stabilisation parameter
   _dx = dx(panel_model)
@@ -92,7 +92,7 @@ function transient_advection_supg_solver(
   function get_velocity(t)
     vecX(XYZ) = v(t)(XYZ)
     vX = panel_to_cartesian(tangent_vec(vecX))
-    v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+    v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
     return v_contr_cf
   end
 
@@ -149,7 +149,7 @@ function transient_advection_supg_solver(
   # solver = RungeKutta(nls, ls, dt, :EXRK_SSP_3_3)
   solT = solve(solver, opT, t0, tF, uh0)
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   cell_geo_map = geo_map_func(Ω_panel)
   labels = ["uh","v", "eu"]
@@ -159,7 +159,7 @@ function transient_advection_supg_solver(
   if return_vtk
     panel_cfs = [uh0, covariant_basis_cf⋅ get_velocity(0.0), uh0-uh0]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/solT_0.vtu", cellfields=cellfields,append=false)
     # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t0,[uh0],["uh"])
   end
 
@@ -198,7 +198,7 @@ function transient_advection_supg_solver(
       panel_cfs = [uh, covariant_basis_cf⋅ get_velocity(t), uh-uh0]
       cellfields = map((x,y) -> x=>y, labels,panel_cfs)
 
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+      writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/solT_$t.vtu", cellfields=cellfields,append=false)
       # i_am_main(ranks) && save_cellfields(dir,Ω_panel,t,[uh],["uh"])
     end
     counter = counter + 1
@@ -206,7 +206,7 @@ function transient_advection_supg_solver(
 
   panel_cfs = [_uh, covariant_basis_cf⋅ get_velocity(_t), _uh-uh0]
   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-  writevtk(Ω_panel,_dir*"/solT_final_nref$(lvl)_p$(p_fe).vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+  writevtk_with_cell_geomap(cell_geo_map,Ω_panel,_dir*"/solT_final_nref$(lvl)_p$(p_fe).vtu", cellfields=cellfields,append=false)
 
 
   push!(ts,_t)
@@ -254,7 +254,8 @@ function main_transient(distribute;nprocs,options,n_ref_lvls,p_fe,CFL,tF,return_
   u = panel_to_cartesian(u0)
   v = nondivergent_velocity
 
-  parametric_octree_dmodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1.0
+  parametric_octree_dmodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = parametric_octree_dmodel.parametric_dmodel
   # panel_model = get_distributed_panel_model(ranks,nprocs,n_ref_lvls)
 

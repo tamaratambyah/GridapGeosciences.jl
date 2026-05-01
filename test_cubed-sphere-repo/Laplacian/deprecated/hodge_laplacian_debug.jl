@@ -18,11 +18,11 @@ using LinearAlgebra
 
 include("../convergence_tools.jl")
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 
 MPI.Init()
@@ -33,7 +33,9 @@ dir = datadir("HodgeLaplacianConvergence")
 
 n_ref_lvls = 3
 ps = [0,1]
-models  = get_3D_octree_refined_models(ranks,n_ref_lvls)
+radius = 1.0
+thickness = 0.19
+models  = get_3D_octree_refined_models(ranks,n_ref_lvls,radius,thickness)
 ls = LUSolver()
 
 panel_model = models[2]
@@ -58,16 +60,16 @@ dΓ = Measure(Γ,2*degree)
 nΓ = get_normal_vector(Γ)
 
 ## metric information
-inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
 
 
-function uX(p)
+function uX(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     VectorValue(-xyz[2],xyz[1],0.0)
 
     # r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)
@@ -86,9 +88,9 @@ function ucov(p)
   end
 end
 
-function unX(p)
+function unX(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     u = uX(p)(γαβ)
     n = normal_vec(xyz)
     u⋅n
@@ -109,31 +111,27 @@ curlw(1)(Point(1,1,1))
 curlw_cov(p) = x -> 1/sqrtg(p,x)*metric(p,x)⋅curlw(p,x)
 curlw_cov(1)(Point(1,1,1))
 
-_area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+_area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
 area_meas(p) = x-> norm(_area_meas(p)(x))
 area_meas(1)(Point(1,1,1))
 
 wcrossk_cov(p) = x -> 1/sqrtg(p,x) * metric(p,x)⋅(wcov(p,x) × (VectorValue(1,0,0)/area_meas(p)(x)) )
 wcrossk_cov(1)(Point(1,1,1))
 
-
-
-
-
 _sdiv_u(p) = x -> sqrtg(p)(x)* contra_v_3D(uX,p)(x)
 sdiv_u(p) = x -> 1/sqrtg(p)(x) * ( divergence(_sdiv_u(p) )(x) )
 graddiv_cov(p) = gradient(sdiv_u(p))
 rhs(p) = x-> curlw_cov(p)(x) - graddiv_cov(p)(x)
 
-rhs_cov_cf = panelwise_cellfield(rhs,Ω_panel,panel_ids)
+rhs_cov_cf = ParametricCellField(rhs,Ω_panel,panel_ids)
 
-u_cov_cf = panelwise_cellfield(ucov,Ω_panel,panel_ids)
-ccurlu_cov_cf = panelwise_cellfield(curlw_cov,Ω_panel,panel_ids)
-un_cf = panelwise_cellfield(unX,Ω_panel,panel_ids)
-curlu_cross = panelwise_cellfield(wcrossk_cov,Ω_panel,panel_ids)
-curlu_cf = panelwise_cellfield(curlu,Ω_panel,panel_ids)
+u_cov_cf = ParametricCellField(ucov,Ω_panel,panel_ids)
+ccurlu_cov_cf = ParametricCellField(curlw_cov,Ω_panel,panel_ids)
+un_cf = ParametricCellField(unX,Ω_panel,panel_ids)
+curlu_cross = ParametricCellField(wcrossk_cov,Ω_panel,panel_ids)
+curlu_cf = ParametricCellField(curlu,Ω_panel,panel_ids)
 
-sdiv_cf =  panelwise_cellfield(surfdiv(contra_v_3D(uX)),Ω_panel,panel_ids)
+sdiv_cf =  ParametricCellField(surfdiv(contra_v_3D(uX)),Ω_panel,panel_ids)
 sigma_cf = -sdiv_cf
 
 
@@ -144,9 +142,9 @@ cellfields = ["curlu"=>ccurlu_cov_cf,
               "sigma"=>-sdiv_cf,
               "rhs"=>covariant_basis_cf ⋅ (inv_metric_cf⋅ rhs_cov_cf)
                ]
-writevtk(Ω_panel,dir*"/sol",
+writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/sol",
         cellfields=cellfields,
-        append=false,geo_map= geo_map_func(Ω_panel))
+        append=false)
 
 
 

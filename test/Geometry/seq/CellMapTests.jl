@@ -1,5 +1,5 @@
 """
-In this module, we test the cell maps of the serial ParametricDiscreteModel.
+In this module, we test the cell maps of the serial CubedSphereParametricDiscreteModel.
 Theoretically, the panel models should return the cell coordinates of a
 Cartesian panel. Test the evaluation of the cell maps on ref coords against
 a cartesian model at the same level of refinement
@@ -10,8 +10,6 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
-
-
 
 function test_cell_maps(panel_model,cart_model)
   lvl = nref(nc(panel_model))
@@ -38,9 +36,10 @@ end
 
 nP = 6 # number of panels
 n_ref_lvls = 4 # number of refinement levels
+radius = 1.0 # radius of the sphere
 
-## get hirearchy of refined models
-panel_models  = get_refined_models(n_ref_lvls,true)
+## get hierarchy of refined models
+panel_models  = get_refined_models(n_ref_lvls,radius,true)
 
 ## Test the coarsest model is there
 nC_per_panel = Int(nc(panel_models[end]))

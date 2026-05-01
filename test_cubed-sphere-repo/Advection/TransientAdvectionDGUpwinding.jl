@@ -54,8 +54,8 @@ function transient_advection_dg_solver(
   dΛ = Measure(Λ,degree)
   n_Λ = get_normal_vector(Λ)
 
-  v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
+  v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  u_cf = ParametricCellField(u,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
   P = TransientTrialFESpace(Q)
@@ -73,8 +73,8 @@ function transient_advection_dg_solver(
   # op = AffineFEOperator(_a,_l,P(0.0),Q)
   # uh0 = solve(LUSolver(),op)
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  meas_cf_skel = ParametricCellField(sqrtg,Λ)
 
   ## weak form
   a_mass(t,dtu,v) = ∫( (dtu*v)*meas_cf )dΩ
@@ -110,13 +110,13 @@ function transient_advection_dg_solver(
   solver = RungeKutta(nls, ls, dt, :SDIRK_Crouzeix_3_4)
   solT = solve(solver, opT, t0, tF, uh0)
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   Ω_error = Triangulation(panel_model)
   dΩ_error = Measure(Ω_error,6*p_fe+1)
   cell_geo_map = geo_map_func(get_panel_ids(Ω_error))
   if return_vtk
-    writevtk(Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covariant_basis_cf⋅ vel,"eu"=>uh0-uh0],append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/solT_0.vtu", cellfields=["uh"=>uh0,"v"=>covariant_basis_cf⋅ vel,"eu"=>uh0-uh0],append=false)
   end
 
   ## store errors
@@ -145,7 +145,7 @@ function transient_advection_dg_solver(
     push!(Ms,mm)
     _uh = uh
     if return_vtk  && (mod(counter,10) == 0)
-      writevtk(Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh,"eu"=>uh-uh0],append=false,geo_map=cell_geo_map)
+      writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/solT_$t.vtu", cellfields=["uh"=>uh,"eu"=>uh-uh0],append=false)
     end
     counter = counter + 1
   end
@@ -154,7 +154,7 @@ function transient_advection_dg_solver(
   push!(Es,eu)
   push!(Ms,mm)
 
-  writevtk(Ω_panel,_dir*"/solT_final_nref$(lvl)_p$(p_fe).vtu", cellfields=["uh"=>_uh,"eu"=>_uh-uh0],append=false,geo_map=cell_geo_map)
+  writevtk_with_cell_geomap(cell_geo_map,Ω_panel,_dir*"/solT_final_nref$(lvl)_p$(p_fe).vtu", cellfields=["uh"=>_uh,"eu"=>_uh-uh0],append=false)
 
   ### convergence output for DrWatson
   dir_convergence = _dir*"/convergence"

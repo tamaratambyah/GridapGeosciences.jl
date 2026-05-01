@@ -43,25 +43,18 @@ then apply $\ell$ levels of refinement:
 
 ````julia 
 ℓ = 3
-model = coarse_parametric_model()
-for n in collect(1:ℓ)
-    model = Gridap.Adaptivity.refine(model)
-end
+radius = 1.0
+model = CubedSphere2DParametricDiscreteModel(radius;num_initial_uniform_refinements=ℓ)
 ````
 
-Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array:
-
-````julia 
-panel_ids = get_panel_ids(model)
-````
-
+Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.
 Using the panel ids, we can visualise the triangulation in the ambient space of the sphere
-or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk:
+or in latitiude-longitude by passing a cellwise array of geometrical maps to writevtk_with_cell_geomap:
 
 ````julia 
 Ω = Triangulation(model)
-writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
-writevtk(Ω,"latlon_model",append=false,geo_map=latlon_geo_map_func(Ω))
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"sphere_model",append=false)
+writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,"latlon_model",append=false)
 ````
 
 ## FE Spaces
@@ -76,22 +69,34 @@ U = TrialFESpace(V)
 
 ## Manufactured solution
 We consider the method of manufactured solutions for analytic solution, $\widetilde{u} = xyz$.
-This is defined as a function of the panel index $p$, as follows:
+This is defined as a function of the forward map, as follows:
+First we define a function that given a forward map, returns a function
+that takes coordinates in parametric space as input, and returns the value of the function.
 
 ````julia 
-function u(p)
+function uₓ(forward_map)
   function _u(α)
-    x = ForwardMap(p)(α)
+    x = forward_map(α)
     x[1]*x[2]*x[3]
   end
 end
 ````
 
-The cooresponding cellfield and rhs forcing function is defined panelwise, as follows:
+This function is passed to the ParametricCellField:
 
 ````julia 
-u_cf = panelwise_cellfield(u,Ω,panel_ids)
-slap_cf = panelwise_cellfield(surflap(u),Ω,panel_ids)
+u_cf = ParametricCellField(uₓ,Ω)
+````
+
+Similar to CellField, ParametricCellField returns an GenericCellField object, where the cell_field is an
+array of cell-wise functions. However, the acutal input function of ParametricCellField is defined
+differently  to CellField, where the user passes a function that takes points
+in physical space and returns the function evaluated in physical space.
+
+The cooresponding rhs forcing function is defined panelwise, as follows:
+
+````julia 
+slap_cf = ParametricCellField(surflap(uₓ),Ω)
 rhs = -slap_cf
 ````
 
@@ -101,8 +106,8 @@ and then write the bilinear and linear forms using Gridap's high level API.
 We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
 
 ````julia 
-invg = panelwise_cellfield(inv_metric,Ω,panel_ids)
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
+invg = ParametricCellField(inv_metric,Ω)
+meas = ParametricCellField(sqrtg,Ω)
 dΩ = Measure(Ω,6*order)
 poisson_biform(u,v) = ∫((gradient(v)⋅(invg⋅gradient(u)))*meas )dΩ
 poisson_liform(v) = ∫((rhs*v)*meas)dΩ
@@ -126,10 +131,10 @@ el2 = sqrt(sum(∫((e⋅e)*meas)dΩ))
 
 ## Post processing
 The solution can be visualised in the ambient space by passing a
-cell-wise array of geometrical maps to Gridap's writevtk function
+cell-wise array of geometrical maps to our writevtk_with_cell_geomap function
 
 ````julia 
-writevtk(Ω,"laplace_beltrami",cellfields=["u"=>u_cf,"uh"=>uh,"eu"=>e],append=false,geo_map=geo_map_func(Ω))
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"laplace_beltrami",cellfields=["u"=>u_cf,"uh"=>uh,"eu"=>e],append=false)
 ````
 
 ---

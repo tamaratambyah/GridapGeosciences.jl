@@ -1,9 +1,9 @@
 
 # Initial fluid depth
-function h_3D(p)
+function h_3D(forward_map)
   function _h(γαβ)
     ζ = 0.0
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     θϕr   = xyz2θϕr(xyz)
     θ,ϕ,r = θϕr
     h  = -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ)
@@ -11,21 +11,21 @@ function h_3D(p)
   end
 end
 
-function f_3D(p)
+function f_3D(forward_map)
   function _f(γαβ)
     ζ = 0.0
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     θϕr   = xyz2θϕr(xyz)
     θ,ϕ,r = θϕr
     2.0*_ω*( -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ) )
   end
 end
 
-function f_vec_3D(p)
+function f_vec_3D(forward_map)
   function _f(γαβ)
-    f = f_3D(p)(γαβ)
+    f = f_3D(forward_map)(γαβ)
 
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     n = normal_vec(xyz)
     f*n
   end
@@ -33,10 +33,10 @@ end
 
 
 
-function η_3D(p)
+function η_3D(forward_map)
   function _η(γαβ)
     ζ = 0.0
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     θϕr   = xyz2θϕr(xyz)
     θ,ϕ,r = θϕr
     η = -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ)
@@ -45,21 +45,21 @@ function η_3D(p)
 end
 
 
-function η_vec_3D(p)
+function η_vec_3D(forward_map)
   function _η(γαβ)
-    η = η_3D(p)(γαβ)
+    η = η_3D(forward_map)(γαβ)
 
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     n = normal_vec(xyz)
     η*n
   end
 end
 
 
-function u_vec_3D(p)
+function u_vec_3D(forward_map)
   function _u(γαβ)
     ζ = 0.0
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     θϕr   = xyz2θϕr(xyz)
     θ,ϕ,r = θϕr
     u     = _u0*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
@@ -82,9 +82,9 @@ function _spherical_to_cartesian_matrix(θϕr)
                cos(ϕ)*cos(θ), cos(ϕ)*sin(θ), sin(ϕ))
 end
 
-function topography(p)
+function topography(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     θϕr   = xyz2θϕr(xyz)
     θ,ϕ,r = θϕr
     #θc    = -π/2.0
@@ -107,7 +107,9 @@ end
 #   end
 # end
 
-import GridapGeosciences.Helpers: RADIUS, THICKNESS
+
+RADIUS = 1.0
+THICKNESS = 1e-4
 
 #### Parameters
 a_e = 6.37e6

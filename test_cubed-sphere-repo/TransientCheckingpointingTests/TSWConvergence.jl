@@ -33,7 +33,8 @@ function main_transient(distribute,nprocs;
   ls_ode = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,rtol=1-14,verbose=i_am_main(ranks),name="ode_solver")
   lss = (ls_ode,ls_diag)
 
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1.0
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   _dir = datadir("TransientThermalShallowWater_checkpointing")

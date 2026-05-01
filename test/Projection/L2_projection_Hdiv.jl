@@ -15,14 +15,13 @@ function L2_projection_Hdiv(panel_model,
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
-  panel_ids = get_panel_ids(panel_model)
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
   ### Piola mapping for Hdiv fields
-  vec_piola_cf = panelwise_cellfield(piola(vecX),Ω_panel,panel_ids)
+  vec_piola_cf = ParametricCellField(piola(vecX),Ω_panel)
   vec_proj_cf_piola = covariant_basis_cf⋅ ( 1/meas_cf* vec_piola_cf )
 
   reffe = ReferenceFE(raviart_thomas,Float64,p_fe)
@@ -55,8 +54,8 @@ function L2_projection_Hdiv(panel_model,
               "uh"=>vec_proj_h,
               "eu"=>vec_proj_cf_piola-vec_proj_h  ]
 
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
-          append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
+          append=false)
   end
 
   return e_l2proj,e_interp,false
@@ -78,7 +77,7 @@ end
 # ls = LUSolver()
 
 # Dc = 3
-# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls,radius) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 
 # dir = datadir("InterpolateConvergence")
 # (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)

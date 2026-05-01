@@ -37,16 +37,16 @@ using Test
 # end
 
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
-contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
+contra_v_3D(vecX::Function,p) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 
-function uX(p)
+function uX(forward_map)
   function _u(γαβ)
-    xyz = forward_map_3D(p)(γαβ)
+    xyz = forward_map(γαβ)
     # VectorValue(-xyz[2],xyz[1],0.0)
 
     r = sqrt(xyz[1]^2 + xyz[2]^2 + xyz[3]^2)
@@ -68,7 +68,7 @@ end
 #   dir_convergence = dir*"/convergence"
 #   (i_am_main(ranks) && !isdir(dir_convergence)) && mkdir(dir_convergence)
 
-#   octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+#   octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
 #     num_horizontal_uniform_refinements=n_ref,
 #     num_vertical_uniform_refinements=n_ref);
 #   panel_model = octree3_model.parametric_dmodel
@@ -121,10 +121,10 @@ function hodge_laplacian_vector(
   nΓ = get_normal_vector(Γ)
 
   ## metric information
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
 
 
@@ -162,7 +162,7 @@ function hodge_laplacian_vector(
   curlw_cov(p) = x -> 1/sqrtg(p,x)*metric(p,x)⋅curlw(p,x)
 
   # area measure
-  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
 
   #### Covariant componetsn of (surfcurl u)× surfnormal
@@ -183,15 +183,15 @@ function hodge_laplacian_vector(
 
   ### Rhs function
   rhs(p) = x-> curlw_cov(p)(x) - graddiv_cov(p)(x)
-  rhs_cov_cf = panelwise_cellfield(rhs,Ω_panel,panel_ids)
+  rhs_cov_cf = ParametricCellField(rhs,Ω_panel,panel_ids)
 
-  u_cov_cf = panelwise_cellfield(ucov,Ω_panel,panel_ids)
-  ccurlu_cov_cf = panelwise_cellfield(curlw_cov,Ω_panel,panel_ids)
-  un_cf = panelwise_cellfield(unX,Ω_panel,panel_ids)
-  curlu_cross = panelwise_cellfield(wcrossk_cov,Ω_panel,panel_ids)
-  curlu_cf = panelwise_cellfield(curlu,Ω_panel,panel_ids)
+  u_cov_cf = ParametricCellField(ucov,Ω_panel,panel_ids)
+  ccurlu_cov_cf = ParametricCellField(curlw_cov,Ω_panel,panel_ids)
+  un_cf = ParametricCellField(unX,Ω_panel,panel_ids)
+  curlu_cross = ParametricCellField(wcrossk_cov,Ω_panel,panel_ids)
+  curlu_cf = ParametricCellField(curlu,Ω_panel,panel_ids)
 
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v_3D(uX)),Ω_panel,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contra_v_3D(uX)),Ω_panel,panel_ids)
   sigma_cf = -sdiv_cf
 
 
@@ -202,9 +202,9 @@ function hodge_laplacian_vector(
   #               "sigma"=>-sdiv_cf,
   #               "rhs"=>rhs_cov_cf
   #               ]
-  # writevtk(Ω_panel,dir*"/sol",
+  # writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/sol",
   #         cellfields=cellfields,
-  #         append=false,geo_map= geo_map_func(Ω_panel))
+  #         append=false)
 
 
   ## FE spaces
@@ -260,9 +260,9 @@ function hodge_laplacian_vector(
     "eu"=>covariant_basis_cf ⋅ (inv_metric_cf⋅uh)-covariant_basis_cf ⋅ (inv_metric_cf⋅u_cov_cf),
     "sh"=>sh, "s"=>sigma_cf, "e"=>sh-sigma_cf
                   ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
             cellfields=cellfields,
-            append=false,geo_map= geo_map_func(Ω_panel))
+            append=false)
   end
 
 
@@ -285,9 +285,9 @@ end
 #   ranks = distribute(LinearIndices((nprocs,)))
 
 #   n_ref_lvls = 3
-
+# radius,thickness = 1,0.19
 #   ### P4test model: 3D
-#   models = get_3D_octree_refined_models(ranks,n_ref_lvls)
+#   models = get_3D_octree_refined_models(ranks,n_ref_lvls,radius,thickness)
 #   main(models;_i_am_main=i_am_main(ranks))
 
 # end

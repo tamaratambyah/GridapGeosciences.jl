@@ -79,14 +79,14 @@ function hodge_laplacian_scalar(panel_model,
   X = MultiFieldFESpace([U, P])
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   # manufactured RHS
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  sigma_cf = panelwise_cellfield(sgrad(f),Ω_panel,panel_ids)
-  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(f,Ω_panel,panel_ids)
+  sigma_cf = ParametricCellField(sgrad(f),Ω_panel,panel_ids)
+  slap_panel_cf =  ParametricCellField(surflap(f),Ω_panel,panel_ids)
   rhs = -slap_panel_cf
   f_int = interpolate(f_panel_cf,P)
 
@@ -138,9 +138,9 @@ function hodge_laplacian_scalar(panel_model,
     "eu"=> (covariant_basis_cf⋅(1/meas_cf*uh)) - (-sigma_cf),
     "ph"=>ph, "p"=>f_panel_cf, "e"=>ph-f_panel_cf
                   ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
             cellfields=cellfields,
-            append=false,geo_map= geo_map_func(Ω_panel))
+            append=false)
   end
 
 
@@ -166,7 +166,7 @@ end
 #   # created the folder
 #   PartitionedArrays.barrier(ranks)
 
-#   octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+#   octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
 #     num_horizontal_uniform_refinements=n_ref,
 #     num_vertical_uniform_refinements=n_ref);
 #   panel_model = octree3_model.parametric_dmodel
@@ -205,17 +205,18 @@ end
 #   ranks = distribute(LinearIndices((nprocs,)))
 
 #   n_ref_lvls = 4
-
+#   radius = 1
+# thickness = 0.19
 #   ## Distributed model: 2D
-#   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+#   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
 #   main(models;_i_am_main=i_am_main(ranks))
 
 #   ### P4test model: 2D
-#   models = get_octree_refined_models(ranks,n_ref_lvls)
+#   models = get_octree_refined_models(ranks,n_ref_lvls,radius)
 #   main(models;_i_am_main=i_am_main(ranks))
 
 #   ### P4test model: 3D
-#   models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+#   models = get_3D_octree_refined_models(ranks,n_ref_lvls-1,radius,thickness)
 #   main(models;ps=[1],_i_am_main=i_am_main(ranks))
 
 # end

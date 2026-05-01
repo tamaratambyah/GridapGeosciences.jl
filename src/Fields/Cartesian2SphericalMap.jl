@@ -1,4 +1,4 @@
-struct Cartesian2SphereicalMap <: Field
+struct Cartesian2SphericalMap <: Field
 end
 
 """
@@ -15,13 +15,13 @@ The forward map goes 3D -> 2D.
     ** update, have to make it available for vtk (unsure why)
 """
 
-function Gridap.Arrays.return_cache(f::Cartesian2SphereicalMap,cellx::AbstractArray{<:VectorValue{3}})
+function Gridap.Arrays.return_cache(f::Cartesian2SphericalMap,cellx::AbstractArray{<:VectorValue{3}})
   out = similar(cellx,VectorValue{2,Float64})
   return out
 end
 
 
-function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap,cellx::AbstractArray{<:VectorValue{3}} )
+function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphericalMap,cellx::AbstractArray{<:VectorValue{3}} )
   # println("cell map")
   out = cache
 
@@ -56,15 +56,11 @@ function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap,cellx::Abstrac
   return out
 end
 
+function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphericalMap,x::VectorValue{3})
+  out = cache
 
-function Gridap.Arrays.return_cache(f::Cartesian2SphereicalMap,x::VectorValue{3})
-  y = zero(VectorValue{2,Float64})
-  return y
-end
-
-function Gridap.Arrays.evaluate!(cache,f::Cartesian2SphereicalMap,x::VectorValue{3})
-  # println("single point")
-  y = cache
-  y = xyz2θϕ(x)
-  return y
+  out = VectorValue(rem2pi(atan(x[2], x[1]),RoundDown),
+                    asin(x[3]/ (sqrt(x[1]^2 + x[2]^2 + x[3]^2)))
+                    )
+  return out
 end

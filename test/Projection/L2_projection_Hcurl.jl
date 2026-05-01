@@ -1,6 +1,6 @@
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
-covar_v_3D(vecX::Function,p::Int) = αβ -> transpose_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
-covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
+covar_v_3D(vecX::Function,m) = αβ -> transpose_jacobian(m)(αβ) ⋅ vecX(m)(αβ)
+covar_v_3D(vecX::Function) = m -> covar_v_3D(vecX,m)
 
 function L2_projection_Hcurl(panel_model,
                              p_fe::Int,
@@ -25,15 +25,14 @@ function L2_projection_Hcurl(panel_model,
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
-  panel_ids = get_panel_ids(panel_model)
 
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
   ## covariant components
-  vec_cov_cf = panelwise_cellfield(covar_v_3D(vecX),Ω_panel,panel_ids)
+  vec_cov_cf = ParametricCellField(covar_v_3D(vecX),Ω_panel)
   vec_proj_cf = covariant_basis_cf⋅ ( inv_metric_cf ⋅ vec_cov_cf)
 
 
@@ -62,17 +61,17 @@ function L2_projection_Hcurl(panel_model,
     cellfields=["uproj"=> vec_proj_cf,
               "uprojh"=>vec_proj_h,
               "eproj"=>vec_proj_cf-vec_proj_h, ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
-          append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
+          append=false)
   end
 
   return  el2_proj,e_interp, false
 end
 
 ### Since we are in 3D, does not have to be in the tangent space of the 3D sphere
-# function uX(p)
+# function uX(forward_map)
 #   function f(γαβ)
-#     xyz = forward_map_3D(p)(γαβ)
+#     xyz = forward_map(γαβ)
 #     # VectorValue(xyz[1],xyz[2],xyz[3])
 #     # VectorValue(xyz[2], 0.0, 0.0)
 #     VectorValue(0.0,xyz[3],xyz[1]^2)

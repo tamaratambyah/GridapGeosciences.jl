@@ -32,11 +32,11 @@ function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
   n_ref_lvls = 2
-  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  radius = 1.0
+  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
   panel_model = dmodels[2]
 
   Ω_panel = Triangulation(panel_model)
-  panel_ids = get_panel_ids(panel_model)
   Λ = SkeletonTriangulation(with_ghost,panel_model)
   n_Λ = get_normal_vector(Λ)
   pts = get_cell_points(Λ)
@@ -50,7 +50,9 @@ function main(distribute,nprocs)
   test_debug_vector_equality(out)
 
   # Method 2: Santi's formula
-  cell_geo_map = geo_map_func(panel_ids)
+  panel_ids = get_panel_ids(panel_model)
+  forward_map_generator = get_forward_map_generator(panel_model)
+  cell_geo_map = geo_map_func(forward_map_generator,panel_ids)
   n = pushforward_normal(Λ,cell_geo_map)
   out = (n.plus+n.minus)(pts)
   test_debug_vector_equality(out)
@@ -60,7 +62,7 @@ function main(distribute,nprocs)
   ### check sqrt(g) is continuous across skeleton
   ### check |Jg^-1 n| - pullback of area form
   ##############################################################################
-  meas_cf = panelwise_cellfield(sqrtg,Λ)
+  meas_cf = ParametricCellField(sqrtg,Λ)
   out = (meas_cf.plus-meas_cf.minus)(pts)
   test_debug_equality(out)
 
@@ -78,7 +80,7 @@ function main(distribute,nprocs)
   V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:HDiv)
   U = TrialFESpace(V)
 
-  _vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+  _vel = ParametricCellField(contra_v(vX),Ω_panel)
   vel = interpolate(_vel,U)
 
   diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))(pts)

@@ -18,8 +18,8 @@ function test_panel_ids(panel_model)
   @test trian_panel_ids == get_panel_ids(panel_model)
 end
 
-
-s_panel_model = coarse_parametric_model()
+radius = 1.0
+s_panel_model = coarse_parametric_model(radius)
 test_panel_ids(s_panel_model)
 
 s_panel_model = Gridap.Adaptivity.refine(s_panel_model)

@@ -44,6 +44,7 @@ jobs:
           - mpi-geometry
           - mpi-models
           - mpi-multigrid
+          - mpi-tutorials
     steps:
       - name: Install p4est/petsc dependencies
         run: |

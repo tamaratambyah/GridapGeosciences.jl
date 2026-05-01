@@ -119,7 +119,7 @@ function laplace_beltrami_manufactured(model,p_fe::Int,degree::Int,dir::String,
     panel_cfs = [f_cf,uh,f_cf-uh,rhs_cf]
     labels = ["u","uh","eu","rhs"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω,dir*"/Single_panel",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω,dir*"/Single_panel",cellfields=cellfields,append=false)
   end
 
   return e

@@ -22,7 +22,8 @@ MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
 
 n_ref_lvls = 3
-model0 = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=0)
+radius = 1.0
+model0 = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=0)
 mh = ModelHierarchy(model0,n_ref_lvls)
 
 f = panel_to_cartesian(fθϕ)
@@ -59,9 +60,9 @@ for (i,degree) in enumerate(degress)
     Ωh  = get_triangulation(model_h)
     dΩh = Measure(Ωh,degree)
     dΩh_error = Measure(Ωh,6*degree)
-    sol_cf = panelwise_cellfield(f,Ωh,panel_idsh)
+    sol_cf = ParametricCellField(f,Ωh,panel_idsh)
     uh  = interpolate(sol_cf,Uh)
-    meas_h = panelwise_cellfield(sqrtg,Ωh,panel_idsh)
+    meas_h = ParametricCellField(sqrtg,Ωh,panel_idsh)
 
     ### Coarse mesh
     model_H = get_model(mh,lev+1)
@@ -71,9 +72,9 @@ for (i,degree) in enumerate(degress)
     ΩH  = get_triangulation(model_H)
     dΩH = Measure(ΩH,degree)
     dΩH_error = Measure(ΩH,6*degree)
-    sol_cf = panelwise_cellfield(f,ΩH,panel_idsH)
+    sol_cf = ParametricCellField(f,ΩH,panel_idsH)
     uH  = interpolate(sol_cf,UH)
-    meas_H = panelwise_cellfield(sqrtg,ΩH,panel_idsH)
+    meas_H = ParametricCellField(sqrtg,ΩH,panel_idsH)
 
     dΩhH = Measure(ΩH,Ωh,degree)
 

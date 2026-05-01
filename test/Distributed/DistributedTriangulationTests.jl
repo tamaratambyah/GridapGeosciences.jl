@@ -33,10 +33,11 @@ end
 function test_distributedParametricDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test DistributedParametricDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphereParametricDistributedDiscreteModel")
 
   n_ref_lvls = 2
-  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+  radius = 1.0
+  dmodels = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
 
   model = dmodels[2]
 
@@ -56,10 +57,11 @@ end
 function test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test ParametricOctreeDistributedDiscreteModel")
+  # i_am_main(ranks) && println("--test CubedSphere2DParametricOctreeDistributedDiscreteModel")
 
   n_ref_lvls = 2
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1.0
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   model = omodel.parametric_dmodel
 
   trian = Triangulation(model)
@@ -79,9 +81,10 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test 3D Parametric3DOctreeDistributedDiscreteModel")
+  radius,thickness = 1.0, 0.19
+  # i_am_main(ranks) && println("--test 3D CubedSphere3DParametricOctreeDistributedDiscreteModel")
   n_ref_lvls = 2
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=n_ref_lvls, num_vertical_uniform_refinements=n_ref_lvls);
   panel_model = o3model.parametric_dmodel
 
@@ -95,22 +98,22 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   tags = ["bottom_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
-  cell_geo_map = geo_map_func(get_panel_ids(Γ))
+  cell_geo_map = geo_map_func(get_forward_map_generator(panel_model),get_panel_ids(Γ))
   test_triangulation(Γ)
-  # writevtk(Γ,dir*"/boundary_bottom",append=false,geo_map=cell_geo_map)
+  # writevtk_with_cell_geomap(cell_geo_map,Γ,dir*"/boundary_bottom",append=false)
 
   tags = ["top_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
   Γ.trians.item_ref[].parent.glue.face_to_bgface
-  cell_geo_map = geo_map_func(get_panel_ids(Γ))
+  cell_geo_map = geo_map_func(get_forward_map_generator(panel_model),get_panel_ids(Γ))
   test_triangulation(Γ)
-  # writevtk(Γ,dir*"/boundary_top",append=false,geo_map=cell_geo_map)
+  # writevtk_with_cell_geomap(cell_geo_map,Γ,dir*"/boundary_top",append=false)
 
   tags = ["intermediate_boundary"]
   Γ = BoundaryTriangulation(panel_model,tags=tags)
-  cell_geo_map = geo_map_func(get_panel_ids(Γ))
+  cell_geo_map = geo_map_func(get_forward_map_generator(panel_model),get_panel_ids(Γ))
   test_triangulation(Γ)
-  # writevtk(Γ,dir*"/boundary_intermediate",append=false,geo_map=cell_geo_map)
+  # writevtk_with_cell_geomap(cell_geo_map,Γ,dir*"/boundary_intermediate",append=false)
 
   @test true
 end

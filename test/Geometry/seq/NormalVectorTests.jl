@@ -9,23 +9,36 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
+using Gridap.Helpers
+
 
 ################################################################################
 #### Test unit normal vectors
 ################################################################################
+function normal_vector_from_basis(forward_map)
+  function _func(αβ)
+    Jac = forward_jacobian(forward_map)(αβ)
+    a1 = VectorValue(Jac[1],Jac[2],Jac[3])
+    a2 = VectorValue(Jac[4],Jac[5],Jac[6])
+    n = cross(a1,a2)
+    _n = n*(1/sqrtg(forward_map,αβ) )
+    @check Gridap.TensorValues.meas(_n) ≈ 1.0
+    _n
+  end
+end
+
 
 function test_normal_unit_vector(panel_model,return_vtk=false)
   lvl = nref(nc(panel_model))
   println("nref = $lvl")
 
   Ω_panel = Triangulation(panel_model)
-  panel_ids = get_panel_ids(panel_model)
   dΩ = Measure(Ω_panel,6)
 
   vX = panel_to_cartesian(normal_vec)
-  norm_vec_cf = panelwise_cellfield(vX,Ω_panel,panel_ids)
-  norm_vec_from_basis_cf = panelwise_cellfield(normal_vector_from_basis,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  norm_vec_cf = ParametricCellField(vX,Ω_panel)
+  norm_vec_from_basis_cf = ParametricCellField(normal_vector_from_basis,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
 
   # the above are vectors in the ambient space, so do not need to use metric to
   # compute error
@@ -36,17 +49,18 @@ function test_normal_unit_vector(panel_model,return_vtk=false)
 
   if return_vtk
     lvl = nref(nc(panel_model))
-    cell_geo_map = geo_map_func(panel_ids)
+    cell_geo_map = geo_map_func(Ω_panel)
     panel_cfs = [ norm_vec_cf,norm_vec_from_basis_cf]
     labels = ["normal", "n"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/ambient_model_nref$(lvl)",cellfields=cellfields,append=false)
   end
 end
 
 
 n_ref_lvls = 4
-models  = get_refined_models(n_ref_lvls)
+radius = 1.0
+models  = get_refined_models(n_ref_lvls,radius)
 return_vtk = false
 dir = @__DIR__
 
@@ -61,8 +75,7 @@ end
 ## Face normals -- for 1 model
 ################################################################################
 panel_model = models[4]
-panel_ids = get_panel_ids(panel_model)
-cell_geo_map = geo_map_func(panel_ids)
+cell_geo_map = geo_map_func(Triangulation(panel_model))
 
 topo = get_grid_topology(panel_model)
 Dc = num_cell_dims(topo)
@@ -116,7 +129,7 @@ if return_vtk
 
   skel_panel_ids = get_panel_ids(trian)
   skel_geo_map = lazy_map(p -> ForwardMap(p), skel_panel_ids.plus)
-  writevtk(trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+  writevtk_with_cell_geomap(skel_geo_map,trian,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false)
 end
 ################################################################################
 ## DG tests
@@ -127,9 +140,9 @@ end
 Λ = SkeletonTriangulation(panel_model)
 pts = get_cell_points(Λ)
 n_Λ = get_normal_vector(Λ)
-meas_cf = panelwise_cellfield(sqrtg,Λ)
-inv_metric_cf = panelwise_cellfield(inv_metric,Λ)
-jac_cf = panelwise_cellfield(forward_jacobian,Λ)
+meas_cf = ParametricCellField(sqrtg,Λ)
+inv_metric_cf = ParametricCellField(inv_metric,Λ)
+jac_cf = ParametricCellField(forward_jacobian,Λ)
 area_form_cf = pullback_area_form(Λ)
 
 # test equality of plus and minus side of sqrt(g)
@@ -152,7 +165,7 @@ if return_vtk
 
   skel_panel_ids = get_panel_ids(Λ)
   skel_geo_map = lazy_map(p -> ForwardMap(p), skel_panel_ids.plus)
-  writevtk(Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+  writevtk_with_cell_geomap(skel_geo_map,Λ,dir*"/ambient_model_skeleton",cellfields=cellfields,append=false)
 end
 
 ################################################################################
@@ -166,12 +179,11 @@ V = TestFESpace(panel_model, ReferenceFE(raviart_thomas,Float64,1); conformity=:
 U = TrialFESpace(V)
 
 Ω_panel = Triangulation(panel_model)
-panel_ids = get_panel_ids(panel_model)
 Λ = SkeletonTriangulation(panel_model)
 n_Λ = get_normal_vector(Λ)
 pts = get_cell_points(Λ)
 
-_vel = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
+_vel = ParametricCellField(contra_v(vX),Ω_panel)
 vel = interpolate(_vel,U)
 
 diff_cf = (abs((vel⋅ n_Λ).minus) .- abs((vel⋅ n_Λ).plus))
@@ -183,7 +195,7 @@ if return_vtk
   labels = ["upwind_plus","upwind_minus","upwind_diff"]
   panel_cfs = [abs((vel⋅ n_Λ).plus),abs((vel⋅ n_Λ).minus),abs((vel⋅ n_Λ).minus)-abs((vel⋅ n_Λ).plus)]
   cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-  writevtk(Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false,geo_map=skel_geo_map)
+  writevtk_with_cell_geomap(skel_geo_map,Λ,dir*"/ambient_model_skeleton", cellfields=cellfields,append=false)
 end
 
 @test true

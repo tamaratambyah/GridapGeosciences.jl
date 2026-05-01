@@ -13,14 +13,12 @@ using GridapGeosciences
 using GridapP4est
 using Test
 
-import GridapGeosciences.Helpers: RADIUS
 
 function compute_surface_area(model, degree::Int)
   Ω = Triangulation(model)
-  panel_ids = get_panel_ids(model)
   dΩ = Measure(Ω,degree)
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω)
   surface_area = sum( ∫( 1.0*meas_cf )dΩ )
   return surface_area
 end
@@ -29,7 +27,8 @@ function main(serial_models::AbstractArray)
 
   for degree in collect([2,4,6,8])
     for (s_model) in serial_models
-      extact_area = 4*π*RADIUS^2
+      radius = get_radius(s_model)
+      extact_area = 4*π*radius^2
 
       ### s_model
       s_area = compute_surface_area(s_model, degree)
@@ -42,25 +41,29 @@ function main(serial_models::AbstractArray)
 end
 
 
-function main(distribute,nprocs;n_ref_lvls=3)
+function main(distribute,nprocs;n_ref_lvls=3,radii=[1.0,2.0])
   ranks = distribute(LinearIndices((nprocs,)))
 
-  serial_models = get_refined_models(n_ref_lvls)
+  for radius in radii
 
-  p4test_models = get_octree_refined_models(ranks,n_ref_lvls)
-  for degree in collect([2,4,6,8])
-    for (s_model,d_model) in zip(serial_models,p4test_models)
+    serial_models = get_refined_models(n_ref_lvls,radius)
 
-      ### s_model
-      s_area = compute_surface_area(s_model, degree)
+    p4test_models = get_octree_refined_models(ranks,n_ref_lvls,radius)
+    for degree in collect([2,4,6,8])
+      for (s_model,d_model) in zip(serial_models,p4test_models)
 
-      ### d_model
-      d_area = compute_surface_area(d_model, degree)
+        ### s_model
+        s_area = compute_surface_area(s_model, degree)
 
-      @test s_area ≈ d_area
+        ### d_model
+        d_area = compute_surface_area(d_model, degree)
 
+        @test s_area ≈ d_area
+
+      end
     end
   end
+
 end
 
 

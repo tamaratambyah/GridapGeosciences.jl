@@ -18,8 +18,8 @@ nls_tols = (;atol=1e-16,rtol=1e-11,maxiter=50)
 
 n_ref_lvls = 4
 p = 1
-
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+radius = 1.0
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
 model = omodel.parametric_dmodel
 
 
@@ -43,13 +43,13 @@ spaces, multi_spaces = get_FEspaces(model,p)
 
 ###
 
-metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+cor_cf = ParametricCellField(f,Ω_panel,panel_ids)
 gravity = _g
-meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+meas_cf_skel = ParametricCellField(sqrtg,Λ)
 
 
 

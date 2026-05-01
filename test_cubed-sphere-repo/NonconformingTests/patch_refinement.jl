@@ -15,16 +15,17 @@ dir = datadir("Omodel_2D_refinement")
 (i_am_main(ranks) && !isdir(dir)) && mkdir(dir)
 
 # level 0
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=3)
+radius = 1.0
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=3)
 panel_model = omodel.parametric_dmodel
 num_cells(panel_model)
 Ω_panel = Triangulation(panel_model)
 panel_ids = get_panel_ids(panel_model)
 get_panel_ids(Ω_panel)
 cell_geo_map = geo_map_func(Ω_panel)
-writevtk(Ω_panel,dir*"/model0",append=false, geo_map=cell_geo_map)
+writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/model0",append=false)
 
-function _adapt_model(ranks,model::ParametricOctreeDistributedDiscreteModel)
+function _adapt_model(ranks,model::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(model.octree_dmodel)
   panel_model = model.parametric_dmodel
   panel_ids = get_panel_ids(panel_model)
@@ -37,7 +38,7 @@ function _adapt_model(ranks,model::ParametricOctreeDistributedDiscreteModel)
     ref_points = get_cell_ref_coordinates(lmodel)
     coords = lazy_map(evaluate,cmap,ref_points)
     cell_geo_map = lazy_map(p -> ForwardMap(p), pid)
-    fi = lazy_map(p->Cartesian2SphereicalMap(),pid)
+    fi = lazy_map(p->Cartesian2SphericalMap(),pid)
     latlon_cell_geo_map = lazy_map(∘, fi, cell_geo_map)
     θϕ = lazy_map(evaluate,latlon_cell_geo_map,coords)
 
@@ -66,7 +67,7 @@ num_cells(panel_model)
 get_panel_ids(panel_model)
 get_panel_ids(Ω_panel)
 cell_geo_map = geo_map_func(Ω_panel)
-writevtk(Ω_panel,dir*"/model1",append=false, geo_map=cell_geo_map)
+writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/model1",append=false)
 
 using Test
 include("../Operators/darcy_mass_conservation.jl")
@@ -90,7 +91,7 @@ mass_conservation(panel_model,p_fe,dir,func,scalar_field,return_vtk)
 
 
 
-function _adapt_model_1(ranks,model::ParametricOctreeDistributedDiscreteModel)
+function _adapt_model_1(ranks,model::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(model.octree_dmodel)
   panel_model = model.parametric_dmodel
   panel_ids = get_panel_ids(panel_model)
@@ -103,7 +104,7 @@ function _adapt_model_1(ranks,model::ParametricOctreeDistributedDiscreteModel)
     ref_points = get_cell_ref_coordinates(lmodel)
     coords = lazy_map(evaluate,cmap,ref_points)
     cell_geo_map = lazy_map(p -> ForwardMap(p), pid)
-    fi = lazy_map(p->Cartesian2SphereicalMap(),pid)
+    fi = lazy_map(p->Cartesian2SphericalMap(),pid)
     latlon_cell_geo_map = lazy_map(∘, fi, cell_geo_map)
     θϕ = lazy_map(evaluate,latlon_cell_geo_map,coords)
 
@@ -128,4 +129,4 @@ num_cells(panel_model)
 get_panel_ids(panel_model)
 get_panel_ids(Ω_panel)
 cell_geo_map = geo_map_func(Ω_panel)
-writevtk(Ω_panel,dir*"/model2",append=false, geo_map=cell_geo_map)
+writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/model2",append=false)

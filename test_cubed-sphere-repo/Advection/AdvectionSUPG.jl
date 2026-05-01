@@ -40,9 +40,9 @@ function advection_supg_solver(
 
   _rhs(p) = αβ -> u(p)(αβ) + vX(p)(αβ)⋅sgrad(u,p)(αβ)
 
-  v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
-  rhs_cf = panelwise_cellfield(_rhs,Ω_panel,panel_ids)
+  v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  u_cf = ParametricCellField(u,Ω_panel,panel_ids)
+  rhs_cf = ParametricCellField(_rhs,Ω_panel,panel_ids)
 
   Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
   P = TrialFESpace(Q)
@@ -59,7 +59,7 @@ function advection_supg_solver(
   vel = v_contr_cf
 
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
   # supg stabilisation parameter
   _dx = dx(panel_model)
@@ -95,7 +95,7 @@ function advection_supg_solver(
     labels = ["uh","u","eu"]
     panel_cfs = [uh,u_cf,uh-u_cf]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe", cellfields=cellfields,append=false)
   end
 
   ### convergence output for DrWatson

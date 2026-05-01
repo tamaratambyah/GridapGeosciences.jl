@@ -20,10 +20,9 @@ function L2_projection_Lagrangian_scalar(panel_model,
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
-  panel_ids = get_panel_ids(panel_model)
 
-  f_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  f_cf = ParametricCellField(func,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
 
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=conf)
   U = TrialFESpace(V)
@@ -52,8 +51,8 @@ function L2_projection_Lagrangian_scalar(panel_model,
     panel_cfs = [f_cf, fh_l2proj,  _e, gradient(fh_l2proj) ]
     labels = ["u","uh", "e" , "grad"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(conf),
-            cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(conf),
+            cellfields=cellfields,append=false)
   end
 
   return e_l2proj,e_interp,false
@@ -90,7 +89,7 @@ end
 
 # Dc = 2
 
-# # models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls)
+# # models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls,radius) : get_3D_octree_refined_models(ranks,n_ref_lvls)
 # models = get_refined_models(n_ref_lvls)
 # for conf in [:L2, :H1]
 #   _dir = dir*"/scalar_func_$(Dc)D_"*String(conf)

@@ -1,84 +1,70 @@
-function Gridap.Visualization.write_vtk_file(
+function write_vtk_file_with_cell_geomap(geo_map::AbstractArray,
   parts::AbstractArray,
   grid::AbstractArray{<:Gridap.Geometry.Grid}, filebase; celldata, nodaldata,
-  geo_map,
   compress=false,append=true,ascii=false,vtkversion=:default
   )
-  pvtk = Gridap.Visualization.create_vtk_file(
+  pvtk = create_vtk_file_with_cell_geomap(geo_map,
     parts,grid,filebase;celldata=celldata,nodaldata=nodaldata,
-    geo_map=geo_map,
     compress=compress,append=append,ascii=ascii,vtkversion=vtkversion
   )
   map(Gridap.Visualization.vtk_save,pvtk)
 end
 
-function Gridap.Visualization.create_vtk_file(
+function create_vtk_file_with_cell_geomap(geo_map::AbstractArray,
   parts::AbstractArray,
   grid::AbstractArray{<:Gridap.Geometry.Grid},
   filebase;
   celldata, nodaldata,
-  geo_map = map(p -> nothing, parts),
   compress=false,append=true,ascii=false,vtkversion=:default
 )
   nparts = length(parts)
   map(parts,grid,celldata,nodaldata,geo_map) do part,g,c,n,gm
-    Gridap.Visualization.create_pvtk_file(
+    create_pvtk_file_with_cell_geomap(gm,
       g,filebase;
       part=part,nparts=nparts,
       celldata=c,nodaldata=n,
-      geo_map=gm,
       compress=compress,append=append,ascii=ascii,vtkversion=vtkversion
     )
   end
 end
 
-function Gridap.Visualization.writevtk(
+function writevtk_with_cell_geomap(geo_map::AbstractArray,
   arg::GridapDistributed.DistributedModelOrTriangulation,args...;
-  geo_map= map(p -> nothing, local_views(arg)),
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...
 )
   parts=get_parts(arg)
   map(GridapDistributed.visualization_data(arg,args...;kwargs...)) do visdata
-    Gridap.Visualization.write_vtk_file(
+    write_vtk_file_with_cell_geomap(geo_map,
       parts,visdata.grid,visdata.filebase,celldata=visdata.celldata,nodaldata=visdata.nodaldata,
-      geo_map=geo_map,
       compress=compress, append=append, ascii=ascii, vtkversion=vtkversion
     )
   end
 end
 
-function Gridap.Visualization.createvtk(
+function createvtk_with_cell_geomap(geo_map::AbstractArray,
   arg::GridapDistributed.DistributedModelOrTriangulation,args...;
-  geo_map=nothing,
   compress=false,append=true,ascii=false,vtkversion=:default,kwargs...
 )
   v = Gridap.Visualization.visualization_data(arg,args...;kwargs...)
   parts=get_parts(arg)
   @Gridap.Helpers.notimplementedif length(v) != 1
   visdata = first(v)
-  Gridap.Visualization.create_vtk_file(
+  create_vtk_file_with_cell_geomap(geo_map,
     parts,visdata.grid,visdata.filebase,celldata=visdata.celldata,nodaldata=visdata.nodaldata,
-    geo_map=geo_map,
     compress=compress, append=append, ascii=ascii, vtkversion=vtkversion
   )
 end
 
-function Gridap.Visualization.create_pvtk_file(
+function create_pvtk_file_with_cell_geomap(geo_map::AbstractArray,
   trian::Gridap.Geometry.Grid, filebase; part, nparts, ismain=(part==1), celldata=Dict(), nodaldata=Dict(),
-  geo_map=nothing,
   compress=false, append=true, ascii=false, vtkversion=:default
 )
   # println("my distributed vis")
 
-
-  # compute the regular visualisation points
-  points = Gridap.Visualization._vtkpoints(trian)
-
   # println(typeof(geo_map)<:AbstractArray)
-  ## if geo_map provided, map the points to ambient space
-  if geo_map != nothing
-    points = mapped_vtkpoints(trian,geo_map)
-  end
+  ## Map the points to ambient space
+  points = mapped_vtkpoints(trian,geo_map)
+
 
   cells = Gridap.Visualization._vtkcells(trian)
   vtkfile = Gridap.Visualization.pvtk_grid(

@@ -12,5 +12,5 @@ end
 
 function pullback_area_form(atrian::AdaptedTriangulation)
   cf = pullback_area_form(atrian.trian)
-  panelwise_cellfield(cf,atrian)
+  ParametricCellField(cf,atrian)
 end

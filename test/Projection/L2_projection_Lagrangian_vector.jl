@@ -19,13 +19,12 @@ function L2_projection_Lagrangian_vector(panel_model,
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
-  panel_ids = get_panel_ids(panel_model)
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
-  vec_contra_cf = panelwise_cellfield(contra_v(vecX),Ω_panel,panel_ids)
+  vec_contra_cf = ParametricCellField(contra_v(vecX),Ω_panel)
   vec_proj_cf = covariant_basis_cf⋅vec_contra_cf
 
   reffe  = ReferenceFE(lagrangian,VectorValue{Dc, Float64},p_fe)
@@ -64,8 +63,8 @@ function L2_projection_Lagrangian_vector(panel_model,
               "u_int", "e_int"]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
-          append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)",cellfields=cellfields,
+          append=false)
   end
 
   return  el2_proj,el2_interp,false
@@ -91,7 +90,7 @@ end
 # !isdir(dir) && mkdir(dir)
 
 # Dc = 3
-# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+# models = (Dc == 2) ? get_octree_refined_models(ranks,n_ref_lvls,radius) : get_3D_octree_refined_models(ranks,n_ref_lvls-1)
 
 # Dc = 2
 # models = get_refined_models(n_ref_lvls)

@@ -39,9 +39,9 @@ function get_patch_smoothers(sh,biform,qdegree)
     dΩ = Measure(Ω,qdegree)
 
     panel_ids = get_panel_ids(model)
-    metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-    meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-    grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+    metric_cf = ParametricCellField(metric,Ω,panel_ids)
+    meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+    grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
     ap = (u,v) -> biform(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf)
     solver = PatchBasedSmoothers.PatchSolver(
@@ -61,9 +61,9 @@ function get_bilinear_form(mh_lev,biform,qdegree)
   dΩ = Measure(Ω,qdegree)
 
   panel_ids = get_panel_ids(model)
-  metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
   return (u,v) -> biform(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf)
 end
@@ -92,8 +92,8 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   C = c ≠ 0 ? 1/c : 0.0
 
   n_gmg_lvls = 1
-
-  model0 = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n)
+  radius = 1.0
+  model0 = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n)
   mh = ModelHierarchy(model0,n_gmg_lvls)
 
   model = get_model(mh,1)
@@ -113,15 +113,15 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   Y = MultiFieldFESpace([V,Q];style=mfs)
 
   ### panelwise cellfields
-  h_cf = panelwise_cellfield(h,Ω,panel_ids)
-  u_proj_cf = panelwise_cellfield(projection_v(vX),Ω,panel_ids)
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω,panel_ids)
+  h_cf = ParametricCellField(h,Ω,panel_ids)
+  u_proj_cf = ParametricCellField(projection_v(vX),Ω,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω,panel_ids)
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
-  sgrad_cf = panelwise_cellfield(sgrad(h),Ω,panel_ids)
-  sgrad_contra_cf = panelwise_cellfield(contr_gradf(h),Ω,panel_ids)
-  pinvJ_cf = panelwise_cellfield(forward_pinv_jacobian,Ω,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
+  sgrad_cf = ParametricCellField(sgrad(h),Ω,panel_ids)
+  sgrad_contra_cf = ParametricCellField(contr_gradf(h),Ω,panel_ids)
+  pinvJ_cf = ParametricCellField(forward_pinv_jacobian,Ω,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contra_v(vX)),Ω,panel_ids)
 
   # manufacture rhs functions
   rhs_vector = u_proj_cf + sgrad_cf
@@ -130,9 +130,9 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
 
   rhs_scalar = C*h_cf + sdiv_cf
 
-  metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω,panel_ids)
 
 
   biform_u(u,v,dΩ,metric_cf,meas_cf,grad_meas_cf) = ( ∫( u⋅(metric_cf⋅v)*meas_cf )dΩ
@@ -218,9 +218,9 @@ function convergence(ranks;c,α,n,order,iters,itu,itp,dir,return_vtk,simName)
   Ep = sqrt(sum(∫( (ep⋅ep)*meas_cf )dΩ_error )) # 1e-5
 
   if Bool(return_vtk)
-    writevtk(Ω,dir*"/$(simName)",
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,dir*"/$(simName)",
       cellfields= ["uh"=>uh_proj, "ph"=>ph, "eu"=>eu, "ep"=>ep, "u"=>u_proj_cf],
-      append=false,geo_map=latlon_geo_map_func(Ω))
+      append=false)
   end
 
   output = @strdict Eu Ep gmg_iters cg_iters kylov_iters n order c α itu itp

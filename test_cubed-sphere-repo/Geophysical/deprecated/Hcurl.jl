@@ -23,7 +23,7 @@ include(srcdir("Helpers/overloads.jl"))
 # include("CurlConformingFESpacesFixes.jl")
 
 ## pullback 3D vector to 3D chart
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
 contra_v_3D(vecX::Function,p::Int) = αβ -> inv_jacobian(p)(αβ) ⋅ vecX(p)(αβ)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
@@ -35,7 +35,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 #################### sphere
 n_ref_lvls = 0
 
-o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+o3model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks;
         num_horizontal_uniform_refinements=n_ref_lvls,
         num_vertical_uniform_refinements=0)
 panel_model = o3model.parametric_dmodel
@@ -48,9 +48,9 @@ panel_ids = get_panel_ids(panel_model)
 dΩ = Measure(Ω,6)
 dΩ_error = Measure(Ω,8*p_fe)
 
-metric_cf = panelwise_cellfield(metric,Ω,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+metric_cf = ParametricCellField(metric,Ω,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω,panel_ids)
 
 # ## normal vector in the chart
 # # f_cf = CellField(VectorValue(1,0.0,0.0),Ω)
@@ -71,7 +71,7 @@ function fV(p)
   end
 end
 
-f_cf = panelwise_cellfield(contra_v_3D(fV),Ω,panel_ids)
+f_cf = ParametricCellField(contra_v_3D(fV),Ω,panel_ids)
 
 
 Rcurl = TestFESpace(panel_model, ReferenceFE(nedelec,Float64,p_fe);conformity=:Hcurl,dirichlet_tags=tags)

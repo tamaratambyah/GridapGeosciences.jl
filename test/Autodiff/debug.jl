@@ -89,12 +89,6 @@ auto_surfdiv(vec::Function) = p -> auto_surfdiv(vec,p)
 auto_surfdiv(contr_gradf(f_sin))(p)(αβ) ≈ surfdiv(contr_gradf(f_sin))(p)(αβ)
 
 
-########## perp operator
-function auto_perp_matrix(p::Int,αβ)
-  m = auto_metric(p,αβ)
-  TensorValue{2,2}( -m[1,2], m[1,1], -m[2,2], m[1,2] )
-end
-auto_perp_matrix(p,αβ) ≈ perp_matrix(αβ)
 
 
 

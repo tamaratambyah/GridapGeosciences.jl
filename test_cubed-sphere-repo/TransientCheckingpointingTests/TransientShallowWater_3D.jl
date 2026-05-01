@@ -25,8 +25,8 @@ include("Checkpointing/helpers.jl")
 include("Williamson2Test_3D_testcase.jl")
 
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
-covar_v_3D(vecX::Function,p::Int) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
+covar_v_3D(vecX::Function,p) = x -> transpose_jacobian(p)(x) ⋅ vecX(p)(x)
 covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 
 
@@ -90,11 +90,11 @@ function transient_shallow_water_solver_3D(
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
 
-    u_cf = panelwise_cellfield(piola(u_vec_3D),Ω_panel,panel_ids)
+    u_cf = ParametricCellField(piola(u_vec_3D),Ω_panel,panel_ids)
     u_h = interpolate(u_cf,U)
 
-    h_cf = panelwise_cellfield(h_3D,Ω_panel,panel_ids)
-    b_cf = panelwise_cellfield(topography,Ω_panel,panel_ids)
+    h_cf = ParametricCellField(h_3D,Ω_panel,panel_ids)
+    b_cf = ParametricCellField(topography,Ω_panel,panel_ids)
     h_h = interpolate(h_cf-b_cf,P)
 
 
@@ -109,13 +109,13 @@ function transient_shallow_water_solver_3D(
   t0,xh0 = (restart) ? load_last(ranks,X_prog,prog_dir,simName) : initial_condition()
 
   ## transient weak form
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
   gravity = _g
-  f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
-  b_cf = panelwise_cellfield(topography,Ω_panel,panel_ids) # topography
+  f_cov_cf = ParametricCellField(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
+  b_cf = ParametricCellField(topography,Ω_panel,panel_ids) # topography
 
   #### DIAGNOSTIC VARIABLES
   # vorticity
@@ -270,18 +270,18 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
   X_diag = TransientMultiFieldFESpace([H,U,P]) # q, F, Φ
   Y_diag = MultiFieldFESpace([R,V,Q]) # q, F, Φ
 
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  f_cov_cf = ParametricCellField(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
   gravity = _g
 
-  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
   n_3D(p) = x -> VectorValue(1,0,0)/area_meas(p)(x)
 
-  n_cov = panelwise_cellfield(n_3D,Ω_panel,panel_ids)
+  n_cov = ParametricCellField(n_3D,Ω_panel,panel_ids)
 
   labels = ["uh","ph","qh","Fh","Phih","vortf","vort", "qh_rad_mag", "f_rad_mag", "vortf_rad_mag"]
   function make_vtk(t::Float64,xh,yh)
@@ -305,8 +305,8 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=true)
                  ]
 
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
-    writevtk(Ω_panel,vtk_latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
+    writevtk_with_cell_geomap(latlon_cell_geo_map(Ω_panel),Ω_panel,vtk_latlon_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
   end
 
   function casimirs(xh,yh,dΩ)
@@ -382,8 +382,8 @@ function main_transient(distribute,nprocs;
   -g_ksp_converged_reason
   -g_ksp_monitor
   """
-
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  radius,thickness = 1.0, 1e-4
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
         num_horizontal_uniform_refinements=n_ref_lvls,
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
@@ -420,7 +420,8 @@ function main_visualise(distribute,nprocs;
   i_am_main(ranks) && println("--START--")
   i_am_main(ranks) && println("Transient SW 3D visualise")
 
-  o3model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+  radius,thickness = 1.0, 1e-4
+  o3model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
   num_horizontal_uniform_refinements=n_ref_lvls,
   num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel

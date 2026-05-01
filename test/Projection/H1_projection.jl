@@ -40,11 +40,11 @@ function interpolation(panel_model,p_fe::Int,dir::String,func::Function,return_v
   dΩ = Measure(Ω_panel,10*p_fe)
   panel_ids = get_panel_ids(panel_model)
 
-  f_panel_cf = panelwise_cellfield(func,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(func,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
 
-  slap_panel_cf =  panelwise_cellfield(surflap(func),Ω_panel,panel_ids)
+  slap_panel_cf =  ParametricCellField(surflap(func),Ω_panel,panel_ids)
 
   i_am_main(ranks) && println("Zeromean: ", sum(∫(f_panel_cf*meas_cf)dΩ))
 
@@ -71,8 +71,8 @@ function interpolation(panel_model,p_fe::Int,dir::String,func::Function,return_v
     panel_cfs = [f_panel_cf, f_uh,  _e, gradient(f_uh) ]
     labels = ["u","uh", "e" , "grad"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(:H1),
-            cellfields=cellfields,append=false,geo_map=latlon_geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(latlon_geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_"*String(:H1),
+            cellfields=cellfields,append=false)
   # end
 
   return el2,eh1,false
@@ -84,7 +84,7 @@ ps = [1]
 dir = datadir("InterpolationConvergence")
 !isdir(dir) && mkdir(dir)
 
-models = get_octree_refined_models(ranks,n_ref_lvls)
+models = get_octree_refined_models(ranks,n_ref_lvls,radius)
 _dir = dir*"/H1_interpolate_scalar_func_2D"
 !isdir(_dir) && mkdir(_dir)
 p_convergence_test(ranks,ps,models,interpolation,_dir,func,true)

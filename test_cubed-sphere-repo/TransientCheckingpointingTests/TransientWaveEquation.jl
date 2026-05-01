@@ -54,8 +54,8 @@ function transient_wave_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapD
   ## initial conditions
   function initial_condition()
     i_am_main(ranks) && println("initial condition")
-    h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-    u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+    h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+    u_cf = ParametricCellField(piola(vX),Ω_panel,panel_ids)
     xh0 = interpolate([u_cf,h_cf],X)
     t = 0.0
     psave(sim_dir*"/solT_$(t)",xh0)
@@ -66,8 +66,8 @@ function transient_wave_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapD
   t0,xh0 = (restart) ? load_last(ranks,X,sim_dir,simName) : initial_condition()
 
   ## transient weak form
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
   mass(t, (dtu,dtp), (v,q)) = ∫( (v⋅ (metric_cf⋅dtu))*(1/meas_cf) )dΩ  + ∫( (q*dtp)*meas_cf )dΩ
   res(t,(u,p),(v,q)) =  ∫( q*(∇⋅u) )dΩ - ∫( p*(∇⋅v) )dΩ
@@ -120,9 +120,9 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=false)
   Y = MultiFieldFESpace([V, Q])
   X = MultiFieldFESpace([U, P])
 
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
 
   cell_geo_map = geo_map_func(Ω_panel)
@@ -132,7 +132,7 @@ function post_process(panel_model,p_fe::Int,dir::String,return_vtk=false)
     uh,ph = xh
     panel_cfs = [covariant_basis_cf⋅(1/meas_cf * uh), ph]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,vtk_dir*"/solT_$t" * ".vtu", cellfields=cellfields,append=false)
   end
 
   function casimirs(xh,dΩ)
@@ -201,7 +201,8 @@ function main_transient(distribute,nprocs;
   _dir = datadir("TransientWaveEquation_checkpointing")
   (i_am_main(ranks) && !isdir(_dir)) && mkdir(_dir)
 
-  omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=n_ref_lvls)
+  radius = 1.0
+  omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
   panel_model = omodel.parametric_dmodel
 
   dir = _dir*"/sol_p$(p_fe)_nref$n_ref_lvls"

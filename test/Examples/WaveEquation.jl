@@ -53,15 +53,16 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 
 # To obtain a refined 3D parametric model, we pass $\ell$ levels of refinement to the vertical and horizontal:
 ℓ = 2
-octree3_model = Parametric3DOctreeDistributedDiscreteModel(ranks;
+radius,thickness = 1.0, 0.19
+octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
                   num_horizontal_uniform_refinements=ℓ,
                   num_vertical_uniform_refinements=ℓ);
 model = octree3_model.parametric_dmodel
 
 # We can visualise the triangulation in the ambient space of the 3D cubed sphere
-# by passing a cellwise array of geometrical maps to writevtk:
+# by passing a cellwise array of geometrical maps to writevtk_with_cell_geomap:
 Ω = Triangulation(model)
-writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"sphere_model",append=false)
 
 # The 3D cubed sphere model has tags associated to the bottom, top and intermediate
 # boundary cells. We can visualise each componeont of the model by passing the appropriate tag
@@ -70,9 +71,14 @@ writevtk(Ω,"sphere_model",append=false,geo_map=geo_map_func(Ω))
 Γ_bottom = BoundaryTriangulation(model,tags=["bottom_boundary"])
 Γ_intermediate = BoundaryTriangulation(model,tags=["intermediate_boundary"])
 
-writevtk(Γ_bottom,"boundary_bottom",append=false,geo_map=geo_map_func(get_panel_ids(Γ_bottom)))
-writevtk(Γ_top,"boundary_top",append=false,geo_map=geo_map_func(get_panel_ids(Γ_top)))
-writevtk(Γ_intermediate,"boundary_intermediate",append=false,geo_map=geo_map_func(get_panel_ids(Γ_intermediate)))
+geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_bottom))
+writevtk_with_cell_geomap(geo_map,Γ_bottom,"boundary_bottom",append=false)
+
+geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_top))
+writevtk_with_cell_geomap(geo_map,Γ_top,"boundary_top",append=false)
+
+geo_map=geo_map_func(get_forward_map_generator(model),get_panel_ids(Γ_intermediate))
+writevtk_with_cell_geomap(geo_map,Γ_intermediate,"boundary_intermediate",append=false)
 
 # In this test, we have non-homogeneous boundary conditions. So we need to create
 # a boundary trangulation, and include the appropriate boundary term that arises
@@ -101,18 +107,18 @@ X = MultiFieldFESpace([U, P])
 # \widetilde{\varphi} &= \exp( -(y^2 + z^2) )
 # \end{align*}
 # ```
-# These analytic solutions are defined as a function of the panel index $p$, as follows:
+# These analytic solutions are defined as a function of the forward map, as follows:
 
-function u(p)
+function u(forward_map)
   function _u(α)
-    x = ForwardMap(p)(α)
+    x = forward_map(α)
     VectorValue(-x[2],x[1],0.0)
   end
 end
 
-function φ(p)
+function φ(forward_map)
   function _φ(α)
-    x = ForwardMap(p)(α)
+    x = forward_map(α)
     exp(-(x[2]^2+x[3]^2))
   end
 end
@@ -120,9 +126,8 @@ end
 # Each cell is assigned a panel identifier, $p$, which is extracted as a cellwise array.
 # This is used to generate a panelwise cellfield of the analytic functions, where
 # we extra the contravariant Piola component for the velocity:
-panel_ids = get_panel_ids(model)
-u_cf = panelwise_cellfield(piola(u),Ω,panel_ids)
-phi_cf = panelwise_cellfield(φ,Ω,panel_ids)
+u_cf = ParametricCellField(piola(u),Ω)
+phi_cf = ParametricCellField(φ,Ω)
 
 # Interpolate the exact solution into the FE spae
 p_int = interpolate(phi_cf,P)
@@ -131,8 +136,8 @@ u_int = interpolate(u_cf,U)
 # ## Weak form
 # The weak form is written as a mulitifield problem using  using Gridap's high level API.
 # We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-g = panelwise_cellfield(metric,Ω,panel_ids)
+meas = ParametricCellField(sqrtg,Ω)
+g = ParametricCellField(metric,Ω)
 degree = 4*(order+1)
 dΩ = Measure(Ω,degree)
 dΓ = Measure(Γ,degree)
@@ -170,7 +175,7 @@ ep_l2 = sqrt(sum(∫((ep⋅ep)*meas)dΩ))
 # For the velocity, the parametric velocity field is pushed to the ambient space
 # via the contraviant Piola map. Then the $L^2$ norm of the error between
 # the exact and numerical soltuions is computed as
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω)
 uh_proj = covariant_basis_cf ⋅ (1/meas * uh)
 u_proj_cf = covariant_basis_cf ⋅ (1/meas *u_cf )
 eu = u_cf - uh
@@ -179,8 +184,8 @@ eu_l2 = sqrt(sum(∫( eu⋅(g⋅eu)*(1/meas) )dΩ))
 
 # ## Post processing
 # The solution can be visualised in the ambient space by passing a
-# cell-wise array of geometrical maps to Gridap's writevtk function
-writevtk(Ω,"wave_equation",
+# cell-wise array of geometrical maps to our writevtk_with_cell_geomap function
+writevtk_with_cell_geomap(geo_map_func(Ω),Ω,"wave_equation",
         cellfields=["p"=>phi_cf,"ph"=>ph,"ep"=>ep,
                 "uamb"=>u_proj_cf,"uamb_h"=>uh_proj, "eu"=>eu],
-        append=false,geo_map=geo_map_func(Ω))
+        append=false)

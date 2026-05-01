@@ -18,10 +18,10 @@ n_ref_lvls = 3
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
+radius = 1.0
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
 
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
-
-function initial_panel_refinement(omodel::ParametricOctreeDistributedDiscreteModel)
+function initial_panel_refinement(omodel::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(omodel.octree_dmodel)
   panel_model = omodel.parametric_dmodel
   panel_ids = get_panel_ids(panel_model)
@@ -42,7 +42,7 @@ ref_coarse_flags = initial_panel_refinement(omodel)
 fmodel, adaptivity_glue = Gridap.Adaptivity.adapt(omodel,ref_coarse_flags)
 
 
-function refine_all(omodel::ParametricOctreeDistributedDiscreteModel)
+function refine_all(omodel::CubedSphere2DParametricOctreeDistributedDiscreteModel)
   cell_partition=get_cell_gids(omodel.octree_dmodel)
   ref_coarse_flags=map(partition(cell_partition)) do indices
     flags=zeros(Cint,length(indices))
@@ -53,7 +53,7 @@ function refine_all(omodel::ParametricOctreeDistributedDiscreteModel)
 end
 
 
-models = Vector{ParametricOctreeDistributedDiscreteModel}(undef,n_ref_lvls+1)
+models = Vector{CubedSphere2DParametricOctreeDistributedDiscreteModel}(undef,n_ref_lvls+1)
 models[end] = fmodel
 for (i,n) in enumerate(n_ref_lvls:-1:1)
   fmodel = refine_all(fmodel)
@@ -66,7 +66,7 @@ end
 #   model = models[i].parametric_dmodel
 #   Ω = Triangulation(model)
 #   cell_geo_map = latlon_geo_map_func(Ω)
-#   writevtk(Ω,dir*"/model_$ref",append=false, geo_map=cell_geo_map);
+#   writevtk_with_cell_geomap(cell_geo_map,Ω,dir*"/model_$ref",append=false);
 # end
 
 include("../Geophysical/Williamson2Test.jl")
@@ -90,7 +90,7 @@ plot_convergence_from_saved(dir,simName,["sum div","m"])
 
 
 function Hdiv(
-  model::ParametricOctreeDistributedDiscreteModel,
+  model::CubedSphere2DParametricOctreeDistributedDiscreteModel,
   p_fe::Int,dir::String,vX::Function,ls=LUSolver(),conff=false,return_vtk=false)
 
   panel_model = model.parametric_dmodel
@@ -107,13 +107,13 @@ function Hdiv(
   W = FESpace(panel_model, ReferenceFE(lagrangian, Float64, p_fe); conformity=:L2)
   R = TrialFESpace(W)
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
 
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  sdiv_cf =  panelwise_cellfield(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  sdiv_cf =  ParametricCellField(surfdiv(contra_v(vX)),Ω_panel,panel_ids)
 
   Πdiv_u = interpolate(sdiv_cf,R)
   sum(∫( Πdiv_u  )dΩ )
@@ -132,10 +132,10 @@ function Hdiv(
 
   if return_vtk
     cell_geo_map = latlon_geo_map_func(Ω_panel)
-    writevtk(Ω_panel,dir*"/Hdiv_nref$(lvl)_p$p_fe",
+    writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/Hdiv_nref$(lvl)_p$p_fe",
       cellfields=["uh"=>covariant_basis_cf⋅u_h,"error_u"=>e,
               "div_u"=>Πdiv_u,"div_uh"=>div_uh,
-              "error_div"=>Πdiv_u-div_uh],append=false, geo_map=cell_geo_map);
+              "error_div"=>Πdiv_u-div_uh],append=false);
   end
 
   if conff

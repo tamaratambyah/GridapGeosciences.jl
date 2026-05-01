@@ -21,11 +21,11 @@ include("../convergence_tools.jl")
 include("Williamson2Test_3D_testcase.jl")
 # include("CurlConformingFESpacesFixes.jl")
 
-inv_jacobian(p) = x -> inv(forward_jacobian_3D(p)(x))
+inv_jacobian(p) = x -> inv(forward_jacobian(p)(x))
 contra_v_3D(vecX::Function,p::Int) = x -> inv_jacobian(p)(x) ⋅ vecX(p)(x)
 contra_v_3D(vecX::Function) = p -> contra_v_3D(vecX,p)
 
-transpose_jacobian(p) = x -> transpose(forward_jacobian_3D(p)(x))
+transpose_jacobian(p) = x -> transpose(forward_jacobian(p)(x))
 inv_tranpose_jacobian(p) = x -> inv(transpose_jacobian(p)(x))
 contravariant_basis_3D(p) = x -> inv_tranpose_jacobian(p)(x)
 
@@ -35,7 +35,7 @@ covar_v_3D(vecX::Function) = p -> covar_v_3D(vecX,p)
 contra_surfcurl(vec::Function,p::Int) = x -> 1/sqrtg(p,x) * (curl(covar_v_3D(vec,p))(x) )
 contra_surfcurl(vec::Function) = p -> contra_surfcurl(vec,p)
 
-surfcurl(vec::Function,p::Int) = x -> forward_jacobian_3D(p,x) ⋅ contra_surfcurl(vec,p)(x)
+surfcurl(vec::Function,p::Int) = x -> forward_jacobian(p,x) ⋅ contra_surfcurl(vec,p)(x)
 surfcurl(vec::Function) = p -> surfcurl(vec,p)
 
 cov_surfcurl(vec::Function,p::Int) = x -> metric(p,x)⋅contra_surfcurl(vec,p)(x)
@@ -67,7 +67,7 @@ function single_layer_shallow_water_vorticity(
   i_am_main(ranks) && println("nref_h = $lvl_h; nref_v = $lvl_v; p_fe = $p_fe")
 
   ## make new model with only 1 cell in vertical
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks;
         num_horizontal_uniform_refinements=lvl_h,
         num_vertical_uniform_refinements=0)
   panel_model = o3model.parametric_dmodel
@@ -91,24 +91,24 @@ function single_layer_shallow_water_vorticity(
   nΓ = get_normal_vector(Γ)
 
   ## cellfields
-  u_contra_cf = panelwise_cellfield(contra_v_3D(u_vec_3D),Ω_panel,panel_ids)
-  u_cov_cf = panelwise_cellfield(covar_v_3D(u_vec_3D),Ω_panel,panel_ids)
-  f_cov_cf = panelwise_cellfield(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
-  η_cov_cf = panelwise_cellfield(covar_v_3D(η_vec_3D),Ω_panel,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v_3D(u_vec_3D),Ω_panel,panel_ids)
+  u_cov_cf = ParametricCellField(covar_v_3D(u_vec_3D),Ω_panel,panel_ids)
+  f_cov_cf = ParametricCellField(covar_v_3D(f_vec_3D),Ω_panel,panel_ids)
+  η_cov_cf = ParametricCellField(covar_v_3D(η_vec_3D),Ω_panel,panel_ids)
   n_cov = CellField(x->VectorValue(1,0,0),Ω_panel) ## same as nΓ
-  h_cf = panelwise_cellfield(h_3D,Ω_panel,panel_ids)
+  h_cf = ParametricCellField(h_3D,Ω_panel,panel_ids)
 
   ## metric information
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
-  contravariant_basis_cf = panelwise_cellfield(contravariant_basis_3D,Ω_panel,panel_ids)
-  jac_cf = panelwise_cellfield(forward_jacobian,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
+  contravariant_basis_cf = ParametricCellField(contravariant_basis_3D,Ω_panel,panel_ids)
+  jac_cf = ParametricCellField(forward_jacobian,Ω_panel,panel_ids)
   area_meas_cf = Operation(norm)(jac_cf⋅(inv_metric_cf ⋅nΓ) )
 
   ## manufacture rhs
-  cov_scurl = panelwise_cellfield(cov_surfcurl(u_vec_3D),Ω_panel,panel_ids)
+  cov_scurl = ParametricCellField(cov_surfcurl(u_vec_3D),Ω_panel,panel_ids)
   rhs = η_cov_cf - cov_scurl - f_cov_cf
 
 

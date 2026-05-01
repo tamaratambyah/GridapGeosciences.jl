@@ -1,6 +1,6 @@
 
-
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=1)
+radius = 1.0
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=1)
 panel_model = omodel.parametric_dmodel
 panel_ids = get_panel_ids(panel_model)
 

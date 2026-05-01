@@ -44,7 +44,7 @@ end
 
 MPI.Init()
 ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)))
-models = get_octree_refined_models(ranks,3)
+models = get_octree_refined_models(ranks,3,radius)
 # models = get_refined_models(2)
 # models =  get_distributed_refined_models(ranks,nprocs,2)
 
@@ -66,7 +66,7 @@ n_Λ = get_normal_vector(Λ)
 
 
 # using Gridap.Helpers, Gridap.Geometry, Gridap.CellData, Gridap.Fields
-# function GridapGeosciences.panelwise_cellfield(f::Function,trian::BodyFittedTriangulation,panel_ids::AbstractArray{Int})
+# function GridapGeosciences.ParametricCellField(f::Function,trian::BodyFittedTriangulation,panel_ids::AbstractArray{Int})
 #   println("new cell fields")
 #   @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
 #   cell_field = map(p->GenericField(f(p)),panel_ids)
@@ -92,9 +92,9 @@ n_Λ = get_normal_vector(Λ)
 
 _rhs(p) = αβ -> u(p)(αβ) + surfdiv(contra_v(uvX))(p)(αβ)
 
-v_contr_cf =  panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-u_cf = panelwise_cellfield(u,Ω_panel,panel_ids)
-rhs_cf = panelwise_cellfield(_rhs,Ω_panel,panel_ids)
+v_contr_cf =  ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+u_cf = ParametricCellField(u,Ω_panel,panel_ids)
+rhs_cf = ParametricCellField(_rhs,Ω_panel,panel_ids)
 
 Q = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:L2)
 P = TrialFESpace(Q)
@@ -105,8 +105,8 @@ U = TrialFESpace(V)
 
 vel = v_contr_cf
 
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-meas_cf_skel = panelwise_cellfield(sqrtg,Λ)
+meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+meas_cf_skel = ParametricCellField(sqrtg,Λ)
 _meas_cf = CellField(_sqrtg,Ω_panel)
 
 a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
@@ -115,8 +115,8 @@ a_Ω(u,v) = ∫( (u*v)*meas_cf )dΩ - ∫( (u*(∇(v)⋅vel) )*meas_cf )dΩ
 a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf_skel.plus   )dΛ
 # a_s1(u,v) = ∫( my_mean((vel*u)⋅n_Λ)*jump(v)*meas_cf   )dΛ
 
-# jac_cf = panelwise_cellfield(forward_jacobian,Λ)
-# ginv_cf = panelwise_cellfield(inv_metric,Λ)
+# jac_cf = ParametricCellField(forward_jacobian,Λ)
+# ginv_cf = ParametricCellField(inv_metric,Λ)
 # a_s1(u,v) = ∫( _my_mean(jac_cf,vel,u)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)*meas_cf_skel.plus   )dΛ
 # a_s1(u,v) = ∫( _my_other_mean(jac_cf,vel,u,meas_cf_skel)⋅my_jump(jac_cf,ginv_cf,n_Λ,v)   )dΛ
 
@@ -159,4 +159,4 @@ cell_geo_map = geo_map_func(get_panel_ids(Ω_panel))
 labels = ["uh","u","eu"]
 panel_cfs = [uh,u_cf,uh-u_cf]
 cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-writevtk(Ω_panel,dir*"/advection", cellfields=cellfields,append=false,geo_map=cell_geo_map)
+writevtk_with_cell_geomap(cell_geo_map,Ω_panel,dir*"/advection", cellfields=cellfields,append=false)

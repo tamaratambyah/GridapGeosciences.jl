@@ -58,10 +58,8 @@ then apply $\ell$ levels of refinement:
 
 ````julia 
 ℓ = 3
-model = coarse_parametric_model()
-for n in collect(1:ℓ)
-    model = Gridap.Adaptivity.refine(model)
-end
+radius = 1.0
+model = CubedSphere2DParametricDiscreteModel(radius;num_initial_uniform_refinements=ℓ)
 ````
 
 ## Triangulation
@@ -73,7 +71,7 @@ The volume triangulation and assoicated panel ides can be extracted as per usual
 
 ````julia 
 Ω = Triangulation(model)
-panel_ids = get_panel_ids(model)
+fwd_map_generator = get_forward_map_generator(model)
 ````
 
 The skeleton triangulation, skeleton normal vector and skeleton panel ids are:
@@ -91,8 +89,8 @@ and plot the result on $\Lambda$:
 ````julia 
 n_ambient = pushforward_normal(Λ)
 cellfields = ["amb_n_plus"=>n_ambient.plus, "amb_n_minus"=>n_ambient.minus, "amb_n_total"=>n_ambient.minus+n_ambient.plus ]
-skel_geo_map = lazy_map(p -> ForwardMap(p), skel_panel_ids.plus)
-writevtk(Λ,"ambient_skeleton_normal",cellfields=cellfields,append=false,geo_map=skel_geo_map)
+skel_geo_map = lazy_map(p -> fwd_map_generator(p), skel_panel_ids.plus)
+writevtk_with_cell_geomap(skel_geo_map,Λ,"ambient_skeleton_normal",cellfields=cellfields,append=false)
 ````
 
 ## FE Spaces
@@ -113,19 +111,19 @@ The initial condition and velocity field is
 \widetilde{\boldsymbol{\beta}} &= (-y,x,0)
 \end{align*}
 ```
-This is defined as a function of the panel index as follows:
+This is defined as a function of the forward map as follows:
 
 ````julia 
-function uₓ(p)
+function uₓ(forward_map)
   function _f(α)
-    x = evaluate(ForwardMap(p),α)
+    x = forward_map(α)
     exp(-(x[2]^2 + x[3]^2))
   end
 end
 
-function βₓ(p)
+function βₓ(forward_map)
   function _f(α)
-    x = evaluate(ForwardMap(p),α)
+    x = forward_map(α)
     VectorValue(-x[2],x[1],0)
   end
 end
@@ -135,8 +133,8 @@ Then converted into a panelwise cellfield, where we extract the contravariant co
 for the velocity:
 
 ````julia 
-u = panelwise_cellfield(uₓ,Ω,panel_ids)
-β =  panelwise_cellfield(contra_v(βₓ),Ω,panel_ids)
+u = ParametricCellField(uₓ,Ω)
+β =  ParametricCellField(contra_v(βₓ),Ω)
 ````
 
 ## Weak form
@@ -152,8 +150,8 @@ function my_mean( Bu_n::Gridap.Geometry.SkeletonPair)
   0.5*( plus - minus  )
 end
 
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-meas_skel = panelwise_cellfield(sqrtg,Λ)
+meas = ParametricCellField(sqrtg,Ω)
+meas_skel = ParametricCellField(sqrtg,Λ)
 upwind = 0.5*abs((β⋅n_Λ).plus)
 dΩ = Measure(Ω,4*order)
 dΛ = Measure(Λ,4*order)
@@ -197,12 +195,12 @@ The transient solution is post-processed and inspected in Paraview:
 ````julia 
 mkpath("transient_sol/results")
 createpvd("transient_sol/results") do pvd
-  pvd[0] = createvtk(Ω, "transient_sol/results/results_0" * ".vtu",
-            cellfields=["u"=>uh₀],append=false,geo_map=geo_map_func(Ω))
+  pvd[0] = createvtk_with_cell_geomap(geo_map_func(Ω), Ω, "transient_sol/results/results_0" * ".vtu",
+            cellfields=["u"=>uh₀],append=false)
   for (t, uh) in solT
     println("t = $t")
-    pvd[t] = createvtk(Ω, "transient_sol/results/results_$t" * ".vtu",
-            cellfields=["u"=>uh],append=false,geo_map=geo_map_func(Ω))
+    pvd[t] = createvtk_with_cell_geomap(geo_map_func(Ω),Ω, "transient_sol/results/results_$t" * ".vtu",
+            cellfields=["u"=>uh],append=false)
   end
 end
 ````

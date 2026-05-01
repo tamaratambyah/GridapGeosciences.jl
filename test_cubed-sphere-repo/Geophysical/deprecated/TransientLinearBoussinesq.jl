@@ -115,7 +115,7 @@ function transient_linear_boussinesq_solver(
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,4*(p_fe+1))
 
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel,panel_ids)
 
   tags = ["bottom_boundary",  "top_boundary"]
 
@@ -131,19 +131,19 @@ function transient_linear_boussinesq_solver(
   Y = MultiFieldFESpace([V, Q, W])
   X = MultiFieldFESpace([U, P, B])
 
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_contra_cf = panelwise_cellfield(contra_v(vX),Ω_panel,panel_ids)
-  omega_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  b_cf = panelwise_cellfield(b,Ω_panel,panel_ids)
+  h_cf = ParametricCellField(h,Ω_panel,panel_ids)
+  u_contra_cf = ParametricCellField(contra_v(vX),Ω_panel,panel_ids)
+  omega_cf = ParametricCellField(f,Ω_panel,panel_ids)
+  b_cf = ParametricCellField(b,Ω_panel,panel_ids)
   xh0 = interpolate([u_contra_cf,h_cf,b_cf],X)
 
-  g_star_cf = panelwise_cellfield(g_star,Ω_panel,panel_ids)
+  g_star_cf = ParametricCellField(g_star,Ω_panel,panel_ids)
 
   # weak forms
-  detg_cf = panelwise_cellfield(detg,Ω_panel,panel_ids)
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  grad_meas_cf = panelwise_cellfield(grad_meas,Ω_panel,panel_ids)
+  detg_cf = ParametricCellField(detg,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  grad_meas_cf = ParametricCellField(grad_meas,Ω_panel,panel_ids)
 
   #### Velocity
   Aperp = [0 0 0
@@ -194,7 +194,7 @@ function transient_linear_boussinesq_solver(
 
   latlon_cell_geo_map = map(owned_panel_ids) do pid
     cell_geo_map = lazy_map(p -> ForwardMap(p), pid)
-    fi = lazy_map(p->Cartesian2SphereicalMap3D(),pid)
+    fi = lazy_map(p->Cartesian2SphericalMap3D(),pid)
     return lazy_map(∘, fi, cell_geo_map)
   end
 
@@ -250,7 +250,7 @@ function main_transient(distribute,nprocs;n_ref_lvls=4,p_fe=1,CFL=0.1,return_vtk
 
   # ls = GMRESSolver(10;Pr=JacobiLinearSolver(),maxiter=1000,verbose=i_am_main(ranks))
 
-  o3model = GridapGeosciences.Distributed.Parametric3DOctreeDistributedDiscreteModel(ranks;
+  o3model = GridapGeosciences.Distributed.CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks;
           num_horizontal_uniform_refinements=n_ref_lvls,
           num_vertical_uniform_refinements=n_ref_lvls)
 

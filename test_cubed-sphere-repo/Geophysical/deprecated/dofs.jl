@@ -26,7 +26,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 #################### sphere
 n_ref_lvls = 0
 
-omodel = GridapGeosciences.Distributed.ParametricOctreeDistributedDiscreteModel(ranks;
+omodel = GridapGeosciences.Distributed.CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks;
   num_initial_uniform_refinements=n_ref_lvls)
 _panel_model = omodel.parametric_dmodel
 panel_model = _panel_model.models.item # get the serial model
@@ -45,7 +45,7 @@ function fV(p)
   end
 end
 
-f_cf = panelwise_cellfield(contra_v(fV),Ω,panel_ids)
+f_cf = ParametricCellField(contra_v(fV),Ω,panel_ids)
 
 ### True L2 values
 RL2 = TestFESpace(panel_model, ReferenceFE(lagrangian,VectorValue{2,Float64},p_fe);conformity=:L2)
@@ -127,8 +127,8 @@ sDOF_to_coeffs = Gridap.Arrays.Table(vcat(Coeffs...))
 Rconstrained = Gridap.FESpaces.FESpaceWithLinearConstraints(vcat(sDOF_to_dof...), sDOF_to_dofs, sDOF_to_coeffs, R)
 
 # Assemble the constrained system matrix
-metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+metric_cf = ParametricCellField(metric,Ω_panel,panel_ids)
+meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 a(u,v) = ∫( (u⋅(metric_cf⋅v))*meas_cf )dΩ
 # Aconstrained=assemble_matrix(a,Rconstrained,Rconstrained)
 

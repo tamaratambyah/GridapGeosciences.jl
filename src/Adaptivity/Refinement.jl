@@ -1,5 +1,5 @@
 """
-Refine ParametricDiscreteModel
+Refine CubedSphereParametricDiscreteModel
 
 Jordi's refinement routine requires nodes that are properly placed in space.
 This is because he determines the location of new nodes as the middle of two
@@ -12,17 +12,18 @@ The method is as follows: given a panel model
 2. reconstrcut the topology using 3D nodes
 3. apply EdgeBasedRefinement as per Jordi's routine to obtain the refined_cube_grid
    and adaptivity glue
-4. construct refined_panel_grid using refined_cube_grid, and reconstrcut ParametricDiscreteModel
+4. construct refined_panel_grid using refined_cube_grid, and reconstrcut CubedSphereParametricDiscreteModel
 
 """
 
 import Gridap.Adaptivity: EdgeBasedRefinement
 
-function Gridap.Adaptivity.refine(model::ParametricDiscreteModel,args...;refinement_method="red_green",kwargs...)
+function Gridap.Adaptivity.refine(model::CubedSphereParametricDiscreteModel,args...;refinement_method="red_green",kwargs...)
   return Gridap.Adaptivity.refine(Gridap.Adaptivity.string_to_refinement(refinement_method, model),model,args...;kwargs...)
 end
 
-function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::ParametricDiscreteModel{Dc,Dp};cells_to_refine=nothing) where {Dc,Dp}
+function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::CubedSphereParametricDiscreteModel;cells_to_refine=nothing)
+  Dc = num_cell_dims(model)
   panel_grid = get_grid(model)
   _ctopo = get_grid_topology(model)
   c_panel_ids = get_panel_ids(model)
@@ -80,14 +81,14 @@ function Gridap.Adaptivity.refine(method::EdgeBasedRefinement,model::ParametricD
 
 
   ### construct the refined model and return adapted model
-  ref_model = ParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids)
+  ref_model = CubedSphere2DParametricDiscreteModel(r_panel_grid,r_panel_topo,r_panel_labels,r_panel_ids,get_radius(model))
   return AdaptedDiscreteModel(ref_model,model,glue)
 end
 
 
 ### return true if the number of cells is the same, since === will not return
-### true in the case of ParametricDiscreteModel
-function Gridap.Adaptivity.is_child(m1::AdaptedDiscreteModel,m2::ParametricDiscreteModel)
+### true in the case of CubedSphereParametricDiscreteModel
+function Gridap.Adaptivity.is_child(m1::AdaptedDiscreteModel,m2::CubedSphereParametricDiscreteModel)
   # println("parametric is child")
   return num_cells(get_parent(m1)) === num_cells(m2)
 end

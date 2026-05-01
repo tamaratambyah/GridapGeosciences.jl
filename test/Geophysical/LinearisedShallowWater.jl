@@ -44,7 +44,6 @@ function linear_shallow_water_solver(panel_model,
   _i_am_main && println("nref = $lvl; p_fe = $p_fe; Dc = $Dc")
 
   degree = 5*(p_fe+1)
-  panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
@@ -59,14 +58,14 @@ function linear_shallow_water_solver(panel_model,
   X = MultiFieldFESpace([U, P])
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+  h_cf = ParametricCellField(h,Ω_panel)
+  u_cf = ParametricCellField(piola(vX),Ω_panel)
   u_proj_cf = covariant_basis_cf ⋅(1/meas_cf * u_cf  )
-  cor_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
+  cor_cf = ParametricCellField(f,Ω_panel)
 
   p_int = interpolate(h_cf,P)
   u_int = interpolate(u_cf,U)
@@ -86,10 +85,10 @@ function linear_shallow_water_solver(panel_model,
   Rperp_cf = CellField(Rperp,Ω_panel)
 
   ## In 3D, we construct ̃k using the area measure
-  _area_meas(p) = x->  forward_jacobian_3D(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
+  _area_meas(p) = x->  forward_jacobian(p,x) ⋅ (inv_metric(p,x) ⋅ VectorValue(1,0,0))
   area_meas(p) = x-> norm(_area_meas(p)(x))
   normal_3D(p) = x-> (1/area_meas(p)(x) )*VectorValue(1,0,0)
-  normal_3D_cf = panelwise_cellfield(normal_3D,Ω_panel,panel_ids)
+  normal_3D_cf = ParametricCellField(normal_3D,Ω_panel)
 
   ## return the appropriate term based on Dimension
   function get_coriolis_term(Dc::Int)
@@ -150,8 +149,8 @@ function linear_shallow_water_solver(panel_model,
     panel_cfs = [ph, uh_proj, uh_proj-u_proj_cf,ph-h_cf]
     labels = ["p","u_proj","eu","ep"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_D$Dc",
-          cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$(p_fe)_D$Dc",
+          cellfields=cellfields,append=false)
   end
 
   return e_u, e_p, false

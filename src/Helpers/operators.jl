@@ -1,18 +1,27 @@
-
-J(p::Int) = x -> J(p,x)
-Jt(p::Int) = x -> Jt(p,x)
-metric(p::Int) = αβ -> metric(p,αβ)
-inv_metric(p::Int) = αβ ->  inv_metric(p,αβ)
-detg(p::Int)  = αβ -> detg(p,αβ)
-sqrtg(p::Int) = αβ -> sqrtg(p,αβ)
-grad_meas(p::Int) = αβ -> gradient(sqrtg(p))(αβ)
-perp_matrix(p) = αβ -> perp_matrix(p,αβ)
+# here Field means ForwardMap2Dor3D
+# J comes from Fields
 
 
+Jt(m::Field,x) = transpose(J(m,x))
+metric(m::Field,x) = Jt(m,x)⋅J(m,x)
+inv_metric(m::Field,x) = inv(metric(m,x))
+detg(m::Field,x)  = det(metric(m,x))
+sqrtg(m::Field,x)  = sqrt(detg(m,x))
+forward_jacobian(m::Field,x) = J(m,x)
+forward_pinv_jacobian(m::Field,x) = pinvJ(J(m,x))
 
-forward_jacobian(p::Int) = x -> J(p,x)
-covariant_basis(p::Int) = x -> J(p,x)
-forward_pinv_jacobian(p) = x -> pinvJ(J(p)(x))
+
+J(m::Field) = x -> J(m,x)
+Jt(m::Field) = x -> Jt(m,x)
+metric(m::Field) = x -> metric(m,x)
+inv_metric(m::Field) = x -> inv_metric(m,x)
+detg(m::Field)  = x -> detg(m,x)
+sqrtg(m::Field)  = x -> sqrtg(m,x)
+grad_meas(m::Field) = x -> gradient(sqrtg(m))(x)
+covariant_basis(m::Field) = x -> J(m,x)
+forward_jacobian(m::Field) = x -> J(m,x)
+forward_pinv_jacobian(m::Field) = x -> pinvJ(J(m,x))
+
 function pinvJ(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
   @check D2 < D1 ## J = 3x2
   Jt = transpose(J)
@@ -23,25 +32,20 @@ function pinvJ(J::MultiValue{Tuple{D,D}}) where D
   inv(J)
 end
 
-
 ####### surface laplacin
-W(f::Function,p::Int) = αβ ->  sqrtg(p,αβ)*( inv_metric(p,αβ) ⋅ gradient(f(p))(αβ))
-surflap(f::Function,p::Int) = αβ -> 1/sqrtg(p,αβ) * ( divergence(W(f,p))(αβ) )
-surflap(f::Function) = p -> surflap(f,p)
+surflap(f::Function) = m -> surflap(f,m)
+surflap(f::Function,m::Field) = αβ -> 1/sqrtg(m,αβ) * ( divergence(W(f,m))(αβ) )
+W(f::Function,m::Field) = αβ ->  sqrtg(m,αβ)*( inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
 
 ####### contra of sgrad
-contr_gradf(f::Function,p::Int) = αβ -> inv_metric(p,αβ) ⋅ gradient(f(p))(αβ)
-contr_gradf(f::Function) = p -> contr_gradf(f,p)
+contr_gradf(f::Function) = m -> contr_gradf(f,m)
+contr_gradf(f::Function,m::Field) = αβ -> inv_metric(m,αβ) ⋅ gradient(f(m))(αβ)
 
 ####### sgrad
-sgrad(f::Function,p::Int) =  αβ -> J(p,αβ) ⋅ (inv_metric(p,αβ) ⋅ gradient(f(p))(αβ))
-sgrad(f::Function) = p -> sgrad(f,p)
+sgrad(f::Function) = m -> sgrad(f,m)
+sgrad(f::Function,m::Field) = αβ -> J(m,αβ) ⋅ (inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
 
 ####### surf div
-_sdiv(vec::Function,p) = αβ ->  sqrtg(p,αβ)*( vec(p)(αβ))
-surfdiv(vec::Function,p::Int) = αβ -> 1/sqrtg(p,αβ) * ( divergence(_sdiv(vec,p))(αβ) )
-surfdiv(vec::Function) = p -> surfdiv(vec,p)
-
-
-##### g⋅n for 3D thick sphere
-g_star(p::Int) = αβ -> metric(p,αβ) ⋅ VectorValue(1.0,0.0,0.0)
+_sdiv(f::Function,m::Field) = αβ ->  sqrtg(m,αβ)*( f(m)(αβ))
+surfdiv(vec::Function) = m -> surfdiv(vec,m)
+surfdiv(f::Function,m::Field) = αβ -> 1/sqrtg(m,αβ) * ( divergence(_sdiv(f,m))(αβ) )

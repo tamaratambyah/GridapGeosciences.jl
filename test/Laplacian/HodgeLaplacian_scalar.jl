@@ -14,10 +14,9 @@ using GridapGeosciences
 using GridapP4est
 using Test
 
-
-function fX(p)
+function fX(forward_map)
   function _f(α)
-    xyz = ForwardMap(p)(α)
+    xyz = forward_map(α)
     θϕr   = xyz2θϕr(xyz)
     sin(θϕr[2])
   end
@@ -37,7 +36,6 @@ function hodge_laplacian_scalar(panel_model,
   end
   @check degree > 0 "Zero quad!!"
 
-  panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
@@ -57,14 +55,14 @@ function hodge_laplacian_scalar(panel_model,
   X = MultiFieldFESpace([U, P])
 
   # metric information
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
+  covariant_basis_cf = ParametricCellField(covariant_basis,Ω_panel)
 
   # manufactured RHS
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  sigma_cf = panelwise_cellfield(sgrad(f),Ω_panel,panel_ids)
-  slap_panel_cf =  panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(f,Ω_panel)
+  sigma_cf = ParametricCellField(sgrad(f),Ω_panel)
+  slap_panel_cf =  ParametricCellField(surflap(f),Ω_panel)
   rhs = -slap_panel_cf
   f_int = interpolate(f_panel_cf,P)
 
@@ -116,9 +114,8 @@ function hodge_laplacian_scalar(panel_model,
     "eu"=> (covariant_basis_cf⋅(1/meas_cf*uh)) - (-sigma_cf),
     "ph"=>ph, "p"=>f_panel_cf, "e"=>ph-f_panel_cf
                   ]
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
-            cellfields=cellfields,
-            append=false,geo_map= geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",
+            cellfields=cellfields,append=false)
   end
 
 

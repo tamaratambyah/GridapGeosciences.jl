@@ -58,10 +58,10 @@ function helmholtz_solver(panel_model,
   V = TestFESpace(panel_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1)
   U = TrialFESpace(V)
 
-  f_panel_cf = panelwise_cellfield(f,Ω_panel,panel_ids)
-  inv_metric_cf = panelwise_cellfield(inv_metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
-  slap_panel_cf = panelwise_cellfield(surflap(f),Ω_panel,panel_ids)
+  f_panel_cf = ParametricCellField(f,Ω_panel,panel_ids)
+  inv_metric_cf = ParametricCellField(inv_metric,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
+  slap_panel_cf = ParametricCellField(surflap(f),Ω_panel,panel_ids)
 
   rhs_cf = f_panel_cf + slap_panel_cf
 
@@ -103,7 +103,7 @@ function helmholtz_solver(panel_model,
     panel_cfs = [f_panel_cf,uh,f_panel_cf-uh]
     labels = ["u","uh","eu"]
     cellfields = map((x,y) -> x=>y, labels,panel_cfs)
-    writevtk(Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false,geo_map=geo_map_func(Ω_panel))
+    writevtk_with_cell_geomap(geo_map_func(Ω_panel),Ω_panel,dir*"/ambient_model_nref$(lvl)_p$p_fe",cellfields=cellfields,append=false)
   end
 
   return e, false, false
@@ -129,10 +129,10 @@ end
 #   PartitionedArrays.barrier(ranks)
 
 #   omodel = if Dc == 2
-#     ParametricOctreeDistributedDiscreteModel(ranks;
+#     CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
 #     num_initial_uniform_refinements=n_ref)
 #   elseif Dc == 3
-#     Parametric3DOctreeDistributedDiscreteModel(ranks;
+#     CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
 #         num_horizontal_uniform_refinements=n_ref,
 #         num_vertical_uniform_refinements=n_ref);
 #   end
@@ -176,17 +176,18 @@ end
 #   ranks = distribute(LinearIndices((nprocs,)))
 
 #   n_ref_lvls = 4
-
+#   radius = 1
+# thickness = 0.19
 #   ## Distributed model: 2D
-#   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls)
+#   models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
 #   main(models;_i_am_main=i_am_main(ranks))
 
 #   ### P4test model: 2D
-#   models = get_octree_refined_models(ranks,n_ref_lvls)
+#   models = get_octree_refined_models(ranks,n_ref_lvls,radius)
 #   main(models;_i_am_main=i_am_main(ranks))
 
 #   # ### P4test model: 3D
-#   # models = get_3D_octree_refined_models(ranks,n_ref_lvls-1)
+#   # models = get_3D_octree_refined_models(ranks,n_ref_lvls-1,radius,thickness)
 #   # main(models;_i_am_main=i_am_main(ranks))
 
 # end

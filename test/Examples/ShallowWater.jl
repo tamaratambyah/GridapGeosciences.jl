@@ -45,13 +45,13 @@ ranks = distribute_with_mpi(LinearIndices((prod(MPI.Comm_size(MPI.COMM_WORLD)),)
 # ## Discrete model
 # To obtain a refined 2D parametric model, we pass $\ell$ levels of refinement:
 ℓ = 2
-omodel = ParametricOctreeDistributedDiscreteModel(ranks; num_initial_uniform_refinements=ℓ)
+radius = 1.0
+omodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=ℓ)
 model = omodel.parametric_dmodel
 
 # ## Triangulation
 # Now we extract the triangulated and the panel ids associated to each cell:
 Ω = Triangulation(model)
-panel_ids = get_panel_ids(model)
 
 
 # ## FE Spaces
@@ -91,11 +91,11 @@ gravity = gₑ*(1/ωₑ)^2/aₑ
 H₀ = Hₑ/aₑ
 u₀ = uₑ/aₑ*(1/ωₑ)
 
-# The initial conditions are defined as a function of the panel index $p$ as follows:
-function u0(p)
+# The initial conditions are defined as a function of the forward map as follows:
+function u0(forward_map)
   function _u₀(α)
   ζ = 0.0
-  xyz = evaluate(ForwardMap(p),α)
+  xyz = forward_map(α)
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,r = θϕr
   u     = u₀*(cos(ϕ)*cos(ζ) + cos(θ)*sin(ϕ)*sin(ζ))
@@ -110,10 +110,10 @@ function u0(p)
   end
 end
 
-function h0(p)
+function h0(forward_map)
   function _h₀(α)
   ζ = 0.0
-  xyz = evaluate(ForwardMap(p),α)
+  xyz = forward_map(α)
   θϕr   = xyz2θϕr(xyz)
   θ,ϕ,r = θϕr
   h  = -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ)
@@ -121,10 +121,10 @@ function h0(p)
   end
 end
 
-function f0(p)
+function f0(forward_map)
   function _f₀(α)
     ζ = 0.0
-    xyz = evaluate(ForwardMap(p),α)
+    xyz = forward_map(α)
     θϕr   = xyz2θϕr(xyz)
     θ,ϕ,r = θϕr
     2.0*ω*( -cos(θ)*cos(ϕ)*sin(ζ) + sin(ϕ)*cos(ζ) )
@@ -133,19 +133,19 @@ end
 
 # Then converted into a panelwise cellfield, where we extract the contravariant components
 # for the velocity:
-u_cf = panelwise_cellfield(piola(u0),Ω,panel_ids)
-h_cf = panelwise_cellfield(h0,Ω,panel_ids)
-f_cf = panelwise_cellfield(f0,Ω,panel_ids)
+u_cf = ParametricCellField(piola(u0),Ω)
+h_cf = ParametricCellField(h0,Ω)
+f_cf = ParametricCellField(f0,Ω)
 
 
 # ## Weak form
 # To define the weak form, we require the metric and measure, as well as the
 # the matrix that represents the perp operator.
 # We use an increased degree of quadrature to exactly approximate the geometrical map included in the weak form.
-g = panelwise_cellfield(metric,Ω,panel_ids)
-ginv = panelwise_cellfield(inv_metric,Ω,panel_ids)
-meas = panelwise_cellfield(sqrtg,Ω,panel_ids)
-covariant_basis_cf = panelwise_cellfield(covariant_basis,Ω,panel_ids)
+g = ParametricCellField(metric,Ω)
+ginv = ParametricCellField(inv_metric,Ω)
+meas = ParametricCellField(sqrtg,Ω)
+covariant_basis_cf = ParametricCellField(covariant_basis,Ω)
 Aperp = [0 -1
         1 0]
 Rperp = TensorValue(Aperp)
@@ -219,9 +219,9 @@ while !isnothing(it)
 
   i_am_main(ranks) && println(t)
 
-  writevtk(Ω,"shallow_water_sol/solT_$t.vtu",
+  writevtk_with_cell_geomap(latlon_geo_map_func(Ω),Ω,"shallow_water_sol/solT_$t.vtu",
       cellfields=["vel"=>covariant_basis_cf⋅(1/meas*uh),"p"=>ph,"vort"=>qh],
-      append=false,geo_map=latlon_geo_map_func(Ω))
+      append=false)
 
-  it = iterate(solT, state)
+  global it = iterate(solT, state)
 end

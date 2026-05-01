@@ -57,7 +57,7 @@ function transient_advection_supg_solver(
   dt = _dt
 
 
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel,panel_ids)
 
 
   β = CellField(velocity,Ω_panel)# VectorValue(-1,0 )

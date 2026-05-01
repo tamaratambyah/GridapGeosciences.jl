@@ -17,16 +17,16 @@ using Test
 
 
 ## initial conditions
-function vecX(p)
+function vecX(forward_map)
   function _u(α)
-    XYZ = ForwardMap(p)(α)
+    XYZ = forward_map(α)
     zero(XYZ)
   end
 end
 
-function depth(p)
+function depth(forward_map)
   function _f(α)
-    XYZ = ForwardMap(p)(α)
+    XYZ = forward_map(α)
     1.0 + 0.01*exp(-5*((1-XYZ[1])^2+(0-XYZ[2])^2+(0-XYZ[3])^2))
   end
 end
@@ -42,7 +42,6 @@ function transient_wave_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapD
 
   ## finite element solver
   degree = 5*(p_fe+1)
-  panel_ids = get_panel_ids(panel_model)
   Ω_panel = Triangulation(panel_model)
   dΩ = Measure(Ω_panel,degree)
   dΩ_error = Measure(Ω_panel,2*degree)
@@ -57,15 +56,15 @@ function transient_wave_solver(panel_model::Union{<:DiscreteModel{2,2},<:GridapD
   X = MultiFieldFESpace([U, P])
 
   ## initial conditions
-  h_cf = panelwise_cellfield(h,Ω_panel,panel_ids)
-  u_cf = panelwise_cellfield(piola(vX),Ω_panel,panel_ids)
+  h_cf = ParametricCellField(h,Ω_panel)
+  u_cf = ParametricCellField(piola(vX),Ω_panel)
   xh0 = interpolate([u_cf,h_cf],X)
   t0 = 0.0
 
 
   ## transient weak form
-  metric_cf = panelwise_cellfield(metric,Ω_panel,panel_ids)
-  meas_cf = panelwise_cellfield(sqrtg,Ω_panel,panel_ids)
+  metric_cf = ParametricCellField(metric,Ω_panel)
+  meas_cf = ParametricCellField(sqrtg,Ω_panel)
 
   mass(t, (dtu,dtp), (v,q)) = ∫( (v⋅ (metric_cf⋅dtu))*(1/meas_cf) )dΩ  + ∫( (q*dtp)*meas_cf )dΩ
   res(t,(u,p),(v,q)) =  ∫( q*(∇⋅u) )dΩ - ∫( p*(∇⋅v) )dΩ

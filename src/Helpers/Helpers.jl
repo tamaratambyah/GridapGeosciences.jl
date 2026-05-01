@@ -5,52 +5,30 @@ using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.CellData, Gridap.Ref
 using Gridap.Adaptivity, Gridap.Helpers, Gridap.Visualization
 using Gridap.Algebra, Gridap.FESpaces, Gridap.Helpers, Gridap.Arrays
 import Gridap.TensorValues: MultiValue
-using GridapDistributed
 using LinearAlgebra
 using FillArrays
-using Test
-using PartitionedArrays
 
+using GridapGeosciences.Fields
+import GridapGeosciences.Fields: J, normal_vec
 
-include("forward_map_2D.jl")
-include("forward_map_3D.jl")
-include("inverse_map.jl")
-include("ForwardMap.jl")
 include("overloads.jl")
-include("analytical_functions.jl")
-include("analytical_functions_autodiff.jl")
 include("operators.jl")
 include("coordinate_mappings.jl")
 include("vector_projection_analytic_functions.jl")
-include("convergence_tools.jl")
 
-export ForwardMap
-export forward_map_2D, forward_jacobian_2D, covariant_basis, forward_pinv_jacobian
-export forward_map_3D, forward_jacobian_3D, forward_jacobian
-export contravariant_basis
+export forward_jacobian, covariant_basis
 
-export _sqrtg
 export pinvJ
 export sqrtg,  detg
 export grad_meas
 export metric, inv_metric
-export perp_matrix
 export surflap, surfdiv, contr_gradf, sgrad
 
-export panel_to_cartesian, panel_to_latlon
-export normal_vector_from_basis
-export vector_length, normal_vec, tangent_vec
-export contra_v, contra_v_comp, contra_v_perp, projection_v
-export contra_v_comp3D, contra_v_perp3D
+export panel_to_cartesian
+export tangent_vec
+export contra_v
 export piola
-export g_star
-export xyz2θϕr, θϕ2xyz, spherical_to_cartesian_matrix, xyz2θϕ
+export xyz2θϕr, θϕ2xyz, xyz2θϕ
 
-export forward_maps, RADIUS, THICKNESS
-
-export p_convergence_auto_test, h_convergence_auto_test
-export get_refined_models, get_distributed_refined_models, get_octree_refined_models, get_3D_octree_refined_models
-export nref, nc, nc_horizontal, dx, dx_horizontal
-export convergence_rate
 
 end
