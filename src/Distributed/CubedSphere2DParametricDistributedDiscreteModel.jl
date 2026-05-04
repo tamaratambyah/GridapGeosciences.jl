@@ -91,7 +91,7 @@ function get_thickness(dmodel::CubedSphere2DParametricDistributedDiscreteModel{T
   """
 end
 
-function get_thickness(dmodel::CubedSphere3DParametricDistributedDiscreteModel) where {T}
+function get_thickness(dmodel::CubedSphere3DParametricDistributedDiscreteModel{T}) where {T}
   Ts =  map(get_thickness,local_views(dmodel))
   thickness = zero(eltype(Ts))
   map(Ts) do t
