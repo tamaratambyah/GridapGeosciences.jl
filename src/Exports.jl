@@ -41,7 +41,6 @@ end
 
 @publish ODEs DAEFEOperator
 
-@publish Visualisation make_pvd
 @publish Visualisation writevtk_with_cell_geomap
 @publish Visualisation createvtk_with_cell_geomap
 @publish Visualisation write_vtk_file_with_cell_geomap
@@ -87,7 +86,6 @@ end
 @publish Distributed create_vtk_file_with_cell_geomap
 @publish Distributed create_pvtk_file_with_cell_geomap
 
-@publish Distributed _make_pvd_distributed
 @publish Distributed distributed_panel_ids
 @publish Distributed DistributedAdaptivityGlue
 @publish Distributed get_distributed_panel_model

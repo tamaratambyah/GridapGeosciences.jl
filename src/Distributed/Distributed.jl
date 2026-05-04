@@ -39,7 +39,6 @@ include("CubedSphere2DParametricDistributedDiscreteModel.jl")
 include("ParametricCellField.jl")
 include("panel_ids.jl")
 include("Vtk.jl")
-include("createpvd.jl")
 include("Triangulations.jl")
 
 import Gridap.FESpaces: FESpace
@@ -55,7 +54,7 @@ export ParametricCellField, geo_map_func, get_panel_ids, latlon_geo_map_func
 export get_forward_map_generator, get_radius, get_thickness
 export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
 export createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap, create_pvtk_file_with_cell_geomap
-export _make_pvd_distributed
+
 export distributed_panel_ids
 export DistributedAdaptivityGlue
 export get_distributed_panel_model
