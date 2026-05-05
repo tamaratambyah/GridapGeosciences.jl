@@ -1,23 +1,68 @@
-# GridapGeosciences
+# GridapGeosciences 
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://santiagobadia.github.io/GridapGeosciences.jl/stable)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://santiagobadia.github.io/GridapGeosciences.jl/dev)
-[![Build Status](https://github.com/gridapapps/GridapGeosciences.jl/workflows/CI/badge.svg?branch=master)](https://github.com/gridapapps/GridapGeosciences.jl/actions)
-[![Codecov](https://codecov.io/gh/gridapapps/GridapGeosciences.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/gridapp/GridapGeosciences.jl)
+ 
+GridapGeosciences.jl extends the [Gridap ecosystem](https://github.com/gridap) to the numerical approximation of partial differential equations on two and three dimensional cubed sphere manfiolds. 
+The cubed sphere meshes are design with high performance computing  in mind.
 
-The goal of this repository is to showcase the suitability of the [Gridap](https://github.com/gridap) ecosystem of packages to solve geophysical flow problems. In this repo, you will find:
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://gridap.github.io/GridapEmbedded.jl/stable)
+[![Build Status](https://github.com/gridap/GridapEmbedded.jl/workflows/CI/badge.svg?branch=master)](https://github.com/gridap/GridapEmbedded.jl/actions?query=workflow%3ACI)
+[![Codecov](https://codecov.io/gh/gridap/GridapEmbedded.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/gridap/GridapEmbedded.jl)
 
-* [[click here]](https://github.com/gridapapps/GridapGeosciences.jl/blob/master/test/DarcyCubedSphereTests.jl) A convergence study of Raviart-Thomas-DG mixed finite elements for the solution of a Darcy problem on the cubed sphere.
 
-* [[click here]](https://github.com/gridapapps/GridapGeosciences.jl/blob/master/test/LaplaceBeltramiCubedSphereTests.jl) A convergence study of grad-conforming finite elements for the solution of a Laplace-Beltrami problem on the cubed sphere.
+## Installation
+GridapGeosciences is a registered package in the official [Julia package registry](https://github.com/JuliaRegistries/General).  Thus, the installation of GridapGeosciences is straight forward using the [Julia's package manager](https://julialang.github.io/Pkg.jl/v1/). Open the Julia REPL, type `]` to enter package mode, and install as follows
 
-* [[click here]](https://github.com/gridapapps/GridapGeosciences.jl/blob/master/test/sequential/WaveEquationCubedSphereTests.jl) Numerical solution of the linear wave equation on the cubed sphere using a Strong-Stabilitity-Preserving Runge-Kutta explicit 2nd order method (SSPRK2) for time integration and Raviart-Thomas-DG mixed finite elements for spatial discretization.
+```julia
+pkg> add GridapGeosciences
+```
 
-* [[click here]](https://github.com/gridapapps/GridapGeosciences.jl/blob/master/src/ShallowWaterThetaMethodFullNewton.jl) Numerical solution of the Nonlinear Rotating Shallow Water Equations on the cubed sphere using a fully implicit theta-method for time integration, full Newton nonlinear solves, and compatible mixed finite elements for spatial discretization.
+## (Non-exhaustive) list of features
 
-* [[click here]](https://github.com/gridapapps/GridapGeosciences.jl/tree/master/test/mpi) MPI-parallelization of all the above using [GridapDistributed.jl](https://github.com/gridap/GridapDistributed.jl) and its satellite packages [GridapPETSc.jl](https://github.com/gridap/GridapPETSc.jl) and [GridapP4est.jl](https://github.com/gridap/GridapP4est.jl).
+- **Cubed sphere discrete models**: We provide serial and distributed implementations of the two dimensional cubed sphere, and a distributed implementation of the three dimensional cubed sphere. Highly scalable, adaptive meshes are provided by `p4est` through `GridapP4est.jl`.
+- **Continuous vector-valued Lagrangian finite elements**: We provide a serial and distributed implementation of vector-valued Lagrangrian finite elements on manifold.
+- **Time integrator for differential algrabic equations**: We extend the explicit Runge Kutta framework in `Gridap` to differential algebraic equations that arise in atmospheric systems like the shallow water equations. 
+ 
 
-* [[click here]] More to come ...
+
+## Examples
+
+A list of examples is available in `test/Examples`. 
+These include well known atmospheric applications such as scalar advection, linear wave equation, and the shallow water equations. 
+The benchmark Laplace Belrami problem is also available. 
+
+
+## Citation
+
+Please cite the `Gridap` main project as indicated [here](https://github.com/gridap/Gridap.jl#how-to-cite-gridap), 
+and use the reference below in any publication that uses `GridapGeosciences`:
+
+```
+@article{Tambyah2026, 
+  doi = { }, 
+  url = { }, 
+  year = {2026},   
+  volume = { }, 
+  number = { }, 
+  pages = { }, 
+  author = {Tamara A. Tambyah and Alberto F. Martín and David Lee and Santiago Badia}, 
+  title = {GridapGeosciences.jl: A Julia finite element package for partial differential equations on the sphere}, 
+  journal = { } 
+} 
+```
+
+## Contributing
+
+GridapGeosciences is a collaborative project open to contributions. If you want to contribute, please take into account:
+
+- Before opening a PR with a significant contribution, contact the project administrators by [opening an issue](https://github.com/gridapapps/GridapGeosciences.jl/issues/new) describing what you are willing to implement. Wait for feedback from other community members.
+- We adhere to the contribution and code-of-conduct instructions of the Gridap.jl project, available [here](https://github.com/gridap/Gridap.jl/blob/master/CONTRIBUTING.md) and [here](https://github.com/gridap/Gridap.jl/blob/master/CODE_OF_CONDUCT.md), resp.  Please, carefully read and follow the instructions in these files.
+- Open a PR with your contribution.
+ 
+
+
+## Image gallery 
+ 
+
  
 
 <p align="center">
