@@ -1,6 +1,8 @@
 MIT license
 
-Copyright (c) 2020 Santiago Badia <santiago.badia@monash.edu>, Christopher Bladwell <c.bladwell@unsw.edu.au>, David R. Lee <davelee2804@gmail.com >, Alberto F. Martin <alberto.martin@monash.edu>
+Copyright (c) 2026 Tamara A. Tambyah <tamara.tambyah@monash.edu>, Alberto F. Martin <alberto.f.martin@anu.edu.au>,
+Santiago Badia <santiago.badia@monash.edu>,  David R. Lee <davelee2804@gmail.com>, Christopher Bladwell <c.bladwell@unsw.edu.au>
+
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
