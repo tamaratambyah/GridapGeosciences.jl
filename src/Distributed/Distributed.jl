@@ -37,7 +37,7 @@ include("CubedSphere2DParametricOctreeDistributedDiscreteModel.jl")
 include("CubedSphere3DParametricOctreeDistributedDiscreteModel.jl")
 include("CubedSphere2DParametricDistributedDiscreteModel.jl")
 include("ParametricCellField.jl")
-include("panel_ids.jl")
+include("PanelIds.jl")
 include("Vtk.jl")
 include("Triangulations.jl")
 

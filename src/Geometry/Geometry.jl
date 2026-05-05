@@ -17,11 +17,10 @@ import GridapGeosciences.Fields: MatMultField
 using GridapGeosciences.Helpers
 import GridapGeosciences.Helpers: inv_metric, forward_jacobian
 
-include("panel_ids.jl")
-include("cube_surface.jl")
-include("panel_matrices.jl")
+include("PanelIds.jl")
+include("CubeSurface.jl")
+include("PanelMatrices.jl")
 include("CubedSphereParametricDiscreteModel.jl")
-include("ambient_model.jl")
 include("BoundaryTriangulations.jl")
 include("SkeletonTriangulations.jl")
 include("AdaptedTriangulations.jl")

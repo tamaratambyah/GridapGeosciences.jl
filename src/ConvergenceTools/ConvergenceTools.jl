@@ -11,7 +11,7 @@ using PartitionedArrays
 using GridapGeosciences.Geometry
 using GridapGeosciences.Distributed
 
-include("convergence_tools.jl")
+include("Tools.jl")
 
 export p_convergence_auto_test, h_convergence_auto_test
 export get_distributed_refined_models, get_octree_refined_models, get_3D_octree_refined_models
