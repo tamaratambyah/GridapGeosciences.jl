@@ -7,8 +7,6 @@ end
 @publish Adaptivity refine
 
 
-@publish Fields MatMultField
-@publish Fields MyAffineField
 @publish Fields Cartesian2SphericalMap
 @publish Fields ForwardMap
 @publish Fields normal_vec
@@ -24,10 +22,6 @@ end
 @publish Geometry generate_ptr
 @publish Geometry coarse_cube_model
 @publish Geometry coarse_parametric_model
-@publish Geometry R1p
-@publish Geometry A_cube2panel
-@publish Geometry A_panel2cube
-@publish Geometry b_panel2cube
 @publish Geometry _pushforward_normal
 @publish Geometry _pullback_area_form
 @publish Geometry get_forward_map_generator
@@ -43,9 +37,6 @@ end
 
 @publish Visualisation writevtk_with_cell_geomap
 @publish Visualisation createvtk_with_cell_geomap
-@publish Visualisation write_vtk_file_with_cell_geomap
-@publish Visualisation create_vtk_file_with_cell_geomap
-@publish Visualisation mapped_vtkpoints
 
 @publish Helpers xyz2θϕr
 @publish Helpers θϕ2xyz
@@ -82,12 +73,9 @@ end
 
 @publish Distributed writevtk_with_cell_geomap
 @publish Distributed createvtk_with_cell_geomap
-@publish Distributed write_vtk_file_with_cell_geomap
-@publish Distributed create_vtk_file_with_cell_geomap
 @publish Distributed create_pvtk_file_with_cell_geomap
 
 @publish Distributed distributed_panel_ids
-@publish Distributed DistributedAdaptivityGlue
 @publish Distributed get_distributed_panel_model
 @publish Distributed get_panel_ids
 @publish Distributed get_owned_panel_ids
@@ -109,7 +97,4 @@ end
 @publish ConvergenceTools get_3D_octree_refined_models
 @publish ConvergenceTools nref
 @publish ConvergenceTools nc
-@publish ConvergenceTools nc_horizontal
 @publish ConvergenceTools dx
-@publish ConvergenceTools dx_horizontal
-@publish ConvergenceTools convergence_rate
