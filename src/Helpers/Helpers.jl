@@ -11,7 +11,7 @@ using FillArrays
 using GridapGeosciences.Fields
 import GridapGeosciences.Fields: J, normal_vec
 
-# include("overloads.jl")
+include("Overloads.jl")
 include("Operators.jl")
 include("CoordinateMappings.jl")
 include("VectorPullback.jl")
