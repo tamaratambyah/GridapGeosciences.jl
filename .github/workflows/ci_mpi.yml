@@ -8,13 +8,11 @@ on:
       - 'NEWS.md'
       - 'README.md'
       - 'LICENSE'
-      - 'test_cubed-sphere-repo/**'
   pull_request:
     paths-ignore:
       - 'NEWS.md'
       - 'README.md'
       - 'LICENSE'
-      - 'test_cubed-sphere-repo/**'
 concurrency:
   # Skip intermediate builds: always.
   # Cancel intermediate builds: only if it is a pull request build.
