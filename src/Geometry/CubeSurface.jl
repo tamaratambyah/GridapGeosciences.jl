@@ -10,11 +10,11 @@ end
 
 function _CCAM_panel_wise_node_ids(npanels)
   ## CCAM panel ordering
-  Dc=2  
+  Dc=2
   data = [ 1,2,3,4, 3,4,5,6,  2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5 ]
   ptr = generate_ptr(Dc,npanels)
   Table(data,ptr)
-end 
+end
 
 function _CCAM_cube_nodes_3d(a::Real)
    a.* [
@@ -27,7 +27,7 @@ function _CCAM_cube_nodes_3d(a::Real)
     Point(-1.0, 1.0, -1.0)  # node 7
     Point(-1.0, -1.0, -1.0) # node 8
    ]
-end 
+end
 
 
 function coarse_cube_surface_3D(a::Real,npanels::Int)
@@ -55,4 +55,40 @@ function coarse_cube_model(a::Real,npanels::Int)
   cube_grid,topo,labels, = coarse_cube_surface_3D(a,npanels)
   model = UnstructuredDiscreteModel(cube_grid,topo,labels)
   return model
+end
+
+
+
+function get_nodes_from_coords(topo::UnstructuredGridTopology{Dc,Dp},
+  coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}}) where {Dc,Dp,D,T}
+
+  cell_node_ids = get_faces(topo,Dc,0)
+  nodes = similar(coords_array, VectorValue{D,T}, num_vertices(topo))
+
+  get_nodes_from_coords!(nodes,cell_node_ids,coords_array)
+
+  return nodes
+end
+
+function get_nodes_from_coords(grid::Grid{Dc,Dp},
+  coords_array::AbstractArray{<:Vector{<:VectorValue{D,T}}}) where {Dc,Dp,D,T}
+
+  cell_node_ids = get_cell_node_ids(grid)
+  nodes = similar(coords_array, VectorValue{D,T}, num_nodes(grid))
+
+  get_nodes_from_coords!(nodes,cell_node_ids,coords_array)
+
+  return nodes
+end
+
+function get_nodes_from_coords!(nodes,cell_node_ids,
+  coords_array::AbstractArray{<:Vector{<:VectorValue}})
+
+  cache = array_cache(coords_array)
+
+  for i in eachindex(coords_array)
+    ids = cell_node_ids[i]
+    nodes[ids] .= getindex!(cache, coords_array, i)
+  end
+
 end
