@@ -12,7 +12,6 @@ using Gridap.Algebra
 using GridapDistributed
 using GridapGeosciences
 using GridapP4est
-using DrWatson
 using Test
 
 

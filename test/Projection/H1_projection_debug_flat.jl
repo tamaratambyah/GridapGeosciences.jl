@@ -1,6 +1,5 @@
 using Gridap
-using DrWatson
-include("../convergence_tools.jl")
+
 
 function H1projection(model,
   p_fe::Int,dir::String,f::Function,return_vtk)
@@ -66,10 +65,7 @@ f(x) = x[2]*(1-x[2])
 
 ps = [1]
 
-dir = datadir("InterpolationConvergence")
-!isdir(dir) && mkdir(dir)
+dir = @__DIR__
 
-_dir = dir*"/scalar_func_2D_H1proj"
-!isdir(_dir) && mkdir(_dir)
 p_convergence_test([true],ps,models,H1projection,_dir,f,true)
 plot_convergence_from_saved(_dir,"convergence",["H1 norm","L2 norm", ])

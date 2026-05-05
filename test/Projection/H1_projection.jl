@@ -5,9 +5,7 @@ using GridapGeosciences.Distributed
 using GridapP4est
 using Gridap
 using GridapDistributed
-using DrWatson
 
-include("../convergence_tools.jl")
 
 
 ### f = sin(ϕ) = Z/R

@@ -1,4 +1,3 @@
-using DrWatson
 using Gridap
 using GridapGeosciences
 using Test
@@ -13,9 +12,6 @@ pts = [_r(1) for i in 1:10]
 αβ = pts[1]
 p = 1
 
-
-include("../convergence_tools.jl")
-include("../Laplace/analytic_funcs.jl")
 
 ########### Forward jacobian
 auto_forward_jacobian(p::Int,αβ) = transpose( gradient(forward_map_2D(p))(αβ) )
@@ -99,8 +95,6 @@ function pinvJ(J::MultiValue{Tuple{D1,D2}}) where {D1,D2}
 end
 auto_forward_pinv_jacobian(p) = αβ -> pinvJ(forward_jacobian(p)(αβ))
 auto_forward_pinv_jacobian(p)(αβ)  ≈ forward_pinv_jacobian(p)(αβ)
-
-include("../Advection/advection_funcs.jl")
 
 vX = panel_to_cartesian(tangent_vec(vecX))
 
