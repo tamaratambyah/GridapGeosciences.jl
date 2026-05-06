@@ -23,7 +23,7 @@ function cube_to_αβ(p::Int)
 
 end
 
-function cube_face_values(p::Int;a::Float64=π/4)
+function cube_face_values(p::Int;a::Float64=CUBE_HALF_EDGE)
   if p == 1 # X = 1 panel (front)
     b = VectorValue(1.0, 0.0, 0.0)
   elseif p == 2 # Z = 1 panel (top)
