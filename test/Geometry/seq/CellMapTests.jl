@@ -10,7 +10,7 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
-import Gridap.Geometry: CUBE_HALF_EDGE
+import GridapGeosciences.Geometry: CUBE_HALF_EDGE
 
 function test_cell_maps(panel_model,cart_model)
   lvl = nref(nc(panel_model))
