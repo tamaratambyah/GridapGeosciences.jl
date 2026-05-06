@@ -10,10 +10,11 @@ using GridapGeosciences
 using Test
 
 import GridapGeosciences.Geometry: A_panel2cube, b_panel2cube
+import GridapGeosciences.Geometry: CUBE_HALF_EDGE, NPANELS
 import GridapGeosciences.Fields: MyAffineField
 
 
-panel_ids = collect(1:6)
+panel_ids = collect(1:NPANELS)
 A_panel2cube_transpose = map(x->transpose(x),A_panel2cube)
 
 
@@ -21,7 +22,7 @@ panel2cube_map = lazy_map(p-> MyAffineField(A_panel2cube[p],b_panel2cube[p]), pa
 ∇panel2cube_map = lazy_map(gradient,panel2cube_map)
 
 # Test evaluation on a single point
-x = Point(-π/4,-π/4)
+x = Point(-CUBE_HALF_EDGE,-CUBE_HALF_EDGE)
 evaluate(panel2cube_map,x)
 @test evaluate(∇panel2cube_map,x) == A_panel2cube_transpose
 

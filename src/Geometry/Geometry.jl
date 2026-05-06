@@ -36,7 +36,7 @@ export coarse_parametric_model
 export R1p, A_cube2panel, A_panel2cube, b_panel2cube
 export CubedSphereParametricDiscreteModel
 export CubedSphere2DParametricDiscreteModel, CubedSphere3DParametricDiscreteModel
-export NPANELS
+export NPANELS, CUBE_HALF_EDGE
 export get_nodes_from_coords
 
 export ParametricCellField

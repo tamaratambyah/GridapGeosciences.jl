@@ -123,12 +123,9 @@ end
 
  # This info goes to P4est ...
  function setup_coarse_cell_vertices_alpha_beta_coordinates()
-    data = vcat([ [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)],
-                  [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)],
-                  [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)],
-                  [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)],
-                  [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)],
-                  [Point(-π/4,-π/4),Point(π/4,-π/4),Point(-π/4,π/4),Point(π/4,π/4)] ]...)
+    pts = CUBE_HALF_EDGE.*[Point(-1.0,-1.0),Point(1.0,-1.0),Point(-1.0,1.0),Point(1.0,1.0)]
+    _data = fill(pts,NPANELS)
+    data = vcat( _data...  )
     ptr = [1, 5, 9, 13, 17, 21, 25]
     Gridap.Arrays.Table(data,ptr)
  end

@@ -10,6 +10,7 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
+import Gridap.Geometry: CUBE_HALF_EDGE
 
 function test_cell_maps(panel_model,cart_model)
   lvl = nref(nc(panel_model))
@@ -47,7 +48,8 @@ nC_per_panel = Int(nc(panel_models[end]))
 
 
 ## make cartesian models with the same refinement
-coarse_cart_panel = UnstructuredDiscreteModel(CartesianDiscreteModel((-π/4,π/4,-π/4,π/4),(nC_per_panel,nC_per_panel)))
+coarse_cart_panel = UnstructuredDiscreteModel(
+  CartesianDiscreteModel((-CUBE_HALF_EDGE,CUBE_HALF_EDGE,-CUBE_HALF_EDGE,CUBE_HALF_EDGE),(nC_per_panel,nC_per_panel)))
 
 cart_panel_models = Vector{Any}(undef,length(panel_models))
 cart_panel_models[end] = coarse_cart_panel

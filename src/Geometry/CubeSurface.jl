@@ -8,6 +8,16 @@ This constant is used throughout the geometry construction
 const NPANELS = 6
 
 
+"""
+CUBE_HALF_EDGE
+
+The value of the half edge of the cube is π/4. That is, every panel is the square
+[-π/4,π/4]^2.
+Currently the forward maps are only supported for this formulation of the panels.
+"""
+
+const CUBE_HALF_EDGE = π/4
+
 function generate_ptr(Dc,n)
   nvertices = 2^Dc
   ptr  = Vector{Int}(undef,n+1)
@@ -26,8 +36,8 @@ function _CCAM_panel_wise_node_ids()
   Table(data,ptr)
 end
 
-function _CCAM_cube_nodes_3d(a::Real)
-   a.* [
+function _CCAM_cube_nodes_3d()
+  CUBE_HALF_EDGE.* [
     Point(1.0, -1.0, -1.0)  # node 1
     Point(1.0, 1.0, -1.0)   # node 2
     Point(1.0, -1.0, 1.0)   # node 3
@@ -40,9 +50,9 @@ function _CCAM_cube_nodes_3d(a::Real)
 end
 
 
-function coarse_cube_surface_3D(a::Real)
+function coarse_cube_surface_3D()
 
-  nodes_3d = _CCAM_cube_nodes_3d(a)
+  nodes_3d = _CCAM_cube_nodes_3d()
   cell_node_ids = _CCAM_panel_wise_node_ids()
 
   polytopes = fill(QUAD,NPANELS)
@@ -61,8 +71,8 @@ end
 
 
 
-function coarse_cube_model(a::Real)
-  cube_grid,topo,labels, = coarse_cube_surface_3D(a)
+function coarse_cube_model()
+  cube_grid,topo,labels, = coarse_cube_surface_3D()
   model = UnstructuredDiscreteModel(cube_grid,topo,labels)
   return model
 end

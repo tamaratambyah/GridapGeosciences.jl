@@ -1,5 +1,5 @@
-function coarse_parametric_model(radius; a=π/4)
-  cube_model = coarse_cube_model(a)
+function coarse_parametric_model(radius)
+  cube_model = coarse_cube_model()
   panel_model = parametric_model(cube_model,radius)
   return panel_model
 end
