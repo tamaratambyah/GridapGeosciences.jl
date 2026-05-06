@@ -2,7 +2,7 @@
 
  
 GridapGeosciences.jl extends the [Gridap ecosystem](https://github.com/gridap) to the numerical approximation of partial differential equations on two and three dimensional cubed sphere manifolds. 
-The cubed sphere meshes are design with high performance computing  in mind.
+The cubed sphere meshes are designed with high performance computing in mind.
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](PENDING)
 [![Build Status](https://github.com/gridapapps/GridapGeosciences.jl/workflows/CI/badge.svg?branch=master)](https://github.com/gridapapps/GridapGeosciences.jl/actions?query=workflow%3ACI)
@@ -28,12 +28,12 @@ pkg> add GridapGeosciences
 
 A list of examples is available in `test/Examples`. 
 These include well known atmospheric applications such as scalar advection, linear wave equation, and the shallow water equations. 
-The benchmark Laplace Belrami problem is also available. 
+The benchmark Laplace Beltrami problem is also available. 
 
 
 ## Citation
 
-Please cite the `Gridap` main project as indicated [here](https://github.com/gridap/Gridap.jl#how-to-cite-gridap), 
+Please cite the `GridapGeosciences` main project as indicated [here](https://github.com/gridap/Gridap.jl#how-to-cite-gridap), 
 and use the reference below in any publication that uses `GridapGeosciences`:
 
 ```
@@ -43,7 +43,6 @@ and use the reference below in any publication that uses `GridapGeosciences`:
   title = {GridapGeosciences.jl: A Julia finite element package for partial differential equations on the sphere [in preparation]}, 
 } 
 ```
-
 ## Contributing
 
 GridapGeosciences is a collaborative project open to contributions. If you want to contribute, please take into account:
@@ -52,12 +51,7 @@ GridapGeosciences is a collaborative project open to contributions. If you want 
 - We adhere to the contribution and code-of-conduct instructions of the Gridap.jl project, available [here](https://github.com/gridap/Gridap.jl/blob/master/CONTRIBUTING.md) and [here](https://github.com/gridap/Gridap.jl/blob/master/CODE_OF_CONDUCT.md), resp.  Please, carefully read and follow the instructions in these files.
 - Open a PR with your contribution.
  
-
-
 ## Image gallery 
- 
-
- 
 
 <p align="center">
   <img src="_readme/NSWE_48x48_1_trapezoidal_dt_480_tau_dtdiv2.gif">
