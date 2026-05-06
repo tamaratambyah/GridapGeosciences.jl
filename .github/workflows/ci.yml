@@ -1,214 +1,79 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    # branches:
+    #   - main
+    # tags: ['*']
+    paths-ignore:
+      - 'NEWS.md'
+      - 'README.md'
+      - 'LICENSE.md'
+  pull_request:
+    paths-ignore:
+      - 'NEWS.md'
+      - 'README.md'
+      - 'LICENSE.md'
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 jobs:
-  SeqTests:
-    name: Tests ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+  test-sequential:
+    name: ${{ matrix.testcase }} - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
-    env:
-      P4EST_ROOT_DIR: "/opt/p4est/2.3.6/"
-      JULIA_PETSC_LIBRARY: "/opt/petsc/3.15.4/lib/libpetsc"
     strategy:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
+          - '1.10'
         os:
           - ubuntu-latest
         arch:
           - x64
+        testcase:
+          - seq-l2-projection
+          - seq-laplacian
+          # - seq-geophysical
+          - seq-transient
+          - seq-geometry
+          - seq-multigrid
+          - seq-tutorials
+          - seq-fields
     steps:
-      - uses: actions/checkout@v2
-      - name: Cache p4est
-        id: cache-p4est
-        uses: actions/cache@v2
-        with:
-         path: ${{env.P4EST_ROOT_DIR}}
-         key: ${{ runner.os }}-build-${{ env.P4EST_ROOT_DIR }}-
-         restore-keys: |
-           ${{ runner.os }}-build-${{ env.P4EST_ROOT_DIR }}-
-           ${{ runner.os }}-build-
-           ${{ runner.os }}-
-      #- name: Cache petsc
-      #  id: cache-petsc
-      #  uses: actions/cache@v2
-      #  with:
-      #   path: ${{env.JULIA_PETSC_LIBRARY}}
-      #   key: ${{ runner.os }}-build-${{ env.JULIA_PETSC_LIBRARY }}-
-      #   restore-keys: |
-      #     ${{ runner.os }}-build-${{ env.JULIA_PETSC_LIBRARY }}-
-      #     ${{ runner.os }}-build-
-      #     ${{ runner.os }}-  
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - name: Install p4est/petsc dependencies
-        run: |
-           sudo apt-get update 
-           sudo apt-get install -y wget gfortran g++ openmpi-bin libopenmpi-dev 
-      - name: Install p4est
-        if: steps.cache-p4est.outputs.cache-hit != 'true'
-        run: |
-          # Install p4est 2.3.6 from sources
-          CURR_DIR=$(pwd)
-          PACKAGE=p4est
-          VERSION=2.3.6
-          INSTALL_ROOT=/opt
-          P4EST_INSTALL=$INSTALL_ROOT/$PACKAGE/$VERSION
-          TAR_FILE=$PACKAGE-$VERSION.tar.gz
-          URL="https://github.com/p4est/p4est.github.io/raw/master/release"
-          ROOT_DIR=/tmp
-          SOURCES_DIR=$ROOT_DIR/$PACKAGE-$VERSION
-          BUILD_DIR=$SOURCES_DIR/build
-          wget -q $URL/$TAR_FILE -O $ROOT_DIR/$TAR_FILE
-          mkdir -p $SOURCES_DIR
-          tar xzf $ROOT_DIR/$TAR_FILE -C $SOURCES_DIR --strip-components=1
-          cd $SOURCES_DIR
-          ./configure --prefix=$P4EST_INSTALL --without-blas --without-lapack --enable-mpi -disable-dependency-tracking
-          make --quiet
-          make --quiet install
-          rm -rf $ROOT_DIR/$TAR_FILE $SOURCES_DIR
-          cd $CURR_DIR       
-      - name: Install petsc
-        # if: steps.cache-petsc.outputs.cache-hit != 'true'
-        run: |
-          CURR_DIR=$(pwd)
-          PACKAGE=petsc
-          VERSION=3.15.4
-          INSTALL_ROOT=/opt
-          PETSC_INSTALL=$INSTALL_ROOT/$PACKAGE/$VERSION
-          TAR_FILE=$PACKAGE-$VERSION.tar.gz
-          URL="https://ftp.mcs.anl.gov/pub/petsc/release-snapshots/"
-          ROOT_DIR=/tmp
-          SOURCES_DIR=$ROOT_DIR/$PACKAGE-$VERSION
-          BUILD_DIR=$SOURCES_DIR/build
-          wget -q $URL/$TAR_FILE -O $ROOT_DIR/$TAR_FILE
-          mkdir -p $SOURCES_DIR
-          tar xzf $ROOT_DIR/$TAR_FILE -C $SOURCES_DIR --strip-components=1
-          cd $SOURCES_DIR
-          ./configure --prefix=$PETSC_INSTALL --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 \
-             --download-mumps --download-scalapack --download-parmetis --download-metis \
-             --download-ptscotch --with-debugging --with-x=0 --with-shared=1 \
-             --with-mpi=1 --with-64-bit-indices
-          make
-          make install 
-      - run: julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
-      - run: julia -O1 --project=. --color=yes --check-bounds=yes test/sequential/runtests.jl
-      - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v1
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          file: lcov.info
-  MPITests:
-    name: Tests ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
-    runs-on: ${{ matrix.os }}
-    env:
-      P4EST_ROOT_DIR: "/opt/p4est/2.3.6/"
-      JULIA_PETSC_LIBRARY: "/opt/petsc/3.15.4/lib/libpetsc"
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - '1.9'
-        os:
-          - ubuntu-latest
-        arch:
-          - x64
-    steps:
-      - uses: actions/checkout@v2
-      - name: Cache p4est
-        id: cache-p4est
-        uses: actions/cache@v2
-        with:
-         path: ${{env.P4EST_ROOT_DIR}}
-         key: ${{ runner.os }}-build-${{ env.P4EST_ROOT_DIR }}-
-         restore-keys: |
-           ${{ runner.os }}-build-${{ env.P4EST_ROOT_DIR }}-
-           ${{ runner.os }}-build-
-           ${{ runner.os }}-
-      #- name: Cache petsc
-      #  id: cache-petsc
-      #  uses: actions/cache@v2
-      #  with:
-      #   path: ${{env.JULIA_PETSC_LIBRARY}}
-      #   key: ${{ runner.os }}-build-${{ env.JULIA_PETSC_LIBRARY }}-
-      #   restore-keys: |
-      #     ${{ runner.os }}-build-${{ env.JULIA_PETSC_LIBRARY }}-
-      #     ${{ runner.os }}-build-
-      #     ${{ runner.os }}-       
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - name: Install p4est/petsc dependencies
-        run: |
-           sudo apt-get update 
-           sudo apt-get install -y wget gfortran g++ openmpi-bin libopenmpi-dev 
-      - name: Install p4est
-        if: steps.cache-p4est.outputs.cache-hit != 'true'
-        run: |
-          # Install p4est 2.3.6 from sources
-          CURR_DIR=$(pwd)
-          PACKAGE=p4est
-          VERSION=2.3.6
-          INSTALL_ROOT=/opt
-          P4EST_INSTALL=$INSTALL_ROOT/$PACKAGE/$VERSION
-          TAR_FILE=$PACKAGE-$VERSION.tar.gz
-          URL="https://github.com/p4est/p4est.github.io/raw/master/release"
-          ROOT_DIR=/tmp
-          SOURCES_DIR=$ROOT_DIR/$PACKAGE-$VERSION
-          BUILD_DIR=$SOURCES_DIR/build
-          wget -q $URL/$TAR_FILE -O $ROOT_DIR/$TAR_FILE
-          mkdir -p $SOURCES_DIR
-          tar xzf $ROOT_DIR/$TAR_FILE -C $SOURCES_DIR --strip-components=1
-          cd $SOURCES_DIR
-          ./configure --prefix=$P4EST_INSTALL --without-blas --without-lapack --enable-mpi -disable-dependency-tracking
-          make --quiet
-          make --quiet install
-          rm -rf $ROOT_DIR/$TAR_FILE $SOURCES_DIR
-          cd $CURR_DIR       
-      - name: Install petsc
-        # if: steps.cache-petsc.outputs.cache-hit != 'true'
-        run: |
-          CURR_DIR=$(pwd)
-          PACKAGE=petsc
-          VERSION=3.15.4
-          INSTALL_ROOT=/opt
-          PETSC_INSTALL=$INSTALL_ROOT/$PACKAGE/$VERSION
-          TAR_FILE=$PACKAGE-$VERSION.tar.gz
-          URL="https://ftp.mcs.anl.gov/pub/petsc/release-snapshots/"
-          ROOT_DIR=/tmp
-          SOURCES_DIR=$ROOT_DIR/$PACKAGE-$VERSION
-          BUILD_DIR=$SOURCES_DIR/build
-          wget -q $URL/$TAR_FILE -O $ROOT_DIR/$TAR_FILE
-          mkdir -p $SOURCES_DIR
-          tar xzf $ROOT_DIR/$TAR_FILE -C $SOURCES_DIR --strip-components=1
-          cd $SOURCES_DIR
-          ./configure --prefix=$PETSC_INSTALL --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 \
-             --download-mumps --download-scalapack --download-parmetis --download-metis \
-             --download-ptscotch --with-debugging --with-x=0 --with-shared=1 \
-             --with-mpi=1 --with-64-bit-indices
-          make
-          make install 
-          
-      - name: add MPIPreferences
-        shell: julia --color=yes --project=. {0}
-        run: |
-          using Pkg
-          Pkg.add("MPIPreferences")
-
-      - name: use MPI system binary 
-        shell: julia --color=yes --project=. {0}
-        run: |
-          using MPIPreferences
-          MPIPreferences.use_system_binary()
-      
-      - run: julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
-      - run: julia -O1 --project=. --color=yes --check-bounds=yes test/mpi/runtests.jl
+          TESTCASE: ${{ matrix.testcase }}
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v1
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - uses: codecov/codecov-action@v5
         with:
-          file: lcov.info
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+  #         flags: ${{ matrix.testcase }}
+  # docs:
+  #   name: Documentation
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #     - uses: julia-actions/setup-julia@v2
+  #       with:
+  #         version: '1'
+  #     - uses: julia-actions/julia-buildpkg@v1
+  #     - uses: julia-actions/julia-docdeploy@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - run: |
+  #         julia --project=docs -e '
+  #           using Documenter: DocMeta, doctest
+  #           using GridapGeosciences
+  #           DocMeta.setdocmeta!(GridapGeosciences, :DocTestSetup, :(using GridapGeosciences); recursive=true)
+  #           doctest(GridapGeosciences)'

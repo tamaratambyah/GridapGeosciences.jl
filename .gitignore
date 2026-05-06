@@ -12,3 +12,13 @@
 /docs/site/
 wave_eq_ncells*/*
 nswe_eq_ncells*/*
+plots/
+data/
+LocalPreferences.toml
+*.e*
+*.o*
+gmg_jobs/
+tsw_jobs/
+tsw_p2_jobs/
+*_jobs*
+mpiexecjl.sh
