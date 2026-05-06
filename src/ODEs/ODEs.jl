@@ -24,7 +24,6 @@ import Gridap.ODEs: RungeKutta
 import Gridap.ODEs: ODESolver
 import Gridap.ODEs: TableauType, ExplicitTableau, ImplicitTableau
 import Gridap.ODEs: StageOperator
-import Gridap.ODEs: LinearStageOperator, NonlinearStageOperator
 
 import Gridap.Algebra: LinearSolver
 import Gridap.Algebra: LinearSolverCache
@@ -53,7 +52,5 @@ include("StageOperators.jl")
 include("RungeKuttaEX.jl")
 
 export DAEFEOperator
-export LinearStageOperator
-export NonlinearStageOperator
 
 end
