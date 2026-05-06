@@ -39,8 +39,6 @@ end
 @publish Visualisation createvtk_with_cell_geomap
 
 @publish Helpers xyz2θϕr
-@publish Helpers θϕ2xyz
-@publish Helpers xyz2θϕ
 
 @publish Helpers sqrtg
 @publish Helpers detg
