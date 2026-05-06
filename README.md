@@ -4,9 +4,9 @@
 GridapGeosciences.jl extends the [Gridap ecosystem](https://github.com/gridap) to the numerical approximation of partial differential equations on two and three dimensional cubed sphere manfiolds. 
 The cubed sphere meshes are design with high performance computing  in mind.
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://gridap.github.io/GridapEmbedded.jl/stable)
-[![Build Status](https://github.com/gridap/GridapEmbedded.jl/workflows/CI/badge.svg?branch=master)](https://github.com/gridap/GridapEmbedded.jl/actions?query=workflow%3ACI)
-[![Codecov](https://codecov.io/gh/gridap/GridapEmbedded.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/gridap/GridapEmbedded.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](PENDING)
+[![Build Status](https://github.com/gridapapps/GridapGeosciences.jl/workflows/CI/badge.svg?branch=master)](https://github.com/gridapapps/GridapGeosciences.jl/actions?query=workflow%3ACI)
+[![Codecov](https://codecov.io/gh/gridapapps/GridapGeosciences.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/gridapapps/GridapGeosciences.jl)
 
 
 ## Installation
