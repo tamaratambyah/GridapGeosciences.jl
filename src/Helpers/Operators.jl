@@ -17,7 +17,6 @@ metric(m::Field) = x -> metric(m,x)
 inv_metric(m::Field) = x -> inv_metric(m,x)
 detg(m::Field)  = x -> detg(m,x)
 sqrtg(m::Field)  = x -> sqrtg(m,x)
-grad_meas(m::Field) = x -> gradient(sqrtg(m))(x)
 covariant_basis(m::Field) = x -> J(m,x)
 forward_jacobian(m::Field) = x -> J(m,x)
 forward_pinv_jacobian(m::Field) = x -> pinvJ(J(m,x))
@@ -36,10 +35,6 @@ end
 surflap(f::Function) = m -> surflap(f,m)
 surflap(f::Function,m::Field) = αβ -> 1/sqrtg(m,αβ) * ( divergence(W(f,m))(αβ) )
 W(f::Function,m::Field) = αβ ->  sqrtg(m,αβ)*( inv_metric(m,αβ) ⋅ gradient(f(m))(αβ) )
-
-####### contra of sgrad
-contr_gradf(f::Function) = m -> contr_gradf(f,m)
-contr_gradf(f::Function,m::Field) = αβ -> inv_metric(m,αβ) ⋅ gradient(f(m))(αβ)
 
 ####### sgrad
 sgrad(f::Function) = m -> sgrad(f,m)

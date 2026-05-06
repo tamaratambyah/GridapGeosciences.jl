@@ -84,7 +84,8 @@ auto_surfdiv(vec::Function) = p -> auto_surfdiv(vec,p)
 
 auto_surfdiv(contr_gradf(f_sin))(p)(αβ) ≈ surfdiv(contr_gradf(f_sin))(p)(αβ)
 
-
+contr_gradf(f::Function) = m -> contr_gradf(f,m)
+contr_gradf(f::Function,m::Field) = αβ -> inv_metric(m,αβ) ⋅ gradient(f(m))(αβ)
 
 
 

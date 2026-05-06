@@ -63,10 +63,7 @@ pts = [αβ, γαβ]
   @test metric(p,pt) == metric_3D(p,pt)
   @test inv_metric(p,pt) == inv_metric_3D(p,pt)
   @test sqrtg(p,pt) == sqrtg_3D(p,pt)
-  @test grad_meas(p)(pt) == grad_meas_3D(p)(pt)
   @test sgrad(f)(p)(pt) == sgrad_3D(f)(p)(pt) == sgrad(_f)(p)(pt)
-  @test contr_gradf(f)(p)(pt) == contr_gradf_3D(f)(p)(pt) == contr_gradf(_f)(p)(pt)
-  @test surfdiv(contr_gradf(f))(p)(pt) ==  surfdiv_3D(contr_gradf_3D(f))(p)(pt) == surfdiv(contr_gradf(_f))(p)(pt)
   @test surflap(f)(p)(pt) == surflap_3D(f)(p)(pt) == surflap(_f)(p)(pt)
 
   return true

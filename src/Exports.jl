@@ -42,13 +42,11 @@ end
 
 @publish Helpers sqrtg
 @publish Helpers detg
-@publish Helpers grad_meas
 @publish Helpers metric
 @publish Helpers inv_metric
 
 @publish Helpers surflap
 @publish Helpers surfdiv
-@publish Helpers contr_gradf
 @publish Helpers sgrad
 @publish Helpers panel_to_cartesian
 

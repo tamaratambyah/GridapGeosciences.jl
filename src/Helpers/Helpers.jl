@@ -20,9 +20,8 @@ export forward_jacobian, covariant_basis
 
 export pinvJ
 export sqrtg,  detg
-export grad_meas
 export metric, inv_metric
-export surflap, surfdiv, contr_gradf, sgrad
+export surflap, surfdiv, sgrad
 
 export panel_to_cartesian
 export tangent_vec
