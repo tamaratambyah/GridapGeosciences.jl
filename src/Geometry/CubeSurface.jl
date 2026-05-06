@@ -1,3 +1,13 @@
+"""
+NPANELS
+
+The number of panels of the cubed sphere manifold is always six.
+This constant is used throughout the geometry construction
+"""
+
+const NPANELS = 6
+
+
 function generate_ptr(Dc,n)
   nvertices = 2^Dc
   ptr  = Vector{Int}(undef,n+1)
@@ -8,11 +18,11 @@ function generate_ptr(Dc,n)
   ptr
 end
 
-function _CCAM_panel_wise_node_ids(npanels)
+function _CCAM_panel_wise_node_ids()
   ## CCAM panel ordering
   Dc=2
   data = [ 1,2,3,4, 3,4,5,6,  2,7,4,6, 8,5,7,6, 1,8,2,7, 1,3,8,5 ]
-  ptr = generate_ptr(Dc,npanels)
+  ptr = generate_ptr(Dc,NPANELS)
   Table(data,ptr)
 end
 
@@ -30,13 +40,13 @@ function _CCAM_cube_nodes_3d(a::Real)
 end
 
 
-function coarse_cube_surface_3D(a::Real,npanels::Int)
+function coarse_cube_surface_3D(a::Real)
 
   nodes_3d = _CCAM_cube_nodes_3d(a)
-  cell_node_ids = _CCAM_panel_wise_node_ids(npanels)
+  cell_node_ids = _CCAM_panel_wise_node_ids()
 
-  polytopes = fill(QUAD,npanels)
-  cell_type = fill(1,npanels)
+  polytopes = fill(QUAD,NPANELS)
+  cell_type = fill(1,NPANELS)
   reffes = LagrangianRefFE(Float64,QUAD,1)
   cell_reffes=[reffes]
 
@@ -45,14 +55,14 @@ function coarse_cube_surface_3D(a::Real,npanels::Int)
 
   cube_grid = Gridap.Geometry.UnstructuredGrid(nodes_3d,cell_node_ids,cell_reffes,cell_type,Gridap.Geometry.NonOriented())
 
-  panel_ids = collect(1:npanels)
+  panel_ids = collect(1:NPANELS)
   return cube_grid,topo,labels,panel_ids
 end
 
 
 
-function coarse_cube_model(a::Real,npanels::Int)
-  cube_grid,topo,labels, = coarse_cube_surface_3D(a,npanels)
+function coarse_cube_model(a::Real)
+  cube_grid,topo,labels, = coarse_cube_surface_3D(a)
   model = UnstructuredDiscreteModel(cube_grid,topo,labels)
   return model
 end

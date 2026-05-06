@@ -1,9 +1,5 @@
 
 
-const NPANELS = 6
-const CUBE_SURFACE_HALF_EDGE = π/4
-
-
 # Ideas:
 # * GenericDistributedDiscreteModel should be created out of OctreeDistributedDiscreteModel
 # * Many methods of CubedSphere2DParametricOctreeDistributedDiscreteModel should be forwarded to the underlying
@@ -92,7 +88,7 @@ end
 
 function _create_parametric_octree_dmodel_coarse_model()
   # 6 panels (cells), 4 corners (vertices) each panel
-  cell_node_ids = _CCAM_panel_wise_node_ids(NPANELS)
+  cell_node_ids = _CCAM_panel_wise_node_ids()
   node_coordinates = Vector{Point{2,Float64}}(undef,8)
   # These coordinates are junk coordinates, but they have to be unique.
   # This a precondition for the OctreeDistributedDiscreteModel to properly
