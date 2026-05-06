@@ -38,15 +38,9 @@ and use the reference below in any publication that uses `GridapGeosciences`:
 
 ```
 @article{Tambyah2026, 
-  doi = { }, 
-  url = { }, 
   year = {2026},   
-  volume = { }, 
-  number = { }, 
-  pages = { }, 
   author = {Tamara A. Tambyah and Alberto F. Martín and David Lee and Santiago Badia}, 
-  title = {GridapGeosciences.jl: A Julia finite element package for partial differential equations on the sphere}, 
-  journal = { } 
+  title = {GridapGeosciences.jl: A Julia finite element package for partial differential equations on the sphere [in preparation]}, 
 } 
 ```
 
