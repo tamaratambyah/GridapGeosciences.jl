@@ -18,11 +18,16 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+FillArrays = "1.11"
 Gridap = "=0.19.11"
 GridapDistributed = "=0.4.13"
 GridapP4est = "=0.3.13"
+GridapSolvers = "=0.7.0"
+LinearAlgebra = "1"
 MPI = "0.20"
 PartitionedArrays = "0.3"
+StaticArrays = "1.9.8"
+Test = "1"
 julia = "1.8,1.9,1.10"
 
 [extras]
