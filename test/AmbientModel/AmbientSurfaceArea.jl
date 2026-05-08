@@ -5,7 +5,7 @@ is equvialent to the surface area computed by the
    serial ambient model: = ∫ᵧ 1
 """
 
-module SurfaceArea
+module AmbientSurfaceArea
 
 using Gridap
 using GridapGeosciences
