@@ -32,9 +32,10 @@ function compute_surface_area(model::ParametricModels, degree::Int)
 end
 
 
-function main(serial_panel_models::AbstractArray{<:ParametricModels})
+function main(serial_ambient_models::AbstractArray{<:CubedSphereAmbientDiscreteModel})
   for degree in collect([2,4,6,8])
-    for (s_panel_model) in serial_panel_models
+    for (s_ambient_model) in serial_ambient_models
+      s_panel_model = s_ambient_model.panel_model
       radius = get_radius(s_panel_model)
       extact_area = 4*π*radius^2
 
@@ -45,7 +46,6 @@ function main(serial_panel_models::AbstractArray{<:ParametricModels})
       @test e_panel < 1e-2
 
       ### s_ambient_model
-      s_ambient_model = CubedSphereAmbientDiscreteModel(s_panel_model)
       s_ambient_area = compute_surface_area(s_ambient_model, degree)
       e_ambient = abs(s_ambient_area-extact_area)/extact_area
       println("Ambient error:", e_ambient)
