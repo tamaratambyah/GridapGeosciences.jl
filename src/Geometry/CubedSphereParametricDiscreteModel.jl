@@ -104,6 +104,10 @@ function CubedSphere2DParametricDiscreteModel(
   radius::Real;
   num_initial_uniform_refinements=0)
 
+  if num_initial_uniform_refinements == 0
+    return coarse_parametric_model(radius)
+  end
+
   models = get_refined_models(num_initial_uniform_refinements,radius)
   models[1]
 end
@@ -131,9 +135,12 @@ returns an array of refined serial models where
   models[1] == most refined model
   models[end] == coarsest model
 """
+
+const ParametricModels{Dc,Dp} = Union{CubedSphereParametricDiscreteModel{Dc,Dp},AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}}
+
 function get_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
   panel_model = coarse_parametric_model(radius)
-  panel_models = Vector{Gridap.Geometry.DiscreteModel}(undef,n_ref_lvls)
+  panel_models = Vector{ParametricModels}(undef,n_ref_lvls)
   for n in n_ref_lvls:-1:1
     panel_model = Gridap.Adaptivity.refine(panel_model)
     panel_models[n] = panel_model

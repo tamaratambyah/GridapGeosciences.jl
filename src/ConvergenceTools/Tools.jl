@@ -155,7 +155,7 @@ returns the level of refinement
 
 nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
-function nref(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
+function nref(model::Union{<:DiscreteModel{2,Dp},<:GridapDistributed.DistributedDiscreteModel{2,Dp}}) where Dp
   nref(nc(model))
 end
 
@@ -164,7 +164,7 @@ function nref(model::GridapDistributed.DistributedDiscreteModel{3,3})
 end
 
 ## nc = num cells per panel
-function nc(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
+function nc(model::Union{<:DiscreteModel{2,Dp},<:GridapDistributed.DistributedDiscreteModel{2,Dp}}) where Dp
   num_cells(model)/6
 end
 function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
