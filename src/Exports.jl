@@ -31,7 +31,9 @@ end
 @publish Geometry CubedSphereParametricDiscreteModel
 @publish Geometry CubedSphere2DParametricDiscreteModel
 @publish Geometry CubedSphere3DParametricDiscreteModel
+@publish Geometry CubedSphereAmbientDiscreteModel
 @publish Geometry get_refined_models
+@publish Geometry get_ambient_refined_models
 
 @publish ODEs DAEFEOperator
 

@@ -1,0 +1,72 @@
+"""
+CubedSphereAmbientDiscreteModel
+
+is a discrete model of the ambient space.
+Constructed by composig the cmap of the panel_model with the forward_map
+The panel_model is kept for the purposes of dispatching
+"""
+
+struct CubedSphereAmbientDiscreteModel{Dc,Dp,Tp,B,P<:ParametricModels} <: DiscreteModel{Dc,Dp}
+  grid::UnstructuredGrid{Dc,Dp,Tp,B}
+  grid_topology::UnstructuredGridTopology{Dc,Dp,Tp,B}
+  face_labeling::FaceLabeling
+  panel_model::P
+end
+
+Geometry.get_grid(model::CubedSphereAmbientDiscreteModel) = model.grid
+Geometry.get_grid_topology(model::CubedSphereAmbientDiscreteModel) = model.grid_topology
+Geometry.get_face_labeling(model::CubedSphereAmbientDiscreteModel) = model.face_labeling
+get_panel_ids(model::CubedSphereAmbientDiscreteModel) = get_panel_ids(model.panel_model)
+Geometry.get_cell_map(model::CubedSphereAmbientDiscreteModel) = model.grid.cell_map
+get_forward_map_generator(model::CubedSphereAmbientDiscreteModel) = get_forward_map_generator(model.panel_model)
+get_radius(model::CubedSphereAmbientDiscreteModel) = get_radius(model.panel_model)
+get_thickness(model::CubedSphereAmbientDiscreteModel) = get_thickness(model.panel_model)
+
+
+function CubedSphereAmbientDiscreteModel(
+  radius::Real;
+  num_initial_uniform_refinements=0)
+  panel_model = CubedSphere2DParametricDiscreteModel(radius;num_initial_uniform_refinements=num_initial_uniform_refinements)
+  CubedSphereAmbientDiscreteModel(panel_model)
+end
+
+
+
+function CubedSphereAmbientDiscreteModel(panel_model::ParametricModels)
+
+  panel_grid = get_grid(panel_model)
+  panel_topo = get_grid_topology(panel_model)
+  labels = get_face_labeling(panel_model)
+
+  ## map: reffe -> alpha,beta
+  cmap = get_cell_map(panel_grid)
+
+  ## map: alpha,beta -> manifold
+  fwd_map_generator = get_forward_map_generator(panel_model)
+  panel_ids = get_panel_ids(panel_model)
+  fwd_map =  geo_map_func(fwd_map_generator,panel_ids)
+
+  ## map: reffe -> manifold
+  geo_cmap = lazy_map(∘,fwd_map,cmap)
+
+  ref_pts = get_cell_ref_coordinates(panel_grid)
+  ambient_cell_coords = lazy_map(evaluate,geo_cmap,ref_pts)
+
+  ambient_nodes = get_nodes_from_coords(panel_grid,ambient_cell_coords)
+
+  ## the ambient_grid has the bespoke panel_2_ambient_cmap
+  ambient_grid = Gridap.Geometry.UnstructuredGrid(ambient_nodes,get_cell_node_ids(panel_grid),get_reffes(panel_grid),get_cell_type(panel_grid),OrientationStyle(panel_grid),
+                      nothing,geo_cmap)
+  ambient_topo = UnstructuredGridTopology(ambient_nodes,get_cell_node_ids(panel_grid),get_cell_type(panel_topo),get_polytopes(panel_topo),OrientationStyle(panel_topo))
+  ambient_labels = FaceLabeling(ambient_topo)
+
+  CubedSphereAmbientDiscreteModel(ambient_grid,ambient_topo,ambient_labels,panel_model)
+
+end
+
+
+function get_ambient_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
+  panel_models = get_refined_models(n_ref_lvls,radius,coarse_model)
+  ambient_models = map(x->CubedSphereAmbientDiscreteModel(x),panel_models)
+  return ambient_models
+end

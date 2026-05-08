@@ -19,6 +19,7 @@ include("PanelIds.jl")
 include("CubeSurface.jl")
 include("PanelMatrices.jl")
 include("CubedSphereParametricDiscreteModel.jl")
+include("CubedSphereAmbientDiscreteModel.jl")
 include("BoundaryTriangulations.jl")
 include("SkeletonTriangulations.jl")
 include("AdaptedTriangulations.jl")
@@ -34,7 +35,7 @@ export generate_ptr, coarse_cube_model
 
 export coarse_parametric_model
 export R1p, A_cube2panel, A_panel2cube, b_panel2cube
-export CubedSphereParametricDiscreteModel
+export CubedSphereParametricDiscreteModel, CubedSphereAmbientDiscreteModel
 export CubedSphere2DParametricDiscreteModel, CubedSphere3DParametricDiscreteModel
 export NPANELS, CUBE_HALF_EDGE
 export get_nodes_from_coords
@@ -44,6 +45,6 @@ export _pushforward_normal
 export _pullback_area_form
 
 export get_radius, get_thickness
-export get_refined_models
+export get_refined_models, get_ambient_refined_models
 
 end
