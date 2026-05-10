@@ -41,7 +41,6 @@ function laplace_beltrami_solver(ambient_model::CubedSphereAmbientDiscreteModel,
   f_ambient_cf = CellField(f,Ω_ambient)
 
   rhs_func(x) = -(laplacian(f))(x)
-  rhs_cf = CellField(rhs_func,Ω_ambient)
 
   @check sum(∫(f_ambient_cf)dΩ) < 1e-14 "Function must be zero mean to solve with zeromean FE space!"
 
@@ -51,7 +50,7 @@ function laplace_beltrami_solver(ambient_model::CubedSphereAmbientDiscreteModel,
   function get_liform(Dc::Int)
 
     # the manufactured solution
-    poisson_liform(v) = ∫(  (rhs*v) )dΩ
+    poisson_liform(v) = ∫(  (rhs_func*v) )dΩ
 
     ### This is the other way of mms, where we approximte the LHS operator
     # poisson_liform(v) = ∫( gradient(v)⋅gradient(f) )dΩ

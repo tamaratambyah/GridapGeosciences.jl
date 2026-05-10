@@ -72,7 +72,7 @@ function hodge_laplacian_scalar(ambient_model,
   function get_liform(Dc::Int)
 
     # the manufactured solution
-    _liformX((v,q)) = ∫( (rhs*q) )dΩ
+    _liformX((v,q)) = ∫( (rhs_func*q) )dΩ
     # _liformX((v,q)) = biformX((-sigma_cf,f_ambient_cf),(v,q))
 
     if Dc == 2
