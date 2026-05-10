@@ -6,6 +6,9 @@ function panel_f(ambient_f::Function,forward_map::Field)
 end
 panel_f(f::Function) = m -> panel_f(f,m)
 
+### How to ensure the function is in the tangent space?
+### We cannot remove the normal component, since this is not general to 3D
+### Rely on an informed using the ambient_vec ∈ TₚS
 function panel_vec(ambient_vec::Function,forward_map::Field)
   function _v(αβ)
     x = forward_map(αβ)

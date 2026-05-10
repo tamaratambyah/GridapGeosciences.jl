@@ -54,10 +54,8 @@ function hodge_laplacian_scalar(ambient_model,
   X = MultiFieldFESpace([U, P])
 
   # manufactured RHS
-  sigma_func(x) =  ∇(f)(x)
-
   f_ambient_cf = CellField(f,Ω_ambient)
-  sigma_cf = CellField(sigma_func,Ω_ambient)
+  sigma_cf = AmbientCellField(ambient_sgrad(f),Ω_ambient)
   slap_cf = AmbientCellField(ambient_surflap(f),Ω_ambient)
   rhs_cf = -slap_cf
 
