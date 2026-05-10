@@ -9,6 +9,7 @@ end
 
 @publish Fields Cartesian2SphericalMap
 @publish Fields ForwardMap
+@publish Fields InverseMap
 @publish Fields normal_vec
 
 @publish Geometry get_panel_ids
