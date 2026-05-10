@@ -19,10 +19,17 @@ e_ambient, = AmbientLaplaceBeltrami.laplace_beltrami_solver(
 
 
 include("../../Laplacian/LaplaceBeltrami.jl")
+function fX_ambient(forward_map)
+  function _f(αβ)
+    x = forward_map(αβ)
+    AmbientLaplaceBeltrami.fX(x)
+  end
+end
+
 panel_model = ambient_model.panel_model
 e_panel, = LaplaceBeltramiTests.laplace_beltrami_solver(
               panel_model,p_fe,dir,
-              LaplaceBeltramiTests.fX)
+              fX_ambient)
 
 e_comparison = e_ambient - e_panel
 println(e_comparison)
