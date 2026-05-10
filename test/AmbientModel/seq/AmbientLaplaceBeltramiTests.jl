@@ -4,7 +4,7 @@ include("../AmbientLaplaceBeltrami.jl")
 n_ref_lvls = 4
 radius = 1.0
 models = get_ambient_refined_models(n_ref_lvls,radius)
-# AmbientLaplaceBeltrami.main(models)
+AmbientLaplaceBeltrami.main(models)
 
 
 

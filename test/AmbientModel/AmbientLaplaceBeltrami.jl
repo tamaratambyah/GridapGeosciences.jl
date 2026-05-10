@@ -16,6 +16,7 @@ using Test
 function fX(x)
   # x[1]*x[2]*x[3]
   θϕr   = xyz2θϕr(x)
+  θ,ϕ,r = θϕr
   sin(ϕ)
 end
 
