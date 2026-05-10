@@ -88,8 +88,12 @@ ambient_lapX(x) = (∇⋅ ∇(ambient_fX))(x)
 ambient_fX_cf = CellField(ambient_fX,Ω_ambient)
 ambient_lapX_cf = CellField(ambient_lapX,Ω_ambient)
 
+## Need to use the inverse map
+ambient_slap_cf = AmbientCellField(ambient_surflap(ambient_fX),Ω_ambient)
+
 writevtk(Ω_ambient,dir*"/ambient_trian",
-cellfields=["f"=>ambient_fX_cf,"slap"=>ambient_lapX_cf ],
+cellfields=["f"=>ambient_fX_cf,"lapX"=>ambient_lapX_cf,
+            "slap"=>ambient_slap_cf ],
 append=false)
 
 

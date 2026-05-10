@@ -54,11 +54,12 @@ function hodge_laplacian_scalar(ambient_model,
   X = MultiFieldFESpace([U, P])
 
   # manufactured RHS
-  rhs_func(x) = -(laplacian(f))(x)
   sigma_func(x) =  ∇(f)(x)
 
   f_ambient_cf = CellField(f,Ω_ambient)
   sigma_cf = CellField(sigma_func,Ω_ambient)
+  slap_cf = AmbientCellField(ambient_surflap(f),Ω_ambient)
+  rhs_cf = -slap_cf
 
   f_int = interpolate(f_ambient_cf,P)
 
@@ -72,7 +73,7 @@ function hodge_laplacian_scalar(ambient_model,
   function get_liform(Dc::Int)
 
     # the manufactured solution
-    _liformX((v,q)) = ∫( (rhs_func*q) )dΩ
+    _liformX((v,q)) = ∫( (rhs_cf*q) )dΩ
     # _liformX((v,q)) = biformX((-sigma_cf,f_ambient_cf),(v,q))
 
     if Dc == 2
