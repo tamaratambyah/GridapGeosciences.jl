@@ -13,6 +13,7 @@ import GridapGeosciences.Fields: J, normal_vec
 
 include("Overloads.jl")
 include("Operators.jl")
+include("AmbientOperators.jl")
 include("CoordinateMappings.jl")
 include("VectorPullback.jl")
 
@@ -22,6 +23,7 @@ export pinvJ
 export sqrtg,  detg
 export metric, inv_metric
 export surflap, surfdiv, sgrad
+export ambient_surflap, ambient_surfdiv, ambient_sgrad
 
 export panel_to_cartesian
 export tangent_vec

@@ -11,6 +11,7 @@ import Gridap.Geometry: TriangulationView
 
 using GridapGeosciences.Fields
 import GridapGeosciences.Fields: MatMultField
+import GridapGeosciences.Fields: InverseMap
 
 using GridapGeosciences.Helpers
 import GridapGeosciences.Helpers: inv_metric, forward_jacobian
@@ -24,6 +25,7 @@ include("BoundaryTriangulations.jl")
 include("SkeletonTriangulations.jl")
 include("AdaptedTriangulations.jl")
 include("ParametricCellField.jl")
+include("AmbientCellField.jl")
 include("TriangulationView.jl")
 include("TriangulationPanelIds.jl")
 
@@ -40,11 +42,12 @@ export CubedSphere2DParametricDiscreteModel, CubedSphere3DParametricDiscreteMode
 export NPANELS, CUBE_HALF_EDGE
 export get_nodes_from_coords
 
-export ParametricCellField
+export ParametricCellField, AmbientCellField
 export _pushforward_normal
 export _pullback_area_form
 
 export get_radius, get_thickness
 export get_refined_models, get_ambient_refined_models
+export get_inverse_map_generator
 
 end

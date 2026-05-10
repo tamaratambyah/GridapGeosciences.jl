@@ -34,6 +34,8 @@ end
 @publish Geometry CubedSphereAmbientDiscreteModel
 @publish Geometry get_refined_models
 @publish Geometry get_ambient_refined_models
+@publish Geometry get_inverse_map_generator
+@publish Geometry AmbientCellField
 
 @publish ODEs DAEFEOperator
 
@@ -50,6 +52,11 @@ end
 @publish Helpers surflap
 @publish Helpers surfdiv
 @publish Helpers sgrad
+
+@publish Helpers ambient_surflap
+@publish Helpers ambient_surfdiv
+@publish Helpers ambient_sgrad
+
 @publish Helpers panel_to_cartesian
 
 @publish Helpers tangent_vec
