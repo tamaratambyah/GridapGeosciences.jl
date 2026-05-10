@@ -10,7 +10,8 @@ using Gridap
 using GridapGeosciences
 using Test
 using Gridap.Geometry
-import GridapGeosciences.Geometry: CUBE_HALF_EDGE
+using GridapGeosciences.Geometry
+
 
 function test_cell_maps(panel_model,cart_model)
   lvl = nref(nc(panel_model))
@@ -19,7 +20,7 @@ function test_cell_maps(panel_model,cart_model)
   nC_per_panel = Int(nc(panel_model))
 
   @test nC_per_panel == num_cells(cart_model)
-  @test nC_per_panel*nP == num_cells(panel_model)
+  @test nC_per_panel*NPANELS == num_cells(panel_model)
 
 
   trian = Triangulation(panel_model)
@@ -28,14 +29,14 @@ function test_cell_maps(panel_model,cart_model)
 
   ## Theoretically, the coordinates on each panel should be equivalent to the cartesian model
   cart_panel_coords = get_cell_coordinates(cart_model)
-  _cell_coords = fill(cart_panel_coords,nP)
+  _cell_coords = fill(cart_panel_coords,NPANELS)
   cell_coords = vcat(_cell_coords...)
 
   @test sum(lazy_map(evaluate,cmaps,pts) .≈ cell_coords) == num_cells(panel_model)
 
 end
 
-nP = 6 # number of panels
+NPANELS = 6 # number of panels
 n_ref_lvls = 4 # number of refinement levels
 radius = 1.0 # radius of the sphere
 
@@ -44,7 +45,7 @@ panel_models  = get_refined_models(n_ref_lvls,radius,true)
 
 ## Test the coarsest model is there
 nC_per_panel = Int(nc(panel_models[end]))
-@test nC_per_panel*nP == num_cells(panel_models[end])
+@test nC_per_panel*NPANELS == num_cells(panel_models[end])
 
 
 ## make cartesian models with the same refinement
