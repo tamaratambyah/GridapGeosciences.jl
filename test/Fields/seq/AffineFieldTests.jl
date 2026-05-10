@@ -9,14 +9,11 @@ using Gridap
 using GridapGeosciences
 using Test
 
-import GridapGeosciences.Geometry: A_panel2cube, b_panel2cube
-import GridapGeosciences.Geometry: CUBE_HALF_EDGE, NPANELS
-import GridapGeosciences.Fields: MyAffineField
-
+using GridapGeosciences.Geometry
+using GridapGeosciences.Fields
 
 panel_ids = collect(1:NPANELS)
 A_panel2cube_transpose = map(x->transpose(x),A_panel2cube)
-
 
 panel2cube_map = lazy_map(p-> MyAffineField(A_panel2cube[p],b_panel2cube[p]), panel_ids)
 ∇panel2cube_map = lazy_map(gradient,panel2cube_map)
