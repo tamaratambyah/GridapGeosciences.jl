@@ -23,7 +23,7 @@ for panel in collect(1:NPANELS)
 
   pts_αβ_inv = lazy_map(evaluate,inv_maps,pts_x)
 
-  @test pts_αβ ≈ pts_αβ
+  @test pts_αβ ≈ pts_αβ_inv
 end
 
 
