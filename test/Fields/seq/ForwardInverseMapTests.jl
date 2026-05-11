@@ -1,6 +1,5 @@
 """
-Test the evaluation of the ForwardMap and InverseMap
-To do: extend to 3D
+Test the evaluation of the ForwardMap and InverseMap in 2D and 3D
 """
 
 module ForwardInverseMapTests
