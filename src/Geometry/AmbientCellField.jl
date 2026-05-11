@@ -37,7 +37,7 @@ function AmbientCellField(f::Function,
   trian::BodyFittedTriangulation{Dc,Dp,<:CubedSphereAmbientDiscreteModel}) where {Dc,Dp}
 
   ambient_model = get_background_model(trian)
-  panel_model = ambient_model.panel_model
+  panel_model = get_parametric_model(ambient_model)
   panel_ids = get_panel_ids(panel_model)
   @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
 

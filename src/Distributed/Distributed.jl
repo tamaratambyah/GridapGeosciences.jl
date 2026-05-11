@@ -26,7 +26,7 @@ import GridapGeosciences.Geometry: AmbientCellField
 import GridapGeosciences.Geometry: get_panel_ids, get_forward_map_generator, get_radius, get_thickness
 import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
 import GridapGeosciences.Geometry: NPANELS, CUBE_HALF_EDGE
-import GridapGeosciences.Geometry: ParametricModels
+import GridapGeosciences.Geometry: ParametricModels, get_parametric_model
 
 using GridapGeosciences.Fields
 import GridapGeosciences.Fields: ForwardMap, Cartesian2SphericalMap
@@ -59,6 +59,7 @@ export CubedSphereAmbientDistributedDiscreteModel
 export ParametricCellField, geo_map_func, get_panel_ids, latlon_geo_map_func
 export AmbientCellField
 export get_forward_map_generator, get_radius, get_thickness
+export get_parametric_model
 export writevtk_with_cell_geomap, write_vtk_file_with_cell_geomap
 export createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap, create_pvtk_file_with_cell_geomap
 

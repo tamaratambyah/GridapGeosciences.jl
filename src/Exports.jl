@@ -37,6 +37,7 @@ end
 @publish Geometry get_ambient_refined_models
 @publish Geometry get_inverse_map_generator
 @publish Geometry AmbientCellField
+@publish Geometry get_parametric_model
 
 @publish ODEs DAEFEOperator
 
@@ -95,6 +96,7 @@ end
 @publish Distributed get_forward_map_generator
 @publish Distributed get_radius
 @publish Distributed get_thickness
+@publish Distributed get_parametric_model
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model

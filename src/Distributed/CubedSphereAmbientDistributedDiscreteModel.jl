@@ -22,12 +22,12 @@ end
 
 ## these are local+ghost panel ids
 ## for dmodels where the local model is CubedSphereAmbientDiscreteModel
-function get_panel_ids(dmodel::CubedSphereAmbientDistributedDiscreteModel)
+function get_panel_ids(dmodel::CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T}) where {Dc,Dp,T}
   return map(get_panel_ids,local_views(dmodel))
 end
 
 # return owned here to assist with triangulations
-function get_owned_panel_ids(dmodel::CubedSphereAmbientDistributedDiscreteModel)
+function get_owned_panel_ids(dmodel::CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T}) where {Dc,Dp,T}
   gids = get_cell_gids(dmodel)
   dpanel_ids = get_panel_ids(dmodel)
 
@@ -39,11 +39,11 @@ function get_owned_panel_ids(dmodel::CubedSphereAmbientDistributedDiscreteModel)
 
 end
 
-function get_forward_map_generator(dmodel::CubedSphereAmbientDistributedDiscreteModel)
+function get_forward_map_generator(dmodel::CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T}) where {Dc,Dp,T}
   return map(get_forward_map_generator,local_views(dmodel))
 end
 
-function get_radius(dmodel::CubedSphereAmbientDistributedDiscreteModel)
+function get_radius(dmodel::CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T}) where {Dc,Dp,T}
   radii =  map(get_radius,local_views(dmodel))
   radius = zero(eltype(radii))
   map(radii) do r
@@ -53,13 +53,21 @@ function get_radius(dmodel::CubedSphereAmbientDistributedDiscreteModel)
 end
 
 
-function get_thickness(dmodel::CubedSphereAmbientDistributedDiscreteModel)
+function get_thickness(dmodel::CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T}) where {Dc,Dp,T}
   Ts =  map(get_thickness,local_views(dmodel))
   thickness = zero(eltype(Ts))
   map(Ts) do t
     thickness = t
   end
   return thickness
+end
+
+function get_parametric_model(dmodel::CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T}) where {Dc,Dp,T}
+  gids = get_cell_gids(dmodel)
+  models = map(local_views(dmodel)) do model
+    get_parametric_model(model)
+   end
+  return GridapDistributed.GenericDistributedDiscreteModel(models,gids)
 end
 
 

@@ -21,6 +21,7 @@ Geometry.get_cell_map(model::CubedSphereAmbientDiscreteModel) = model.grid.cell_
 get_forward_map_generator(model::CubedSphereAmbientDiscreteModel) = get_forward_map_generator(model.panel_model)
 get_radius(model::CubedSphereAmbientDiscreteModel) = get_radius(model.panel_model)
 get_thickness(model::CubedSphereAmbientDiscreteModel) = get_thickness(model.panel_model)
+get_parametric_model(model::CubedSphereAmbientDiscreteModel) = model.panel_model
 
 ## TO DO: generalise to 3D...
 function get_inverse_map_generator(model::CubedSphereAmbientDiscreteModel)

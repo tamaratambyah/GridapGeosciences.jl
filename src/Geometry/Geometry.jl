@@ -49,5 +49,6 @@ export _pullback_area_form
 export get_radius, get_thickness
 export get_refined_models, get_ambient_refined_models
 export get_inverse_map_generator
+export get_parametric_model
 
 end
