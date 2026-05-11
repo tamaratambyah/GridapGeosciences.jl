@@ -15,7 +15,7 @@ include("AffineField.jl")
 include("Cartesian2SphericalMap.jl")
 
 export ForwardMap,  ForwardMap2DGenerator, ForwardMap3DGenerator
-export InverseMap, InverseMap2DGenerator
+export InverseMap, InverseMap2DGenerator, InverseMap3DGenerator
 export _evaluate_forward_jacobian_2d, _evaluate_forward_jacobian_3d
 export MatMultField, MyAffineField
 export Cartesian2SphericalMap

@@ -13,6 +13,23 @@ end
 
 Gridap.Arrays.evaluate!(cache,f::InverseMap2DGenerator,p::Integer) = f.inverse_maps[p]
 
+struct InverseMap3D{T<:Real} <: Field
+  panel::Int64
+  radius::T
+  thickness::T
+end
+
+struct InverseMap3DGenerator{T<:Real} <: Map
+  radius::T
+  thickness::T
+  inverse_maps::Vector{InverseMap3D{T}}
+  InverseMap3DGenerator(radius::T, thickness::T) where {T<:Real} =
+     new{T}(radius, thickness, [InverseMap3D(p, radius, thickness) for p in 1:6])
+end
+
+Gridap.Arrays.evaluate!(cache,f::InverseMap3DGenerator,p::Integer) = f.inverse_maps[p]
+
+
 ## Given a forward_map, generate the corresponding inverse map
 function InverseMap(m::ForwardMap2D)
   InverseMap(m.panel,m.radius)
@@ -27,7 +44,7 @@ function InverseMap(p::Integer,radius)
 end
 
 function InverseMap(p::Integer,radius,thickness)
-  @notimplemented
+  InverseMap3D(p, radius,thickness)
 end
 
 function Gridap.Arrays.return_cache(f::InverseMap2D,cellx::AbstractArray{<:VectorValue{3}})
@@ -121,7 +138,7 @@ function _evaluate_inverse_map_2d(p::Val{6},XYZ)
 end
 
 inverse_map_2d(p::Integer) = xyz -> _evaluate_inverse_map_2d(Val(p),xyz)
-_evaluate_inverse_jacobian_2d(p::Integer,αβ) = transpose(gradient(inverse_map_2d(p))(αβ))
+_evaluate_inverse_jacobian_2d(p::Integer,xyz) = transpose(gradient(inverse_map_2d(p))(xyz))
 
 
 # ################################################################################
@@ -194,4 +211,71 @@ _evaluate_inverse_jacobian_2d(p::Integer,αβ) = transpose(gradient(inverse_map_
 #   return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
 # end
 
-# _evaluate_forward_jacobian_2d(p::Integer,xyz) =  _evaluate_inverse_jacobian_2d(Val(p),xyz)
+# _evaluate_inverse_jacobian_2d(p::Integer,xyz) =  _evaluate_inverse_jacobian_2d(Val(p),xyz)
+
+
+################################################################################
+########## 3D ########
+################################################################################
+function _evaluate_inverse_map_3d(p::Val{P},radius::T,thickness::T,XYZ_shell) where {P,T<:Real}
+  ## first compute γ using the radius in comparison to the radius_top
+  rtop = radius + thickness
+  x,y,z = XYZ_shell
+  r = sqrt(x^2 + y^2 + z^2)
+  _γ = (rtop - r)/thickness
+  γ = 1.0 - _γ
+
+  ## reverse to extrusion to the surface
+  ## Note, normal_vec(XYZ_shell) = normal_vec(XYZ_surf)
+  XYZ_surf = XYZ_shell - thickness*_γ*normal_vec(XYZ_shell)
+  α,β =  _evaluate_inverse_map_2d(p,XYZ_surf)
+
+  return Point(γ,α,β)
+end
+
+
+inverse_map_3d(p::Integer,radius::T,thickness::T) where T<:Real = xyz_shell -> _evaluate_inverse_map_3d(Val(p),radius,thickness,xyz_shell)
+_evaluate_inverse_jacobian_3d(p::Integer,radius::T,thickness::T,xyz_shell) where T<:Real = transpose(gradient(inverse_map_3d(p,radius,thickness))(xyz_shell))
+
+function Gridap.Arrays.return_cache(f::InverseMap3D,cellx::AbstractArray{<:VectorValue{3}})
+  return similar(cellx,VectorValue{3,Float64})
+end
+
+function Gridap.Arrays.evaluate!(cache,
+                                 f::InverseMap3D,
+                                 cellx::AbstractArray{<:VectorValue{3}} )
+  cache .= _evaluate_inverse_map_3d.(Val(f.panel),f.radius,f.thickness,cellx)
+end
+
+
+function Gridap.Arrays.evaluate!(cache,f::InverseMap3D,x::VectorValue{3})
+  return _evaluate_inverse_map_3d(Val(f.panel),f.radius,f.thickness,x)
+end
+
+
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InverseMap3D},
+  cellx::AbstractArray{<:VectorValue{3}})
+  y = similar(cellx,TensorValue{3,3,Float64})
+  c = CachedArray(y)
+  return c
+end
+
+function Gridap.Arrays.evaluate!(cache,
+                                 f::FieldGradient{1,<:InverseMap3D},
+                                 cellx::AbstractArray{<:VectorValue{3}})
+  setsize!(cache,size(cellx))
+  radius = f.object.radius
+  thickness = f.object.thickness
+  cache.array .= transpose.(_evaluate_inverse_jacobian_3d.(f.object.panel,radius,thickness,cellx))
+  return cache.array
+end
+
+function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InverseMap3D},x::VectorValue{3})
+  zero(TensorValue{3,3,Float64})
+end
+
+function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InverseMap3D},x::VectorValue{3})
+  radius = f.object.radius
+  thickness = f.object.thickness
+  return transpose(_evaluate_inverse_jacobian_3d(f.object.panel,radius,thickness,x))
+end
