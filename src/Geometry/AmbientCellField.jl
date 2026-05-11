@@ -3,19 +3,19 @@ AmbientCellField
 
 A AmbientCellField is returns an GenericCellField object, where the cell_field is an
 array of cell-wise functions.
-The user must define a function that given an inverse map, returns a function
-that takes coordinates in ambient space as input, and returns the value of the function.
+The user must define a function that given an forward_map, defines the inverse map,
+and returns a function that takes coordinates in ambient space as input, and returns the value of the function.
 This means AmbientCellField is different to CellField, where the user passes
 a function that takes points in physical space and returns the function evaluated in physical space.
 
 Example usage is:
 
 ```
-function ambient_sgrad(f::Function,inverse_map::Field)
+function ambient_sgrad(f::Function,forward_map::Field)
   function _gradf(x)
+    inverse_map  = InverseMap(forward_map)
     αβ = inverse_map(x)
-    m = ForwardMap(inverse_map.panel,inverse_map.radius)
-    sgrad(panel_f(f),m)(αβ)
+    sgrad(panel_f(f),forward_map)(αβ)
   end
 end
 
@@ -41,8 +41,8 @@ function AmbientCellField(f::Function,
   panel_ids = get_panel_ids(panel_model)
   @check length(panel_ids) == num_cells(trian) "\n Incorrect panel ids"
 
-  inv_map_generator = get_inverse_map_generator(ambient_model)
-  inverse_maps = lazy_map(inv_map_generator,panel_ids)
-  cell_field = lazy_map(m->GenericField(f(m)),inverse_maps)
+  fwd_map_generator = get_forward_map_generator(ambient_model)
+  forward_maps = lazy_map(fwd_map_generator,panel_ids)
+  cell_field = lazy_map(m->GenericField(f(m)),forward_maps)
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end

@@ -11,13 +11,24 @@ struct InverseMap2DGenerator{T<:Real} <: Map
      new{T}([InverseMap2D(p,radius) for p in 1:6])
 end
 
-
 Gridap.Arrays.evaluate!(cache,f::InverseMap2DGenerator,p::Integer) = f.inverse_maps[p]
+
+## Given a forward_map, generate the corresponding inverse map
+function InverseMap(m::ForwardMap2D)
+  InverseMap(m.panel,m.radius)
+end
+
+function InverseMap(m::ForwardMap3D)
+  InverseMap(m.panel,m.radius,m.thickness)
+end
 
 function InverseMap(p::Integer,radius)
   return InverseMap2D(p, radius)
 end
 
+function InverseMap(p::Integer,radius,thickness)
+  @notimplemented
+end
 
 function Gridap.Arrays.return_cache(f::InverseMap2D,cellx::AbstractArray{<:VectorValue{3}})
   x = first(cellx)

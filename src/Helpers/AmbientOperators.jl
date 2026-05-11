@@ -18,28 +18,28 @@ end
 panel_vec(f::Function) = m -> panel_vec(f,m)
 
 ambient_sgrad(f::Function) = m -> ambient_sgrad(f,m)
-function ambient_sgrad(f::Function,inverse_map::Field)
+function ambient_sgrad(f::Function,forward_map::Field)
   function _gradf(x)
+    inverse_map  = InverseMap(forward_map)
     αβ = inverse_map(x)
-    m = ForwardMap(inverse_map.panel,inverse_map.radius)
-    sgrad(panel_f(f),m)(αβ)
+    sgrad(panel_f(f),forward_map)(αβ)
   end
 end
 
 ambient_surflap(f::Function) = m -> ambient_surflap(f,m)
-function ambient_surflap(f::Function,inverse_map::Field)
+function ambient_surflap(f::Function,forward_map::Field)
   function _lapf(x)
+    inverse_map  = InverseMap(forward_map)
     αβ = inverse_map(x)
-    m = ForwardMap(inverse_map.panel,inverse_map.radius)
-    surflap(panel_f(f),m)(αβ)
+    surflap(panel_f(f),forward_map)(αβ)
   end
 end
 
 ambient_surfdiv(f::Function) = m -> ambient_surfdiv(f,m)
-function ambient_surfdiv(f::Function,inverse_map::Field)
+function ambient_surfdiv(f::Function,forward_map::Field)
   function _sdivf(x)
+    inverse_map  = InverseMap(forward_map)
     αβ = inverse_map(x)
-    m = ForwardMap(inverse_map.panel,inverse_map.radius)
-    surfdiv(panel_vec(f),m)(αβ)
+    surfdiv(panel_vec(f),forward_map)(αβ)
   end
 end
