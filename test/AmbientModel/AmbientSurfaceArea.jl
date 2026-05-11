@@ -14,15 +14,19 @@ using Test
 
 import GridapGeosciences.Geometry: ParametricModels
 
-function compute_surface_area(model::CubedSphereAmbientDiscreteModel, degree::Int)
-  Ω = Triangulation(model)
+function compute_surface_area(
+  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  degree::Int)
+  Ω = Triangulation(ambient_model)
   dΩ = Measure(Ω,degree)
 
   surface_area = sum( ∫( 1.0 )dΩ )
   return surface_area
 end
 
-function compute_surface_area(model::ParametricModels, degree::Int)
+function compute_surface_area(
+  model::Union{ParametricModels,CubedSphere2DParametricDistributedDiscreteModel},
+  degree::Int)
   Ω = Triangulation(model)
   dΩ = Measure(Ω,degree)
 
@@ -32,33 +36,32 @@ function compute_surface_area(model::ParametricModels, degree::Int)
 end
 
 
-function main(serial_ambient_models::AbstractArray{<:CubedSphereAmbientDiscreteModel})
+function main(ambient_models::AbstractArray;_i_am_main=true)
   for degree in collect([2,4,6,8])
-    for (s_ambient_model) in serial_ambient_models
-      s_panel_model = s_ambient_model.panel_model
-      radius = get_radius(s_panel_model)
+    for (ambient_model) in ambient_models
+      panel_model = get_parametric_model(ambient_model)
+      radius = get_radius(panel_model)
       extact_area = 4*π*radius^2
 
-      ### s_panel_model
-      s_panel_area = compute_surface_area(s_panel_model, degree)
-      e_panel = abs(s_panel_area-extact_area)/extact_area
-      println("Parametric error:", e_panel)
+      ### panel_model
+      panel_area = compute_surface_area(panel_model, degree)
+      e_panel = abs(panel_area-extact_area)/extact_area
+      _i_am_main && println("Parametric error:", e_panel)
       @test e_panel < 1e-2
 
-      ### s_ambient_model
-      s_ambient_area = compute_surface_area(s_ambient_model, degree)
-      e_ambient = abs(s_ambient_area-extact_area)/extact_area
-      println("Ambient error:", e_ambient)
+      ### ambient_model
+      ambient_area = compute_surface_area(ambient_model, degree)
+      e_ambient = abs(ambient_area-extact_area)/extact_area
+      _i_am_main && println("Ambient error:", e_ambient)
       @test e_ambient < 1e-2
 
       e_comparison = e_ambient - e_panel
-      println("Comparison error:", e_comparison)
+      _i_am_main && println("Comparison error:", e_comparison)
       @test e_comparison < 1e-12
     end
   end
 
 end
-
 
 
 end # module

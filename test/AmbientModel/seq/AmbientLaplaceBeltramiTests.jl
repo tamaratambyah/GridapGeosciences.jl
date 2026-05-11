@@ -26,7 +26,7 @@ function fX_ambient(forward_map)
   end
 end
 
-panel_model = ambient_model.panel_model
+panel_model = get_parametric_model(ambient_model)
 e_panel, = LaplaceBeltramiTests.laplace_beltrami_solver(
               panel_model,p_fe,dir,
               fX_ambient)

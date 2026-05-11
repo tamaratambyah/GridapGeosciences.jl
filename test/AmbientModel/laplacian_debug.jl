@@ -10,7 +10,7 @@ radius = 1
 n_ref_lvls = 1
 ambient_model = CubedSphereAmbientDiscreteModel(
   radius; num_initial_uniform_refinements=n_ref_lvls)
-panel_model = ambient_model.panel_model
+panel_model = get_parametric_model(ambient_model)
 
 
 ################################################################################
