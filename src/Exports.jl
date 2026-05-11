@@ -73,9 +73,11 @@ end
 @publish Distributed CubedSphereParametricDistributedDiscreteModel
 @publish Distributed CubedSphere2DParametricDistributedDiscreteModel
 @publish Distributed CubedSphere3DParametricDistributedDiscreteModel
+@publish Distributed CubedSphereAmbientDistributedDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed latlon_geo_map_func
 @publish Distributed ParametricCellField
+@publish Distributed AmbientCellField
 
 @publish Distributed writevtk_with_cell_geomap
 @publish Distributed createvtk_with_cell_geomap
@@ -83,6 +85,7 @@ end
 
 @publish Distributed distributed_panel_ids
 @publish Distributed get_distributed_refined_models
+@publish Distributed get_distributed_ambient_refined_models
 @publish Distributed get_panel_ids
 @publish Distributed get_owned_panel_ids
 @publish Distributed get_skel_panel_ids
