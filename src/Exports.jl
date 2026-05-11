@@ -82,7 +82,7 @@ end
 @publish Distributed create_pvtk_file_with_cell_geomap
 
 @publish Distributed distributed_panel_ids
-@publish Distributed get_distributed_panel_model
+@publish Distributed get_distributed_refined_models
 @publish Distributed get_panel_ids
 @publish Distributed get_owned_panel_ids
 @publish Distributed get_skel_panel_ids
@@ -98,7 +98,6 @@ end
 
 @publish ConvergenceTools p_convergence_auto_test
 @publish ConvergenceTools h_convergence_auto_test
-@publish ConvergenceTools get_distributed_refined_models
 @publish ConvergenceTools get_octree_refined_models
 @publish ConvergenceTools get_3D_octree_refined_models
 @publish ConvergenceTools nref

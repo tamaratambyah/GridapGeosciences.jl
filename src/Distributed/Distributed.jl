@@ -58,7 +58,7 @@ export createvtk_with_cell_geomap, create_vtk_file_with_cell_geomap, create_pvtk
 
 export distributed_panel_ids
 export DistributedAdaptivityGlue
-export get_distributed_panel_model
+export get_distributed_refined_models
 export get_panel_ids, get_owned_panel_ids, get_skel_panel_ids
 # export BoundaryTriangulation
 export pullback_area_form
