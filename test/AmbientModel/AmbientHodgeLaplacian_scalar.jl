@@ -21,7 +21,8 @@ function fX(xyz)
 end
 
 
-function hodge_laplacian_scalar(ambient_model,
+function hodge_laplacian_scalar(
+  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false;
   _i_am_main=true)
 

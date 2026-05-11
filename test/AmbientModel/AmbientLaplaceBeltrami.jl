@@ -21,7 +21,8 @@ function fX(x)
 end
 
 
-function laplace_beltrami_solver(ambient_model::CubedSphereAmbientDiscreteModel,
+function laplace_beltrami_solver(
+  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false;
   _i_am_main=true)
 
@@ -96,7 +97,7 @@ end
 ################################################################################
 #### Auto convergence test
 ################################################################################
-function main(models::AbstractArray{<:CubedSphereAmbientDiscreteModel};ps=[2],_i_am_main=true)
+function main(models::AbstractArray;ps=[2],_i_am_main=true)
 
   ls = LUSolver()
   dir = @__DIR__

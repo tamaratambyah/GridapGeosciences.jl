@@ -76,3 +76,7 @@ end
 if TESTCASE ∈ ("all", "mpi", "mpi-tutorials")
   include("Examples/mpi/runtests.jl")
 end
+
+if TESTCASE ∈ ("all", "mpi", "mpi-ambient-model")
+  include("AmbientModel/mpi/runtests.jl")
+end
