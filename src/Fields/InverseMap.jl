@@ -71,7 +71,7 @@ end
 
 
 function Gridap.Arrays.evaluate!(cache,f::FieldGradient{1,<:InverseMap2D},x::VectorValue{3})
-  return transpose(_evaluate_inverse_jacobian_2d(Val(f.object.panel),x))
+  return transpose(_evaluate_inverse_jacobian_2d(f.object.panel,x))
 end
 
 
@@ -121,75 +121,77 @@ function _evaluate_inverse_map_2d(p::Val{6},XYZ)
 end
 
 inverse_map_2d(p::Integer) = xyz -> _evaluate_inverse_map_2d(Val(p),xyz)
+_evaluate_inverse_jacobian_2d(p::Integer,αβ) = transpose(gradient(inverse_map_2d(p))(αβ))
 
-################################################################################
-########## 2D inverse map jacobian ########
-### Use analytic expressions rather than auto-diff to ensure atan2 function
-################################################################################
-function _evaluate_inverse_jacobian_2d(p::Val{1},XYZ)
-  X,Y,Z = XYZ
-  dadX = - Y/(X^2 + Y^2)
-  dadY = X/(X^2 + Y^2)
-  dadZ = 0.0
-  dbdX = -Z/(X^2 + Z^2)
-  dbdY = 0.0
-  dbdZ = X/(X^2 + Z^2)
-  return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
-end
 
-function _evaluate_inverse_jacobian_2d(p::Val{2},XYZ)
-  X,Y,Z = XYZ
-  dadX = 0.0
-  dadY = Z/(Y^2 + Z^2)
-  dadZ = -Y/(Y^2 + Z^2)
-  dbdX = -Z/(X^2 + Z^2)
-  dbdY = 0.0
-  dbdZ = X/(X^2 + Z^2)
-  return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
-end
+# ################################################################################
+# ########## 2D inverse map jacobian ########
+# ### Use analytic expressions rather than auto-diff to ensure atan2 function
+# ################################################################################
+# function _evaluate_inverse_jacobian_2d(p::Val{1},XYZ)
+#   X,Y,Z = XYZ
+#   dadX = - Y/(X^2 + Y^2)
+#   dadY = X/(X^2 + Y^2)
+#   dadZ = 0.0
+#   dbdX = -Z/(X^2 + Z^2)
+#   dbdY = 0.0
+#   dbdZ = X/(X^2 + Z^2)
+#   return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
+# end
 
-function _evaluate_inverse_jacobian_2d(p::Val{3},XYZ)
-  X,Y,Z = XYZ
-  dadX = -Y/(X^2 + Y^2)
-  dadY = X/(X^2 + Y^2)
-  dadZ = 0.0
-  dbdX = 0.0
-  dbdY = -Z/(Y^2 + Z^2)
-  dbdZ = Y/(Y^2 + Z^2)
-  return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
-end
+# function _evaluate_inverse_jacobian_2d(p::Val{2},XYZ)
+#   X,Y,Z = XYZ
+#   dadX = 0.0
+#   dadY = Z/(Y^2 + Z^2)
+#   dadZ = -Y/(Y^2 + Z^2)
+#   dbdX = -Z/(X^2 + Z^2)
+#   dbdY = 0.0
+#   dbdZ = X/(X^2 + Z^2)
+#   return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
+# end
 
-function _evaluate_inverse_jacobian_2d(p::Val{4},XYZ)
-  X,Y,Z = XYZ
-  dadX = Z/(Z^2 + X^2)
-  dadY = 0.0
-  dadZ = -X/(Z^2 + X^2)
-  dbdX = Y/(X^2 + Y^2)
-  dbdY = -X/(X^2 + Y^2)
-  dbdZ = 0.0
-  return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
-end
+# function _evaluate_inverse_jacobian_2d(p::Val{3},XYZ)
+#   X,Y,Z = XYZ
+#   dadX = -Y/(X^2 + Y^2)
+#   dadY = X/(X^2 + Y^2)
+#   dadZ = 0.0
+#   dbdX = 0.0
+#   dbdY = -Z/(Y^2 + Z^2)
+#   dbdZ = Y/(Y^2 + Z^2)
+#   return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
+# end
 
-function _evaluate_inverse_jacobian_2d(p::Val{5},XYZ)
-  X,Y,Z = XYZ
-  dadX = Z/(X^2 + Z^2)
-  dadY = 0.0
-  dadZ = -X/(X^2 + Z^2)
-  dbdX = 0.0
-  dbdY = -Z/(Y^2 + Z^2)
-  dbdZ = Y/(Y^2 + Z^2)
-  return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
-end
+# function _evaluate_inverse_jacobian_2d(p::Val{4},XYZ)
+#   X,Y,Z = XYZ
+#   dadX = Z/(Z^2 + X^2)
+#   dadY = 0.0
+#   dadZ = -X/(Z^2 + X^2)
+#   dbdX = Y/(X^2 + Y^2)
+#   dbdY = -X/(X^2 + Y^2)
+#   dbdZ = 0.0
+#   return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
+# end
 
-function _evaluate_inverse_jacobian_2d(p::Val{6},XYZ)
-  X,Y,Z = XYZ
-  dadX = 0.0
-  dadY = Z/(Y^2 + Z^2)
-  dadZ = -Y/(Y^2 + Z^2)
-  dbdX = Y/(X^2 + Y^2)
-  dbdY = -X/(X^2 + Y^2)
-  dbdZ = 0.0
-  return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
-end
+# function _evaluate_inverse_jacobian_2d(p::Val{5},XYZ)
+#   X,Y,Z = XYZ
+#   dadX = Z/(X^2 + Z^2)
+#   dadY = 0.0
+#   dadZ = -X/(X^2 + Z^2)
+#   dbdX = 0.0
+#   dbdY = -Z/(Y^2 + Z^2)
+#   dbdZ = Y/(Y^2 + Z^2)
+#   return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
+# end
 
-_evaluate_forward_jacobian_2d(p::Integer,xyz) =  _evaluate_inverse_jacobian_2d(Val(p),xyz)
+# function _evaluate_inverse_jacobian_2d(p::Val{6},XYZ)
+#   X,Y,Z = XYZ
+#   dadX = 0.0
+#   dadY = Z/(Y^2 + Z^2)
+#   dadZ = -Y/(Y^2 + Z^2)
+#   dbdX = Y/(X^2 + Y^2)
+#   dbdY = -X/(X^2 + Y^2)
+#   dbdZ = 0.0
+#   return TensorValue{2,3}(dadX,dbdX, dadY,dbdY, dadZ,dbdZ)
+# end
+
+# _evaluate_forward_jacobian_2d(p::Integer,xyz) =  _evaluate_inverse_jacobian_2d(Val(p),xyz)
