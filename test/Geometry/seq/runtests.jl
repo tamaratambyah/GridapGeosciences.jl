@@ -1,5 +1,7 @@
 using Test
 
+@testset "AmbientNormalVector" begin include("AmbientNormalVectorTests.jl") end
+
 @testset "CellMap" begin include("CellMapTests.jl") end
 
 @testset "NormalVector" begin include("NormalVectorTests.jl") end
