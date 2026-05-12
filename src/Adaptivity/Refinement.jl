@@ -92,3 +92,17 @@ function Gridap.Adaptivity.is_child(m1::AdaptedDiscreteModel,m2::CubedSpherePara
   # println("parametric is child")
   return num_cells(get_parent(m1)) === num_cells(m2)
 end
+
+
+
+"""
+Refine CubedSphereAmbientDiscreteModel
+
+Refine the associated CubedSphereParametricDiscreteModel as above
+"""
+
+function Gridap.Adaptivity.refine(model::CubedSphereAmbientDiscreteModel,args...;refinement_method="red_green",kwargs...)
+  panel_model = get_parametric_model(model)
+  ref_panel_model = Gridap.Adaptivity.refine(panel_model)
+  CubedSphereAmbientDiscreteModel(ref_panel_model)
+end
