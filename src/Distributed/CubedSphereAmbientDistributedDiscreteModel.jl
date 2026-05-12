@@ -14,10 +14,10 @@ function CubedSphereAmbientDistributedDiscreteModel(
 )
   gids = get_cell_gids(dpanel_model)
 
-  panel_models = map(local_views(dpanel_model)) do panel_model
+  ambient_models = map(local_views(dpanel_model)) do panel_model
     CubedSphereAmbientDiscreteModel(panel_model)
    end
-  return GridapDistributed.GenericDistributedDiscreteModel(panel_models,gids)
+  return GridapDistributed.GenericDistributedDiscreteModel(ambient_models,gids)
 end
 
 ## these are local+ghost panel ids
