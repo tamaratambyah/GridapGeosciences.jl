@@ -100,6 +100,7 @@ end
 @publish Distributed get_radius
 @publish Distributed get_thickness
 @publish Distributed get_parametric_model
+@publish Distributed get_surface_normal
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model

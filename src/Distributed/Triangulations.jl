@@ -36,3 +36,11 @@ function pushforward_normal(trian::GridapDistributed.DistributedTriangulation)
   end
   return GridapDistributed.DistributedCellField(fields,trian)
 end
+
+
+function get_surface_normal(trian::GridapDistributed.DistributedTriangulation)
+  fields = map(trian.trians) do t
+    return get_surface_normal(t)
+  end
+  return GridapDistributed.DistributedCellField(fields,trian)
+end

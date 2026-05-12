@@ -27,6 +27,7 @@ import GridapGeosciences.Geometry: get_panel_ids, get_forward_map_generator, get
 import GridapGeosciences.Geometry: pullback_area_form, pushforward_normal
 import GridapGeosciences.Geometry: NPANELS, CUBE_HALF_EDGE
 import GridapGeosciences.Geometry: ParametricModels, get_parametric_model
+import GridapGeosciences.Geometry: get_surface_normal
 
 using GridapGeosciences.Fields
 import GridapGeosciences.Fields: ForwardMap, Cartesian2SphericalMap
@@ -70,6 +71,6 @@ export get_distributed_ambient_refined_models
 export get_panel_ids, get_owned_panel_ids, get_skel_panel_ids
 # export BoundaryTriangulation
 export pullback_area_form
-export pushforward_normal
+export pushforward_normal, get_surface_normal
 
 end
