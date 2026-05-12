@@ -1,10 +1,15 @@
+"""
+In this module, test the skeleton normal vectors for the distributed ambient model are
+  1. in the tangent space of the sphere
+  2. equiv to the mapped skeleton normal vectors of the distributed parametric model
+"""
+
 module DistributedAmbientNormalTests
 
 using Gridap
 using GridapDistributed
 using GridapGeosciences
 using Test
-
 
 function test_debug_equiv(p,q)
   map(p,q  )do p,q
@@ -32,7 +37,7 @@ function main(distribute,nprocs)
   Ω_ambient = Triangulation(ambient_model)
   n_surface_ambient = get_surface_normal(Ω_ambient)
 
-  Λ_ambient = SkeletonTriangulation(ambient_model)
+  Λ_ambient = SkeletonTriangulation(with_ghost,ambient_model)
   n_Λ_ambient = get_normal_vector(Λ_ambient)
   pts_ambient = get_cell_points(Λ_ambient)
 
@@ -54,15 +59,12 @@ function main(distribute,nprocs)
   ########## Parametric model
   ##############################################################################
 
-  Λ_panel = SkeletonTriangulation(panel_model)
-  panel_ids = get_panel_ids(panel_model)
-  forward_map_generator = get_forward_map_generator(panel_model)
-  cell_geo_map = geo_map_func(forward_map_generator,panel_ids)
-  n_Λ_mapped = pushforward_normal(Λ_panel,cell_geo_map)
+  Λ_panel = SkeletonTriangulation(with_ghost,panel_model)
+  n_Λ_mapped = pushforward_normal(Λ_panel)
   pts_panel = get_cell_points(Λ_panel)
 
   ## Test equivalence with ambient model
-  p = n_Λ_mapped.plus(pts_panel)
+  p = n_Λ_mapped.plus(pts_panel)#.plus(pts_panel)
   q = n_Λ_ambient.plus(pts_ambient)
   test_debug_equiv(p,q)
 
