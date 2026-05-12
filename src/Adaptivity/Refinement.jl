@@ -101,8 +101,14 @@ Refine CubedSphereAmbientDiscreteModel
 Refine the associated CubedSphereParametricDiscreteModel as above
 """
 
-function Gridap.Adaptivity.refine(model::CubedSphereAmbientDiscreteModel,args...;refinement_method="red_green",kwargs...)
+function Gridap.Adaptivity.refine(model::CubedSphereAmbientDiscreteModel,args...;kwargs...)
   panel_model = get_parametric_model(model)
   ref_panel_model = Gridap.Adaptivity.refine(panel_model)
   CubedSphereAmbientDiscreteModel(ref_panel_model)
+end
+
+
+function Gridap.Adaptivity.is_child(m1::CubedSphereAmbientDiscreteModel,m2::CubedSphereAmbientDiscreteModel)
+  # println("ambient is child")
+  Gridap.Adaptivity.is_child(get_parametric_model(m1),get_parametric_model(m2))
 end
