@@ -14,7 +14,7 @@ using Test
 
 
 
-function compute_surface_area(model, degree::Int)
+function compute_surface_area(model::CubedSphere2DParametricDistributedDiscreteModel, degree::Int)
   Ω = Triangulation(model)
   dΩ = Measure(Ω,degree)
 
@@ -23,6 +23,36 @@ function compute_surface_area(model, degree::Int)
   return surface_area
 end
 
+function compute_surface_area(model::CubedSphereAmbientDistributedDiscreteModel{2,Dp,T}, degree::Int) where {Dp,T}
+  Ω = Triangulation(model)
+  dΩ = Measure(Ω,degree)
+
+  surface_area = sum( ∫( 1.0 )dΩ )
+  return surface_area
+end
+
+function test_surface_area(dist_models::AbstractArray,p4est_models::AbstractArray)
+  for degree in collect([2,4,6,8])
+    for (d_model,p4_model) in zip(dist_models,p4est_models)
+      radius = get_radius(d_model)
+      extact_area = 4*π*radius^2
+
+      ### d_model
+      d_area = compute_surface_area(d_model, degree)
+
+      ### p4est model
+      p4_area = compute_surface_area(p4_model, degree)
+
+      @test d_area ≈ p4_area
+
+      e = abs(d_area-extact_area)/extact_area
+      @test e < 1e-2
+    end
+  end
+end
+
+
+
 function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
@@ -30,23 +60,13 @@ function main(distribute,nprocs)
   for radius in [1,2]
     dist_models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
     p4est_models = get_octree_refined_models(ranks,n_ref_lvls,radius)
-    for degree in collect([2,4,6,8])
-      for (d_model,p4_model) in zip(dist_models,p4est_models)
-        radius = get_radius(d_model)
-        extact_area = 4*π*radius^2
+    test_surface_area(dist_models,p4est_models)
+  end
 
-        ### d_model
-        d_area = compute_surface_area(d_model, degree)
-
-        ### p4est model
-        p4_area = compute_surface_area(p4_model, degree)
-
-        @test d_area ≈ p4_area
-
-        e = abs(d_area-extact_area)/extact_area
-        @test e < 1e-2
-      end
-    end
+  for radius in [1,2]
+    dist_models = get_distributed_ambient_refined_models(ranks,nprocs,n_ref_lvls,radius)
+    p4est_models = get_octree_refined_models(ranks,n_ref_lvls,radius) #### UPDATE TO P4models Ambient model
+    test_surface_area(dist_models,p4est_models)
   end
 
   @test true
