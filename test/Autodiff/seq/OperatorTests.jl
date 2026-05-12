@@ -18,6 +18,11 @@ function test_operators(α,m)
   dif = sgrad_ambient .- sgrad_panel
   @test norm(dif) < 1e-12
 
+  sdiv_ambient = ambient_surfdiv(ambient_vecX)(m)(x)
+  sdiv_panel = surfdiv(contra_v(panel_uX))(m)(α)
+  dif = sdiv_ambient - sdiv_panel
+  @test dif < 1e-12
+
   slap_ambient = ambient_surflap(ambient_fX)(m)(x)
   slap_panel = surflap(panel_fX)(m)(α)
   dif = slap_ambient .- slap_panel
@@ -32,12 +37,15 @@ function ambient_fX(xyz)
 end
 
 
-function panel_fX(forward_map)
-  function _f(αβ)
-    x = forward_map(αβ)
-    ambient_fX(x)
-  end
+function ambient_vecX(xyz)
+  x,y,z = xyz
+  VectorValue(y^2,-x^2,0.0)
 end
+
+
+panel_fX = panel_to_cartesian(ambient_fX)
+panel_uX = panel_to_cartesian(ambient_vecX)
+
 
 panel_id = 1
 radius = 1.0
