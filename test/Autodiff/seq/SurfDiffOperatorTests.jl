@@ -1,9 +1,9 @@
 """
-In this module, test that the sgrad, slap produce the same result as the
-ambient_sgrad and ambient_slap
+In this module, test that the sgrad, sdiv, slap produce the same result as the
+ambient_sgrad, ambient_sdiv, and ambient_slap
 """
 
-module OperatorTests
+module SurfDiffOperatorTests
 
 using GridapGeosciences
 using GridapGeosciences.Geometry

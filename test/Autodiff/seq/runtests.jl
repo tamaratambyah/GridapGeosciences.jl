@@ -1,3 +1,5 @@
 using Test
 
-@testset "OperatorTests" begin include("OperatorTests.jl") end
+@testset "SKewOperatorTests" begin include("SkewOperatorTests.jl") end
+
+@testset "SurfDiffOperatorTests" begin include("SurfDiffOperatorTests.jl") end
