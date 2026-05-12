@@ -177,7 +177,7 @@ end
 
 
 ## element size
-function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
+function dx(model::Union{<:DiscreteModel{2,Dp},<:GridapDistributed.DistributedDiscreteModel{2,Dp}}) where Dp
   radius = get_radius(model)
   tmp =  4*π*radius^2/num_cells(model)
   sqrt(tmp)
