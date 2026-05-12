@@ -150,3 +150,24 @@ function get_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
   end
   panel_models
 end
+
+
+"""
+perp
+
+computes u^⟂ = R u , where u is only defined for 2D parametric models.
+This function will fail if the background model is a 3D parametric model,
+or 2/3D ambient model
+"""
+
+function perp(u::CellField)
+  trian = get_triangulation(u)
+  model = get_background_model(trian)
+
+  @check isa(model,ParametricModels{2,Dp} where {Dp})
+
+  R = [0 -1
+       1 0]
+  R_cf = CellField(TensorValue(R),trian)
+  R_cf⋅u
+end

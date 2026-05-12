@@ -38,6 +38,9 @@ end
 @publish Geometry get_inverse_map_generator
 @publish Geometry AmbientCellField
 @publish Geometry get_parametric_model
+@publish Geometry get_surface_normal
+@publish Geometry dagger
+@publish Geometry perp
 
 @publish ODEs DAEFEOperator
 

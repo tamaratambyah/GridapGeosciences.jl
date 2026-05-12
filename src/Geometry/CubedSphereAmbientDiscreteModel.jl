@@ -76,3 +76,36 @@ function get_ambient_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=fa
   ambient_models = map(x->CubedSphereAmbientDiscreteModel(x),panel_models)
   return ambient_models
 end
+
+
+
+"""
+get_surface_normal
+
+The surface normal to the sphere, only defined for CubedSphereAmbientDiscreteModel with num_point_dims = 3
+"""
+function get_surface_normal(trian::BodyFittedTriangulation{Dc,3,<:CubedSphereAmbientDiscreteModel}) where {Dc}
+  CellField(normal_vec,trian)
+end
+
+function get_surface_normal(trian::BodyFittedTriangulation{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp}
+  @notimplemented """\n get_surface_normal not defined for parametric models
+  """
+end
+
+function get_surface_normal(trian::AdaptedTriangulation)
+  get_surface_normal(trian.trian)
+end
+
+
+"""
+dagger
+
+computes ̃u^† = ̃k × ̃u, where ̃k is only defined for ambient models.
+This function will fail if get_surface_normal fails (i.e for parametric models)
+"""
+function dagger(u::CellField)
+  trian = get_triangulation(u)
+  n = get_surface_normal(trian)
+  n×u
+end
