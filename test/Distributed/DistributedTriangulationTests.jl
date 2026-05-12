@@ -119,4 +119,26 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 end
 
 
+
+function test_distributedAmbientDiscreteModel(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  n_ref_lvls = 2
+  radius = 1.0
+  dmodels = get_distributed_ambient_refined_models(ranks,nprocs,n_ref_lvls,radius)
+
+  model = dmodels[2]
+
+  trian = Triangulation(model)
+  test_triangulation(trian)
+
+  btrian = BoundaryTriangulation(model)
+  test_triangulation(btrian)
+
+  strian = SkeletonTriangulation(model)
+  test_triangulation(strian)
+
+  @test true
+end
+
 end ## module

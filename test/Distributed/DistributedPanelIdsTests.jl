@@ -137,4 +137,20 @@ function test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
 end
 
 
+
+function test_distributedAmbientDiscreteModel(distribute,nprocs)
+
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  # i_am_main(ranks) && println("--test CubedSphereParametricDistributedDiscreteModel")
+
+  n_ref_lvls = 2
+  radius = 1.0
+  dmodels = get_distributed_ambient_refined_models(ranks,nprocs,n_ref_lvls,radius)
+
+  test_distributed_panel_ids(dmodels[1])
+
+  @test true
+end
+
 end # module
