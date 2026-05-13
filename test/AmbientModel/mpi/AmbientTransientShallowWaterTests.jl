@@ -9,7 +9,7 @@ ranks = distribute_with_mpi(LinearIndices((prod(nprocs),)))
 
 radius = 1.0
 ## Distributed model: 2D
-models = get_ambient_distributed_refined_models(ranks,nprocs,3,radius)
+models = get_distributed_ambient_refined_models(ranks,nprocs,3,radius)
 AmbientTransientShallowWaterTests.main(models[1];_i_am_main=i_am_main(ranks))
 
 # ### P4test model: 2D
