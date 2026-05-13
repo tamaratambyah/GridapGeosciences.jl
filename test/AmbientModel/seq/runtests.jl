@@ -7,3 +7,7 @@ using Test
 @testset "AmbientLinearisedShallowWater" begin include("AmbientLinearisedShallowWaterTests.jl") end
 
 @testset "AmbientSurfaceArea" begin include("AmbientSurfaceAreaTests.jl") end
+
+@testset "AmbientTransientShallowWater" begin include("AmbientTransientShallowWaterTests.jl") end
+
+@testset "AmbientTransientWaveEquation" begin include("AmbientTransientWaveEquationTests.jl") end
