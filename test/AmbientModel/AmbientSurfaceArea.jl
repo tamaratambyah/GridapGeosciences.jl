@@ -13,9 +13,10 @@ using GridapP4est
 using Test
 
 import GridapGeosciences.Geometry: ParametricModels
+import GridapGeosciences.Geometry: AmbientModels
 
 function compute_surface_area(
-  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
   degree::Int)
   Ω = Triangulation(ambient_model)
   dΩ = Measure(Ω,degree)
