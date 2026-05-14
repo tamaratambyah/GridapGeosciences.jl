@@ -13,9 +13,9 @@ radius = 1.0
 models = get_distributed_ambient_refined_models(ranks,nprocs,n_ref_lvls,radius)
 AmbientHodgeLaplacianScalarTests.main(models;_i_am_main=i_am_main(ranks))
 
-# ### P4test model: 2D
-# models = get_octree_refined_models(ranks,n_ref_lvls,radius)
-# AmbientHodgeLaplacianScalarTests.main(models;_i_am_main=i_am_main(ranks))
+### P4test model: 2D
+models = get_octree_ambient_refined_models(ranks,n_ref_lvls,radius)
+AmbientHodgeLaplacianScalarTests.main(models;_i_am_main=i_am_main(ranks))
 
 # ### P4test model: 3D
 # thickness = 0.19

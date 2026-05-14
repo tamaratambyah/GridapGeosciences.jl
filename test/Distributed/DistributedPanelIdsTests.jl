@@ -37,6 +37,8 @@ function main(distribute,nprocs)
   test_distributedParametricDiscreteModel(distribute,nprocs)
   test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
+
+  test_distributedAmbientDiscreteModel(distribute,nprocs)
 end
 
 
