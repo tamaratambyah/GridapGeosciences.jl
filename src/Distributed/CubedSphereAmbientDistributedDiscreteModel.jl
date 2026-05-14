@@ -81,7 +81,6 @@ General constructor to match inputs of CubedSphere2DParametricOctreeDistributedD
 Note num_initial_uniform_refinements=1 as default since we want to call Gridap.Adaptivity.get_model,
 which is not defined for the coarsest model (i.e. not adapted model)
 """
-
 function CubedSphereAmbientDistributedDiscreteModel(
   ranks::AbstractArray,
   radius::Real;

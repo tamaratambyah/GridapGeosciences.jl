@@ -41,6 +41,7 @@ include("CubedSphere2DParametricOctreeDistributedDiscreteModel.jl")
 include("CubedSphere3DParametricOctreeDistributedDiscreteModel.jl")
 include("CubedSphere2DParametricDistributedDiscreteModel.jl")
 include("CubedSphereAmbientDistributedDiscreteModel.jl")
+include("CubedSphereAmbientOctreeDistributedDiscreteModel.jl")
 include("ParametricCellField.jl")
 include("AmbientCellField.jl")
 include("PanelIds.jl")
@@ -57,6 +58,7 @@ export CubedSphere3DParametricOctreeDistributedDiscreteModel
 export CubedSphereParametricDistributedDiscreteModel
 export CubedSphere2DParametricDistributedDiscreteModel, CubedSphere3DParametricDistributedDiscreteModel
 export CubedSphereAmbientDistributedDiscreteModel
+export CubedSphere2DAmbientOctreeDistributedDiscreteModel, CubedSphere3DAmbientOctreeDistributedDiscreteModel
 export ParametricCellField, geo_map_func, get_panel_ids, latlon_geo_map_func
 export AmbientCellField
 export get_forward_map_generator, get_radius, get_thickness
@@ -72,5 +74,7 @@ export get_panel_ids, get_owned_panel_ids, get_skel_panel_ids
 # export BoundaryTriangulation
 export pullback_area_form
 export pushforward_normal, get_surface_normal
+export get_octree_refined_models, get_3D_octree_refined_models
+export get_octree_ambient_refined_models, get_3D_octree_ambient_refined_models
 
 end

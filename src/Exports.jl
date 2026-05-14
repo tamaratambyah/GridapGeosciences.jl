@@ -101,14 +101,19 @@ end
 @publish Distributed get_thickness
 @publish Distributed get_parametric_model
 @publish Distributed get_surface_normal
+@publish Distributed get_octree_refined_models
+@publish Distributed get_3D_octree_refined_models
+@publish Distributed CubedSphere2DAmbientOctreeDistributedDiscreteModel
+@publish Distributed CubedSphere3DAmbientOctreeDistributedDiscreteModel
+@publish Distributed get_octree_ambient_refined_models
+@publish Distributed get_3D_octree_ambient_refined_models
+
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model
 
 @publish ConvergenceTools p_convergence_auto_test
 @publish ConvergenceTools h_convergence_auto_test
-@publish ConvergenceTools get_octree_refined_models
-@publish ConvergenceTools get_3D_octree_refined_models
 @publish ConvergenceTools nref
 @publish ConvergenceTools nc
 @publish ConvergenceTools dx

@@ -1,7 +1,6 @@
 """
 auto convergence tests
 """
-
 function test_slope(slope,p_fe,Dc)
   if slope >= p_fe
     return true
@@ -46,46 +45,11 @@ end
 
 
 
-
-
-#### get array of dmodel - octree models
-function get_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_model=false)
-  dmodels = Vector{CubedSphere2DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
-
-  for (i,n) in enumerate(n_ref_lvls:-1:1)
-    parametric_octree_dmodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
-                                                                        num_initial_uniform_refinements=n)
-    dmodels[i] = parametric_octree_dmodel.parametric_dmodel
-  end
-
-  if coarse_model
-    parametric_octree_dmodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
-                                                                        num_initial_uniform_refinements=0)
-    push!(dmodels,parametric_octree_dmodel.parametric_dmodel)
-  end
-
-  return dmodels
-end
-
-function get_3D_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,thickness::Real)
-  dmodels = Vector{CubedSphere3DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
-
-  for (i,n) in enumerate(n_ref_lvls:-1:1)
-    octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
-                        num_horizontal_uniform_refinements=n,
-                        num_vertical_uniform_refinements=n);
-    dmodels[i] = octree3_model.parametric_dmodel
-  end
-
-  return dmodels
-end
-
 """
 nref
 returns the level of refinement
   * in 3D, returns the horizontal refinement
 """
-
 nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
 function nref(model::Union{<:DiscreteModel{2,Dp},<:GridapDistributed.DistributedDiscreteModel{2,Dp}}) where Dp
