@@ -37,10 +37,25 @@ function pushforward_normal(trian::GridapDistributed.DistributedTriangulation)
   return GridapDistributed.DistributedCellField(fields,trian)
 end
 
+"""
+get_surface_normal
 
+Is the distributed implementation of get_surface_normal.
+In such function, we call get_surface_normal on the local model and then
+recompute the triangulation to ensure proper handling of ghost cells in octree periodic meshes.
+"""
 function get_surface_normal(trian::GridapDistributed.DistributedTriangulation)
-  fields = map(trian.trians) do t
-    return get_surface_normal(t)
+  model = trian.model
+
+  fields = map(local_views(model)) do lmodel
+    get_surface_normal(Triangulation(lmodel))
   end
-  return GridapDistributed.DistributedCellField(fields,trian)
+
+  trians = map(local_views(model)) do lmodel
+    Triangulation(lmodel)
+  end
+
+  _trian = GridapDistributed.DistributedTriangulation(trians,model)
+  GridapDistributed.DistributedCellField(fields,_trian)
+
 end
