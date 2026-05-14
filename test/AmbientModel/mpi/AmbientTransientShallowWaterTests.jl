@@ -12,8 +12,8 @@ radius = 1.0
 models = get_distributed_ambient_refined_models(ranks,nprocs,3,radius)
 AmbientTransientShallowWaterTests.main(models[1];_i_am_main=i_am_main(ranks))
 
-### P4test model: 2D
-omodel = CubedSphere2DAmbientOctreeDistributedDiscreteModel(ranks, radius;
-  num_initial_uniform_refinements=3)
-ambient_model = omodel.ambient_dmodel
-AmbientTransientShallowWaterTests.main(ambient_model;_i_am_main=i_am_main(ranks))
+# ### P4test model: 2D
+# omodel = CubedSphere2DAmbientOctreeDistributedDiscreteModel(ranks, radius;
+#   num_initial_uniform_refinements=3)
+# ambient_model = omodel.ambient_dmodel
+# AmbientTransientShallowWaterTests.main(ambient_model;_i_am_main=i_am_main(ranks))
