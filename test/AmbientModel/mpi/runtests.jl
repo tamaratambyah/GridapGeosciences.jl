@@ -4,4 +4,4 @@ using MPI
 include("../../run_mpi_tests.jl")
 
 # MPI tests
-run_mpi_tests(@__DIR__)
+run_mpi_tests(@__DIR__,1)
