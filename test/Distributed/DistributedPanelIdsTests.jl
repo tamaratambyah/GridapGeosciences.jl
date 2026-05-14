@@ -150,8 +150,6 @@ function test_distributedAmbientDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
 
-  # i_am_main(ranks) && println("--test CubedSphereParametricDistributedDiscreteModel")
-
   n_ref_lvls = 2
   radius = 1.0
   dmodels = get_distributed_ambient_refined_models(ranks,nprocs,n_ref_lvls,radius)
@@ -164,6 +162,7 @@ end
 function test_AmbientOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
+  radius = 1.0
 
   # level 0
   omodel = CubedSphere2DAmbientOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=0)
@@ -198,6 +197,7 @@ end
 function test_Ambient3DOctreeDistributedDiscreteModel(distribute,nprocs)
 
   ranks = distribute(LinearIndices((nprocs,)))
+  radius,thickness = 1.0, 0.19
 
   # level 0
   omodel = CubedSphere3DAmbientOctreeDistributedDiscreteModel(ranks, radius,thickness;
