@@ -87,6 +87,12 @@ function get_radius(model::Union{<:CubedSphereParametricDiscreteModel,AdaptedDis
   return generator.radius
 end
 
+function get_thickness(model::Union{CubedSphere2DParametricDiscreteModel,AdaptedDiscreteModel{2,2,<:CubedSphere2DParametricDiscreteModel}})
+  @notimplemented """\n
+  The model is two dimensional, get_thickness not defined.
+  """
+end
+
 function get_thickness(model::Union{CubedSphere3DParametricDiscreteModel,AdaptedDiscreteModel{3,3,<:CubedSphere3DParametricDiscreteModel}})
   generator = get_forward_map_generator(model)
   return generator.thickness
