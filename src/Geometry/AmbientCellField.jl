@@ -46,3 +46,9 @@ function AmbientCellField(f::Function,
   cell_field = lazy_map(m->GenericField(f(m)),forward_maps)
   CellData.GenericCellField(cell_field,trian,PhysicalDomain())
 end
+
+
+function AmbientCellField(f::Function,atrian::AdaptedTriangulation)
+  cf = AmbientCellField(f,atrian.trian)
+  AmbientCellField(cf,atrian)
+end
