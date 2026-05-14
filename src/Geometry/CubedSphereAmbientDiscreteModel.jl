@@ -64,9 +64,9 @@ function CubedSphereAmbientDiscreteModel(panel_model::ParametricModels)
   ambient_grid = Gridap.Geometry.UnstructuredGrid(ambient_nodes,get_cell_node_ids(panel_grid),get_reffes(panel_grid),get_cell_type(panel_grid),OrientationStyle(panel_grid),
                       nothing,geo_cmap)
   ambient_topo = UnstructuredGridTopology(ambient_nodes,get_cell_node_ids(panel_grid),get_cell_type(panel_topo),get_polytopes(panel_topo),OrientationStyle(panel_topo))
-  ambient_labels = FaceLabeling(ambient_topo)
+  # ambient_labels = FaceLabeling(ambient_topo)
 
-  CubedSphereAmbientDiscreteModel(ambient_grid,ambient_topo,ambient_labels,panel_model)
+  CubedSphereAmbientDiscreteModel(ambient_grid,ambient_topo,labels,panel_model)
 
 end
 
