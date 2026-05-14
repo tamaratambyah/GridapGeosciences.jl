@@ -22,6 +22,7 @@ get_forward_map_generator(model::CubedSphereAmbientDiscreteModel) = get_forward_
 get_radius(model::CubedSphereAmbientDiscreteModel) = get_radius(model.panel_model)
 get_thickness(model::CubedSphereAmbientDiscreteModel) = get_thickness(model.panel_model)
 get_parametric_model(model::CubedSphereAmbientDiscreteModel) = model.panel_model
+get_parametric_model(model::AdaptedDiscreteModel{Dc,Dp,<:CubedSphereAmbientDiscreteModel}) where {Dc,Dp} = get_parametric_model(model.model)
 
 ## TO DO: generalise to 3D...
 function get_inverse_map_generator(model::CubedSphereAmbientDiscreteModel)
