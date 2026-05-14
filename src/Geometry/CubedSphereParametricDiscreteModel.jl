@@ -82,7 +82,7 @@ Geometry.get_cell_map(model::CubedSphereParametricDiscreteModel) = model.grid.ce
 get_forward_map_generator(model::CubedSphereParametricDiscreteModel) = model.forward_map_generator
 get_forward_map_generator(model::AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp} = model.model.forward_map_generator
 
-function get_radius(model::Union{CubedSphereParametricDiscreteModel,AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}}) where {Dc,Dp}
+function get_radius(model::Union{<:CubedSphereParametricDiscreteModel,AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}}) where {Dc,Dp}
   generator = get_forward_map_generator(model)
   return generator.radius
 end
