@@ -56,6 +56,7 @@ end
 function main(distribute,nprocs)
   ranks = distribute(LinearIndices((nprocs,)))
 
+  ## 2D parametric models:
   n_ref_lvls = 3
   for radius in [1,2]
     dist_models = get_distributed_refined_models(ranks,nprocs,n_ref_lvls,radius)
@@ -63,9 +64,10 @@ function main(distribute,nprocs)
     test_surface_area(dist_models,p4est_models)
   end
 
+  ## 2D ambient models:
   for radius in [1,2]
     dist_models = get_distributed_ambient_refined_models(ranks,nprocs,n_ref_lvls,radius)
-    p4est_models = get_octree_refined_models(ranks,n_ref_lvls,radius) #### UPDATE TO P4models Ambient model
+    p4est_models = get_octree_ambient_refined_models(ranks,n_ref_lvls,radius)
     test_surface_area(dist_models,p4est_models)
   end
 

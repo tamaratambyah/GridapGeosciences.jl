@@ -28,6 +28,9 @@ function main(distribute,nprocs)
   test_distributedParametricDiscreteModel(distribute,nprocs)
   test_ParametricOctreeDistributedDiscreteModel(distribute,nprocs)
   test_Parametric3DOctreeDistributedDiscreteModel(distribute,nprocs)
+
+  test_distributedAmbientDiscreteModel(distribute,nprocs)
+  test_AmbientOctreeDistributedDiscreteModel(distribute,nprocs)
 end
 
 function test_distributedParametricDiscreteModel(distribute,nprocs)
@@ -140,5 +143,34 @@ function test_distributedAmbientDiscreteModel(distribute,nprocs)
 
   @test true
 end
+
+
+
+
+
+
+function test_AmbientOctreeDistributedDiscreteModel(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  # i_am_main(ranks) && println("--test CubedSphere2DAmbientOctreeDistributedDiscreteModel")
+
+  n_ref_lvls = 2
+  radius = 1.0
+  omodel = CubedSphere2DAmbientOctreeDistributedDiscreteModel(ranks, radius; num_initial_uniform_refinements=n_ref_lvls)
+  model = omodel.ambient_dmodel
+
+  trian = Triangulation(model)
+  test_triangulation(trian)
+
+  btrian = BoundaryTriangulation(model)
+  test_triangulation(btrian)
+
+  strian = SkeletonTriangulation(model)
+  test_triangulation(strian)
+
+  @test true
+end
+
+
 
 end ## module
