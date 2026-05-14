@@ -240,7 +240,7 @@ function Geometry.BoundaryTriangulation(
   D = num_cell_dims(model)
   d = D - 1
 
-  node_coordinates = collect1d(get_node_coordinates(panel_face_grid))
+  node_coordinates = collect1d(get_node_coordinates(model))
   cell_to_nodes = Table(lazy_map(Reindex(get_face_nodes(model,d)),face_to_bgface))
   cell_to_type = get_cell_type(panel_face_grid)
   reffes = get_reffaces(ReferenceFE{d},model)
