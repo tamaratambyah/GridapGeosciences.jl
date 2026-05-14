@@ -52,3 +52,7 @@ function AmbientCellField(f::Function,atrian::AdaptedTriangulation)
   cf = AmbientCellField(f,atrian.trian)
   AmbientCellField(cf,atrian)
 end
+
+function AmbientCellField(cf::CellField,atrian::AdaptedTriangulation)
+  GenericCellField(get_data(cf),atrian,DomainStyle(cf))
+end
