@@ -44,5 +44,9 @@ test_panel_ids(s_ambient_model)
 s_ambient_model = Gridap.Adaptivity.refine(s_ambient_model)
 test_panel_ids(s_ambient_model)
 
+s_ambient_model = Gridap.Adaptivity.refine(s_ambient_model)
+test_panel_ids(s_ambient_model)
+
+
 @test true
 end # module

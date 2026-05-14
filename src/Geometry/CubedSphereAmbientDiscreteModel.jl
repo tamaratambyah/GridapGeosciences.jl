@@ -36,9 +36,6 @@ function CubedSphereAmbientDiscreteModel(
   CubedSphereAmbientDiscreteModel(panel_model)
 end
 
-function CubedSphereAmbientDiscreteModel(amodel::AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp}
-  CubedSphereAmbientDiscreteModel(amodel.model)
-end
 
 function CubedSphereAmbientDiscreteModel(panel_model::CubedSphereParametricDiscreteModel)
 
@@ -74,11 +71,24 @@ function CubedSphereAmbientDiscreteModel(panel_model::CubedSphereParametricDiscr
 
 end
 
+const AmbientModels{Dc,Dp} = Union{CubedSphereAmbientDiscreteModel{Dc,Dp},AdaptedDiscreteModel{Dc,Dp,<:CubedSphereAmbientDiscreteModel}}
 
 function get_ambient_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
-  panel_models = get_refined_models(n_ref_lvls,radius,coarse_model)
-  ambient_models = map(x->CubedSphereAmbientDiscreteModel(x),panel_models)
-  return ambient_models
+
+  ambient_model = CubedSphereAmbientDiscreteModel(radius;num_initial_uniform_refinements=0)
+  model0 = ambient_model
+
+  ambient_models = Vector{AmbientModels}(undef,n_ref_lvls)
+  for n in n_ref_lvls:-1:1
+    ambient_model = Gridap.Adaptivity.refine(ambient_model)
+    ambient_models[n] = ambient_model
+  end
+
+  if coarse_model
+    push!(ambient_models,model0)
+  end
+  ambient_models
+
 end
 
 

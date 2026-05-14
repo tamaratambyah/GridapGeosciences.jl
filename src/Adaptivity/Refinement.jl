@@ -100,11 +100,14 @@ Refine CubedSphereAmbientDiscreteModel
 
 Refine the associated CubedSphereParametricDiscreteModel as above
 """
-
 function Gridap.Adaptivity.refine(model::CubedSphereAmbientDiscreteModel,args...;kwargs...)
   panel_model = get_parametric_model(model)
   ref_panel_model = Gridap.Adaptivity.refine(panel_model)
-  CubedSphereAmbientDiscreteModel(ref_panel_model)
+
+  ref_ambient_model = CubedSphereAmbientDiscreteModel(ref_panel_model.model)
+
+  AdaptedDiscreteModel(ref_ambient_model,model,ref_panel_model.glue)
+
 end
 
 
