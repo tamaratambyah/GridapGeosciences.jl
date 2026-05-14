@@ -31,6 +31,7 @@ function main(distribute,nprocs)
 
   test_distributedAmbientDiscreteModel(distribute,nprocs)
   test_AmbientOctreeDistributedDiscreteModel(distribute,nprocs)
+  test_Ambient3DOctreeDistributedDiscreteModel(distribute,nprocs)
 end
 
 function test_distributedParametricDiscreteModel(distribute,nprocs)
@@ -172,5 +173,40 @@ function test_AmbientOctreeDistributedDiscreteModel(distribute,nprocs)
 end
 
 
+function test_Ambient3DOctreeDistributedDiscreteModel(distribute,nprocs)
+  ranks = distribute(LinearIndices((nprocs,)))
+
+  radius,thickness = 1.0, 0.19
+  n_ref_lvls = 2
+
+  o3model = CubedSphere3DAmbientOctreeDistributedDiscreteModel(ranks,radius,thickness;
+  num_horizontal_uniform_refinements=n_ref_lvls, num_vertical_uniform_refinements=n_ref_lvls);
+  ambient_model = o3model.ambient_dmodel
+
+  trian = Triangulation(ambient_model)
+  test_triangulation(trian)
+
+  strian = SkeletonTriangulation(ambient_model)
+  test_triangulation(strian)
+  # writevtk(strian,dir*"/skel",append=false)
+
+  tags = ["bottom_boundary"]
+  Γ = BoundaryTriangulation(ambient_model,tags=tags)
+  test_triangulation(Γ)
+  # writevtk(Γ,dir*"/boundary_bottom",append=false)
+
+  tags = ["top_boundary"]
+  Γ = BoundaryTriangulation(ambient_model,tags=tags)
+  test_triangulation(Γ)
+  # writevtk(Γ,dir*"/boundary_top",append=false)
+
+  tags = ["intermediate_boundary"]
+  Γ = BoundaryTriangulation(ambient_model,tags=tags)
+  test_triangulation(Γ)
+  # writevtk(Γ,dir*"/boundary_intermediate",append=false)
+
+  @test true
+
+end
 
 end ## module
