@@ -203,3 +203,64 @@ function _pullback_area_form(trian)
 
   Operation(norm)(jac_cf⋅(inv_metric_cf ⋅n_Λ) )
 end
+
+
+
+"""
+BoundaryTriangulation
+
+For the CubedSphereAmbientDiscreteModel, the boundary triangulation is the pushforward of the
+boundary triangulation of the underlying parametric model. To achieve this,
+  1. create boundary triangulation of the parametric model
+  2. create a ambient_face_grid that is the composition of the panel_cmap and the
+  forward map
+"""
+function Geometry.BoundaryTriangulation(
+  model::CubedSphereAmbientDiscreteModel,
+  face_to_bgface::AbstractVector{<:Integer},
+  bgface_to_lcell::AbstractVector{<:Integer}
+  )
+
+  # 1. create boundary triangulation of the parametric model
+  panel_model = get_parametric_model(model)
+  panel_btrian = BoundaryTriangulation(panel_model,face_to_bgface,bgface_to_lcell)
+
+  # 2. extract the panel_face_grid and cmaps that go to alpha,beta.
+  # compose alpha,beta -> manifold to get ambient_cmap
+  panel_face_grid = get_grid(panel_btrian)
+  panel_cmap = get_cell_map(panel_face_grid)
+
+  fwd_map_generator = get_forward_map_generator(panel_model)
+  panel_ids = get_panel_ids(panel_btrian)
+  fwd_map =  geo_map_func(fwd_map_generator,panel_ids)
+
+  ambient_cmap = lazy_map(∘,fwd_map,panel_cmap)
+
+  # Create the ambient_face_grid with the correct cmap
+  D = num_cell_dims(model)
+  d = D - 1
+
+  node_coordinates = collect1d(get_node_coordinates(panel_face_grid))
+  cell_to_nodes = Table(lazy_map(Reindex(get_face_nodes(model,d)),face_to_bgface))
+  cell_to_type = get_cell_type(panel_face_grid)
+  reffes = get_reffaces(ReferenceFE{d},model)
+
+  ambient_face_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,NonOriented(),nothing,ambient_cmap)
+  cell_grid = get_grid(model)
+  topo = get_grid_topology(model)
+  glue = Geometry.FaceToCellGlue(topo,cell_grid,ambient_face_grid,face_to_bgface,bgface_to_lcell)
+  trian = BodyFittedTriangulation(model,ambient_face_grid,face_to_bgface)
+
+  Geometry.BoundaryTriangulation(trian,glue)
+
+end
+
+
+function Geometry.BoundaryTriangulation(
+  model::CubedSphereAmbientDiscreteModel,
+  bgface_to_mask::AbstractVector{Bool},
+  bgface_to_lcell::AbstractVector{<:Integer}
+  )
+  face_to_bgface =  findall(bgface_to_mask)
+  Geometry.BoundaryTriangulation(model,face_to_bgface,bgface_to_lcell)
+end
