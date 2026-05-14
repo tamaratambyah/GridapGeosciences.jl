@@ -19,15 +19,29 @@ Geometry.get_face_labeling(model::CubedSphereAmbientDiscreteModel) = model.face_
 get_panel_ids(model::CubedSphereAmbientDiscreteModel) = get_panel_ids(model.panel_model)
 Geometry.get_cell_map(model::CubedSphereAmbientDiscreteModel) = model.grid.cell_map
 get_forward_map_generator(model::CubedSphereAmbientDiscreteModel) = get_forward_map_generator(model.panel_model)
-get_radius(model::CubedSphereAmbientDiscreteModel) = get_radius(model.panel_model)
-get_thickness(model::CubedSphereAmbientDiscreteModel) = get_thickness(model.panel_model)
 get_parametric_model(model::CubedSphereAmbientDiscreteModel) = model.panel_model
 get_parametric_model(model::AdaptedDiscreteModel{Dc,Dp,<:CubedSphereAmbientDiscreteModel}) where {Dc,Dp} = get_parametric_model(model.model)
 
+const AmbientModels{Dc,Dp} = Union{CubedSphereAmbientDiscreteModel{Dc,Dp},AdaptedDiscreteModel{Dc,Dp,<:CubedSphereAmbientDiscreteModel}}
+
+function get_radius(model::AmbientModels{Dc,Dp}) where {Dc,Dp}
+  get_radius(get_parametric_model(model))
+end
+
+function get_thickness(model::AmbientModels{Dc,Dp}) where {Dc,Dp}
+  get_thickness(get_parametric_model(model))
+end
+
 ## TO DO: generalise to 3D...
-function get_inverse_map_generator(model::CubedSphereAmbientDiscreteModel)
+function get_inverse_map_generator(model::AmbientModels{2,Dp}) where {Dp}
   radius = get_radius(model)
   InverseMap2DGenerator(radius)
+end
+
+function get_inverse_map_generator(model::AmbientModels{3,Dp}) where {Dp}
+  radius = get_radius(model)
+  thickness = get_thickness(model)
+  InverseMap3DGenerator(radius,thickness)
 end
 
 function CubedSphereAmbientDiscreteModel(
@@ -86,7 +100,6 @@ function coarse_ambient_model(radius)
   CubedSphereAmbientDiscreteModel(panel_model0)
 end
 
-const AmbientModels{Dc,Dp} = Union{CubedSphereAmbientDiscreteModel{Dc,Dp},AdaptedDiscreteModel{Dc,Dp,<:CubedSphereAmbientDiscreteModel}}
 
 function get_ambient_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
 
