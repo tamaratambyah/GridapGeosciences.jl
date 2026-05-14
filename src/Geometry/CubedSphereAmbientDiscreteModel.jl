@@ -58,7 +58,9 @@ function CubedSphereAmbientDiscreteModel(panel_model::ParametricModels)
   ref_pts = get_cell_ref_coordinates(panel_grid)
   ambient_cell_coords = lazy_map(evaluate,geo_cmap,ref_pts)
 
-  ambient_nodes = get_nodes_from_coords(panel_grid,ambient_cell_coords)
+  eT = eltype(testitem(ambient_cell_coords))
+  panel_nodes = Gridap.Geometry.num_nodes(panel_grid)
+  ambient_nodes = fill(zero(eT),panel_nodes)# these are just junk nodes, never used
 
   ## the ambient_grid has the bespoke panel_2_ambient_cmap
   ambient_grid = Gridap.Geometry.UnstructuredGrid(ambient_nodes,get_cell_node_ids(panel_grid),get_reffes(panel_grid),get_cell_type(panel_grid),OrientationStyle(panel_grid),
