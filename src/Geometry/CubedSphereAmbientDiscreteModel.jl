@@ -43,6 +43,9 @@ function CubedSphereAmbientDiscreteModel(
   models[1]
 end
 
+function CubedSphereAmbientDiscreteModel(model::AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp}
+  CubedSphereAmbientDiscreteModel(model.model)
+end
 
 function CubedSphereAmbientDiscreteModel(panel_model::CubedSphereParametricDiscreteModel)
 
