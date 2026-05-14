@@ -53,4 +53,6 @@ export get_parametric_model
 export get_surface_normal
 export dagger, perp
 
+export AmbientModels
+
 end

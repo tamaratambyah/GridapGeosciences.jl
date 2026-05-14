@@ -26,7 +26,7 @@ end
 
 
 function transient_wave_solver(
-  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,h::Function,vX::Function,CFL=0.1,ls=LUSolver(),tF=2*π;_i_am_main=true)
 
   Dc = num_cell_dims(ambient_model)

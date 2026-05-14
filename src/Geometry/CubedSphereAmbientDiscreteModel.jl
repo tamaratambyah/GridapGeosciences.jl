@@ -32,8 +32,14 @@ end
 function CubedSphereAmbientDiscreteModel(
   radius::Real;
   num_initial_uniform_refinements=0)
-  panel_model = CubedSphere2DParametricDiscreteModel(radius;num_initial_uniform_refinements=num_initial_uniform_refinements)
-  CubedSphereAmbientDiscreteModel(panel_model)
+
+
+  if num_initial_uniform_refinements == 0
+    return coarse_ambient_model(radius)
+  end
+
+  models = get_ambient_refined_models(num_initial_uniform_refinements,radius)
+  models[1]
 end
 
 
@@ -71,11 +77,16 @@ function CubedSphereAmbientDiscreteModel(panel_model::CubedSphereParametricDiscr
 
 end
 
+function coarse_ambient_model(radius)
+  panel_model0 = coarse_parametric_model(radius)
+  CubedSphereAmbientDiscreteModel(panel_model0)
+end
+
 const AmbientModels{Dc,Dp} = Union{CubedSphereAmbientDiscreteModel{Dc,Dp},AdaptedDiscreteModel{Dc,Dp,<:CubedSphereAmbientDiscreteModel}}
 
 function get_ambient_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
 
-  ambient_model = CubedSphereAmbientDiscreteModel(radius;num_initial_uniform_refinements=0)
+  ambient_model = coarse_ambient_model(radius)
   model0 = ambient_model
 
   ambient_models = Vector{AmbientModels}(undef,n_ref_lvls)

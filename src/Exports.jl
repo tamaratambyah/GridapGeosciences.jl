@@ -41,6 +41,7 @@ end
 @publish Geometry get_surface_normal
 @publish Geometry dagger
 @publish Geometry perp
+@publish Geometry AmbientModels
 
 @publish ODEs DAEFEOperator
 

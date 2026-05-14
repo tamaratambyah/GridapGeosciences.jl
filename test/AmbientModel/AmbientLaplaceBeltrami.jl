@@ -22,7 +22,7 @@ end
 
 
 function laplace_beltrami_solver(
-  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false;
   _i_am_main=true)
 

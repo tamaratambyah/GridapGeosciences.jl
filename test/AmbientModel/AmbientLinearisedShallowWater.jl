@@ -28,7 +28,7 @@ _T = T/_τ
 _u0 = u_0/L*_τ
 
 function linear_shallow_water_solver(
-  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels{2,3},CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,ls=LUSolver(),return_vtk=false;
   _i_am_main=true)
 

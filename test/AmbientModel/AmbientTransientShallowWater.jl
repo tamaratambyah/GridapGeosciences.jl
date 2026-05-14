@@ -47,7 +47,7 @@ _tF = TF/_τ
 
 
 function transient_shallow_water_solver(
-  ambient_model::Union{CubedSphereAmbientDiscreteModel,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels{2,3},CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,b::Function,
   CFL=0.1,lss=(LUSolver(),LUSolver());_i_am_main=true)
 
