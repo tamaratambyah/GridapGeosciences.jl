@@ -36,9 +36,11 @@ function CubedSphereAmbientDiscreteModel(
   CubedSphereAmbientDiscreteModel(panel_model)
 end
 
+function CubedSphereAmbientDiscreteModel(amodel::AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp}
+  CubedSphereAmbientDiscreteModel(amodel.model)
+end
 
-
-function CubedSphereAmbientDiscreteModel(panel_model::ParametricModels)
+function CubedSphereAmbientDiscreteModel(panel_model::CubedSphereParametricDiscreteModel)
 
   panel_grid = get_grid(panel_model)
   panel_topo = get_grid_topology(panel_model)
