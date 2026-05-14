@@ -87,7 +87,10 @@ get_surface_normal
 The surface normal to the sphere, only defined for CubedSphereAmbientDiscreteModel with num_point_dims = 3
 """
 function get_surface_normal(trian::BodyFittedTriangulation{Dc,3,<:CubedSphereAmbientDiscreteModel}) where {Dc}
-  CellField(normal_vec,trian)
+  ns = CellField(normal_vec,trian)
+  ## This cellfield is, by default, on the physical domain
+  ## Change to the reference domain
+  change_domain(ns,DomainStyle(ns),ReferenceDomain())
 end
 
 function get_surface_normal(trian::BodyFittedTriangulation{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp}
