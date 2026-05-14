@@ -57,6 +57,19 @@ get_owned_panel_ids(dmodel::CubedSphereAmbientOctreeDistributedDiscreteModel) = 
 get_forward_map_generator(dmodel::CubedSphereAmbientOctreeDistributedDiscreteModel) = get_forward_map_generator(dmodel.ambient_dmodel)
 get_parametric_model(dmodel::CubedSphereAmbientOctreeDistributedDiscreteModel) = get_parametric_model(dmodel.ambient_dmodel)
 
+function get_parametric_model(dmodel::CubedSphereAmbientOctreeDistributedDiscreteModel{2,Dp}) where Dp
+  octree_dmodel = dmodel.octree_dmodel
+  amodel = dmodel.ambient_dmodel
+  generic_dmodel = get_parametric_model(amodel)
+  CubedSphere2DParametricOctreeDistributedDiscreteModel(octree_dmodel, generic_dmodel)
+end
+
+function get_parametric_model(dmodel::CubedSphereAmbientOctreeDistributedDiscreteModel{3,Dp}) where Dp
+  octree_dmodel = dmodel.octree_dmodel
+  amodel = dmodel.ambient_dmodel
+  generic_dmodel = get_parametric_model(amodel)
+  CubedSphere3DParametricOctreeDistributedDiscreteModel(octree_dmodel, generic_dmodel)
+end
 
 function get_octree_ambient_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_model=false)
   d_panel_models = get_octree_refined_models(ranks,n_ref_lvls,radius,coarse_model)
