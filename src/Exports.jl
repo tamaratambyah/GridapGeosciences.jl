@@ -108,7 +108,7 @@ end
 @publish Distributed CubedSphere3DAmbientOctreeDistributedDiscreteModel
 @publish Distributed get_octree_ambient_refined_models
 @publish Distributed get_3D_octree_ambient_refined_models
-
+@publish Distributed CellField
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model

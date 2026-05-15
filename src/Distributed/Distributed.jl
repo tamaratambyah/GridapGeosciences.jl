@@ -16,6 +16,7 @@ import GridapDistributed: DistributedCellField, DistributedTriangulation
 import GridapDistributed: DistributedFaceLabeling
 import GridapDistributed: DistributedDiscreteModel, GenericDistributedDiscreteModel
 import GridapDistributed: BoundaryTriangulation
+import GridapDistributed: CellField
 
 using GridapGeosciences.Geometry
 import GridapGeosciences.Geometry: _CCAM_panel_wise_node_ids
@@ -44,6 +45,7 @@ include("CubedSphereAmbientDistributedDiscreteModel.jl")
 include("CubedSphereAmbientOctreeDistributedDiscreteModel.jl")
 include("ParametricCellField.jl")
 include("AmbientCellField.jl")
+include("CellFields.jl")
 include("PanelIds.jl")
 include("Vtk.jl")
 include("Triangulations.jl")
@@ -78,4 +80,5 @@ export pushforward_normal, get_surface_normal
 export get_octree_refined_models, get_3D_octree_refined_models
 export get_octree_ambient_refined_models, get_3D_octree_ambient_refined_models
 
+export CellField
 end
