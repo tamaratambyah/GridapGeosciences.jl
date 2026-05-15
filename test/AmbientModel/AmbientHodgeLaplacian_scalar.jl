@@ -60,7 +60,7 @@ function hodge_laplacian_scalar(
   slap_cf = AmbientCellField(ambient_surflap(f),Ω_ambient)
   rhs_cf = -slap_cf
 
-  f_int = interpolate(f_ambient_cf,P)
+  f_int = interpolate(f,P)
 
   biform_u((u,p),(v,q)) = ∫( u⋅v )dΩ - ∫( p*(∇⋅v) )dΩ
   biform_p((u,p),(v,q)) = ∫( q*(∇⋅u) )dΩ

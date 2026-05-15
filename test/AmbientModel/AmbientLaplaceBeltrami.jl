@@ -63,7 +63,7 @@ function laplace_beltrami_solver(
       # Γ = BoundaryTriangulation(ambient_model;tags=["bottom_boundary","top_boundary"])
       # dΓ = Measure(Γ,degree)
       # nΓ = get_normal_vector(Γ)
-      # f_int = interpolate(f_ambient_cf,U)
+      # f_int = interpolate(f,U)
       # boundary(v) = ∫( ( (inv_metric_cf⋅gradient(f_int) )⋅nΓ)*v*meas_cf )dΓ
       # return v -> poisson_liform(v) + boundary(v)
       @notimplemented

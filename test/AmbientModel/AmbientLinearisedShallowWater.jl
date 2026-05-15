@@ -56,8 +56,8 @@ function linear_shallow_water_solver(
   u_cf = CellField(vX,Ω_ambient)
   cor_cf = CellField(f,Ω_ambient)
 
-  p_int = interpolate(h_cf,P)
-  u_int = interpolate(u_cf,U)
+  p_int = interpolate(h,P)
+  u_int = interpolate(vX,U)
 
   ## Here we construct the coriolis term on the surface: ∫( ̃f ( ̃k × ̃u  )  )dΩ
   n_surf = get_surface_normal(Ω_ambient)
