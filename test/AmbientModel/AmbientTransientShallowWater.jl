@@ -85,7 +85,7 @@ function transient_shallow_water_solver(
 
   h_cf = CellField(h,Ω_ambient)
   b_cf = CellField(b,Ω_ambient)
-  h_int = interpolate(h-b,P)
+  h_int = interpolate(x->h(x)-b(x),P)
 
   xh0 = interpolate_everywhere([u_int,h_int],X_prog(0.0))
   t0 = 0.0
