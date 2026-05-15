@@ -219,9 +219,10 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:ForwardMap3D},
   return c
 end
 
-function Gridap.Arrays.evaluate!(cache,
+function Gridap.Arrays.evaluate!(c,
                                  f::FieldGradient{1,<:ForwardMap3D},
                                  cellx::AbstractArray{<:VectorValue{3}})
+  cache, = c
   setsize!(cache,size(cellx))
   radius = f.object.radius
   thickness = f.object.thickness

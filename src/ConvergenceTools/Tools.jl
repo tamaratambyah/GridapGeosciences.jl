@@ -68,10 +68,17 @@ function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   nc_horizontal(model) + _nc_vertical(model)
 end
 
+function nc_horizontal(model::CubedSphereAmbientDistributedDiscreteModel{3,3,T}) where T
+  nc_horizontal(get_parametric_model(model))
+end
+
+function nc_vertical(model::CubedSphereAmbientDistributedDiscreteModel{3,3,T}) where T
+  nc_vertical(get_parametric_model(model))
+end
 
 
 ## nc = num cells per panel in horizontal
-function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+function nc_horizontal(model::CubedSphere3DParametricDistributedDiscreteModel)
 
   grid = get_grid(model)
   gids = get_cell_gids(model)
@@ -95,13 +102,13 @@ function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{
 end
 
 # return square here so vertical is 'like' horitzontal
-function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+function nc_vertical(model::CubedSphere3DParametricDistributedDiscreteModel)
   n = _nc_vertical(model)
   return Int(n^2)
 end
 
 # the actual number of cells in vertical per panel
-function _nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+function _nc_vertical(model::CubedSphere3DParametricDistributedDiscreteModel)
   ncells_per_panel = nc_horizontal(model)
   n = num_cells(model)/6
   _n =  n /ncells_per_panel

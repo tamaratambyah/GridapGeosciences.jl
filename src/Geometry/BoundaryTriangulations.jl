@@ -264,3 +264,14 @@ function Geometry.BoundaryTriangulation(
   face_to_bgface =  findall(bgface_to_mask)
   Geometry.BoundaryTriangulation(model,face_to_bgface,bgface_to_lcell)
 end
+
+function Geometry.BoundaryTriangulation(model::CubedSphereAmbientDiscreteModel,lcell::Integer=1)
+  println("new skel")
+  topo = get_grid_topology(model)
+  Dc = num_cell_dims(model)
+
+  bgface_to_mask = collect(Bool, .!get_isboundary_face(topo,Dc-1))
+  bgface_to_lcell = Fill(lcell,num_facets(model))
+
+  Geometry.BoundaryTriangulation(model,bgface_to_mask,bgface_to_lcell)
+end
