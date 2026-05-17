@@ -6,8 +6,8 @@ In such function, we call CellField on the local model and then
 recompute the triangulation to ensure proper handling of ghost cells in octree periodic meshes.
 
 """
-function GridapDistributed.CellData.CellField(f::Function,
-  trian::GridapDistributed.DistributedTriangulation)
+function CellField(f::Function,
+  trian::GridapDistributed.DistributedTriangulation{Dc,Dp,A,<:CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,<:CubedSphereAmbientDiscreteModel},C}) where {Dc,Dp,A,C}
 
   model = trian.model
 
