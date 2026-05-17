@@ -8,11 +8,13 @@ on:
       - 'NEWS.md'
       - 'README.md'
       - 'LICENSE.md'
+      - 'benchmark/**'
   pull_request:
     paths-ignore:
       - 'NEWS.md'
       - 'README.md'
       - 'LICENSE.md'
+      - 'benchmark/**'
 concurrency:
   # Skip intermediate builds: always.
   # Cancel intermediate builds: only if it is a pull request build.
