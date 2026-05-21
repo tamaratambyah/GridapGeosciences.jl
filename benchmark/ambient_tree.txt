@@ -1,0 +1,149 @@
+LazyArray
+├─ Fill
+│  └─ Gridap.Fields.IntegrationMap
+├─ LazyArray
+│  ├─ Fill
+│  │  └─ Gridap.Fields.BroadcastingFieldOpMap{typeof(dot)}
+│  ├─ LazyArray
+│  │  ├─ Fill
+│  │  │  └─ Gridap.Fields.TransposeMap
+│  │  └─ LazyArray
+│  │     ├─ Fill
+│  │     │  └─ Gridap.Fields.BroadcastingFieldOpMap{typeof(dot)}
+│  │     ├─ LazyArray
+│  │     │  ├─ Fill
+│  │     │  │  └─ Broadcasting{typeof(Gridap.Fields.pinvJt)}
+│  │     │  └─ LazyArray
+│  │     │     ├─ Fill
+│  │     │     │  └─ Broadcasting{typeof(dot)}
+│  │     │     ├─ LazyArray
+│  │     │     │  ├─ Fill
+│  │     │     │  │  └─ Gridap.Fields.LinearCombinationMap{Colon}
+│  │     │     │  ├─ LazyArray
+│  │     │     │  │  ├─ Fill
+│  │     │     │  │  │  └─ Broadcasting{Reindex{Vector{VectorValue{2, Float64}}}}
+│  │     │     │  │  └─ Table
+│  │     │     │  │     ├─ Vector{Int32}
+│  │     │     │  │     └─ Vector{Int32}
+│  │     │     │  └─ LazyArray
+│  │     │     │     ├─ CompressedArray
+│  │     │     │     │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}
+│  │     │     │     │  └─ Vector{Int8}
+│  │     │     │     └─ Vector{Vector{VectorValue{2, Float64}}}
+│  │     │     └─ LazyArray
+│  │     │        ├─ LazyArray
+│  │     │        │  ├─ Fill
+│  │     │        │  │  └─ typeof(gradient)
+│  │     │        │  └─ LazyArray
+│  │     │        │     ├─ Fill
+│  │     │        │     │  └─ var"#11#12"{Float64}
+│  │     │        │     └─ Vector{Int64}
+│  │     │        └─ LazyArray
+│  │     │           ├─ Fill
+│  │     │           │  └─ Gridap.Fields.LinearCombinationMap{Colon}
+│  │     │           ├─ LazyArray
+│  │     │           │  ├─ Fill
+│  │     │           │  │  └─ Broadcasting{Reindex{Vector{VectorValue{2, Float64}}}}
+│  │     │           │  └─ Table
+│  │     │           │     ├─ Vector{Int32}
+│  │     │           │     └─ Vector{Int32}
+│  │     │           └─ LazyArray
+│  │     │              ├─ CompressedArray
+│  │     │              │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Polynomials.MonomialBasis{2, Float64}}}
+│  │     │              │  └─ Vector{Int8}
+│  │     │              └─ Vector{Vector{VectorValue{2, Float64}}}
+│  │     └─ LazyArray
+│  │        ├─ CompressedArray
+│  │        │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}
+│  │        │  └─ Vector{Int8}
+│  │        └─ Vector{Vector{VectorValue{2, Float64}}}
+│  └─ LazyArray
+│     ├─ Fill
+│     │  └─ Gridap.Fields.BroadcastingFieldOpMap{typeof(dot)}
+│     ├─ LazyArray
+│     │  ├─ Fill
+│     │  │  └─ Broadcasting{typeof(Gridap.Fields.pinvJt)}
+│     │  └─ LazyArray
+│     │     ├─ Fill
+│     │     │  └─ Broadcasting{typeof(dot)}
+│     │     ├─ LazyArray
+│     │     │  ├─ Fill
+│     │     │  │  └─ Gridap.Fields.LinearCombinationMap{Colon}
+│     │     │  ├─ LazyArray
+│     │     │  │  ├─ Fill
+│     │     │  │  │  └─ Broadcasting{Reindex{Vector{VectorValue{2, Float64}}}}
+│     │     │  │  └─ Table
+│     │     │  │     ├─ Vector{Int32}
+│     │     │  │     └─ Vector{Int32}
+│     │     │  └─ LazyArray
+│     │     │     ├─ CompressedArray
+│     │     │     │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}
+│     │     │     │  └─ Vector{Int8}
+│     │     │     └─ Vector{Vector{VectorValue{2, Float64}}}
+│     │     └─ LazyArray
+│     │        ├─ LazyArray
+│     │        │  ├─ Fill
+│     │        │  │  └─ typeof(gradient)
+│     │        │  └─ LazyArray
+│     │        │     ├─ Fill
+│     │        │     │  └─ var"#11#12"{Float64}
+│     │        │     └─ Vector{Int64}
+│     │        └─ LazyArray
+│     │           ├─ Fill
+│     │           │  └─ Gridap.Fields.LinearCombinationMap{Colon}
+│     │           ├─ LazyArray
+│     │           │  ├─ Fill
+│     │           │  │  └─ Broadcasting{Reindex{Vector{VectorValue{2, Float64}}}}
+│     │           │  └─ Table
+│     │           │     ├─ Vector{Int32}
+│     │           │     └─ Vector{Int32}
+│     │           └─ LazyArray
+│     │              ├─ CompressedArray
+│     │              │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Polynomials.MonomialBasis{2, Float64}}}
+│     │              │  └─ Vector{Int8}
+│     │              └─ Vector{Vector{VectorValue{2, Float64}}}
+│     └─ LazyArray
+│        ├─ CompressedArray
+│        │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}
+│        │  └─ Vector{Int8}
+│        └─ Vector{Vector{VectorValue{2, Float64}}}
+├─ Vector{Vector{Float64}}
+└─ LazyArray
+   ├─ Fill
+   │  └─ Broadcasting{typeof(dot)}
+   ├─ LazyArray
+   │  ├─ Fill
+   │  │  └─ Gridap.Fields.LinearCombinationMap{Colon}
+   │  ├─ LazyArray
+   │  │  ├─ Fill
+   │  │  │  └─ Broadcasting{Reindex{Vector{VectorValue{2, Float64}}}}
+   │  │  └─ Table
+   │  │     ├─ Vector{Int32}
+   │  │     └─ Vector{Int32}
+   │  └─ LazyArray
+   │     ├─ CompressedArray
+   │     │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}
+   │     │  └─ Vector{Int8}
+   │     └─ Vector{Vector{VectorValue{2, Float64}}}
+   └─ LazyArray
+      ├─ LazyArray
+      │  ├─ Fill
+      │  │  └─ typeof(gradient)
+      │  └─ LazyArray
+      │     ├─ Fill
+      │     │  └─ var"#11#12"{Float64}
+      │     └─ Vector{Int64}
+      └─ LazyArray
+         ├─ Fill
+         │  └─ Gridap.Fields.LinearCombinationMap{Colon}
+         ├─ LazyArray
+         │  ├─ Fill
+         │  │  └─ Broadcasting{Reindex{Vector{VectorValue{2, Float64}}}}
+         │  └─ Table
+         │     ├─ Vector{Int32}
+         │     └─ Vector{Int32}
+         └─ LazyArray
+            ├─ CompressedArray
+            │  ├─ Vector{Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Polynomials.MonomialBasis{2, Float64}}}
+            │  └─ Vector{Int8}
+            └─ Vector{Vector{VectorValue{2, Float64}}}

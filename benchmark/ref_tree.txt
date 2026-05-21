@@ -1,0 +1,31 @@
+LazyArray
+├─ Fill
+│  └─ Gridap.Fields.IntegrationMap
+├─ LazyArray
+│  ├─ Fill
+│  │  └─ Gridap.Fields.BroadcastingFieldOpMap{typeof(dot)}
+│  ├─ LazyArray
+│  │  ├─ Fill
+│  │  │  └─ Gridap.Fields.BroadcastOpFieldArray{typeof(dot), Gridap.Fields.OperationField{typeof(dot), Tuple{Gridap.Fields.OperationField{typeof(Gridap.Fields.pinvJt), Tuple{Gridap.Fields.ConstantField{TensorValue{2, 2, Float64, 4}}}}, Gridap.Fields.LinearCombinationField{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}}, 1, Tuple{Gridap.Fields.OperationField{typeof(Gridap.Fields.pinvJt), Tuple{Gridap.Fields.ConstantField{TensorValue{2, 2, Float64, 4}}}}, Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}}
+│  │  └─ Vector{Vector{VectorValue{2, Float64}}}
+│  └─ LazyArray
+│     ├─ Fill
+│     │  └─ Gridap.Fields.BroadcastingFieldOpMap{typeof(dot)}
+│     ├─ LazyArray
+│     │  ├─ Fill
+│     │  │  └─ Gridap.Fields.GenericField{typeof(allg)}
+│     │  └─ LazyArray
+│     │     ├─ Gridap.Geometry.CartesianMap{2, Float64, 4}
+│     │     └─ Vector{Vector{VectorValue{2, Float64}}}
+│     └─ LazyArray
+│        ├─ Fill
+│        │  └─ Gridap.Fields.TransposeMap
+│        └─ LazyArray
+│           ├─ Fill
+│           │  └─ Gridap.Fields.BroadcastOpFieldArray{typeof(dot), Gridap.Fields.OperationField{typeof(dot), Tuple{Gridap.Fields.OperationField{typeof(Gridap.Fields.pinvJt), Tuple{Gridap.Fields.ConstantField{TensorValue{2, 2, Float64, 4}}}}, Gridap.Fields.LinearCombinationField{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}}, 1, Tuple{Gridap.Fields.OperationField{typeof(Gridap.Fields.pinvJt), Tuple{Gridap.Fields.ConstantField{TensorValue{2, 2, Float64, 4}}}}, Gridap.Fields.LinearCombinationFieldVector{Matrix{Float64}, Gridap.Fields.FieldGradientArray{1, Gridap.Polynomials.MonomialBasis{2, Float64}, Gridap.Fields.FieldGradient{1, Gridap.Polynomials.Monomial}, 1}}}}
+│           └─ Vector{Vector{VectorValue{2, Float64}}}
+├─ Vector{Vector{Float64}}
+└─ LazyArray
+   ├─ Fill
+   │  └─ Gridap.Fields.ConstantField{TensorValue{2, 2, Float64, 4}}
+   └─ Vector{Vector{VectorValue{2, Float64}}}
