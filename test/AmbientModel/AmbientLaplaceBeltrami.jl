@@ -66,7 +66,6 @@ function laplace_beltrami_solver(
       f_int = interpolate(f,U)
       boundary(v) = ∫( ( (gradient(f_int) )⋅nΓ)*v )dΓ
       return v -> poisson_liform(v) + boundary(v)
-      @notimplemented
     end
   end
 
