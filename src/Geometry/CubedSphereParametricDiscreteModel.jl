@@ -82,9 +82,15 @@ Geometry.get_cell_map(model::CubedSphereParametricDiscreteModel) = model.grid.ce
 get_forward_map_generator(model::CubedSphereParametricDiscreteModel) = model.forward_map_generator
 get_forward_map_generator(model::AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}) where {Dc,Dp} = model.model.forward_map_generator
 
-function get_radius(model::Union{CubedSphereParametricDiscreteModel,AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}}) where {Dc,Dp}
+function get_radius(model::Union{<:CubedSphereParametricDiscreteModel,AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}}) where {Dc,Dp}
   generator = get_forward_map_generator(model)
   return generator.radius
+end
+
+function get_thickness(model::Union{CubedSphere2DParametricDiscreteModel,AdaptedDiscreteModel{2,2,<:CubedSphere2DParametricDiscreteModel}})
+  @notimplemented """\n
+  The model is two dimensional, get_thickness not defined.
+  """
 end
 
 function get_thickness(model::Union{CubedSphere3DParametricDiscreteModel,AdaptedDiscreteModel{3,3,<:CubedSphere3DParametricDiscreteModel}})
@@ -103,6 +109,10 @@ General constructor to match inputs of CubedSphere2DParametricOctreeDistributedD
 function CubedSphere2DParametricDiscreteModel(
   radius::Real;
   num_initial_uniform_refinements=0)
+
+  if num_initial_uniform_refinements == 0
+    return coarse_parametric_model(radius)
+  end
 
   models = get_refined_models(num_initial_uniform_refinements,radius)
   models[1]
@@ -131,9 +141,12 @@ returns an array of refined serial models where
   models[1] == most refined model
   models[end] == coarsest model
 """
+
+const ParametricModels{Dc,Dp} = Union{CubedSphereParametricDiscreteModel{Dc,Dp},AdaptedDiscreteModel{Dc,Dp,<:CubedSphereParametricDiscreteModel}}
+
 function get_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
   panel_model = coarse_parametric_model(radius)
-  panel_models = Vector{Gridap.Geometry.DiscreteModel}(undef,n_ref_lvls)
+  panel_models = Vector{ParametricModels}(undef,n_ref_lvls)
   for n in n_ref_lvls:-1:1
     panel_model = Gridap.Adaptivity.refine(panel_model)
     panel_models[n] = panel_model
@@ -142,4 +155,25 @@ function get_refined_models(n_ref_lvls::Int,radius::Real,coarse_model=false)
     push!(panel_models,coarse_parametric_model(radius))
   end
   panel_models
+end
+
+
+"""
+perp
+
+computes u^⟂ = R u , where u is only defined for 2D parametric models.
+This function will fail if the background model is a 3D parametric model,
+or 2/3D ambient model
+"""
+
+function perp(u::CellField)
+  trian = get_triangulation(u)
+  model = get_background_model(trian)
+
+  @check isa(model,ParametricModels{2,Dp} where {Dp})
+
+  R = [0 -1
+       1 0]
+  R_cf = CellField(TensorValue(R),trian)
+  R_cf⋅u
 end

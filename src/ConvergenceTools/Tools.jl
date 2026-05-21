@@ -1,7 +1,6 @@
 """
 auto convergence tests
 """
-
 function test_slope(slope,p_fe,Dc)
   if slope >= p_fe
     return true
@@ -45,117 +44,15 @@ function h_convergence_auto_test(models::AbstractArray,f,p_fe::Int,dir::String,f
 end
 
 
-"""
-get_distributed_refined_models
-returns an array of refined serial models where
-  models[1] == most refined model
-  models[end] == coarsest model
-"""
-
-function get_distributed_refined_models(ranks,nprocs,n_ref_lvls::Int,radius::Real,coarse_s_model=false)
-  s_models  = get_refined_models(n_ref_lvls,radius,coarse_s_model)
-  dmodels, dpanel_ids, owned_panel_ids = get_distributed_refined_models(ranks,nprocs,s_models)
-  dmodels
-end
-
-function get_distributed_refined_models(ranks,nprocs,s_models::Vector{<:DiscreteModel})
-  # get refined models in serial
-  spanel_ids = map(m->get_panel_ids(m),s_models)
-  s_model_coarse = s_models[end]
-  radii = map(m->get_radius(m),s_models)
-
-  # extract the models and glues in arrays
-  models = map(m->Adaptivity.get_model(m),s_models[1:end-1])
-  glues = map(m->get_adaptivity_glue(m),s_models[1:end-1])
-  if typeof(s_model_coarse) <: AdaptedDiscreteModel
-    push!(models,Adaptivity.get_model(s_model_coarse))
-  else
-    push!(models,s_model_coarse)
-  end
-
-  # partition the processors
-  part_to_cells = [PartitionedArrays.local_range(rank,nprocs,num_cells(s_model_coarse)) for rank in 1:nprocs]
-
-  # store the partition for each model
-  cell_to_part = Vector{Vector{Int32}}(undef,length(models))
-
-  # get the coarse partition
-  coarse_cell_to_part = zeros(Int32,num_cells(s_model_coarse))
-  for (rank, cells) in enumerate(part_to_cells)
-    coarse_cell_to_part[cells] .= rank
-  end
-  cell_to_part[end] = coarse_cell_to_part
-
-  # get the refine partition based on glue
-  for level in length(models)-1:-1:1
-    n2o_cells = glues[level].n2o_faces_map[3]
-    cell_to_part[level] = cell_to_part[level+1][n2o_cells]
-  end
-
-  # construct array of distributed models, distributed panel ids (all + owned only)
-  dmodels = Vector{CubedSphere2DParametricDistributedDiscreteModel}(undef,length(models))
-  dpanel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
-  owned_panel_ids = Vector{AbstractArray{Vector{Int}}}(undef,length(models))
-
-  # the coarsest model is the last in the list
-  coarse_dmodel = DiscreteModel(ranks,models[end],cell_to_part[end])
-  dpanel_ids[end],owned_panel_ids[end] = distributed_panel_ids(coarse_dmodel,spanel_ids[end])
-  dmodels[end] = CubedSphere2DParametricDistributedDiscreteModel(coarse_dmodel,dpanel_ids[end],radii[end])
-
-  # loop backwards through refinement levels
-  for level in length(models)-1:-1:1
-    child = DiscreteModel(ranks,models[level],cell_to_part[level])
-    parent = dmodels[level+1]
-    glue = DistributedAdaptivityGlue(glues[level],parent,child)
-    dpanel_ids[level],owned_panel_ids[level] = distributed_panel_ids(child,spanel_ids[level])
-
-    dmodels[level] = CubedSphere2DParametricDistributedDiscreteModel(child, dpanel_ids[level],radii[level])
-  end
-  return dmodels, dpanel_ids, owned_panel_ids
-end
-
-
-#### get array of dmodel - octree models
-function get_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,coarse_model=false)
-  dmodels = Vector{CubedSphere2DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
-
-  for (i,n) in enumerate(n_ref_lvls:-1:1)
-    parametric_octree_dmodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
-                                                                        num_initial_uniform_refinements=n)
-    dmodels[i] = parametric_octree_dmodel.parametric_dmodel
-  end
-
-  if coarse_model
-    parametric_octree_dmodel = CubedSphere2DParametricOctreeDistributedDiscreteModel(ranks, radius;
-                                                                        num_initial_uniform_refinements=0)
-    push!(dmodels,parametric_octree_dmodel.parametric_dmodel)
-  end
-
-  return dmodels
-end
-
-function get_3D_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,thickness::Real)
-  dmodels = Vector{CubedSphere3DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
-
-  for (i,n) in enumerate(n_ref_lvls:-1:1)
-    octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
-                        num_horizontal_uniform_refinements=n,
-                        num_vertical_uniform_refinements=n);
-    dmodels[i] = octree3_model.parametric_dmodel
-  end
-
-  return dmodels
-end
 
 """
 nref
 returns the level of refinement
   * in 3D, returns the horizontal refinement
 """
-
 nref(nc) = Int(log2(sqrt(nc))) ## level of refinement
 
-function nref(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
+function nref(model::Union{<:DiscreteModel{2,Dp},<:GridapDistributed.DistributedDiscreteModel{2,Dp}}) where Dp
   nref(nc(model))
 end
 
@@ -164,17 +61,24 @@ function nref(model::GridapDistributed.DistributedDiscreteModel{3,3})
 end
 
 ## nc = num cells per panel
-function nc(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
+function nc(model::Union{<:DiscreteModel{2,Dp},<:GridapDistributed.DistributedDiscreteModel{2,Dp}}) where Dp
   num_cells(model)/6
 end
 function nc(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
   nc_horizontal(model) + _nc_vertical(model)
 end
 
+function nc_horizontal(model::CubedSphereAmbientDistributedDiscreteModel{3,3,T}) where T
+  nc_horizontal(get_parametric_model(model))
+end
+
+function nc_vertical(model::CubedSphereAmbientDistributedDiscreteModel{3,3,T}) where T
+  nc_vertical(get_parametric_model(model))
+end
 
 
 ## nc = num cells per panel in horizontal
-function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+function nc_horizontal(model::CubedSphere3DParametricDistributedDiscreteModel)
 
   grid = get_grid(model)
   gids = get_cell_gids(model)
@@ -198,13 +102,13 @@ function nc_horizontal(model::GridapDistributed.GenericDistributedDiscreteModel{
 end
 
 # return square here so vertical is 'like' horitzontal
-function nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+function nc_vertical(model::CubedSphere3DParametricDistributedDiscreteModel)
   n = _nc_vertical(model)
   return Int(n^2)
 end
 
 # the actual number of cells in vertical per panel
-function _nc_vertical(model::GridapDistributed.GenericDistributedDiscreteModel{3,3})
+function _nc_vertical(model::CubedSphere3DParametricDistributedDiscreteModel)
   ncells_per_panel = nc_horizontal(model)
   n = num_cells(model)/6
   _n =  n /ncells_per_panel
@@ -244,7 +148,7 @@ end
 
 
 ## element size
-function dx(model::Union{<:DiscreteModel{2,2},<:GridapDistributed.DistributedDiscreteModel{2,2}})
+function dx(model::Union{<:DiscreteModel{2,Dp},<:GridapDistributed.DistributedDiscreteModel{2,Dp}}) where Dp
   radius = get_radius(model)
   tmp =  4*π*radius^2/num_cells(model)
   sqrt(tmp)

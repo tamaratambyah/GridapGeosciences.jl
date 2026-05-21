@@ -8,11 +8,13 @@ on:
       - 'NEWS.md'
       - 'README.md'
       - 'LICENSE'
+      - 'benchmark/**'
   pull_request:
     paths-ignore:
       - 'NEWS.md'
       - 'README.md'
       - 'LICENSE'
+      - 'benchmark/**'
 concurrency:
   # Skip intermediate builds: always.
   # Cancel intermediate builds: only if it is a pull request build.
@@ -43,6 +45,7 @@ jobs:
           - mpi-models
           - mpi-multigrid
           - mpi-tutorials
+          - mpi-ambient-model
     steps:
       - name: Install p4est/petsc dependencies
         run: |

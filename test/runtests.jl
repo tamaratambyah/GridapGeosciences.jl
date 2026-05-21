@@ -36,6 +36,14 @@ if TESTCASE ∈ ("all", "seq", "seq-fields")
   include("Fields/seq/runtests.jl")
 end
 
+if TESTCASE ∈ ("all", "seq", "seq-ambient-model")
+  include("AmbientModel/seq/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "seq", "seq-autodiff")
+  include("Autodiff/seq/runtests.jl")
+end
+
 # MPI tests
 if TESTCASE ∈ ("all", "mpi", "mpi-l2-projection")
    include("Projection/mpi/runtests.jl")
@@ -67,4 +75,8 @@ end
 
 if TESTCASE ∈ ("all", "mpi", "mpi-tutorials")
   include("Examples/mpi/runtests.jl")
+end
+
+if TESTCASE ∈ ("all", "mpi", "mpi-ambient-model")
+  include("AmbientModel/mpi/runtests.jl")
 end

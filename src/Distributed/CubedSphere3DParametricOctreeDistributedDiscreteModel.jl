@@ -482,3 +482,23 @@ function horizontally_uniformly_refine(parametric_model::CubedSphere3DParametric
 
    CubedSphere3DParametricOctreeDistributedDiscreteModel(ref_model, generic_dmodel)
 end
+
+
+
+"""
+get_3D_octree_refined_models
+
+returns array of dmodels that originate from an 3D omodel
+"""
+function get_3D_octree_refined_models(ranks,n_ref_lvls::Int,radius::Real,thickness::Real)
+  dmodels = Vector{CubedSphere3DParametricDistributedDiscreteModel}(undef,n_ref_lvls)
+
+  for (i,n) in enumerate(n_ref_lvls:-1:1)
+    octree3_model = CubedSphere3DParametricOctreeDistributedDiscreteModel(ranks,radius,thickness;
+                        num_horizontal_uniform_refinements=n,
+                        num_vertical_uniform_refinements=n);
+    dmodels[i] = octree3_model.parametric_dmodel
+  end
+
+  return dmodels
+end

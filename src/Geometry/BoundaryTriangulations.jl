@@ -1,4 +1,3 @@
-import Gridap.Geometry: FaceToCellGlue, FaceCompressedVector, push_normal
 
 function Geometry.BoundaryTriangulation(model::CubedSphereParametricDiscreteModel,lcell::Integer=1)
   topo = get_grid_topology(model)
@@ -202,4 +201,71 @@ function _pullback_area_form(trian)
   n_Λ = get_normal_vector(trian)
 
   Operation(norm)(jac_cf⋅(inv_metric_cf ⋅n_Λ) )
+end
+
+
+
+"""
+BoundaryTriangulation
+
+For the CubedSphereAmbientDiscreteModel, the boundary triangulation is the pushforward of the
+boundary triangulation of the underlying parametric model. To achieve this,
+  1. create boundary triangulation of the parametric model
+  2. create a ambient_face_grid that is the composition of the panel_cmap and the
+  forward map
+"""
+function Geometry.BoundaryTriangulation(a_model::CubedSphereAmbientDiscreteModel;tags=nothing)
+  labeling = get_face_labeling(a_model)
+  model = get_parametric_model(a_model)
+  btrian = BoundaryTriangulation(model,labeling,tags=tags)
+  pushforward_trian(a_model,btrian)
+end
+
+function Geometry.BoundaryTriangulation(
+  a_model::CubedSphereAmbientDiscreteModel, bgface_to_mask::AbstractVector{Bool}, lcell::Integer=1)
+  model = get_parametric_model(a_model)
+  btrian = BoundaryTriangulation(model,bgface_to_mask, Fill(lcell,num_facets(model)) )
+  pushforward_trian(a_model,btrian)
+end
+
+function Geometry.SkeletonTriangulation(a_model::CubedSphereAmbientDiscreteModel;tags=nothing)
+  labeling = get_face_labeling(a_model)
+  model = get_parametric_model(a_model)
+  strian = SkeletonTriangulation(model,labeling;tags=tags)
+  plus = pushforward_trian(a_model,strian.plus)
+  minus = pushforward_trian(a_model,strian.minus)
+  SkeletonTriangulation(plus,minus)
+end
+
+function pushforward_trian(model::CubedSphereAmbientDiscreteModel,panel_trian)
+
+  panel_model = get_background_model(panel_trian)
+
+  # Extract the panel_face_grid and cmaps that go to alpha,beta.
+  # compose alpha,beta -> manifold to get ambient_fmap
+  panel_face_grid = get_grid(panel_trian)
+  panel_cmap = get_cell_map(panel_face_grid)
+
+  fwd_map_generator = get_forward_map_generator(panel_model)
+  panel_ids = get_panel_ids(panel_trian)
+  fwd_map =  geo_map_func(fwd_map_generator,panel_ids)
+
+  ambient_cmap = lazy_map(∘,fwd_map,panel_cmap)
+
+  # Create the ambient_face_grid with the correct cmap
+  D = num_cell_dims(panel_model)
+  d = D - 1
+
+  node_coordinates = Gridap.Arrays.collect1d(Gridap.Geometry.get_node_coordinates(model))
+  cell_to_nodes = get_cell_node_ids(panel_trian)
+  cell_to_type = Gridap.Geometry.get_cell_type(panel_face_grid)
+  reffes = Gridap.Geometry.get_reffaces(ReferenceFE{d},model)
+
+  ambient_face_grid = Geometry.UnstructuredGrid(node_coordinates,cell_to_nodes,reffes,cell_to_type,NonOriented(),nothing,ambient_cmap)
+
+  glue = panel_trian.glue
+  face_to_bgface = panel_trian.glue.face_to_bgface
+  trian = BodyFittedTriangulation(model,ambient_face_grid,face_to_bgface)
+
+  Geometry.BoundaryTriangulation(trian,glue)
 end

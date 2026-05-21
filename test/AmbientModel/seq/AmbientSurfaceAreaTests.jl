@@ -1,0 +1,10 @@
+include("../AmbientSurfaceArea.jl")
+
+## Serial model: 2D
+n_ref_lvls = 4
+radii = [1.0, 2.0]
+
+for radius in radii
+  models = get_ambient_refined_models(n_ref_lvls,radius)
+  AmbientSurfaceArea.main(models)
+end

@@ -74,3 +74,17 @@ function adapt_model(ranks,
 
   return model_uniformly_refined, false
 end
+
+
+function adapt_model(ranks,
+  model::CubedSphereAmbientOctreeDistributedDiscreteModel)
+
+  pmodel = get_parametric_model(model)
+
+  ref_pmodel, = adapt_model(ranks,pmodel)
+  ambient_dmodel = CubedSphereAmbientDistributedDiscreteModel(ref_pmodel.parametric_dmodel)
+  ref_model = CubedSphereAmbientOctreeDistributedDiscreteModel(ref_pmodel.octree_dmodel,ambient_dmodel)
+
+  return ref_model, false
+
+end

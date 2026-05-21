@@ -22,3 +22,4 @@ tsw_jobs/
 tsw_p2_jobs/
 *_jobs*
 mpiexecjl.sh
+benchmark/

@@ -9,6 +9,7 @@ end
 
 @publish Fields Cartesian2SphericalMap
 @publish Fields ForwardMap
+@publish Fields InverseMap
 @publish Fields normal_vec
 
 @publish Geometry get_panel_ids
@@ -19,6 +20,7 @@ end
 @publish Geometry get_facet_normal
 @publish Geometry get_mapped_facet_normal
 @publish Geometry BoundaryTriangulation
+@publish Geometry SkeletonTriangulation
 @publish Geometry generate_ptr
 @publish Geometry coarse_cube_model
 @publish Geometry coarse_parametric_model
@@ -31,7 +33,16 @@ end
 @publish Geometry CubedSphereParametricDiscreteModel
 @publish Geometry CubedSphere2DParametricDiscreteModel
 @publish Geometry CubedSphere3DParametricDiscreteModel
+@publish Geometry CubedSphereAmbientDiscreteModel
 @publish Geometry get_refined_models
+@publish Geometry get_ambient_refined_models
+@publish Geometry get_inverse_map_generator
+@publish Geometry AmbientCellField
+@publish Geometry get_parametric_model
+@publish Geometry get_surface_normal
+@publish Geometry dagger
+@publish Geometry perp
+@publish Geometry AmbientModels
 
 @publish ODEs DAEFEOperator
 
@@ -48,6 +59,11 @@ end
 @publish Helpers surflap
 @publish Helpers surfdiv
 @publish Helpers sgrad
+
+@publish Helpers ambient_surflap
+@publish Helpers ambient_surfdiv
+@publish Helpers ambient_sgrad
+
 @publish Helpers panel_to_cartesian
 
 @publish Helpers tangent_vec
@@ -63,16 +79,19 @@ end
 @publish Distributed CubedSphereParametricDistributedDiscreteModel
 @publish Distributed CubedSphere2DParametricDistributedDiscreteModel
 @publish Distributed CubedSphere3DParametricDistributedDiscreteModel
+@publish Distributed CubedSphereAmbientDistributedDiscreteModel
 @publish Distributed geo_map_func
 @publish Distributed latlon_geo_map_func
 @publish Distributed ParametricCellField
+@publish Distributed AmbientCellField
 
 @publish Distributed writevtk_with_cell_geomap
 @publish Distributed createvtk_with_cell_geomap
 @publish Distributed create_pvtk_file_with_cell_geomap
 
 @publish Distributed distributed_panel_ids
-@publish Distributed get_distributed_panel_model
+@publish Distributed get_distributed_refined_models
+@publish Distributed get_distributed_ambient_refined_models
 @publish Distributed get_panel_ids
 @publish Distributed get_owned_panel_ids
 @publish Distributed get_skel_panel_ids
@@ -82,15 +101,21 @@ end
 @publish Distributed get_forward_map_generator
 @publish Distributed get_radius
 @publish Distributed get_thickness
+@publish Distributed get_parametric_model
+@publish Distributed get_surface_normal
+@publish Distributed get_octree_refined_models
+@publish Distributed get_3D_octree_refined_models
+@publish Distributed CubedSphere2DAmbientOctreeDistributedDiscreteModel
+@publish Distributed CubedSphere3DAmbientOctreeDistributedDiscreteModel
+@publish Distributed get_octree_ambient_refined_models
+@publish Distributed get_3D_octree_ambient_refined_models
+@publish Distributed CellField
 
 @publish MultilevelTools ModelHierarchy
 @publish MultilevelTools adapt_model
 
 @publish ConvergenceTools p_convergence_auto_test
 @publish ConvergenceTools h_convergence_auto_test
-@publish ConvergenceTools get_distributed_refined_models
-@publish ConvergenceTools get_octree_refined_models
-@publish ConvergenceTools get_3D_octree_refined_models
 @publish ConvergenceTools nref
 @publish ConvergenceTools nc
 @publish ConvergenceTools dx
