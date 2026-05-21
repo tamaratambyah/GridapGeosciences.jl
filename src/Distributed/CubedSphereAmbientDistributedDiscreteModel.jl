@@ -6,7 +6,7 @@
 #### Implemenet the interface of GridapDistributed.GenericDistributedDiscreteModel
 ################################################################################
 
-const CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:ParametricModels
+const CubedSphereAmbientDistributedDiscreteModel{Dc,Dp,T} = GridapDistributed.GenericDistributedDiscreteModel{Dc,Dp,<:AbstractArray{T}} where T<:AmbientModels
 
 
 function CubedSphereAmbientDistributedDiscreteModel(
