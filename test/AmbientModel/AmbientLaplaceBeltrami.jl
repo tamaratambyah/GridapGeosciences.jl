@@ -36,7 +36,7 @@ function laplace_beltrami_solver(
   dΩ = Measure(Ω_ambient,degree)
   dΩ_error = Measure(Ω_ambient,2*degree)
 
-  V = TestFESpace(ambient_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1, constraint=:zeromean)
+  V = TestFESpace(Ω_ambient, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1, constraint=:zeromean)
   U = TrialFESpace(V)
 
   f_ambient_cf = CellField(f,Ω_ambient)
