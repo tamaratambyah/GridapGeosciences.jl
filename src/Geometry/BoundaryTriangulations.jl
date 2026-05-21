@@ -215,7 +215,6 @@ boundary triangulation of the underlying parametric model. To achieve this,
   forward map
 """
 function Geometry.BoundaryTriangulation(a_model::CubedSphereAmbientDiscreteModel;tags=nothing)
-  println("new btrian")
   labeling = get_face_labeling(a_model)
   model = get_parametric_model(a_model)
   btrian = BoundaryTriangulation(model,labeling,tags=tags)
@@ -224,14 +223,12 @@ end
 
 function Geometry.BoundaryTriangulation(
   a_model::CubedSphereAmbientDiscreteModel, bgface_to_mask::AbstractVector{Bool}, lcell::Integer=1)
-  println("masked btrian")
   model = get_parametric_model(a_model)
   btrian = BoundaryTriangulation(model,bgface_to_mask, Fill(lcell,num_facets(model)) )
   pushforward_trian(a_model,btrian)
 end
 
 function Geometry.SkeletonTriangulation(a_model::CubedSphereAmbientDiscreteModel;tags=nothing)
-  println("skel")
   labeling = get_face_labeling(a_model)
   model = get_parametric_model(a_model)
   strian = SkeletonTriangulation(model,labeling;tags=tags)
