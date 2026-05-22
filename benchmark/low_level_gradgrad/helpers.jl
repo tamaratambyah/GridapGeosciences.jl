@@ -18,13 +18,13 @@ function allg(αβ)
 
   sqrtg = (e*g - f*f)^(1/2)
 
-  1/sqrtg*TensorValue(g, -f, -f, e  )
+  1.0/sqrtg*TensorValue(g, -f, -f, e  )
 end
 
-### make sure all array caches evaluate
-function Gridap.Arrays.array_cache(dict::Dict,a::Gridap.Arrays.LazyArray)
-  Gridap.Arrays._array_cache!(dict,a)
-end
+# ### make sure all array caches evaluate
+# function Gridap.Arrays.array_cache(dict::Dict,a::Gridap.Arrays.LazyArray)
+#   Gridap.Arrays._array_cache!(dict,a)
+# end
 
 ### benchmark using a lazy collect
 function lazy_collect(cache,arr)

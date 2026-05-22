@@ -3,7 +3,7 @@ using Gridap.Geometry, Gridap.CellData, Gridap.Arrays, Gridap.FESpaces
 using Gridap.ReferenceFEs, Gridap.Fields
 using FillArrays
 using GridapGeosciences
-
+using BenchmarkTools
 using GFlops
 
 include("../single_panel_ambient_model.jl")
@@ -62,10 +62,34 @@ iwq = lazy_map(IntegrationMap(),intq,Qₕ.cell_weight,Jq)
 arr = iwq
 cache = array_cache(arr);
 
+# @gflops lazy_collect($cache,$arr)
 
+arr = iwq
+cache = array_cache(arr);
 ops_panel = @count_ops lazy_collect($cache,$arr)
 total_counts(ops_panel)
+
+arr = iwq
+cache = array_cache(arr);
+@btime lazy_collect($cache,$arr)
+
+
 2506
+
+## make sure all array caches evaluate
+function Gridap.Arrays.array_cache(dict::Dict,a::Gridap.Arrays.LazyArray)
+  println("here")
+  Gridap.Arrays._array_cache!(dict,a)
+
+  # cache = _get_cache(dict,a)
+  # if cache === nothing
+  #   _cache = _array_cache!(dict,a)
+  #   dict[objectid(a)] = (a,_cache)
+  # else
+  #   _cache = cache
+  # end
+  # _cache
+end
 
 ################################################################################
 
@@ -103,5 +127,9 @@ function bm_intergrate(intq,w,J)
   return s
 end
 
+@gflops bm_intergrate($intq,$w,$Jq)
+# 0.29 GFlops,  0.42% peak  (3.60e+02 flop, 1.23e-06 s, 28 alloc: 2.38 KiB)
+
 ops_panel = @count_ops bm_intergrate($intq,$w,$Jq)
 total_counts(ops_panel)
+360

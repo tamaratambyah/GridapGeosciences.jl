@@ -3,7 +3,7 @@ using Gridap.Geometry, Gridap.CellData, Gridap.Arrays, Gridap.FESpaces
 using Gridap.ReferenceFEs, Gridap.Fields
 using FillArrays
 using GridapGeosciences
-
+using BenchmarkTools
 using GFlops
 
 include("../single_panel_ambient_model.jl")
@@ -64,10 +64,24 @@ iwq = lazy_map(IntegrationMap(),intq,Qₕ.cell_weight)
 
 arr = iwq
 cache = array_cache(arr);
-ops_panel_ref = @count_ops lazy_collect($cache,$arr)
+@gflops lazy_collect($cache,$arr)
 
+### make sure all array caches evaluate
+# function Gridap.Arrays.array_cache(dict::Dict,a::Gridap.Arrays.LazyArray)
+#   Gridap.Arrays._array_cache!(dict,a)
+# end
+
+arr = iwq
+cache = array_cache(arr);
+ops_panel_ref = @count_ops lazy_collect($cache,$arr)
 total_counts(ops_panel_ref)
 2395
+
+arr = iwq
+cache = array_cache(arr);
+@btime lazy_collect($cache,$arr)
+
+
 
 ################################################################################
 
@@ -105,6 +119,8 @@ function bm_intergrate(intq,w)
   end
   return s
 end
+
+@gflops bm_intergrate($intq,$w)
 
 ops_panel_ref = @count_ops bm_intergrate($intq,$w)
 total_counts(ops_panel_ref)
