@@ -14,8 +14,8 @@ include("panel_funcs.jl")
 ################################################################################
 #### Run benchmark
 ################################################################################
-dir = datadir("gradgrad")
-degree = 4
+degree = 10
+dir = datadir("gradgrad_degree$(degree)")
 orders = collect(1:3)
 for order in orders
   benchmark_ambient(order,degree,dir)
@@ -57,7 +57,7 @@ plot!(shape=:auto,
       xtickfontsize=11,ytickfontsize=11,
       xguidefontsize=12,yguidefontsize=12,
       legendfontsize=10,
-      legend=:bottomright,
+      legend=:bottomleft,
       framestyle = :box,
       ylimits=(0,10),
       xticks = (orders, orders)
