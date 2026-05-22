@@ -4,7 +4,7 @@ This suite uses `GFlops.jl` and `BenchmarkTools.jl` to compare the performance o
 
 ### Running Locally
 
-To run `benchmark.jl` locally, ensure you have installed the packages as follows: 
+To run `test/benchmark.jl` locally, ensure you have installed the packages as follows: 
 
 ``` 
  pkg> add GridapGeosciences#master
