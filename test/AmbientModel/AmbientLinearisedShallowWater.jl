@@ -28,7 +28,7 @@ _T = T/_τ
 _u0 = u_0/L*_τ
 
 function linear_shallow_water_solver(
-  ambient_model::Union{AmbientModels{2,3},CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel},CubedSphereAmbientDistributedDiscreteModel{3,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,h::Function,vX::Function,f::Function,ls=LUSolver(),return_vtk=false;
   _i_am_main=true)
 
@@ -87,13 +87,12 @@ function linear_shallow_water_solver(
     if Dc == 2
       return v -> _liformX(v)
     elseif Dc == 3
-      @notimplemented
       # in 3D, account for the boundary term from IBP
-      # Γ = BoundaryTriangulation(ambient_model;tags=["bottom_boundary","top_boundary"])
-      # dΓ = Measure(Γ,degree)
-      # nΓ = get_normal_vector(Γ)
-      # boundary((v,q)) = ∫( (v⋅nΓ)*p_int )dΓ
-      # return v -> _liformX(v) - boundary(v)
+      Γ = BoundaryTriangulation(ambient_model;tags=["bottom_boundary","top_boundary"])
+      dΓ = Measure(Γ,degree)
+      nΓ = get_normal_vector(Γ)
+      boundary((v,q)) = ∫( (v⋅nΓ)*p_int )dΓ
+      return v -> _liformX(v) - boundary(v)
     end
   end
 

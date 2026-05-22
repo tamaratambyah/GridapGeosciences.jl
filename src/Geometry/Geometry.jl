@@ -8,6 +8,7 @@ using FillArrays
 
 
 import Gridap.Geometry: TriangulationView
+import Gridap.Geometry: FaceToCellGlue, FaceCompressedVector, push_normal
 
 using GridapGeosciences.Fields
 import GridapGeosciences.Fields: MatMultField
@@ -32,7 +33,8 @@ include("TriangulationPanelIds.jl")
 export get_panel_ids, get_forward_map_generator, geo_map_func, latlon_geo_map_func
 export pullback_area_form
 export pushforward_normal, get_facet_normal, get_mapped_facet_normal
-export BoundaryTriangulation
+export BoundaryTriangulation, SkeletonTriangulation
+export pushforward_trian
 export generate_ptr, coarse_cube_model
 
 export coarse_parametric_model
