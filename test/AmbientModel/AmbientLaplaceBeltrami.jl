@@ -22,7 +22,7 @@ end
 
 
 function laplace_beltrami_solver(
-  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel},CubedSphereAmbientDistributedDiscreteModel{3,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false;
   _i_am_main=true)
 
@@ -36,7 +36,7 @@ function laplace_beltrami_solver(
   dΩ = Measure(Ω_ambient,degree)
   dΩ_error = Measure(Ω_ambient,2*degree)
 
-  V = TestFESpace(ambient_model, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1, constraint=:zeromean)
+  V = TestFESpace(Ω_ambient, ReferenceFE(lagrangian,Float64,p_fe); conformity=:H1, constraint=:zeromean)
   U = TrialFESpace(V)
 
   f_ambient_cf = CellField(f,Ω_ambient)
@@ -59,14 +59,13 @@ function laplace_beltrami_solver(
     if Dc == 2
       return v -> poisson_liform(v)
     elseif Dc == 3
-      # # in 3D, account for the boundary term from IBP
-      # Γ = BoundaryTriangulation(ambient_model;tags=["bottom_boundary","top_boundary"])
-      # dΓ = Measure(Γ,degree)
-      # nΓ = get_normal_vector(Γ)
-      # f_int = interpolate(f,U)
-      # boundary(v) = ∫( ( (inv_metric_cf⋅gradient(f_int) )⋅nΓ)*v*meas_cf )dΓ
-      # return v -> poisson_liform(v) + boundary(v)
-      @notimplemented
+      # in 3D, account for the boundary term from IBP
+      Γ = BoundaryTriangulation(ambient_model;tags=["bottom_boundary","top_boundary"])
+      dΓ = Measure(Γ,degree)
+      nΓ = get_normal_vector(Γ)
+      f_int = interpolate(f,U)
+      boundary(v) = ∫( ( (gradient(f_int) )⋅nΓ)*v )dΓ
+      return v -> poisson_liform(v) + boundary(v)
     end
   end
 

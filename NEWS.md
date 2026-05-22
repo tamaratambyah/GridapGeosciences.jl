@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Added `CubedSphereAmbientDiscreteModel`. This is a serial implementation of the two dimensional cubed sphere in the 
+ambient space. i.e. the dimension of the physical points is 3. 
+    * Added refinement, triangulation, and interface of parametric model
+- Added `CubedSphereAmbientDistributedDiscreteModel` and `CubedSphereAmbientOctreeDistributedDiscreteModel` as the distributed 
+version of the ambient model. 
+    * Added interface of parametric model, and `adapt_model`
+- Added `AmbientCellField` as an anaglous version of `ParametricCellField`
+- Added `ambient_sgrad`, `ambient_surflap`, `ambient_surfdiv`, to compute surface operators in ambient space
+- Added `CellField` to recompute the triangulation to ensure proper handling of ghost cells in octree periodic meshes.
+- Added `get_surface_normal` to compute the outward point normal to the surface for ambient models in serial and parallel
+- Added `dagger` to compute $\tilde{k}\times \tilde{u}$ for ambient model 
+- Added `perp` to compute $R u$ for parametric models
+- Added `InverseMap`, appropriate generators and tests
+
+- Added test for the ambient model that compare outputs to those of the parametric model for 
+    * surface area, 
+    * Laplace Beltrami, Hodge Laplacian (scalar)
+    * Transient wave equation, transient shallow water
+    * skew operators, surface differential operators 
+    * panel ids
+
+- Added tutorial for ambient model and Hodge Laplacian (scalar)
+
+### Changed
+- `nref`, `nc`, `nc_horizontal`, `nc_vertical`,`dx`, to be ammenable with ambient model
+
+### Fixed 
+- `CubedSphere2DParametricDistributedDiscreteModel` to properly distribute serial models
+- `evaluate!(c,f::FieldGradient{1,<:ForwardMap3D},cellx::AbstractArray{<:VectorValue{3}})` to handle multiple caches
+- Magic numbers in test/Geometry/seq/CellMapTests.jl
+
 ## [0.6.0] - 2026-05-06
 
 This is the first public release of GridapGeosciences. Non-exhaustive list of new features:

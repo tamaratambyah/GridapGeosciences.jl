@@ -20,6 +20,7 @@ end
 @publish Geometry get_facet_normal
 @publish Geometry get_mapped_facet_normal
 @publish Geometry BoundaryTriangulation
+@publish Geometry SkeletonTriangulation
 @publish Geometry generate_ptr
 @publish Geometry coarse_cube_model
 @publish Geometry coarse_parametric_model

@@ -72,7 +72,7 @@ function Gridap.Arrays.return_cache(cache,f::FieldGradient{1,<:InverseMap2D},
   cellx::AbstractArray{<:VectorValue{3}})
 
   x = first(cellx)
-  T = typeof(transpose(_evaluate_inverse_jacobian_2d(Val(f.panel),x)))
+  T = typeof(transpose(_evaluate_inverse_jacobian_2d(f.object.panel,x)))
 
   y = similar(cellx,T)
   c = CachedArray(y)

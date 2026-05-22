@@ -22,7 +22,7 @@ end
 
 
 function hodge_laplacian_scalar(
-  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel}},
+  ambient_model::Union{AmbientModels,CubedSphereAmbientDistributedDiscreteModel{2,3,<:CubedSphereAmbientDiscreteModel},CubedSphereAmbientDistributedDiscreteModel{3,3,<:CubedSphereAmbientDiscreteModel}},
   p_fe::Int,dir::String,f::Function,ls=LUSolver(),return_vtk=false;
   _i_am_main=true)
 
@@ -78,13 +78,12 @@ function hodge_laplacian_scalar(
     if Dc == 2
       return v -> _liformX(v)
     elseif Dc == 3
-    #   # in 3D, account for the boundary term from IBP
-    #   Γ = BoundaryTriangulation(ambient_model;tags=["bottom_boundary","top_boundary"])
-    #   dΓ = Measure(Γ,degree)
-    #   nΓ = get_normal_vector(Γ)
-    #   boundary((v,q)) = ∫( -f_int*(v⋅nΓ) )dΓ
-    #   return v -> _liformX(v) + boundary(v)
-    @notimplemented
+      # in 3D, account for the boundary term from IBP
+      Γ = BoundaryTriangulation(ambient_model;tags=["bottom_boundary","top_boundary"])
+      dΓ = Measure(Γ,degree)
+      nΓ = get_normal_vector(Γ)
+      boundary((v,q)) = ∫( -f_int*(v⋅nΓ) )dΓ
+      return v -> _liformX(v) + boundary(v)
     end
   end
 
