@@ -17,7 +17,7 @@ function allg(αβ)
 
   f = c * ( -1.0*t1*t2 )
   e = c * ( 1.0 + (t1*t1) )
-  g = c * ( 1 + (t2*t2) )
+  g = c * ( 1.0 + (t2*t2) )
 
   sqrtg = (e*g - f*f)^(1/2)
 
