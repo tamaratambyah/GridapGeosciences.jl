@@ -91,47 +91,31 @@ get_cell_to_chart(m::AtlasDiscreteModel) = get_cell_to_chart(m.atlas_grid)
 # Visualization: physical coords computed here only
 # ============================================================
 
+# Two-argument Map: evaluate(_Apply(), fwd, xs) applies fwd to each element of xs.
+# Delegates to Broadcasting(fwd) so cache allocation and reuse follow Gridap conventions:
+#   - return_cache allocates once per (fwd, element_type) pair
+#   - evaluate! reuses that cache for every element, zero allocation in the hot loop
+struct _Apply <: Gridap.Arrays.Map end
+
+Gridap.Arrays.return_cache(::_Apply, fwd, xs) =
+  Gridap.Arrays.return_cache(Broadcasting(fwd), xs)
+
+Gridap.Arrays.evaluate!(cache, ::_Apply, fwd, xs) =
+  Gridap.Arrays.evaluate!(cache, Broadcasting(fwd), xs)
+
 """
     _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)
 
-Apply `physical_maps[cell_to_chart[i]]` to every local corner in `cell_local_coords[i]`,
-returning a `Table` of Da-dimensional ambient corner coordinates.
+Return a lazy array whose `i`-th entry is the `Da`-dimensional physical corners of
+cell `i`, obtained by applying `physical_maps[cell_to_chart[i]]` pointwise to
+`cell_local_coords[i]`.
 
-One `return_cache` is allocated per chart and reused for every corner evaluation of that
-chart's map, following the Gridap cache pattern for zero-allocation inner loops.
+Evaluation is deferred: no allocation occurs until an element is accessed.
+Cache allocation and reuse follow Gridap conventions via `_Apply`/`Broadcasting`.
 """
-function _local_to_physical(
-    cell_local_coords :: Gridap.Arrays.Table,
-    cell_to_chart,
-    physical_maps,
-)
-  ncells = length(cell_to_chart)
-
-  # One cache per chart; reused across all cells/corners that share the same chart map.
-  sample_pt    = cell_local_coords[1][1]
-  chart_caches = [Gridap.Arrays.return_cache(physical_maps[p], sample_pt)
-                  for p in eachindex(physical_maps)]
-  PtOut = typeof(Gridap.Arrays.evaluate!(chart_caches[cell_to_chart[1]],
-                                          physical_maps[cell_to_chart[1]], sample_pt))
-
-  total_corners = length(cell_local_coords.data)
-  data_out = Vector{PtOut}(undef, total_corners)
-  ptrs_out = Vector{Int32}(undef, ncells + 1)
-  ptrs_out[1] = 1
-
-  for i in 1:ncells
-    corners       = cell_local_coords[i]
-    nc            = length(corners)
-    ptrs_out[i+1] = ptrs_out[i] + nc
-    chart         = cell_to_chart[i]
-    fwd           = physical_maps[chart]
-    cache         = chart_caches[chart]
-    for j in eachindex(corners)
-      data_out[ptrs_out[i] + j - 1] = Gridap.Arrays.evaluate!(cache, fwd, corners[j])
-    end
-  end
-
-  Gridap.Arrays.Table(data_out, ptrs_out)
+function _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)
+  cell_maps = lazy_map(Reindex(physical_maps), cell_to_chart)
+  lazy_map(_Apply(), cell_maps, cell_local_coords)
 end
 
 function Gridap.Visualization.visualization_data(
@@ -139,9 +123,10 @@ function Gridap.Visualization.visualization_data(
     filebase :: AbstractString;
     labels  :: Gridap.Geometry.FaceLabeling = Gridap.Geometry.get_face_labeling(model),
 ) where {Dc,Da}
-  g    = model.atlas_grid
-  phys = _local_to_physical(g.cell_local_coords, g.cell_to_chart, g.physical_maps)
-  node_ids = Gridap.Arrays.Table(Int32.(1:length(phys.data)), phys.ptrs)
+  g         = model.atlas_grid
+  phys_lazy = _local_to_physical(g.cell_local_coords, g.cell_to_chart, g.physical_maps)
+  phys      = Gridap.Arrays.Table(collect.(phys_lazy))   # materialise for VTK only here
+  node_ids  = Gridap.Arrays.Table(Int32.(1:length(phys.data)), phys.ptrs)
   viz_grid = UnstructuredGrid(
     phys.data,
     node_ids,
