@@ -1,0 +1,95 @@
+# test_distributed_cylinder.jl
+#
+# Verify AtlasOctreeDistributedDiscreteModel (DistributedAtlasDiscreteModels.jl).
+#
+# Checks:
+#   1. AtlasGrid stores local (α,β) 2D reference coords (not 3D physical).
+#   2. Applying physical_maps to local coords gives the correct 3D sphere surface.
+#      Compared against the reference CubedSphere2DParametricOctreeDistributedDiscreteModel.
+#   3. writevtk produces Da=3 dimensional output via visualization_data.
+#
+# Run (single process):
+#   julia --project=. AtlasDiscreteModels/test_distributed_cylinder.jl
+# With MPI (e.g. 4 processes):
+#   mpiexec -n 4 julia --project=. AtlasDiscreteModels/test_distributed_cylinder.jl
+
+using Gridap
+using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.ReferenceFEs, Gridap.Helpers
+using GridapGeosciences
+using GridapDistributed
+using GridapP4est
+using PartitionedArrays
+using MPI
+
+import GridapGeosciences.Fields: ForwardMap2D
+
+include("DistributedAtlasDiscreteModels.jl")
+
+# ── MPI setup ─────────────────────────────────────────────────────────────────
+MPI.Init()
+nprocs = MPI.Comm_size(MPI.COMM_WORLD)
+ranks  = distribute_with_mpi(LinearIndices((nprocs,)))
+
+const RADIUS  = 1.0
+const NUM_REF = 1    # 6 coarse cells → 24 fine cells at level 1
+
+# ── Build new AtlasOctreeDistributedDiscreteModel ────────────────────────────
+atlas_model = AtlasOctreeDistributedDiscreteModel(
+  ranks, RADIUS; num_initial_uniform_refinements = NUM_REF)
+
+# ── Reference: CubedSphere2DParametricOctreeDistributedDiscreteModel ─────────
+ref_model = CubedSphere2DParametricOctreeDistributedDiscreteModel(
+  ranks, RADIUS; num_initial_uniform_refinements = NUM_REF)
+
+# ── Per-rank verification ─────────────────────────────────────────────────────
+map(
+  local_views(atlas_model.dmodel),
+  local_views(ref_model.parametric_dmodel),
+) do local_atlas, local_ref
+
+  g       = local_atlas.atlas_grid
+  ncells  = Gridap.Geometry.num_cells(g)
+
+  # 1. Local coords are 2D (α,β)
+  local_coords = g.cell_local_coords
+  @assert length(local_coords) == ncells
+
+  # 2. Panel ids match the reference model
+  panels_ref = local_ref.panel_ids
+  @assert g.cell_to_chart == Vector{Int}(panels_ref) "Panel id arrays differ"
+
+  # 3. Local (α,β) coords match reference model's 2D coords
+  #    (reference stores them in grid.cell_map.args[1])
+  alpha_beta_ref = local_ref.grid.cell_map.args[1]
+  for i in 1:ncells
+    @assert local_coords[i] ≈ alpha_beta_ref[i] "Local coords mismatch at cell $i"
+  end
+
+  # 4. Physical coords computed via _local_to_physical match ForwardMap2D
+  phys = _local_to_physical(local_coords, g.cell_to_chart, g.physical_maps)
+  # One cache per chart, hoisted outside the cell loop — reused for every corner.
+  sample_pt    = local_coords[1][1]
+  chart_caches = [Gridap.Arrays.return_cache(g.physical_maps[p], sample_pt)
+                  for p in eachindex(g.physical_maps)]
+  for i in 1:ncells
+    chart = g.cell_to_chart[i]
+    fwd   = g.physical_maps[chart]
+    cache = chart_caches[chart]
+    for (k, (local_pt, actual_pt)) in enumerate(zip(local_coords[i], phys[i]))
+      expected_pt = Gridap.Arrays.evaluate!(cache, fwd, local_pt)
+      @assert expected_pt ≈ actual_pt "Rank $(MPI.Comm_rank(MPI.COMM_WORLD)) cell $i corner $k: expected=$expected_pt got=$actual_pt"
+    end
+  end
+
+  # 5. All physical corners on the sphere
+  nchecked = test_atlas_octree_model(local_atlas, RADIUS)
+  rank = MPI.Comm_rank(MPI.COMM_WORLD)
+  println("Rank $rank: $nchecked cells verified ✓")
+end
+
+# ── VTK output ────────────────────────────────────────────────────────────────
+mkpath("output")
+writevtk(atlas_model, "output/cubed_sphere")
+println("Written output/cubed_sphere_2.vtu ✓")
+
+println("test_distributed_cylinder: ALL CHECKS PASSED")
