@@ -3,8 +3,9 @@
 # Library of canonical coarse meshes for AtlasGrid / AtlasDiscreteModel.
 # Each shape is represented by a concrete subtype of AbstractCoarseMesh that
 # carries the geometric parameters (radius, height, …).  Calling
-# get_coarse_mesh(shape) returns a CoarseMeshInfo bundling the coarse Grid,
-# per-cell local-frame corner coordinates, and default physical maps.
+# get_coarse_mesh(shape) returns a CoarseMeshInfo bundling the coarse
+# DiscreteModel (with face labels), per-cell local-frame corner coordinates,
+# and default physical maps.
 
 using GridapGeosciences
 import GridapGeosciences.Fields: ForwardMap2D
@@ -15,29 +16,36 @@ import GridapGeosciences.Geometry: NPANELS, CUBE_HALF_EDGE
 # ============================================================
 
 """
-    CoarseMeshInfo{Dc, G, A, M}
+    CoarseMeshInfo{Dc, Dm, A, M}
 
-Bundles a coarse `Grid{Dc,Dc}` with per-cell local-frame corner coordinates
-and per-chart physical maps.  Returned by `get_coarse_mesh`; consumed by
-the `AtlasGrid` and `AtlasDiscreteModel` convenience constructors.
+Bundles a coarse `DiscreteModel{Dc,Dc}` (with face labels) with per-cell
+local-frame corner coordinates and per-chart physical maps.  Returned by
+`get_coarse_mesh`; consumed by the `AtlasGrid` and `AtlasDiscreteModel`
+convenience constructors.
 
-- `grid`          — coarse `UnstructuredGrid{Dc,Dc}` (topology only; coordinates are junk).
+- `model`         — coarse `DiscreteModel{Dc,Dc}` carrying topology and
+                    `FaceLabeling` (node coordinates are junk — only connectivity
+                    matters).  For meshes with physical boundaries (e.g. cylinder),
+                    boundary edges/nodes are tagged by `get_coarse_mesh`.
 - `local_coords`  — one entry per coarse cell; `local_coords[k]` is a vector of
-                    `Point{Dc}` giving the corners of chart k in its local reference frame.
+                    `Point{Dc}` giving the corners of chart k in its local frame.
 - `physical_maps` — one callable per chart: `Point{Dc} → Point{Da}`.
 """
-struct CoarseMeshInfo{Dc, G <: Gridap.Geometry.Grid{Dc,Dc}, A <: AbstractVector, M}
-  grid          :: G
+struct CoarseMeshInfo{Dc,
+                      Dm <: Gridap.Geometry.DiscreteModel{Dc,Dc},
+                      A  <: AbstractVector,
+                      M}
+  model         :: Dm
   local_coords  :: A
   physical_maps :: M
 
   function CoarseMeshInfo(
-      grid          :: Gridap.Geometry.Grid{Dc,Dc},
+      model         :: Gridap.Geometry.DiscreteModel{Dc,Dc},
       local_coords  :: A,
       physical_maps :: M,
   ) where {Dc, A <: AbstractVector, M}
-    G = typeof(grid)
-    new{Dc,G,A,M}(grid, local_coords, physical_maps)
+    Dm = typeof(model)
+    new{Dc,Dm,A,M}(model, local_coords, physical_maps)
   end
 end
 
@@ -110,6 +118,10 @@ Local frame for both charts: (s,t) ∈ [−1, 1]².
 Physical maps (s,t) → (X,Y,Z):
   C1: (r·cos(π(s+1)/2), r·sin(π(s+1)/2), h(t+1)/2)   r = radius, h = height
   C2: (r·cos(π(s+3)/2), r·sin(π(s+3)/2), h(t+1)/2)
+
+Face labels (entity 1 = "interior", entity 2 = "boundary" reserved by Gridap):
+  "bottom" = entity 3: edge (1,2) and nodes 1, 2  (z = 0 circle)
+  "top"    = entity 4: edge (3,4) and nodes 3, 4  (z = height circle)
 """
 function get_coarse_mesh(m::CylinderMesh)
   r, h = m.radius, m.height
@@ -129,6 +141,28 @@ function get_coarse_mesh(m::CylinderMesh)
   grid = Gridap.Geometry.UnstructuredGrid(
     node_coords, cell_node_ids, [reffe], cell_types, Gridap.Geometry.NonOriented())
 
+  # ── Topology + face labels with "bottom" and "top" tags ───────────────────
+  # All 4 edges are topologically interior (periodic mesh); get_isboundary_face
+  # returns false for all.  The z=0 and z=height circles are physical boundaries
+  # tagged explicitly.  FaceLabeling(topo) uses entity 1 for interior faces and
+  # entity 2 for topological boundary faces; for this closed periodic mesh all
+  # edges get entity 1.  We use entities 3 and 4 for the new tags.
+  # Edge ordering (verified for this 2-cell periodic QUAD mesh):
+  #   edge 1 = (1,2) = bottom circle    edge 2 = (3,4) = top circle
+  #   edge 3 = (1,3) = seam left        edge 4 = (2,4) = seam right
+  topo   = Gridap.Geometry.UnstructuredGridTopology(grid)
+  labels = Gridap.Geometry.FaceLabeling(topo)   # all interior entities = 1
+  labels.d_to_dface_to_entity[2][1] = Int32(3)   # edge 1 → bottom (entity 3)
+  labels.d_to_dface_to_entity[2][2] = Int32(4)   # edge 2 → top    (entity 4)
+  labels.d_to_dface_to_entity[1][1] = Int32(3)   # node 1 → bottom
+  labels.d_to_dface_to_entity[1][2] = Int32(3)   # node 2 → bottom
+  labels.d_to_dface_to_entity[1][3] = Int32(4)   # node 3 → top
+  labels.d_to_dface_to_entity[1][4] = Int32(4)   # node 4 → top
+  Gridap.Geometry.add_tag!(labels, "bottom", [3])
+  Gridap.Geometry.add_tag!(labels, "top",    [4])
+
+  model = Gridap.Geometry.UnstructuredDiscreteModel(grid, topo, labels)
+
   ref_corners  = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
   local_coords = [ref_corners, ref_corners]
 
@@ -137,7 +171,7 @@ function get_coarse_mesh(m::CylinderMesh)
   map_C2(pt::Point{2,Float64}) =
     Point(r*cos(π*(pt[1]+3)/2), r*sin(π*(pt[1]+3)/2), h*(pt[2]+1)/2)
 
-  CoarseMeshInfo(grid, local_coords, [map_C1, map_C2])
+  CoarseMeshInfo(model, local_coords, [map_C1, map_C2])
 end
 
 # ============================================================
@@ -180,6 +214,15 @@ The 8 nodes correspond to the 8 corners of the cube. Node sharing encodes the
 
 Local frame for all charts: (α,β) ∈ [−π/4, π/4]².
 Physical maps: `ForwardMap2D(p, radius)` for p = 1 … 6 (gnomonic projection).
+
+Face labels: the cubed sphere is a closed manifold — no topological boundary.
+FaceLabeling(topo) assigns entity 1 ("interior") to all faces, which also
+satisfies the p4est precondition that all face entity ids be positive.
+# NOTE: The legacy serial function _create_parametric_octree_dmodel_coarse_model
+# explicitly calls add_tag!(labels, "boundary", [1]).  That call is UNNECESSARY
+# (and would fail with current Gridap because "boundary" already exists in the
+# default FaceLabeling).  The p4est precondition is entity id > 0, which is
+# already satisfied here.
 """
 function get_coarse_mesh(m::CubedSphereMesh)
   node_coords = Vector{Point{2,Float64}}([
@@ -201,6 +244,10 @@ function get_coarse_mesh(m::CubedSphereMesh)
   grid = Gridap.Geometry.UnstructuredGrid(
     node_coords, cell_node_ids, [reffe], cell_types, Gridap.Geometry.NonOriented())
 
+  topo   = Gridap.Geometry.UnstructuredGridTopology(grid)
+  labels = Gridap.Geometry.FaceLabeling(topo)   # all entities = 1 (closed manifold)
+  model  = Gridap.Geometry.UnstructuredDiscreteModel(grid, topo, labels)
+
   panel_corners = [
     Point(-CUBE_HALF_EDGE, -CUBE_HALF_EDGE),   # BL
     Point( CUBE_HALF_EDGE, -CUBE_HALF_EDGE),   # BR
@@ -210,5 +257,5 @@ function get_coarse_mesh(m::CubedSphereMesh)
   local_coords  = fill(panel_corners, NPANELS)
   physical_maps = [ForwardMap2D(p, m.radius) for p in 1:NPANELS]
 
-  CoarseMeshInfo(grid, local_coords, physical_maps)
+  CoarseMeshInfo(model, local_coords, physical_maps)
 end

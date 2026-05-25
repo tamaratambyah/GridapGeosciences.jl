@@ -24,8 +24,6 @@ using GridapP4est
 using PartitionedArrays
 using MPI
 
-import GridapGeosciences.Fields: ForwardMap2D
-
 include("DistributedAtlasDiscreteModels.jl")
 
 # ── MPI setup ─────────────────────────────────────────────────────────────────
@@ -38,7 +36,7 @@ const NUM_REF = 1    # 6 coarse cells → 24 fine cells at level 1
 
 # ── Build new AtlasOctreeDistributedDiscreteModel ────────────────────────────
 atlas_model = AtlasOctreeDistributedDiscreteModel(
-  ranks, RADIUS; num_initial_uniform_refinements = NUM_REF)
+  ranks, CubedSphereMesh(RADIUS); num_initial_uniform_refinements = NUM_REF)
 
 # ── Reference: CubedSphere2DParametricOctreeDistributedDiscreteModel ─────────
 ref_model = CubedSphere2DParametricOctreeDistributedDiscreteModel(

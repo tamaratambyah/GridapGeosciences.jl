@@ -165,8 +165,7 @@ function AtlasDiscreteModel(
     num_refinements :: Int;
     orientation_style = nothing,
 )
-  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
-  AtlasDiscreteModel(coarse_model, info.local_coords, info.physical_maps, num_refinements;
+  AtlasDiscreteModel(info.model, info.local_coords, info.physical_maps, num_refinements;
                      orientation_style)
 end
 
@@ -181,8 +180,7 @@ function AtlasDiscreteModel(
     num_refinements :: Int;
     orientation_style = nothing,
 )
-  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
-  AtlasDiscreteModel(coarse_model, info.local_coords, custom_maps, num_refinements;
+  AtlasDiscreteModel(info.model, info.local_coords, custom_maps, num_refinements;
                      orientation_style)
 end
 
