@@ -7,7 +7,6 @@
 using Gridap
 using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.ReferenceFEs, Gridap.Helpers
 using Gridap.Adaptivity, Gridap.Visualization
-using FillArrays
 
 # ============================================================
 # AtlasGrid
@@ -57,12 +56,12 @@ struct AtlasGrid{Dc, Da,
     cell_physical_maps :: AbstractVector,
     orientation_style  :: Gridap.Geometry.OrientationStyle,
   ) where Dc
-    # Infer Da from the first cell's physical map (one evaluation at constructor time only)
-    sample_pt  = cell_local_coords[1][1]
-    fwd0       = cell_physical_maps[1]
-    cache0     = Gridap.Arrays.return_cache(fwd0, sample_pt)
-    sample_out = Gridap.Arrays.evaluate!(cache0, fwd0, sample_pt)
-    Da = length(sample_out)
+    # Infer Da from the return type of the first cell's physical map.
+    # return_type is a pure type-level query for concrete Map subtypes; it avoids
+    # allocating a cache or evaluating a sample point.
+    sample_pt = cell_local_coords[1][1]
+    fwd0      = cell_physical_maps[1]
+    Da        = length(zero(Gridap.Arrays.return_type(fwd0, sample_pt)))
     n = Gridap.Geometry.num_cells(param_grid)
     @check length(cell_local_coords)  == n
     @check length(cell_physical_maps) == n
@@ -214,24 +213,13 @@ Gridap.Geometry.get_cell_type(g::AtlasGrid) = Gridap.Geometry.get_cell_type(g.pa
 
 Gridap.Geometry.get_cell_coordinates(g::AtlasGrid) = g.cell_local_coords
 
-# Fast path when cell_local_coords is a Table (e.g. distributed case):
-# return the pre-concatenated flat data array with no allocation.
-Gridap.Geometry.get_node_coordinates(
-  g::AtlasGrid{Dc,Da,G,<:Gridap.Arrays.Table}) where {Dc,Da,G} =
-  g.cell_local_coords.data
+# get_node_coordinates is @abstractmethod in Gridap but is never called on AtlasGrid:
+# - get_cell_coordinates is overridden above (FEM path bypasses get_node_coordinates)
+# - visualization_data is overridden in AtlasDiscreteModels.jl (VTK path also bypasses it)
+# Any unexpected caller will get Gridap's @abstractmethod error, which is the correct signal.
 
-# General fallback: materialise lazily (each cell's corners collected and vcat-ed).
-Gridap.Geometry.get_node_coordinates(g::AtlasGrid) =
-  mapreduce(collect, vcat, g.cell_local_coords)
-
-# Fast path when cell_local_coords is a Table: use the stored ptrs directly.
-function Gridap.Geometry.get_cell_node_ids(
-    g::AtlasGrid{Dc,Da,G,<:Gridap.Arrays.Table}) where {Dc,Da,G}
-  cc = g.cell_local_coords
-  Gridap.Arrays.Table(Int32.(1:length(cc.data)), cc.ptrs)
-end
-
-# General fallback: compute uniform ptrs from cell count and corners-per-cell.
+# get_cell_node_ids is called in visualization_data(AtlasDiscreteModel) to build the
+# DG-style sequential node table for the UnstructuredGrid passed to VTK.
 function Gridap.Geometry.get_cell_node_ids(g::AtlasGrid)
   ncells    = Gridap.Geometry.num_cells(g)
   n_corners = length(g.cell_local_coords[1])

@@ -87,6 +87,67 @@ struct CubedSphereMesh <: AbstractCoarseMesh
   CubedSphereMesh(radius=1.0) = new(radius)
 end
 
+"""
+    MobiusStripMesh(radius=1.0, half_width=0.3)
+
+Two-chart atlas for a Möbius strip with major radius `radius` and half-width `half_width`.
+The two charts cover θ ∈ [0,π] (C1) and θ ∈ [π,2π] (C2). The half-twist is encoded
+topologically: the right edge of C2 is identified with the left edge of C1 reversed.
+"""
+struct MobiusStripMesh <: AbstractCoarseMesh
+  radius     :: Float64
+  half_width :: Float64
+  MobiusStripMesh(radius=1.0, half_width=0.3) = new(radius, half_width)
+end
+
+# ============================================================
+# Concrete Map subtypes for physical embeddings
+# ============================================================
+#
+# Plain Julia closures create a Vector{Function} (abstract element type) when
+# collected into an array, causing dynamic dispatch through all downstream
+# lazy_map chains.  Concrete Map subtypes give a fully typed array, keeping
+# Reindex / lazy_map type-stable.
+
+"""
+    CylinderChartMap(radius, height, theta_offset)
+
+Gridap `Map` for one chart of the cylinder atlas.
+`theta_offset = 1.0` → θ ∈ [0,π] (C1);  `3.0` → θ ∈ [π,2π] (C2).
+Maps (s,t) ∈ [−1,1]² to (r·cos θ, r·sin θ, h(t+1)/2) with θ = π(s+offset)/2.
+"""
+struct CylinderChartMap <: Gridap.Arrays.Map
+  radius       :: Float64
+  height       :: Float64
+  theta_offset :: Float64
+end
+Gridap.Arrays.return_cache(::CylinderChartMap, ::Point{2}) = nothing
+Gridap.Arrays.return_type(::CylinderChartMap, ::Point{2}) = Point{3,Float64}
+function Gridap.Arrays.evaluate!(::Nothing, m::CylinderChartMap, pt::Point{2})
+  θ = π*(pt[1] + m.theta_offset)/2
+  Point(m.radius*cos(θ), m.radius*sin(θ), m.height*(pt[2]+1)/2)
+end
+
+"""
+    MobiusChartMap(radius, half_width, theta_offset)
+
+Gridap `Map` for one chart of the Möbius strip atlas.
+`theta_offset = 1.0` → θ ∈ [0,π] (C1);  `3.0` → θ ∈ [π,2π] (C2).
+Maps (s,t) ∈ [−1,1]² to the standard Möbius embedding with half-angle twist.
+"""
+struct MobiusChartMap <: Gridap.Arrays.Map
+  radius       :: Float64
+  half_width   :: Float64
+  theta_offset :: Float64
+end
+Gridap.Arrays.return_cache(::MobiusChartMap, ::Point{2}) = nothing
+Gridap.Arrays.return_type(::MobiusChartMap, ::Point{2}) = Point{3,Float64}
+function Gridap.Arrays.evaluate!(::Nothing, m::MobiusChartMap, pt::Point{2})
+  θ = π*(pt[1] + m.theta_offset)/2
+  ρ = m.radius + m.half_width*pt[2]*cos(θ/2)
+  Point(ρ*cos(θ), ρ*sin(θ), m.half_width*pt[2]*sin(θ/2))
+end
+
 # ============================================================
 # get_coarse_mesh — CylinderMesh
 # ============================================================
@@ -126,6 +187,8 @@ Face labels (entity 1 = "interior", entity 2 = "boundary" reserved by Gridap):
 function get_coarse_mesh(m::CylinderMesh)
   r, h = m.radius, m.height
 
+  # Coordinate values are unused — AtlasGrid replaces them with local_coords.
+  # Any distinct values that give a valid non-degenerate mesh work here.
   node_coords = Vector{Point{2,Float64}}([
     Point(0.0, 0.0),   # 1
     Point(1.0, 0.0),   # 2
@@ -184,12 +247,8 @@ function get_coarse_mesh(m::CylinderMesh)
   ref_corners  = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
   local_coords = [ref_corners, ref_corners]
 
-  map_C1(pt::Point{2,Float64}) =
-    Point(r*cos(π*(pt[1]+1)/2), r*sin(π*(pt[1]+1)/2), h*(pt[2]+1)/2)
-  map_C2(pt::Point{2,Float64}) =
-    Point(r*cos(π*(pt[1]+3)/2), r*sin(π*(pt[1]+3)/2), h*(pt[2]+1)/2)
-
-  CoarseMeshInfo(model, local_coords, [map_C1, map_C2])
+  CoarseMeshInfo(model, local_coords,
+    [CylinderChartMap(r, h, 1.0), CylinderChartMap(r, h, 3.0)])
 end
 
 # ============================================================
@@ -243,6 +302,8 @@ satisfies the p4est precondition that all face entity ids be positive.
 # already satisfied here.
 """
 function get_coarse_mesh(m::CubedSphereMesh)
+  # Coordinate values are unused — AtlasGrid replaces them with local_coords.
+  # Any distinct values that give a valid non-degenerate mesh work here.
   node_coords = Vector{Point{2,Float64}}([
     Point(-1.0, -1.0),   # 1
     Point( 1.0, -1.0),   # 2
@@ -276,4 +337,71 @@ function get_coarse_mesh(m::CubedSphereMesh)
   physical_maps = [ForwardMap2D(p, m.radius) for p in 1:NPANELS]
 
   CoarseMeshInfo(model, local_coords, physical_maps)
+end
+
+# ============================================================
+# get_coarse_mesh — MobiusStripMesh
+# ============================================================
+
+"""
+    get_coarse_mesh(m::MobiusStripMesh) → CoarseMeshInfo{2}
+
+Coarse QUAD mesh for a Möbius strip with major radius `m.radius` and half-width
+`m.half_width`.
+
+Topology (4 nodes, 2 cells). Node coordinates are junk — only connectivity matters.
+Gridap Z-order per cell: BL, BR, TL, TR.
+
+  3 - 4 - 1
+  |   |   |
+  1 - 2 - 3
+  [C1] [C2]
+
+Cells:
+  C1 = [1,2,3,4]   BL=1 BR=2 TL=3 TR=4   θ ∈ [0,  π]
+  C2 = [2,3,4,1]   BL=2 BR=3 TL=4 TR=1   θ ∈ [π, 2π]
+
+The left edge of C1 {1,3} is identified with the right edge of C2 {3,1}: same node
+set, reversed orientation — this encodes the half-twist.  Compare with the cylinder
+(C2=[2,1,4,3]) where the seam nodes share the same height.
+
+Local frame for both charts: (s,t) ∈ [−1,1]², s = angular direction, t = width.
+Physical maps (s,t) → (X,Y,Z), with R = major radius, W = half_width:
+  C1: θ = π(s+1)/2 ∈ [0,π]
+  C2: θ = π(s+3)/2 ∈ [π,2π]
+  both: ((R + W·t·cos(θ/2))·cos(θ),  (R + W·t·cos(θ/2))·sin(θ),  W·t·sin(θ/2))
+
+Seam continuity:
+  Interior (θ = π):   map_C1(1, t)  = map_C2(−1, t)
+  Twist    (θ = 0≡2π): map_C1(−1, t) = map_C2(1, −t)   [t ↦ −t encodes the half-twist]
+"""
+function get_coarse_mesh(m::MobiusStripMesh)
+  R, W = m.radius, m.half_width
+
+  # Coordinate values are unused — AtlasGrid replaces them with local_coords.
+  # Any distinct values that give a valid non-degenerate mesh work here.
+  node_coords = Vector{Point{2,Float64}}([
+    Point(0.0, 0.0),   # 1
+    Point(1.0, 0.0),   # 2
+    Point(0.0, 1.0),   # 3
+    Point(1.0, 1.0),   # 4
+  ])
+
+  cell_node_data = Int32[1,2,3,4,  2,3,4,1]
+  cell_node_ptrs = Int32[1,5,9]
+  cell_node_ids  = Gridap.Arrays.Table(cell_node_data, cell_node_ptrs)
+  cell_types     = Int32[1,1]
+  reffe          = Gridap.ReferenceFEs.LagrangianRefFE(Float64, QUAD, 1)
+  grid = Gridap.Geometry.UnstructuredGrid(
+    node_coords, cell_node_ids, [reffe], cell_types, Gridap.Geometry.NonOriented())
+
+  topo   = Gridap.Geometry.UnstructuredGridTopology(grid)
+  labels = Gridap.Geometry.FaceLabeling(topo)
+  model  = Gridap.Geometry.UnstructuredDiscreteModel(grid, topo, labels)
+
+  ref_corners  = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
+  local_coords = [ref_corners, ref_corners]
+
+  CoarseMeshInfo(model, local_coords,
+    [MobiusChartMap(R, W, 1.0), MobiusChartMap(R, W, 3.0)])
 end
