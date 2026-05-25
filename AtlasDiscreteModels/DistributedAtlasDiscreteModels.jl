@@ -110,7 +110,7 @@ function AtlasOctreeDistributedDiscreteModel(
     local_views(octree_dmodel.dmodel),
     cell_wise_local_coords,
     cell_panels,
-  ) do omodel, local_coords, panels_local
+  ) do omodel, local_coords, cell_to_chart_local
 
     param_grid    = Gridap.Geometry.get_grid(omodel)
     grid_topology = Gridap.Geometry.get_grid_topology(omodel)
@@ -119,7 +119,7 @@ function AtlasOctreeDistributedDiscreteModel(
     atlas_grid = AtlasGrid(
       param_grid,
       local_coords,
-      panels_local,
+      cell_to_chart_local,
       physical_maps,
       orientation_style,
     )
@@ -164,28 +164,4 @@ function AtlasOctreeDistributedDiscreteModel(
 )
   AtlasOctreeDistributedDiscreteModel(ranks, CubedSphereMesh(Float64(radius));
     num_initial_uniform_refinements)
-end
-
-# ============================================================
-# Distributed test helper  (for future use)
-# ============================================================
-
-"""
-    test_atlas_octree_model(model, radius)
-
-Check that every local fine cell's physical corners lie on the unit sphere of the
-given `radius`.  Call inside a `map(local_views(model.dmodel)) do local_model ...`
-block or directly in a serial-compatible context.
-"""
-function test_atlas_octree_model(local_model :: AtlasDiscreteModel{Dc,Da}, radius::Real) where {Dc,Da}
-  g     = local_model.atlas_grid
-  phys  = _local_to_physical(g.cell_local_coords, g.cell_to_chart, g.physical_maps)
-  ncells = length(phys)
-  for i in 1:ncells
-    for pt in phys[i]
-      r = sqrt(sum(pt[k]^2 for k in 1:Da))
-      @assert isapprox(r, radius; atol=1e-10) "cell $i: r=$r ≠ radius=$radius  pt=$pt"
-    end
-  end
-  ncells
 end

@@ -14,12 +14,21 @@ using FillArrays
 # ============================================================
 
 """
-    AtlasGrid{Dc,Da,G,A,M,O} <: Gridap.Geometry.Grid{Dc,Dc}
+    AtlasGrid{Dc,Da,G,A,C,M,O} <: Gridap.Geometry.Grid{Dc,Dc}
 
 A DG-style grid for a `Dc`-dimensional manifold atlas.  Each fine cell stores its
 corners in the **local reference frame** of its coarse chart (Dc-dimensional).
 Physical Da-dimensional coordinates are never materialised here; they are computed
 on demand only during visualization.
+
+# Type parameters
+- `Dc` — cell dimension (= manifold dimension)
+- `Da` — ambient (physical) space dimension
+- `G`  — concrete type of `param_grid`
+- `A`  — concrete type of `cell_local_coords`
+- `C`  — concrete type of `cell_to_chart` (avoids abstract-field type instability)
+- `M`  — concrete type of `physical_maps`
+- `O`  — concrete `OrientationStyle` subtype
 
 # Fields
 - `param_grid`        — fine `Grid{Dc,Dc}` from uniform refinement (topology/connectivity).
@@ -32,11 +41,12 @@ on demand only during visualization.
 struct AtlasGrid{Dc, Da,
                  G <: Gridap.Geometry.Grid{Dc,Dc},
                  A <: AbstractVector,
+                 C <: AbstractVector{<:Integer},
                  M,
                  O <: Gridap.Geometry.OrientationStyle} <: Gridap.Geometry.Grid{Dc,Dc}
   param_grid        :: G
   cell_local_coords :: A
-  cell_to_chart     :: AbstractVector{<:Integer}
+  cell_to_chart     :: C
   physical_maps     :: M
   orientation_style :: O
 
@@ -58,10 +68,11 @@ struct AtlasGrid{Dc, Da,
     @check length(cell_to_chart) == n
     G = typeof(param_grid)
     A = typeof(cell_local_coords)
+    C = typeof(cell_to_chart)
     M = typeof(physical_maps)
     O = typeof(orientation_style)
-    new{Dc,Da,G,A,M,O}(param_grid, cell_local_coords,
-                        cell_to_chart, physical_maps, orientation_style)
+    new{Dc,Da,G,A,C,M,O}(param_grid, cell_local_coords,
+                          cell_to_chart, physical_maps, orientation_style)
   end
 end
 
@@ -74,8 +85,21 @@ end
                       num_refinements, orientation_style) -> (AtlasGrid, fine_model)
 
 Private helper shared by the `AtlasGrid` and `AtlasDiscreteModel` outer constructors.
-Performs the uniform refinement exactly once and returns both the `AtlasGrid` and the
+Refines `coarse_model` `num_refinements` times and returns both the `AtlasGrid` and the
 `fine_model` so the caller can extract topology and face labeling without re-refining.
+
+`num_refinements` must be ≥ 1.  The face labeling of `coarse_model` is propagated to
+`fine_model` by Gridap's refinement machinery and is accessible via
+`Gridap.Geometry.get_face_labeling(fine_model)`.
+
+# Arguments
+- `coarse_model`       — coarse `DiscreteModel{Dc,Dc}` with face labeling.
+- `coarse_local_coords`— `AbstractVector` where entry `k` is a vector of `Point{Dc}`
+                         giving the corners of chart `k` in its local reference frame.
+- `physical_maps`      — `AbstractVector` of callables; `physical_maps[k](pt::Point{Dc})`
+                         returns the `Da`-dimensional physical point for chart `k`.
+- `num_refinements`    — number of uniform refinements (must be ≥ 1).
+- `orientation_style`  — grid orientation; if `nothing`, copied from the fine param_grid.
 """
 function _build_atlas_grid(
     coarse_model        :: Gridap.Geometry.DiscreteModel{Dc,Dc},
@@ -85,18 +109,21 @@ function _build_atlas_grid(
     orientation_style,
 ) where Dc
 
-  # ── 1. Refine coarse_model N times → fine_model, cell_to_chart ───────────
-  current_model = coarse_model
-  cell_to_chart = collect(1:num_cells(coarse_model))
-  first_glue    = nothing
+  @check num_refinements >= 1 "num_refinements must be ≥ 1, got $num_refinements"
 
-  for l in 1:num_refinements
+  # ── 1. Refine coarse_model N times → fine_model, cell_to_chart ───────────
+  ncharts       = Gridap.Geometry.num_cells(coarse_model)
+  cell_to_chart = collect(1:ncharts)
+
+  # Peel first iteration to capture first_glue (needed for ref-grid in step 2)
+  adapted       = Gridap.Adaptivity.refine(coarse_model)
+  first_glue    = adapted.glue
+  cell_to_chart = cell_to_chart[first_glue.n2o_faces_map[Dc+1]]
+  current_model = adapted.model
+
+  for _ in 2:num_refinements
     adapted       = Gridap.Adaptivity.refine(current_model)
-    level_map     = adapted.glue.n2o_faces_map[Dc+1]
-    cell_to_chart = cell_to_chart[level_map]
-    if l == 1
-      first_glue = adapted.glue
-    end
+    cell_to_chart = cell_to_chart[adapted.glue.n2o_faces_map[Dc+1]]
     current_model = adapted.model
   end
   fine_model = current_model
@@ -115,7 +142,6 @@ function _build_atlas_grid(
   Ψ_maps    = map(corners -> linear_combination(corners, shapefuns), coarse_local_coords)
 
   # ── 4. Tile ref_coords and apply Ψ_k — one cache per cell, reused per corner ──
-  ncharts      = num_cells(coarse_model)
   child_ids    = repeat(1:n_per_chart, ncharts)
   ref_per_fine = lazy_map(Reindex(ref_coords), child_ids)
   chart_Ψ      = lazy_map(Reindex(Ψ_maps), cell_to_chart)
@@ -179,7 +205,7 @@ end
 # ----------------------------------------------------------
 
 Gridap.Geometry.OrientationStyle(
-  ::Type{<:AtlasGrid{Dc,Da,G,A,M,O}}) where {Dc,Da,G,A,M,O} = O()
+  ::Type{<:AtlasGrid{Dc,Da,G,A,C,M,O}}) where {Dc,Da,G,A,C,M,O} = O()
 
 Gridap.Geometry.num_cells(g::AtlasGrid) = length(g.cell_to_chart)
 

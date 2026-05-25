@@ -83,7 +83,26 @@ end
 println("Seam continuity check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5.  VTK output
+# 5.  Face label propagation: "bottom" and "top" survive refinement
+# ─────────────────────────────────────────────────────────────────────────────
+
+fine_labels   = Gridap.Geometry.get_face_labeling(atlas_model)
+edge_entities = Gridap.Geometry.get_face_entity(fine_labels, 1)
+bottom_tag    = Gridap.Geometry.get_tag_from_name(fine_labels, "bottom")
+top_tag       = Gridap.Geometry.get_tag_from_name(fine_labels, "top")
+bottom_entity = fine_labels.tag_to_entities[bottom_tag][1]
+top_entity    = fine_labels.tag_to_entities[top_tag][1]
+bottom_edges  = findall(==(bottom_entity), edge_entities)
+top_edges     = findall(==(top_entity),    edge_entities)
+@assert !isempty(bottom_edges) "\"bottom\" tag not found on fine mesh edges"
+@assert !isempty(top_edges)    "\"top\" tag not found on fine mesh edges"
+# Each coarse bottom/top edge refines into 2^NUM_REF fine edges.
+@assert length(bottom_edges) == 2^NUM_REF "Expected $(2^NUM_REF) bottom edges, got $(length(bottom_edges))"
+@assert length(top_edges)    == 2^NUM_REF "Expected $(2^NUM_REF) top edges, got $(length(top_edges))"
+println("Face label propagation check passed ✓  ($(2^NUM_REF) bottom, $(2^NUM_REF) top edges)")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6.  VTK output
 # ─────────────────────────────────────────────────────────────────────────────
 
 mkpath("output")

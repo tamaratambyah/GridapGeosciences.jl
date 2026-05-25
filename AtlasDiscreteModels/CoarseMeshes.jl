@@ -144,20 +144,38 @@ function get_coarse_mesh(m::CylinderMesh)
   # ── Topology + face labels with "bottom" and "top" tags ───────────────────
   # All 4 edges are topologically interior (periodic mesh); get_isboundary_face
   # returns false for all.  The z=0 and z=height circles are physical boundaries
-  # tagged explicitly.  FaceLabeling(topo) uses entity 1 for interior faces and
-  # entity 2 for topological boundary faces; for this closed periodic mesh all
-  # edges get entity 1.  We use entities 3 and 4 for the new tags.
-  # Edge ordering (verified for this 2-cell periodic QUAD mesh):
-  #   edge 1 = (1,2) = bottom circle    edge 2 = (3,4) = top circle
-  #   edge 3 = (1,3) = seam left        edge 4 = (2,4) = seam right
+  # tagged explicitly.  FaceLabeling(topo) uses entity 1 for all interior faces;
+  # we override with entity 3 (bottom) and 4 (top).  Entities 1 and 2 are
+  # reserved by Gridap ("interior" and "boundary").
+  #
+  # Edges are identified by their vertex-pair rather than by positional index
+  # so the labeling is robust to Gridap changing its edge-enumeration order.
+  # Bottom circle: edge connecting nodes 1 and 2 (z = 0).
+  # Top circle:    edge connecting nodes 3 and 4 (z = height).
   topo   = Gridap.Geometry.UnstructuredGridTopology(grid)
   labels = Gridap.Geometry.FaceLabeling(topo)   # all interior entities = 1
-  labels.d_to_dface_to_entity[2][1] = Int32(3)   # edge 1 → bottom (entity 3)
-  labels.d_to_dface_to_entity[2][2] = Int32(4)   # edge 2 → top    (entity 4)
-  labels.d_to_dface_to_entity[1][1] = Int32(3)   # node 1 → bottom
-  labels.d_to_dface_to_entity[1][2] = Int32(3)   # node 2 → bottom
-  labels.d_to_dface_to_entity[1][3] = Int32(4)   # node 3 → top
-  labels.d_to_dface_to_entity[1][4] = Int32(4)   # node 4 → top
+
+  edge_to_vert = Gridap.Geometry.get_faces(topo, 1, 0)
+  n_edges      = Gridap.Geometry.num_faces(topo, 1)
+  for e in 1:n_edges
+    vs = sort(collect(Int32, edge_to_vert[e]))
+    if vs == Int32[1, 2]
+      labels.d_to_dface_to_entity[2][e] = Int32(3)   # bottom circle
+    elseif vs == Int32[3, 4]
+      labels.d_to_dface_to_entity[2][e] = Int32(4)   # top circle
+    end
+  end
+
+  # Propagate edge entities to their endpoint nodes.
+  for e in 1:n_edges
+    entity = labels.d_to_dface_to_entity[2][e]
+    if entity == Int32(3) || entity == Int32(4)
+      for v in edge_to_vert[e]
+        labels.d_to_dface_to_entity[1][v] = entity
+      end
+    end
+  end
+
   Gridap.Geometry.add_tag!(labels, "bottom", [3])
   Gridap.Geometry.add_tag!(labels, "top",    [4])
 

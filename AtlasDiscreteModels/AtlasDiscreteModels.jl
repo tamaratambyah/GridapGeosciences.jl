@@ -10,29 +10,33 @@ include("AtlasGrids.jl")   # also includes CoarseMeshes.jl
 # ============================================================
 
 """
-    AtlasDiscreteModel{Dc,Da,...} <: Gridap.Geometry.DiscreteModel{Dc,Dc}
+    AtlasDiscreteModel{Dc,Da,G,A,C,M,O,T,L} <: Gridap.Geometry.DiscreteModel{Dc,Dc}
 
 Combines an `AtlasGrid{Dc,Da}` (local Dc-dim geometry) with a `GridTopology{Dc,Dc}`
 and a `FaceLabeling`.  Physical Da-dimensional coordinates are never stored; they are
 computed on the fly inside `visualization_data`.
+
+Face labels from the coarse `CoarseMeshInfo` model (e.g. "bottom", "top" for the
+cylinder) are propagated to the fine mesh by Gridap's refinement machinery and are
+accessible via `Gridap.Geometry.get_face_labeling(model)`.
 """
 struct AtlasDiscreteModel{Dc, Da,
-                           G, A, M, O,
+                           G, A, C, M, O,
                            T <: Gridap.Geometry.GridTopology{Dc,Dc},
                            L <: Gridap.Geometry.FaceLabeling
                            } <: Gridap.Geometry.DiscreteModel{Dc,Dc}
-  atlas_grid    :: AtlasGrid{Dc,Da,G,A,M,O}
+  atlas_grid    :: AtlasGrid{Dc,Da,G,A,C,M,O}
   grid_topology :: T
   face_labeling :: L
 
   function AtlasDiscreteModel(
-    atlas_grid    :: AtlasGrid{Dc,Da,G,A,M,O},
+    atlas_grid    :: AtlasGrid{Dc,Da,G,A,C,M,O},
     grid_topology :: Gridap.Geometry.GridTopology{Dc,Dc},
     face_labeling :: Gridap.Geometry.FaceLabeling,
-  ) where {Dc,Da,G,A,M,O}
+  ) where {Dc,Da,G,A,C,M,O}
     T = typeof(grid_topology)
     L = typeof(face_labeling)
-    new{Dc,Da,G,A,M,O,T,L}(atlas_grid, grid_topology, face_labeling)
+    new{Dc,Da,G,A,C,M,O,T,L}(atlas_grid, grid_topology, face_labeling)
   end
 end
 
@@ -92,12 +96,15 @@ get_cell_to_chart(m::AtlasDiscreteModel) = get_cell_to_chart(m.atlas_grid)
 
 Apply `physical_maps[cell_to_chart[i]]` to every local corner in `cell_local_coords[i]`,
 returning a `Table` of Da-dimensional ambient corner coordinates.
-Called only from `visualization_data`.
 
 One `return_cache` is allocated per chart and reused for every corner evaluation of that
 chart's map, following the Gridap cache pattern for zero-allocation inner loops.
 """
-function _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)
+function _local_to_physical(
+    cell_local_coords :: Gridap.Arrays.Table,
+    cell_to_chart,
+    physical_maps,
+)
   ncells = length(cell_to_chart)
 
   # One cache per chart; reused across all cells/corners that share the same chart map.

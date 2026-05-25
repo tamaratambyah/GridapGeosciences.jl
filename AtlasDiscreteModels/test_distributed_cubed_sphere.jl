@@ -26,6 +26,20 @@ using MPI
 
 include("DistributedAtlasDiscreteModels.jl")
 
+# Check that every local fine cell's physical corners lie on the sphere of radius `r`.
+function test_atlas_octree_model(local_model::AtlasDiscreteModel{Dc,Da}, r::Real) where {Dc,Da}
+  g     = local_model.atlas_grid
+  phys  = _local_to_physical(g.cell_local_coords, g.cell_to_chart, g.physical_maps)
+  ncells = length(phys)
+  for i in 1:ncells
+    for pt in phys[i]
+      norm = sqrt(sum(pt[k]^2 for k in 1:Da))
+      @assert isapprox(norm, r; atol=1e-10) "cell $i: ‖pt‖=$norm ≠ radius=$r  pt=$pt"
+    end
+  end
+  ncells
+end
+
 # ── MPI setup ─────────────────────────────────────────────────────────────────
 MPI.Init()
 nprocs = MPI.Comm_size(MPI.COMM_WORLD)
