@@ -36,12 +36,6 @@ println("AtlasModel: built ✓")
 
 @assert Gridap.Geometry.num_cells(atlas_grid) == 2 * 4^NUM_REF
 
-c2c = get_cell_to_chart(atlas_grid)
-n_per_chart = 4^NUM_REF
-@assert all(c2c[1:n_per_chart]             .== 1)
-@assert all(c2c[n_per_chart+1:2*n_per_chart] .== 2)
-println("Cell-to-chart check passed ✓")
-
 # get_cell_coordinates returns LOCAL 2D coords in [-1,1]²
 local_coords = Gridap.Geometry.get_cell_coordinates(atlas_grid)
 @assert length(local_coords) == 2 * 4^NUM_REF
@@ -59,8 +53,7 @@ println("Local coord range check passed ✓")
 
 phys_coords = _local_to_physical(
   atlas_grid.cell_local_coords,
-  atlas_grid.cell_to_chart,
-  atlas_grid.physical_maps,
+  atlas_grid.cell_physical_maps,
 )
 for i in 1:Gridap.Geometry.num_cells(atlas_grid)
   for pt in phys_coords[i]

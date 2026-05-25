@@ -10,7 +10,7 @@ include("AtlasGrids.jl")   # also includes CoarseMeshes.jl
 # ============================================================
 
 """
-    AtlasDiscreteModel{Dc,Da,G,A,C,M,O,T,L} <: Gridap.Geometry.DiscreteModel{Dc,Dc}
+    AtlasDiscreteModel{Dc,Da,G,A,P,O,T,L} <: Gridap.Geometry.DiscreteModel{Dc,Dc}
 
 Combines an `AtlasGrid{Dc,Da}` (local Dc-dim geometry) with a `GridTopology{Dc,Dc}`
 and a `FaceLabeling`.  Physical Da-dimensional coordinates are never stored; they are
@@ -21,22 +21,22 @@ cylinder) are propagated to the fine mesh by Gridap's refinement machinery and a
 accessible via `Gridap.Geometry.get_face_labeling(model)`.
 """
 struct AtlasDiscreteModel{Dc, Da,
-                           G, A, C, M, O,
+                           G, A, P, O,
                            T <: Gridap.Geometry.GridTopology{Dc,Dc},
                            L <: Gridap.Geometry.FaceLabeling
                            } <: Gridap.Geometry.DiscreteModel{Dc,Dc}
-  atlas_grid    :: AtlasGrid{Dc,Da,G,A,C,M,O}
+  atlas_grid    :: AtlasGrid{Dc,Da,G,A,P,O}
   grid_topology :: T
   face_labeling :: L
 
   function AtlasDiscreteModel(
-    atlas_grid    :: AtlasGrid{Dc,Da,G,A,C,M,O},
+    atlas_grid    :: AtlasGrid{Dc,Da,G,A,P,O},
     grid_topology :: Gridap.Geometry.GridTopology{Dc,Dc},
     face_labeling :: Gridap.Geometry.FaceLabeling,
-  ) where {Dc,Da,G,A,C,M,O}
+  ) where {Dc,Da,G,A,P,O}
     T = typeof(grid_topology)
     L = typeof(face_labeling)
-    new{Dc,Da,G,A,C,M,O,T,L}(atlas_grid, grid_topology, face_labeling)
+    new{Dc,Da,G,A,P,O,T,L}(atlas_grid, grid_topology, face_labeling)
   end
 end
 
@@ -82,28 +82,27 @@ Gridap.Geometry.get_face_labeling(m::AtlasDiscreteModel) = m.face_labeling
 # Custom API
 # ----------------------------------------------------------
 
-get_atlas_grid(m::AtlasDiscreteModel)    = m.atlas_grid
+get_atlas_grid(m::AtlasDiscreteModel)              = m.atlas_grid
 get_ambient_dim(m::AtlasDiscreteModel{Dc,Da}) where {Dc,Da} = Da
-get_physical_maps(m::AtlasDiscreteModel) = get_physical_maps(m.atlas_grid)
-get_cell_to_chart(m::AtlasDiscreteModel) = get_cell_to_chart(m.atlas_grid)
+get_cell_physical_maps(m::AtlasDiscreteModel)      = get_cell_physical_maps(m.atlas_grid)
 
 # ============================================================
 # Visualization: physical coords computed here only
 # ============================================================
 
 """
-    _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)
+    _local_to_physical(cell_local_coords, cell_physical_maps)
 
 Return a lazy array whose `i`-th entry is the `Da`-dimensional physical corners of
-cell `i`, obtained by applying `physical_maps[cell_to_chart[i]]` pointwise to
+cell `i`, obtained by applying `cell_physical_maps[i]` pointwise to
 `cell_local_coords[i]`.
 
-Evaluation is deferred: no allocation occurs until an element is accessed.
-`Broadcasting(physical_maps[k])` lifts each per-chart map to accept a `Vector{Point}`;
-`lazy_map(evaluate, per_cell_maps, cell_local_coords)` chains the two lazy arrays.
+`cell_physical_maps[i]` is a `Point{Dc} → Point{Da}` map (e.g. `ForwardMap2D`).
+`Broadcasting(cell_physical_maps[i])` lifts it to `Vector{Point} → Vector{Point}`;
+`lazy_map(evaluate, …)` chains the two lazy arrays with zero allocation until accessed.
 """
-function _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)
-  cell_maps = lazy_map(Reindex(map(Broadcasting, physical_maps)), cell_to_chart)
+function _local_to_physical(cell_local_coords, cell_physical_maps)
+  cell_maps = lazy_map(Broadcasting, cell_physical_maps)
   lazy_map(evaluate, cell_maps, cell_local_coords)
 end
 
@@ -112,9 +111,9 @@ function Gridap.Visualization.visualization_data(
     filebase :: AbstractString;
     labels  :: Gridap.Geometry.FaceLabeling = Gridap.Geometry.get_face_labeling(model),
 ) where {Dc,Da}
-  g        = model.atlas_grid
-  phys_lazy = _local_to_physical(g.cell_local_coords, g.cell_to_chart, g.physical_maps)
-  viz_grid = UnstructuredGrid(
+  g         = model.atlas_grid
+  phys_lazy = _local_to_physical(g.cell_local_coords, g.cell_physical_maps)
+  viz_grid  = UnstructuredGrid(
     collect(Iterators.flatten(phys_lazy)),
     get_cell_node_ids(g),
     get_reffes(g),

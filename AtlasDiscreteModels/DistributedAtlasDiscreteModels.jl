@@ -116,11 +116,11 @@ function AtlasOctreeDistributedDiscreteModel(
     grid_topology = Gridap.Geometry.get_grid_topology(omodel)
     face_labeling = Gridap.Geometry.get_face_labeling(omodel)
 
+    cell_phys_maps = lazy_map(Reindex(physical_maps), cell_to_chart_local)
     atlas_grid = AtlasGrid(
       param_grid,
       local_coords,
-      cell_to_chart_local,
-      physical_maps,
+      cell_phys_maps,
       orientation_style,
     )
 

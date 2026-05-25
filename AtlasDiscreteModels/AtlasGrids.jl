@@ -14,7 +14,7 @@ using FillArrays
 # ============================================================
 
 """
-    AtlasGrid{Dc,Da,G,A,C,M,O} <: Gridap.Geometry.Grid{Dc,Dc}
+    AtlasGrid{Dc,Da,G,A,P,O} <: Gridap.Geometry.Grid{Dc,Dc}
 
 A DG-style grid for a `Dc`-dimensional manifold atlas.  Each fine cell stores its
 corners in the **local reference frame** of its coarse chart (Dc-dimensional).
@@ -26,55 +26,51 @@ on demand only during visualization.
 - `Da` — ambient (physical) space dimension
 - `G`  — concrete type of `param_grid`
 - `A`  — concrete type of `cell_local_coords`
-- `C`  — concrete type of `cell_to_chart` (avoids abstract-field type instability)
-- `M`  — concrete type of `physical_maps`
+- `P`  — concrete type of `cell_physical_maps`
 - `O`  — concrete `OrientationStyle` subtype
 
 # Fields
-- `param_grid`        — fine `Grid{Dc,Dc}` from uniform refinement (topology/connectivity).
-- `cell_local_coords` — per-cell local corner coords, DG-style.  May be a lazy
-                        `LazyArray` (serial path via `_build_atlas_grid`) or an
-                        eager `Table` (distributed path via p4est).
-- `cell_to_chart`     — per-fine-cell index of the originating coarse chart (1-based).
-- `physical_maps`     — one callable per coarse chart: `Point{Dc} → Point{Da}`.
-- `orientation_style` — kept explicitly because atlas orientation can differ from the
-                        underlying grid topology (e.g. a Möbius strip).
+- `param_grid`          — fine `Grid{Dc,Dc}` from uniform refinement (topology/connectivity).
+- `cell_local_coords`   — per-cell local corner coords, DG-style.  May be a lazy
+                          `LazyArray` (serial path via `_build_atlas_grid`) or an
+                          eager `Table` (distributed path via p4est).
+- `cell_physical_maps`  — lazy per-cell map `Point{Dc} → Point{Da}`, computed as
+                          `lazy_map(Reindex(physical_maps), cell_to_chart)` at
+                          construction time.  Encodes both chart assignment and
+                          the per-chart physical map in a single lazy array.
+- `orientation_style`   — kept explicitly because atlas orientation can differ from the
+                          underlying grid topology (e.g. a Möbius strip).
 """
 struct AtlasGrid{Dc, Da,
                  G <: Gridap.Geometry.Grid{Dc,Dc},
                  A <: AbstractVector,
-                 C <: AbstractVector{<:Integer},
-                 M,
+                 P <: AbstractVector,
                  O <: Gridap.Geometry.OrientationStyle} <: Gridap.Geometry.Grid{Dc,Dc}
-  param_grid        :: G
-  cell_local_coords :: A
-  cell_to_chart     :: C
-  physical_maps     :: M
-  orientation_style :: O
+  param_grid         :: G
+  cell_local_coords  :: A
+  cell_physical_maps :: P
+  orientation_style  :: O
 
   function AtlasGrid(
-    param_grid        :: Gridap.Geometry.Grid{Dc,Dc},
-    cell_local_coords :: AbstractVector,
-    cell_to_chart     :: AbstractVector{<:Integer},
-    physical_maps,
-    orientation_style :: Gridap.Geometry.OrientationStyle,
+    param_grid         :: Gridap.Geometry.Grid{Dc,Dc},
+    cell_local_coords  :: AbstractVector,
+    cell_physical_maps :: AbstractVector,
+    orientation_style  :: Gridap.Geometry.OrientationStyle,
   ) where Dc
-    # Infer Da from the first physical map evaluation (cache pattern: one call, constructor only)
+    # Infer Da from the first cell's physical map (one evaluation at constructor time only)
     sample_pt  = cell_local_coords[1][1]
-    fwd0       = physical_maps[cell_to_chart[1]]
+    fwd0       = cell_physical_maps[1]
     cache0     = Gridap.Arrays.return_cache(fwd0, sample_pt)
     sample_out = Gridap.Arrays.evaluate!(cache0, fwd0, sample_pt)
     Da = length(sample_out)
     n = Gridap.Geometry.num_cells(param_grid)
-    @check length(cell_local_coords) == n
-    @check length(cell_to_chart) == n
+    @check length(cell_local_coords)  == n
+    @check length(cell_physical_maps) == n
     G = typeof(param_grid)
     A = typeof(cell_local_coords)
-    C = typeof(cell_to_chart)
-    M = typeof(physical_maps)
+    P = typeof(cell_physical_maps)
     O = typeof(orientation_style)
-    new{Dc,Da,G,A,C,M,O}(param_grid, cell_local_coords,
-                          cell_to_chart, physical_maps, orientation_style)
+    new{Dc,Da,G,A,P,O}(param_grid, cell_local_coords, cell_physical_maps, orientation_style)
   end
 end
 
@@ -158,11 +154,13 @@ function _build_atlas_grid(
     orientation_style
   end
 
+  # Compose cell_to_chart + physical_maps into a single lazy per-cell map.
+  cell_phys_maps = lazy_map(Reindex(physical_maps), cell_to_chart)
+
   atlas_grid = AtlasGrid(
     Gridap.Geometry.get_grid(fine_model),
     local_lazy,
-    cell_to_chart,
-    physical_maps,
+    cell_phys_maps,
     os,
   )
 
@@ -206,9 +204,9 @@ end
 # ----------------------------------------------------------
 
 Gridap.Geometry.OrientationStyle(
-  ::Type{<:AtlasGrid{Dc,Da,G,A,C,M,O}}) where {Dc,Da,G,A,C,M,O} = O()
+  ::Type{<:AtlasGrid{Dc,Da,G,A,P,O}}) where {Dc,Da,G,A,P,O} = O()
 
-Gridap.Geometry.num_cells(g::AtlasGrid) = length(g.cell_to_chart)
+Gridap.Geometry.num_cells(g::AtlasGrid) = length(g.cell_physical_maps)
 
 Gridap.Geometry.get_reffes(g::AtlasGrid) = Gridap.Geometry.get_reffes(g.param_grid)
 
@@ -247,10 +245,9 @@ end
 # Custom API
 # ----------------------------------------------------------
 
-get_param_grid(g::AtlasGrid)                      = g.param_grid
-get_physical_maps(g::AtlasGrid)                   = g.physical_maps
-get_cell_to_chart(g::AtlasGrid)                   = g.cell_to_chart
-get_ambient_dim(::AtlasGrid{Dc,Da}) where {Dc,Da} = Da
+get_param_grid(g::AtlasGrid)                       = g.param_grid
+get_cell_physical_maps(g::AtlasGrid)               = g.cell_physical_maps
+get_ambient_dim(::AtlasGrid{Dc,Da}) where {Dc,Da}  = Da
 
 # ============================================================
 # Coarse mesh library and convenience constructors
