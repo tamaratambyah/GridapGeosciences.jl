@@ -112,15 +112,13 @@ function Gridap.Visualization.visualization_data(
     filebase :: AbstractString;
     labels  :: Gridap.Geometry.FaceLabeling = Gridap.Geometry.get_face_labeling(model),
 ) where {Dc,Da}
-  g         = model.atlas_grid
+  g        = model.atlas_grid
   phys_lazy = _local_to_physical(g.cell_local_coords, g.cell_to_chart, g.physical_maps)
-  phys      = Gridap.Arrays.Table(collect.(phys_lazy))   # materialise for VTK only here
-  node_ids  = Gridap.Arrays.Table(Int32.(1:length(phys.data)), phys.ptrs)
   viz_grid = UnstructuredGrid(
-    phys.data,
-    node_ids,
-    Gridap.Geometry.get_reffes(g.param_grid),
-    Gridap.Geometry.get_cell_type(g.param_grid),
+    collect(Iterators.flatten(phys_lazy)),
+    get_cell_node_ids(g),
+    get_reffes(g),
+    get_cell_type(g),
     NonOriented(),
   )
   Gridap.Visualization.visualization_data(viz_grid, "$(filebase)_$(Dc)")
