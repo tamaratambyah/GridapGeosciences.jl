@@ -10,23 +10,6 @@ using Gridap.Adaptivity, Gridap.Visualization
 using FillArrays
 
 # ============================================================
-# _Apply Map
-# ============================================================
-
-# Two-argument Map: evaluate!(_Apply(), fwd, xs) applies fwd to every element
-# of xs via Broadcasting(fwd), which allocates one CachedArray per (fwd, eltype)
-# pair and reuses it across all elements — zero allocation in the hot loop.
-# Used here to build cell_local_coords lazily, and in AtlasDiscreteModels.jl
-# to build cell_physical_coords lazily via _local_to_physical.
-struct _Apply <: Gridap.Arrays.Map end
-
-Gridap.Arrays.return_cache(::_Apply, fwd, xs) =
-  Gridap.Arrays.return_cache(Broadcasting(fwd), xs)
-
-Gridap.Arrays.evaluate!(cache, ::_Apply, fwd, xs) =
-  Gridap.Arrays.evaluate!(cache, Broadcasting(fwd), xs)
-
-# ============================================================
 # AtlasGrid
 # ============================================================
 
@@ -160,11 +143,13 @@ function _build_atlas_grid(
   shapefuns = Gridap.ReferenceFEs.get_shapefuns(reffe)
   Ψ_maps    = map(corners -> linear_combination(corners, shapefuns), coarse_local_coords)
 
-  # ── 4. Tile ref_coords and apply Ψ_k lazily via _Apply / Broadcasting ────────
+  # ── 4. Tile ref_coords and apply Ψ_k lazily ──────────────────────────────────
+  # Broadcasting(Ψ_maps[k]) maps a Vector{Point} → Vector{Point}, which is what
+  # lazy_map(evaluate, per_cell_maps, per_cell_data) evaluates per cell.
   child_ids    = repeat(1:n_per_chart, ncharts)
   ref_per_fine = lazy_map(Reindex(ref_coords), child_ids)
-  chart_Ψ      = lazy_map(Reindex(Ψ_maps), cell_to_chart)
-  local_lazy   = lazy_map(_Apply(), chart_Ψ, ref_per_fine)
+  chart_Ψ_bcast = lazy_map(Reindex(map(Broadcasting, Ψ_maps)), cell_to_chart)
+  local_lazy    = lazy_map(evaluate, chart_Ψ_bcast, ref_per_fine)
 
   # ── 5. Resolve orientation_style ─────────────────────────────────────────
   os = if isnothing(orientation_style)
@@ -194,9 +179,9 @@ Build an `AtlasGrid` by:
    (general: works for any polytope).
 3. Building per-chart local maps `Ψ_k` from `coarse_local_coords[k]` using isoparametric
    interpolation (`linear_combination` with shape functions) — no auxiliary model needed.
-4. Assembling `cell_local_coords` lazily via `lazy_map(_Apply(), Ψ_maps, ref_coords)`;
-   `_Apply` delegates to `Broadcasting(Ψ)` so cache allocation and reuse are handled
-   by Gridap's machinery — no eager materialisation until the element is accessed.
+4. Assembling `cell_local_coords` lazily: `Broadcasting(Ψ_k)` wraps each per-chart map
+   so it accepts a `Vector{Point}`; `lazy_map(evaluate, per_cell_maps, ref_coords)`
+   creates a `LazyArray` — no materialisation until the element is accessed.
 
 `coarse_local_coords[k]` gives the local corner coordinates of coarse cell k in whatever
 local frame the user defines for that chart.  Different charts may have different local

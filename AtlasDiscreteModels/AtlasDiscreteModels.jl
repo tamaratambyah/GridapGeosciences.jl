@@ -91,8 +91,6 @@ get_cell_to_chart(m::AtlasDiscreteModel) = get_cell_to_chart(m.atlas_grid)
 # Visualization: physical coords computed here only
 # ============================================================
 
-# _Apply is defined in AtlasGrids.jl (included above) and is reused here.
-
 """
     _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)
 
@@ -101,11 +99,12 @@ cell `i`, obtained by applying `physical_maps[cell_to_chart[i]]` pointwise to
 `cell_local_coords[i]`.
 
 Evaluation is deferred: no allocation occurs until an element is accessed.
-Cache allocation and reuse follow Gridap conventions via `_Apply`/`Broadcasting`.
+`Broadcasting(physical_maps[k])` lifts each per-chart map to accept a `Vector{Point}`;
+`lazy_map(evaluate, per_cell_maps, cell_local_coords)` chains the two lazy arrays.
 """
 function _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)
-  cell_maps = lazy_map(Reindex(physical_maps), cell_to_chart)
-  lazy_map(_Apply(), cell_maps, cell_local_coords)
+  cell_maps = lazy_map(Reindex(map(Broadcasting, physical_maps)), cell_to_chart)
+  lazy_map(evaluate, cell_maps, cell_local_coords)
 end
 
 function Gridap.Visualization.visualization_data(
