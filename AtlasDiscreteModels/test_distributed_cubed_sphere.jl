@@ -1,17 +1,20 @@
-# test_distributed_cylinder.jl
+# test_distributed_cubed_sphere.jl
 #
-# Verify AtlasOctreeDistributedDiscreteModel (DistributedAtlasDiscreteModels.jl).
+# Verify AtlasOctreeDistributedDiscreteModel (DistributedAtlasDiscreteModels.jl)
+# on the cubed sphere with p4est / GridapP4est.
 #
 # Checks:
 #   1. AtlasGrid stores local (α,β) 2D reference coords (not 3D physical).
-#   2. Applying physical_maps to local coords gives the correct 3D sphere surface.
-#      Compared against the reference CubedSphere2DParametricOctreeDistributedDiscreteModel.
-#   3. writevtk produces Da=3 dimensional output via visualization_data.
+#   2. Panel ids match the reference CubedSphere2DParametricOctreeDistributedDiscreteModel.
+#   3. Local (α,β) coords match those stored in the reference model.
+#   4. Applying physical_maps to local coords gives the same result as ForwardMap2D directly.
+#   5. All physical corners lie on the sphere of the given radius.
+#   6. writevtk produces Da=3 dimensional output via visualization_data.
 #
 # Run (single process):
-#   julia --project=. AtlasDiscreteModels/test_distributed_cylinder.jl
+#   julia --project=. AtlasDiscreteModels/test_distributed_cubed_sphere.jl
 # With MPI (e.g. 4 processes):
-#   mpiexec -n 4 julia --project=. AtlasDiscreteModels/test_distributed_cylinder.jl
+#   mpiexec -n 4 julia --project=. AtlasDiscreteModels/test_distributed_cubed_sphere.jl
 
 using Gridap
 using Gridap.Geometry, Gridap.Fields, Gridap.Arrays, Gridap.ReferenceFEs, Gridap.Helpers
@@ -92,4 +95,4 @@ mkpath("output")
 writevtk(atlas_model, "output/cubed_sphere")
 println("Written output/cubed_sphere_2.vtu ✓")
 
-println("test_distributed_cylinder: ALL CHECKS PASSED")
+println("test_distributed_cubed_sphere: ALL CHECKS PASSED")
