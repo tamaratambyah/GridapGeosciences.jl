@@ -4,6 +4,7 @@
 # Physical Da-dimensional coordinates are computed HERE (visualization_data only).
 
 include("AtlasGrids.jl")
+include("CoarseMeshes.jl")
 
 # ============================================================
 # AtlasDiscreteModel
@@ -143,4 +144,106 @@ function Gridap.Visualization.visualization_data(
     NonOriented(),
   )
   Gridap.Visualization.visualization_data(viz_grid, "$(filebase)_$(Dc)")
+end
+
+# ============================================================
+# Convenience constructors via CoarseMeshInfo / AbstractCoarseMesh
+# ============================================================
+
+# ----------------------------------------------------------
+# AtlasGrid
+# ----------------------------------------------------------
+
+"""
+    AtlasGrid(info::CoarseMeshInfo, num_refinements; orientation_style=nothing)
+
+Build an `AtlasGrid` from a `CoarseMeshInfo`, using the physical maps stored in `info`.
+"""
+function AtlasGrid(
+    info            :: CoarseMeshInfo,
+    num_refinements :: Int;
+    orientation_style = nothing,
+)
+  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
+  AtlasGrid(coarse_model, info.local_coords, info.physical_maps, num_refinements;
+            orientation_style)
+end
+
+"""
+    AtlasGrid(info::CoarseMeshInfo, custom_maps, num_refinements; orientation_style=nothing)
+
+Build an `AtlasGrid` from a `CoarseMeshInfo`, overriding the default physical maps.
+"""
+function AtlasGrid(
+    info            :: CoarseMeshInfo,
+    custom_maps,
+    num_refinements :: Int;
+    orientation_style = nothing,
+)
+  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
+  AtlasGrid(coarse_model, info.local_coords, custom_maps, num_refinements;
+            orientation_style)
+end
+
+"""
+    AtlasGrid(mesh::AbstractCoarseMesh, num_refinements; orientation_style=nothing)
+
+Build an `AtlasGrid` directly from a mesh descriptor (e.g. `CubedSphereMesh(1.0)`).
+Calls `get_coarse_mesh(mesh)` internally and uses the default physical maps.
+"""
+function AtlasGrid(
+    mesh            :: AbstractCoarseMesh,
+    num_refinements :: Int;
+    orientation_style = nothing,
+)
+  AtlasGrid(get_coarse_mesh(mesh), num_refinements; orientation_style)
+end
+
+# ----------------------------------------------------------
+# AtlasDiscreteModel
+# ----------------------------------------------------------
+
+"""
+    AtlasDiscreteModel(info::CoarseMeshInfo, num_refinements; orientation_style=nothing)
+
+Build an `AtlasDiscreteModel` from a `CoarseMeshInfo`, using the physical maps stored in `info`.
+"""
+function AtlasDiscreteModel(
+    info            :: CoarseMeshInfo,
+    num_refinements :: Int;
+    orientation_style = nothing,
+)
+  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
+  AtlasDiscreteModel(coarse_model, info.local_coords, info.physical_maps, num_refinements;
+                     orientation_style)
+end
+
+"""
+    AtlasDiscreteModel(info::CoarseMeshInfo, custom_maps, num_refinements; orientation_style=nothing)
+
+Build an `AtlasDiscreteModel` from a `CoarseMeshInfo`, overriding the default physical maps.
+"""
+function AtlasDiscreteModel(
+    info            :: CoarseMeshInfo,
+    custom_maps,
+    num_refinements :: Int;
+    orientation_style = nothing,
+)
+  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
+  AtlasDiscreteModel(coarse_model, info.local_coords, custom_maps, num_refinements;
+                     orientation_style)
+end
+
+"""
+    AtlasDiscreteModel(mesh::AbstractCoarseMesh, num_refinements; orientation_style=nothing)
+
+Build an `AtlasDiscreteModel` directly from a mesh descriptor (e.g. `CubedSphereMesh(1.0)`).
+Calls `get_coarse_mesh(mesh)` internally and uses the default physical maps.
+"""
+function AtlasDiscreteModel(
+    mesh            :: AbstractCoarseMesh,
+    num_refinements :: Int;
+    orientation_style = nothing,
+)
+  AtlasDiscreteModel(get_coarse_mesh(mesh), num_refinements; orientation_style)
 end
