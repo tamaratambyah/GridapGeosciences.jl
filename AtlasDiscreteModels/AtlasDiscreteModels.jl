@@ -91,17 +91,7 @@ get_cell_to_chart(m::AtlasDiscreteModel) = get_cell_to_chart(m.atlas_grid)
 # Visualization: physical coords computed here only
 # ============================================================
 
-# Two-argument Map: evaluate(_Apply(), fwd, xs) applies fwd to each element of xs.
-# Delegates to Broadcasting(fwd) so cache allocation and reuse follow Gridap conventions:
-#   - return_cache allocates once per (fwd, element_type) pair
-#   - evaluate! reuses that cache for every element, zero allocation in the hot loop
-struct _Apply <: Gridap.Arrays.Map end
-
-Gridap.Arrays.return_cache(::_Apply, fwd, xs) =
-  Gridap.Arrays.return_cache(Broadcasting(fwd), xs)
-
-Gridap.Arrays.evaluate!(cache, ::_Apply, fwd, xs) =
-  Gridap.Arrays.evaluate!(cache, Broadcasting(fwd), xs)
+# _Apply is defined in AtlasGrids.jl (included above) and is reused here.
 
 """
     _local_to_physical(cell_local_coords, cell_to_chart, physical_maps)

@@ -10,6 +10,23 @@ using Gridap.Adaptivity, Gridap.Visualization
 using FillArrays
 
 # ============================================================
+# _Apply Map
+# ============================================================
+
+# Two-argument Map: evaluate!(_Apply(), fwd, xs) applies fwd to every element
+# of xs via Broadcasting(fwd), which allocates one CachedArray per (fwd, eltype)
+# pair and reuses it across all elements — zero allocation in the hot loop.
+# Used here to build cell_local_coords lazily, and in AtlasDiscreteModels.jl
+# to build cell_physical_coords lazily via _local_to_physical.
+struct _Apply <: Gridap.Arrays.Map end
+
+Gridap.Arrays.return_cache(::_Apply, fwd, xs) =
+  Gridap.Arrays.return_cache(Broadcasting(fwd), xs)
+
+Gridap.Arrays.evaluate!(cache, ::_Apply, fwd, xs) =
+  Gridap.Arrays.evaluate!(cache, Broadcasting(fwd), xs)
+
+# ============================================================
 # AtlasGrid
 # ============================================================
 
@@ -32,7 +49,9 @@ on demand only during visualization.
 
 # Fields
 - `param_grid`        — fine `Grid{Dc,Dc}` from uniform refinement (topology/connectivity).
-- `cell_local_coords` — `Table{Point{Dc}}`: per-cell local corner coords, DG-style.
+- `cell_local_coords` — per-cell local corner coords, DG-style.  May be a lazy
+                        `LazyArray` (serial path via `_build_atlas_grid`) or an
+                        eager `Table` (distributed path via p4est).
 - `cell_to_chart`     — per-fine-cell index of the originating coarse chart (1-based).
 - `physical_maps`     — one callable per coarse chart: `Point{Dc} → Point{Da}`.
 - `orientation_style` — kept explicitly because atlas orientation can differ from the
@@ -141,15 +160,11 @@ function _build_atlas_grid(
   shapefuns = Gridap.ReferenceFEs.get_shapefuns(reffe)
   Ψ_maps    = map(corners -> linear_combination(corners, shapefuns), coarse_local_coords)
 
-  # ── 4. Tile ref_coords and apply Ψ_k — one cache per cell, reused per corner ──
+  # ── 4. Tile ref_coords and apply Ψ_k lazily via _Apply / Broadcasting ────────
   child_ids    = repeat(1:n_per_chart, ncharts)
   ref_per_fine = lazy_map(Reindex(ref_coords), child_ids)
   chart_Ψ      = lazy_map(Reindex(Ψ_maps), cell_to_chart)
-  local_lazy   = lazy_map(chart_Ψ, ref_per_fine) do Ψ, corners
-    cache = Gridap.Arrays.return_cache(Ψ, corners[1])
-    map(c -> Gridap.Arrays.evaluate!(cache, Ψ, c), corners)
-  end
-  cell_local_coords_table = Gridap.Arrays.Table(collect.(local_lazy))
+  local_lazy   = lazy_map(_Apply(), chart_Ψ, ref_per_fine)
 
   # ── 5. Resolve orientation_style ─────────────────────────────────────────
   os = if isnothing(orientation_style)
@@ -160,7 +175,7 @@ function _build_atlas_grid(
 
   atlas_grid = AtlasGrid(
     Gridap.Geometry.get_grid(fine_model),
-    cell_local_coords_table,
+    local_lazy,
     cell_to_chart,
     physical_maps,
     os,
@@ -179,8 +194,9 @@ Build an `AtlasGrid` by:
    (general: works for any polytope).
 3. Building per-chart local maps `Ψ_k` from `coarse_local_coords[k]` using isoparametric
    interpolation (`linear_combination` with shape functions) — no auxiliary model needed.
-4. Assembling `cell_local_coords` via `lazy_map` with explicit cache reuse (one cache per
-   cell, reused over all corners of that cell).
+4. Assembling `cell_local_coords` lazily via `lazy_map(_Apply(), Ψ_maps, ref_coords)`;
+   `_Apply` delegates to `Broadcasting(Ψ)` so cache allocation and reuse are handled
+   by Gridap's machinery — no eager materialisation until the element is accessed.
 
 `coarse_local_coords[k]` gives the local corner coordinates of coarse cell k in whatever
 local frame the user defines for that chart.  Different charts may have different local
@@ -215,11 +231,31 @@ Gridap.Geometry.get_cell_type(g::AtlasGrid) = Gridap.Geometry.get_cell_type(g.pa
 
 Gridap.Geometry.get_cell_coordinates(g::AtlasGrid) = g.cell_local_coords
 
-Gridap.Geometry.get_node_coordinates(g::AtlasGrid) = g.cell_local_coords.data
+# Fast path when cell_local_coords is a Table (e.g. distributed case):
+# return the pre-concatenated flat data array with no allocation.
+Gridap.Geometry.get_node_coordinates(
+  g::AtlasGrid{Dc,Da,G,<:Gridap.Arrays.Table}) where {Dc,Da,G} =
+  g.cell_local_coords.data
 
-function Gridap.Geometry.get_cell_node_ids(g::AtlasGrid)
+# General fallback: materialise lazily (each cell's corners collected and vcat-ed).
+Gridap.Geometry.get_node_coordinates(g::AtlasGrid) =
+  mapreduce(collect, vcat, g.cell_local_coords)
+
+# Fast path when cell_local_coords is a Table: use the stored ptrs directly.
+function Gridap.Geometry.get_cell_node_ids(
+    g::AtlasGrid{Dc,Da,G,<:Gridap.Arrays.Table}) where {Dc,Da,G}
   cc = g.cell_local_coords
   Gridap.Arrays.Table(Int32.(1:length(cc.data)), cc.ptrs)
+end
+
+# General fallback: compute uniform ptrs from cell count and corners-per-cell.
+function Gridap.Geometry.get_cell_node_ids(g::AtlasGrid)
+  ncells    = Gridap.Geometry.num_cells(g)
+  n_corners = length(g.cell_local_coords[1])
+  Gridap.Arrays.Table(
+    Int32.(1:ncells*n_corners),
+    Int32[1 + i*n_corners for i in 0:ncells],
+  )
 end
 
 # ----------------------------------------------------------
