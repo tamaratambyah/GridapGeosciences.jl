@@ -2,12 +2,21 @@
 #
 # Tests AtlasGrid / AtlasDiscreteModel on a 2-chart cylinder atlas.
 #
-# Coarse mesh: 2 QUAD cells on a 2×1 global parametric rectangle (topology only).
+# Coarse mesh: 2 QUAD cells with 4 nodes (not 6). The right boundary of C2
+# is topologically identified with the left boundary of C1, forming the seam
+# of the cylinder.  Gridap Z-order per cell: BL, BR, TL, TR.
 #
-#   4──5──6      (y = 1)
-#   │  │  │
-#   1──2──3      (y = 0)
+#   3──4──(3)    (z = 1)
+#   │  │   │
+#   1──2──(1)    (z = 0)
 #   [C1] [C2]
+#
+# Parenthesised nodes are the same objects as nodes 1 and 3 — node sharing
+# encodes the periodic identification θ = 0 ≡ θ = 2π.
+#
+# C1: nodes (1, 2, 3, 4) — BL=1, BR=2, TL=3, TR=4   θ ∈ [0, π]
+# C2: nodes (2, 1, 4, 3) — BL=2, BR=1, TL=4, TR=3   θ ∈ [π, 2π]
+#      C2's BR=node1 = C1's BL and C2's TR=node3 = C1's TL: the seam.
 #
 # Each chart has its own local coordinate system: standard QUAD ref element [-1,1]².
 #
@@ -25,19 +34,19 @@ using FillArrays
 include("AtlasDiscreteModels.jl")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1.  Build coarse 2-cell QUAD mesh on [0,2]×[0,1]  (topology only)
+# 1.  Build coarse 2-cell QUAD mesh with periodic identification at the seam
 # ─────────────────────────────────────────────────────────────────────────────
 
 node_coords = Vector{Point{2,Float64}}([
   Point(0.0, 0.0),   # 1
   Point(1.0, 0.0),   # 2
-  Point(2.0, 0.0),   # 3
-  Point(0.0, 1.0),   # 4
-  Point(1.0, 1.0),   # 5
-  Point(2.0, 1.0),   # 6
+  Point(0.0, 1.0),   # 3
+  Point(1.0, 1.0),   # 4
 ])
 
-cell_node_data = Int32[1,2,4,5,  2,3,5,6]
+# C1: (BL=1, BR=2, TL=3, TR=4)
+# C2: (BL=2, BR=1, TL=4, TR=3) — BR and TR wrap back to C1's left edge
+cell_node_data = Int32[1,2,3,4,  2,1,4,3]
 cell_node_ptrs = Int32[1,5,9]
 cell_node_ids  = Table(cell_node_data, cell_node_ptrs)
 cell_types     = Int32[1,1]
@@ -48,10 +57,11 @@ coarse_labels  = FaceLabeling(coarse_topo)
 coarse_model   = UnstructuredDiscreteModel(coarse_grid, coarse_topo, coarse_labels)
 
 println("Coarse mesh: $(num_cells(coarse_model)) cells, $(num_nodes(coarse_model)) nodes")
+@assert num_nodes(coarse_model) == 4 "Expected 4 nodes (periodic mesh), got $(num_nodes(coarse_model))"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2.  Local coordinates for each coarse chart
-#     Both charts use the standard QUAD reference element corners.
+#     Both charts use the standard QUAD reference element corners [-1,1]².
 #     Gridap Z-order: BL, BR, TL, TR
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -126,7 +136,21 @@ end
 println("Physical coord cylinder check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 7.  Write VTK
+# 7.  Seam check: map_C1(s=1, t) == map_C2(s=-1, t) for all t (θ=π is shared)
+#     and map_C1(s=-1, t) == map_C2(s=1, t) for all t (θ=0 ≡ θ=2π, the seam)
+# ─────────────────────────────────────────────────────────────────────────────
+
+for t in range(-1.0, 1.0; length=9)
+  interface = map_C1(Point(1.0, t))   # θ = π, right edge of C1
+  @assert interface ≈ map_C2(Point(-1.0, t)) "Interface mismatch at t=$t"
+  seam_C1 = map_C1(Point(-1.0, t))   # θ = 0
+  seam_C2 = map_C2(Point(1.0, t))    # θ = 2π ≡ 0
+  @assert seam_C1 ≈ seam_C2 "Seam mismatch at t=$t: C1=$(seam_C1) C2=$(seam_C2)"
+end
+println("Seam continuity check passed ✓")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8.  Write VTK
 # ─────────────────────────────────────────────────────────────────────────────
 
 mkpath("output")
