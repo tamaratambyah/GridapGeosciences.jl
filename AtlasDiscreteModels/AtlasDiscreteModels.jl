@@ -3,8 +3,7 @@
 # Defines AtlasDiscreteModel{Dc,Da}: wraps an AtlasGrid with topology and face labeling.
 # Physical Da-dimensional coordinates are computed HERE (visualization_data only).
 
-include("AtlasGrids.jl")
-include("CoarseMeshes.jl")
+include("AtlasGrids.jl")   # also includes CoarseMeshes.jl
 
 # ============================================================
 # AtlasDiscreteModel
@@ -150,54 +149,7 @@ end
 # Convenience constructors via CoarseMeshInfo / AbstractCoarseMesh
 # ============================================================
 
-# ----------------------------------------------------------
-# AtlasGrid
-# ----------------------------------------------------------
-
-"""
-    AtlasGrid(info::CoarseMeshInfo, num_refinements; orientation_style=nothing)
-
-Build an `AtlasGrid` from a `CoarseMeshInfo`, using the physical maps stored in `info`.
-"""
-function AtlasGrid(
-    info            :: CoarseMeshInfo,
-    num_refinements :: Int;
-    orientation_style = nothing,
-)
-  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
-  AtlasGrid(coarse_model, info.local_coords, info.physical_maps, num_refinements;
-            orientation_style)
-end
-
-"""
-    AtlasGrid(info::CoarseMeshInfo, custom_maps, num_refinements; orientation_style=nothing)
-
-Build an `AtlasGrid` from a `CoarseMeshInfo`, overriding the default physical maps.
-"""
-function AtlasGrid(
-    info            :: CoarseMeshInfo,
-    custom_maps,
-    num_refinements :: Int;
-    orientation_style = nothing,
-)
-  coarse_model = Gridap.Geometry.UnstructuredDiscreteModel(info.grid)
-  AtlasGrid(coarse_model, info.local_coords, custom_maps, num_refinements;
-            orientation_style)
-end
-
-"""
-    AtlasGrid(mesh::AbstractCoarseMesh, num_refinements; orientation_style=nothing)
-
-Build an `AtlasGrid` directly from a mesh descriptor (e.g. `CubedSphereMesh(1.0)`).
-Calls `get_coarse_mesh(mesh)` internally and uses the default physical maps.
-"""
-function AtlasGrid(
-    mesh            :: AbstractCoarseMesh,
-    num_refinements :: Int;
-    orientation_style = nothing,
-)
-  AtlasGrid(get_coarse_mesh(mesh), num_refinements; orientation_style)
-end
+# AtlasGrid equivalents live in AtlasGrids.jl (after include("CoarseMeshes.jl")).
 
 # ----------------------------------------------------------
 # AtlasDiscreteModel
