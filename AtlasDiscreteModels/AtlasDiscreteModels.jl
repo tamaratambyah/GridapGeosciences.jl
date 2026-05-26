@@ -46,22 +46,29 @@ end
 
 """
     AtlasDiscreteModel(coarse_model, coarse_local_coords, physical_maps, num_refinements=1;
-                       orientation_style=nothing)
+                       metric_fields=nothing, orientation_style=nothing,
+                       manifold_style=ExtrinsicManifold())
 
 Refine `coarse_model` `num_refinements` times, build an `AtlasGrid` with local coords,
 and wrap it with the fine model's topology and face labeling.
+
+When `metric_fields` is not provided it is computed lazily from `physical_maps` via
+`Operation(JtJ())(gradient(φ))` for each chart.
 """
 function AtlasDiscreteModel(
     coarse_model    :: Gridap.Geometry.DiscreteModel{Dc,Dc},
     coarse_local_coords,
     physical_maps,
     num_refinements :: Int = 1;
+    metric_fields     = nothing,
     orientation_style = nothing,
+    manifold_style    = ExtrinsicManifold(),
 ) where Dc
-  # _build_atlas_grid refines exactly once and returns both the atlas_grid and the
-  # fine_model, so topology and face labeling are extracted without a second refinement.
+  _metric = isnothing(metric_fields) ?
+    [Operation(JtJ())(gradient(φ)) for φ in physical_maps] : metric_fields
   atlas_grid, fine_model = _build_atlas_grid(
-    coarse_model, coarse_local_coords, physical_maps, num_refinements, orientation_style)
+    coarse_model, coarse_local_coords, physical_maps, _metric,
+    num_refinements, orientation_style, manifold_style)
 
   AtlasDiscreteModel(
     atlas_grid,
@@ -85,6 +92,8 @@ Gridap.Geometry.get_face_labeling(m::AtlasDiscreteModel) = m.face_labeling
 get_atlas_grid(m::AtlasDiscreteModel)              = m.atlas_grid
 get_ambient_dim(m::AtlasDiscreteModel{Dc,Da}) where {Dc,Da} = Da
 get_cell_physical_maps(m::AtlasDiscreteModel)      = get_cell_physical_maps(m.atlas_grid)
+get_cell_metric(m::AtlasDiscreteModel)             = get_cell_metric(m.atlas_grid)
+ManifoldStyle(m::AtlasDiscreteModel)               = ManifoldStyle(m.atlas_grid)
 
 # ============================================================
 # Visualization: physical coords computed here only
@@ -140,44 +149,52 @@ end
 # ----------------------------------------------------------
 
 """
-    AtlasDiscreteModel(info::CoarseMeshInfo, num_refinements; orientation_style=nothing)
+    AtlasDiscreteModel(info::CoarseMeshInfo, num_refinements;
+                       orientation_style=nothing, manifold_style=ExtrinsicManifold())
 
-Build an `AtlasDiscreteModel` from a `CoarseMeshInfo`, using the physical maps stored in `info`.
+Build an `AtlasDiscreteModel` from a `CoarseMeshInfo`, using the analytic metric fields
+stored in `info.metric_fields`.
 """
 function AtlasDiscreteModel(
     info            :: CoarseMeshInfo,
     num_refinements :: Int;
     orientation_style = nothing,
+    manifold_style    = ExtrinsicManifold(),
 )
   AtlasDiscreteModel(info.model, info.local_coords, info.physical_maps, num_refinements;
-                     orientation_style)
+                     metric_fields=info.metric_fields, orientation_style, manifold_style)
 end
 
 """
-    AtlasDiscreteModel(info::CoarseMeshInfo, custom_maps, num_refinements; orientation_style=nothing)
+    AtlasDiscreteModel(info::CoarseMeshInfo, custom_maps, num_refinements;
+                       orientation_style=nothing, manifold_style=ExtrinsicManifold())
 
 Build an `AtlasDiscreteModel` from a `CoarseMeshInfo`, overriding the default physical maps.
+Metric fields are recomputed from `custom_maps` via `JtJ`.
 """
 function AtlasDiscreteModel(
     info            :: CoarseMeshInfo,
     custom_maps,
     num_refinements :: Int;
     orientation_style = nothing,
+    manifold_style    = ExtrinsicManifold(),
 )
+  custom_metrics = [Operation(JtJ())(gradient(φ)) for φ in custom_maps]
   AtlasDiscreteModel(info.model, info.local_coords, custom_maps, num_refinements;
-                     orientation_style)
+                     metric_fields=custom_metrics, orientation_style, manifold_style)
 end
 
 """
-    AtlasDiscreteModel(mesh::AbstractCoarseMesh, num_refinements; orientation_style=nothing)
+    AtlasDiscreteModel(mesh::AbstractCoarseMesh, num_refinements;
+                       orientation_style=nothing, manifold_style=ExtrinsicManifold())
 
 Build an `AtlasDiscreteModel` directly from a mesh descriptor (e.g. `CubedSphereMesh(1.0)`).
-Calls `get_coarse_mesh(mesh)` internally and uses the default physical maps.
 """
 function AtlasDiscreteModel(
     mesh            :: AbstractCoarseMesh,
     num_refinements :: Int;
     orientation_style = nothing,
+    manifold_style    = ExtrinsicManifold(),
 )
-  AtlasDiscreteModel(get_coarse_mesh(mesh), num_refinements; orientation_style)
+  AtlasDiscreteModel(get_coarse_mesh(mesh), num_refinements; orientation_style, manifold_style)
 end

@@ -16,11 +16,11 @@ import GridapGeosciences.Geometry: NPANELS, CUBE_HALF_EDGE
 # ============================================================
 
 """
-    CoarseMeshInfo{Dc, Dm, A, M}
+    CoarseMeshInfo{Dc, Dm, A, M, G}
 
 Bundles a coarse `DiscreteModel{Dc,Dc}` (with face labels) with per-cell
-local-frame corner coordinates and per-chart physical maps.  Returned by
-`get_coarse_mesh`; consumed by the `AtlasGrid` and `AtlasDiscreteModel`
+local-frame corner coordinates, per-chart physical maps, and per-chart metric fields.
+Returned by `get_coarse_mesh`; consumed by the `AtlasGrid` and `AtlasDiscreteModel`
 convenience constructors.
 
 - `model`         — coarse `DiscreteModel{Dc,Dc}` carrying topology and
@@ -29,23 +29,30 @@ convenience constructors.
                     boundary edges/nodes are tagged by `get_coarse_mesh`.
 - `local_coords`  — one entry per coarse cell; `local_coords[k]` is a vector of
                     `Point{Dc}` giving the corners of chart k in its local frame.
-- `physical_maps` — one callable per chart: `Point{Dc} → Point{Da}`.
+- `physical_maps` — one `Field` per chart: `Point{Dc} → Point{Da}`.
+- `metric_fields` — one `Field` per chart: `Point{Dc} → SymTensorValue{Dc}`,
+                    the pullback metric `g = JᵀJ`.  Computed lazily from
+                    `physical_maps` via `Operation(JtJ())(gradient(φ))` when not
+                    provided explicitly as an analytic expression.
 """
 struct CoarseMeshInfo{Dc,
                       Dm <: Gridap.Geometry.DiscreteModel{Dc,Dc},
                       A  <: AbstractVector,
-                      M}
+                      M,
+                      G}
   model         :: Dm
   local_coords  :: A
   physical_maps :: M
+  metric_fields :: G
 
   function CoarseMeshInfo(
       model         :: Gridap.Geometry.DiscreteModel{Dc,Dc},
       local_coords  :: A,
       physical_maps :: M,
-  ) where {Dc, A <: AbstractVector, M}
+      metric_fields :: G,
+  ) where {Dc, A <: AbstractVector, M, G}
     Dm = typeof(model)
-    new{Dc,Dm,A,M}(model, local_coords, physical_maps)
+    new{Dc,Dm,A,M,G}(model, local_coords, physical_maps, metric_fields)
   end
 end
 
@@ -323,11 +330,12 @@ function get_coarse_mesh(m::CylinderMesh)
 
   model = Gridap.Geometry.UnstructuredDiscreteModel(grid, topo, labels)
 
-  ref_corners  = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
-  local_coords = [ref_corners, ref_corners]
+  ref_corners   = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
+  local_coords  = [ref_corners, ref_corners]
+  physical_maps = [CylinderChartMap(r, h, 1.0), CylinderChartMap(r, h, 3.0)]
+  metric_fields = [Operation(JtJ())(gradient(φ)) for φ in physical_maps]
 
-  CoarseMeshInfo(model, local_coords,
-    [CylinderChartMap(r, h, 1.0), CylinderChartMap(r, h, 3.0)])
+  CoarseMeshInfo(model, local_coords, physical_maps, metric_fields)
 end
 
 # ============================================================
@@ -414,8 +422,9 @@ function get_coarse_mesh(m::CubedSphereMesh)
   ]
   local_coords  = fill(panel_corners, NPANELS)
   physical_maps = [ForwardMap2D(p, m.radius) for p in 1:NPANELS]
+  metric_fields = [Operation(JtJ())(gradient(φ)) for φ in physical_maps]
 
-  CoarseMeshInfo(model, local_coords, physical_maps)
+  CoarseMeshInfo(model, local_coords, physical_maps, metric_fields)
 end
 
 # ============================================================
@@ -478,9 +487,10 @@ function get_coarse_mesh(m::MobiusStripMesh)
   labels = Gridap.Geometry.FaceLabeling(topo)
   model  = Gridap.Geometry.UnstructuredDiscreteModel(grid, topo, labels)
 
-  ref_corners  = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
-  local_coords = [ref_corners, ref_corners]
+  ref_corners   = [Point(-1.0,-1.0), Point(1.0,-1.0), Point(-1.0,1.0), Point(1.0,1.0)]
+  local_coords  = [ref_corners, ref_corners]
+  physical_maps = [MobiusChartMap(R, W, 1.0), MobiusChartMap(R, W, 3.0)]
+  metric_fields = [Operation(JtJ())(gradient(φ)) for φ in physical_maps]
 
-  CoarseMeshInfo(model, local_coords,
-    [MobiusChartMap(R, W, 1.0), MobiusChartMap(R, W, 3.0)])
+  CoarseMeshInfo(model, local_coords, physical_maps, metric_fields)
 end
