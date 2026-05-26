@@ -32,6 +32,11 @@ ambient = df[df.model.=="ambient",:]
 panel = df[df.model.=="panel",:]
 # orders = ambient[:,:order]
 
+data = [:ops,:t,:flops]
+for (i,sym) in enumerate(data)
+ println("Ratio $(sym): ", ambient[:,sym]./panel[:,sym])
+end
+
 ################################################################################
 #### Plot results
 ################################################################################
