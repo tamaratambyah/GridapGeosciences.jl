@@ -113,9 +113,15 @@ function Gridap.Visualization.visualization_data(
 ) where {Dc,Da}
   g         = model.atlas_grid
   phys_lazy = _local_to_physical(g.cell_local_coords, g.cell_physical_maps)
+  ncells    = Gridap.Geometry.num_cells(g)
+  n_corners = length(g.cell_local_coords[1])
+  dg_node_ids = Gridap.Arrays.Table(
+    Int32.(1:ncells*n_corners),
+    Int32[1 + i*n_corners for i in 0:ncells],
+  )
   viz_grid  = UnstructuredGrid(
     collect(Iterators.flatten(phys_lazy)),
-    get_cell_node_ids(g),
+    dg_node_ids,
     get_reffes(g),
     get_cell_type(g),
     NonOriented(),

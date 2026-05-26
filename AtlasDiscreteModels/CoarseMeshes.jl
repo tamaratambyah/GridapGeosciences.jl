@@ -101,51 +101,130 @@ struct MobiusStripMesh <: AbstractCoarseMesh
 end
 
 # ============================================================
-# Concrete Map subtypes for physical embeddings
+# Concrete Field subtypes for physical embeddings
 # ============================================================
 #
 # Plain Julia closures create a Vector{Function} (abstract element type) when
 # collected into an array, causing dynamic dispatch through all downstream
-# lazy_map chains.  Concrete Map subtypes give a fully typed array, keeping
+# lazy_map chains.  Concrete Field subtypes give a fully typed array, keeping
 # Reindex / lazy_map type-stable.
+#
+# Each type must implement the full Gridap Field interface:
+#   evaluate!(cache, f, x::VectorValue{2})           — single point
+#   evaluate!(cache, f, xs::AbstractArray{...})       — vector of points
+#   return_cache(f, xs::AbstractArray{...})           — preallocate output
+# plus the FieldGradient methods for the Jacobian (needed by integration).
+#
+# Gridap gradient convention (see github.com/gridap/Gridap.jl/issues/822):
+# FieldGradient{1,F} evaluated at x returns ∇F(x) = JT, stored as
+# TensorValue{Dc,Da,Float64} with column-major data (dX/ds,dX/dt, dY/ds,dY/dt, dZ/ds,dZ/dt).
 
 """
     CylinderChartMap(radius, height, theta_offset)
 
-Gridap `Map` for one chart of the cylinder atlas.
+Gridap `Field` for one chart of the cylinder atlas.
 `theta_offset = 1.0` → θ ∈ [0,π] (C1);  `3.0` → θ ∈ [π,2π] (C2).
 Maps (s,t) ∈ [−1,1]² to (r·cos θ, r·sin θ, h(t+1)/2) with θ = π(s+offset)/2.
 """
-struct CylinderChartMap <: Gridap.Arrays.Map
+struct CylinderChartMap <: Field
   radius       :: Float64
   height       :: Float64
   theta_offset :: Float64
 end
-Gridap.Arrays.return_cache(::CylinderChartMap, ::Point{2}) = nothing
-Gridap.Arrays.return_type(::CylinderChartMap, ::Point{2}) = Point{3,Float64}
-function Gridap.Arrays.evaluate!(::Nothing, m::CylinderChartMap, pt::Point{2})
-  θ = π*(pt[1] + m.theta_offset)/2
-  Point(m.radius*cos(θ), m.radius*sin(θ), m.height*(pt[2]+1)/2)
+
+function Gridap.Arrays.evaluate!(cache, m::CylinderChartMap, x::VectorValue{2})
+  θ = π*(x[1] + m.theta_offset)/2
+  Point(m.radius*cos(θ), m.radius*sin(θ), m.height*(x[2]+1)/2)
+end
+
+function Gridap.Arrays.return_cache(m::CylinderChartMap, xs::AbstractArray{<:VectorValue{2}})
+  similar(xs, VectorValue{3,Float64})
+end
+function Gridap.Arrays.evaluate!(cache, m::CylinderChartMap, xs::AbstractArray{<:VectorValue{2}})
+  cache .= evaluate!.(nothing, Ref(m), xs)
+  cache
+end
+
+# Jacobian transpose JT = TensorValue{2,3}: column-major (dX/ds,dX/dt, dY/ds,dY/dt, dZ/ds,dZ/dt)
+function _cylinder_jacobian_T(m::CylinderChartMap, x::VectorValue{2})
+  θ = π*(x[1] + m.theta_offset)/2
+  TensorValue{2,3,Float64}(
+    -m.radius*sin(θ)*(π/2), 0.0,
+     m.radius*cos(θ)*(π/2), 0.0,
+     0.0,                   m.height/2,
+  )
+end
+
+function Gridap.Arrays.return_cache(
+    f::FieldGradient{1,<:CylinderChartMap}, xs::AbstractArray{<:VectorValue{2}})
+  CachedArray(similar(xs, TensorValue{2,3,Float64}))
+end
+function Gridap.Arrays.evaluate!(
+    cache, f::FieldGradient{1,<:CylinderChartMap}, xs::AbstractArray{<:VectorValue{2}})
+  setsize!(cache, size(xs))
+  cache.array .= _cylinder_jacobian_T.(Ref(f.object), xs)
+  cache.array
+end
+function Gridap.Arrays.evaluate!(
+    cache, f::FieldGradient{1,<:CylinderChartMap}, x::VectorValue{2})
+  _cylinder_jacobian_T(f.object, x)
 end
 
 """
     MobiusChartMap(radius, half_width, theta_offset)
 
-Gridap `Map` for one chart of the Möbius strip atlas.
+Gridap `Field` for one chart of the Möbius strip atlas.
 `theta_offset = 1.0` → θ ∈ [0,π] (C1);  `3.0` → θ ∈ [π,2π] (C2).
 Maps (s,t) ∈ [−1,1]² to the standard Möbius embedding with half-angle twist.
 """
-struct MobiusChartMap <: Gridap.Arrays.Map
+struct MobiusChartMap <: Field
   radius       :: Float64
   half_width   :: Float64
   theta_offset :: Float64
 end
-Gridap.Arrays.return_cache(::MobiusChartMap, ::Point{2}) = nothing
-Gridap.Arrays.return_type(::MobiusChartMap, ::Point{2}) = Point{3,Float64}
-function Gridap.Arrays.evaluate!(::Nothing, m::MobiusChartMap, pt::Point{2})
-  θ = π*(pt[1] + m.theta_offset)/2
-  ρ = m.radius + m.half_width*pt[2]*cos(θ/2)
-  Point(ρ*cos(θ), ρ*sin(θ), m.half_width*pt[2]*sin(θ/2))
+
+function Gridap.Arrays.evaluate!(cache, m::MobiusChartMap, x::VectorValue{2})
+  θ = π*(x[1] + m.theta_offset)/2
+  ρ = m.radius + m.half_width*x[2]*cos(θ/2)
+  Point(ρ*cos(θ), ρ*sin(θ), m.half_width*x[2]*sin(θ/2))
+end
+
+function Gridap.Arrays.return_cache(m::MobiusChartMap, xs::AbstractArray{<:VectorValue{2}})
+  similar(xs, VectorValue{3,Float64})
+end
+function Gridap.Arrays.evaluate!(cache, m::MobiusChartMap, xs::AbstractArray{<:VectorValue{2}})
+  cache .= evaluate!.(nothing, Ref(m), xs)
+  cache
+end
+
+# Jacobian transpose JT = TensorValue{2,3}: column-major (dX/ds,dX/dt, dY/ds,dY/dt, dZ/ds,dZ/dt)
+function _mobius_jacobian_T(m::MobiusChartMap, x::VectorValue{2})
+  θ = π*(x[1] + m.theta_offset)/2
+  t = x[2]
+  W = m.half_width
+  ρ = m.radius + W*t*cos(θ/2)
+  dρds = -W*t*sin(θ/2)*(π/4)
+  dρdt =  W*cos(θ/2)
+  TensorValue{2,3,Float64}(
+    dρds*cos(θ) - ρ*sin(θ)*(π/2),  dρdt*cos(θ),    # dX/ds, dX/dt
+    dρds*sin(θ) + ρ*cos(θ)*(π/2),  dρdt*sin(θ),    # dY/ds, dY/dt
+    W*t*cos(θ/2)*(π/4),             W*sin(θ/2),     # dZ/ds, dZ/dt
+  )
+end
+
+function Gridap.Arrays.return_cache(
+    f::FieldGradient{1,<:MobiusChartMap}, xs::AbstractArray{<:VectorValue{2}})
+  CachedArray(similar(xs, TensorValue{2,3,Float64}))
+end
+function Gridap.Arrays.evaluate!(
+    cache, f::FieldGradient{1,<:MobiusChartMap}, xs::AbstractArray{<:VectorValue{2}})
+  setsize!(cache, size(xs))
+  cache.array .= _mobius_jacobian_T.(Ref(f.object), xs)
+  cache.array
+end
+function Gridap.Arrays.evaluate!(
+    cache, f::FieldGradient{1,<:MobiusChartMap}, x::VectorValue{2})
+  _mobius_jacobian_T(f.object, x)
 end
 
 # ============================================================

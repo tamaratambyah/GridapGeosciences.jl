@@ -213,21 +213,30 @@ Gridap.Geometry.get_cell_type(g::AtlasGrid) = Gridap.Geometry.get_cell_type(g.pa
 
 Gridap.Geometry.get_cell_coordinates(g::AtlasGrid) = g.cell_local_coords
 
-# get_node_coordinates is @abstractmethod in Gridap but is never called on AtlasGrid:
-# - get_cell_coordinates is overridden above (FEM path bypasses get_node_coordinates)
-# - visualization_data is overridden in AtlasDiscreteModels.jl (VTK path also bypasses it)
-# Any unexpected caller will get Gridap's @abstractmethod error, which is the correct signal.
+# Delegate to param_grid: gives the correct shared-node count for FESpace/num_nodes.
+# Coordinate values are junk (2D parametric), but FEM assembly uses get_cell_map (overridden above)
+# and never reads these values — only the length matters.
+Gridap.Geometry.get_node_coordinates(g::AtlasGrid) =
+  Gridap.Geometry.get_node_coordinates(g.param_grid)
 
-# get_cell_node_ids is called in visualization_data(AtlasDiscreteModel) to build the
-# DG-style sequential node table for the UnstructuredGrid passed to VTK.
-function Gridap.Geometry.get_cell_node_ids(g::AtlasGrid)
-  ncells    = Gridap.Geometry.num_cells(g)
-  n_corners = length(g.cell_local_coords[1])
-  Gridap.Arrays.Table(
-    Int32.(1:ncells*n_corners),
-    Int32[1 + i*n_corners for i in 0:ncells],
-  )
+# Override get_cell_map to return the exact composed map:
+#   ref element → chart (α,β)  [via linear_combination of cell_local_coords]
+#   composed with chart → physical  [via cell_physical_maps]
+# The default implementation would only interpolate the 3D corners bilinearly,
+# giving a first-order approximation of the curved geometry.
+function Gridap.Geometry.get_cell_map(g::AtlasGrid)
+  reffes         = Gridap.Geometry.get_reffes(g)
+  cell_types     = Gridap.Geometry.get_cell_type(g)
+  shapefuns      = map(Gridap.ReferenceFEs.get_shapefuns, reffes)
+  cell_shapefuns = lazy_map(Reindex(shapefuns), cell_types)
+  chart_maps     = lazy_map(linear_combination, g.cell_local_coords, cell_shapefuns)
+  lazy_map(∘, g.cell_physical_maps, chart_maps)
 end
+
+# Delegate to param_grid: shared-node IDs consistent with get_node_coordinates.
+# visualization_data builds its own DG sequential table for VTK.
+Gridap.Geometry.get_cell_node_ids(g::AtlasGrid) =
+  Gridap.Geometry.get_cell_node_ids(g.param_grid)
 
 # ----------------------------------------------------------
 # Custom API
