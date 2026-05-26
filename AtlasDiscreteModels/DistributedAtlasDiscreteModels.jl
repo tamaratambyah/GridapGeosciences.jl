@@ -21,7 +21,7 @@ using GridapDistributed
 using GridapDistributed: GenericDistributedDiscreteModel, get_cell_gids
 using GridapP4est
 using GridapP4est: OctreeDistributedDiscreteModel
-using PartitionedArrays: local_views
+using GridapDistributed: local_views
 
 import GridapGeosciences.Distributed: _generate_octree_dmodel_alpha_beta_coordinates_and_panels
 
@@ -30,16 +30,17 @@ import GridapGeosciences.Distributed: _generate_octree_dmodel_alpha_beta_coordin
 # ============================================================
 
 """
-    AtlasOctreeDistributedDiscreteModel{A,B}
+    AtlasOctreeDistributedDiscreteModel{A,B,M}
 
 Distributed discrete model for an atlas-based 2D manifold mesh built on p4est.
 
 # Fields
-- `octree_dmodel` — underlying `OctreeDistributedDiscreteModel{2,2}` owning the
+- `octree_dmodel`  — underlying `OctreeDistributedDiscreteModel{2,2}` owning the
   p4est forest, MPI topology, and adaptive refinement support.
-- `dmodel`        — `GenericDistributedDiscreteModel{2,2}` wrapping per-rank
+- `dmodel`         — `GenericDistributedDiscreteModel{2,2}` wrapping per-rank
   `AtlasDiscreteModel` instances, each carrying an `AtlasGrid{2,Da}` with local
   (α,β) reference coords and the per-chart physical maps.
+- (M)              — `ManifoldStyle` type parameter, same meaning as in `AtlasGrid`.
 
 The `DistributedDiscreteModel` interface delegates to `dmodel`.
 Physical Da-dimensional coords are computed on demand in `visualization_data`
@@ -48,9 +49,11 @@ via `_local_to_physical` (defined in AtlasDiscreteModels.jl).
 struct AtlasOctreeDistributedDiscreteModel{
   A <: OctreeDistributedDiscreteModel{2,2},
   B <: GenericDistributedDiscreteModel{2,2},
+  M <: ManifoldStyle,
 } <: GridapDistributed.DistributedDiscreteModel{2,2}
-  octree_dmodel :: A
-  dmodel        :: B
+  octree_dmodel  :: A
+  dmodel         :: B
+  manifold_style :: M
 end
 
 # ----------------------------------------------------------
@@ -69,6 +72,10 @@ GridapDistributed.get_cell_gids(m::AtlasOctreeDistributedDiscreteModel) =
 
 get_octree_dmodel(m::AtlasOctreeDistributedDiscreteModel) = m.octree_dmodel
 get_dmodel(m::AtlasOctreeDistributedDiscreteModel)        = m.dmodel
+ManifoldStyle(m::AtlasOctreeDistributedDiscreteModel)     = m.manifold_style
+
+get_cell_metric(m::AtlasOctreeDistributedDiscreteModel) =
+  map(get_cell_metric, local_views(m.dmodel))
 
 # ============================================================
 # Constructors
@@ -76,12 +83,13 @@ get_dmodel(m::AtlasOctreeDistributedDiscreteModel)        = m.dmodel
 
 """
     AtlasOctreeDistributedDiscreteModel(ranks, info::CoarseMeshInfo;
-                                        num_initial_uniform_refinements=0)
+                                        num_initial_uniform_refinements=0,
+                                        manifold_style=ExtrinsicManifold())
 
 Build a distributed `AtlasOctreeDistributedDiscreteModel` from a `CoarseMeshInfo`.
 The coarse `DiscreteModel` stored in `info.model` is passed to p4est for forest
-construction; `info.local_coords` and `info.physical_maps` are forwarded to each
-per-rank `AtlasGrid`.
+construction; `info.local_coords`, `info.physical_maps`, and `info.metric_fields`
+are forwarded to each per-rank `AtlasGrid`.
 
 The per-rank `AtlasGrid` stores local reference coords from `info.local_coords`
 (not physical 3D coords). Physical coords are computed lazily only during
@@ -91,8 +99,10 @@ function AtlasOctreeDistributedDiscreteModel(
     ranks,
     info  :: CoarseMeshInfo;
     num_initial_uniform_refinements :: Int = 0,
+    manifold_style = ExtrinsicManifold(),
 )
   physical_maps      = info.physical_maps
+  metric_fields      = info.metric_fields
   coarse_cell_panels = collect(1:Gridap.Geometry.num_cells(info.model))
 
   octree_dmodel, cell_wise_local_coords, cell_panels =
@@ -117,11 +127,15 @@ function AtlasOctreeDistributedDiscreteModel(
     face_labeling = Gridap.Geometry.get_face_labeling(omodel)
 
     cell_phys_maps = lazy_map(Reindex(physical_maps), cell_to_chart_local)
+    cell_metric    = lazy_map(Reindex(metric_fields),  cell_to_chart_local)
+
     atlas_grid = AtlasGrid(
       param_grid,
       local_coords,
       cell_phys_maps,
+      cell_metric,
       orientation_style,
+      manifold_style,
     )
 
     AtlasDiscreteModel(atlas_grid, grid_topology, face_labeling)
@@ -130,12 +144,13 @@ function AtlasOctreeDistributedDiscreteModel(
   dmodel = GenericDistributedDiscreteModel(
     atlas_models, get_cell_gids(octree_dmodel.dmodel))
 
-  AtlasOctreeDistributedDiscreteModel(octree_dmodel, dmodel)
+  AtlasOctreeDistributedDiscreteModel(octree_dmodel, dmodel, manifold_style)
 end
 
 """
     AtlasOctreeDistributedDiscreteModel(ranks, mesh::AbstractCoarseMesh;
-                                        num_initial_uniform_refinements=0)
+                                        num_initial_uniform_refinements=0,
+                                        manifold_style=ExtrinsicManifold())
 
 Build a distributed `AtlasOctreeDistributedDiscreteModel` from a mesh descriptor
 (e.g. `CubedSphereMesh(1.0)`). Calls `get_coarse_mesh(mesh)` and delegates to the
@@ -145,14 +160,16 @@ function AtlasOctreeDistributedDiscreteModel(
     ranks,
     mesh  :: AbstractCoarseMesh;
     num_initial_uniform_refinements :: Int = 0,
+    manifold_style = ExtrinsicManifold(),
 )
   AtlasOctreeDistributedDiscreteModel(ranks, get_coarse_mesh(mesh);
-    num_initial_uniform_refinements)
+    num_initial_uniform_refinements, manifold_style)
 end
 
 """
     AtlasOctreeDistributedDiscreteModel(ranks, radius::Real;
-                                        num_initial_uniform_refinements=0)
+                                        num_initial_uniform_refinements=0,
+                                        manifold_style=ExtrinsicManifold())
 
 Backward-compatible constructor: builds the standard cubed sphere of the given
 `radius`. Equivalent to `AtlasOctreeDistributedDiscreteModel(ranks, CubedSphereMesh(radius); ...)`.
@@ -161,7 +178,8 @@ function AtlasOctreeDistributedDiscreteModel(
     ranks,
     radius :: Real;
     num_initial_uniform_refinements :: Int = 0,
+    manifold_style = ExtrinsicManifold(),
 )
   AtlasOctreeDistributedDiscreteModel(ranks, CubedSphereMesh(Float64(radius));
-    num_initial_uniform_refinements)
+    num_initial_uniform_refinements, manifold_style)
 end
