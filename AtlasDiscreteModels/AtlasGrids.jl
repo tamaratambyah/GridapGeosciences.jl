@@ -86,6 +86,25 @@ Gridap.Arrays.evaluate!(cache, ::JtJ, J) = symmetric_part(J ⋅ transpose(J))
 _pullback_metrics(ambient_maps) = [Operation(JtJ())(gradient(φ)) for φ in ambient_maps]
 
 # ============================================================
+# lazy_map(Reindex(plain_vector), indices) → CompressedArray
+# ============================================================
+#
+# Gridap already handles Reindex{<:Fill}, Reindex{<:CompressedArray}, and
+# Reindex{<:LazyArray} with specialised methods (more specific → higher priority).
+# The plain AbstractArray case is missing; without it lazy_map falls through to
+# LazyArray, losing the CompressedArray optimisation downstream (e.g. in
+# _lazy_map_compressed when applying gradient/metric/inverse lazily over cells).
+#
+# Candidate for upstreaming to Gridap.Arrays.Reindex.
+function Gridap.Arrays.lazy_map(
+    k       :: Gridap.Arrays.Reindex{<:AbstractArray},
+    ::Type{T},
+    j_to_i  :: AbstractArray,
+) where T
+  Gridap.Arrays.CompressedArray(k.values, j_to_i)
+end
+
+# ============================================================
 # AtlasGrid
 # ============================================================
 
