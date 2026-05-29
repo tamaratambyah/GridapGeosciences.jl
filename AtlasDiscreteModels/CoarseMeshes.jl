@@ -118,7 +118,11 @@ function Gridap.Arrays.return_cache(m::CylinderChartMap, xs::AbstractArray{<:Poi
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderChartMap, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  r = m.radius
+  @inbounds for i in eachindex(xs)
+    x = xs[i]
+    cache.array[i] = Point(r*cos(x[1]), r*sin(x[1]), x[2])
+  end
   cache.array
 end
 
@@ -132,7 +136,11 @@ function Gridap.Arrays.return_cache(m::CylinderChartMapGrad, xs::AbstractArray{<
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderChartMapGrad, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  r = m.radius
+  @inbounds for i in eachindex(xs)
+    x = xs[i]
+    cache.array[i] = TensorValue{2,3,Float64}(-r*sin(x[1]), 0.0, r*cos(x[1]), 0.0, 0.0, 1.0)
+  end
   cache.array
 end
 
@@ -149,11 +157,11 @@ end
 Gridap.Arrays.evaluate!(cache, m::CylinderMetricField, x::Point) =
   SymTensorValue{2,Float64,3}(m.radius^2, 0.0, 1.0)
 function Gridap.Arrays.return_cache(m::CylinderMetricField, xs::AbstractArray{<:Point})
-  CachedArray(similar(xs, SymTensorValue{2,Float64,3}))
+  CachedArray(fill(SymTensorValue{2,Float64,3}(m.radius^2, 0.0, 1.0), size(xs)))
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  fill!(cache.array, SymTensorValue{2,Float64,3}(m.radius^2, 0.0, 1.0))
   cache.array
 end
 
@@ -163,11 +171,11 @@ end
 Gridap.Arrays.evaluate!(cache, m::CylinderInvMetricField, x::Point) =
   SymTensorValue{2,Float64,3}(1/m.radius^2, 0.0, 1.0)
 function Gridap.Arrays.return_cache(m::CylinderInvMetricField, xs::AbstractArray{<:Point})
-  CachedArray(similar(xs, SymTensorValue{2,Float64,3}))
+  CachedArray(fill(SymTensorValue{2,Float64,3}(1/m.radius^2, 0.0, 1.0), size(xs)))
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderInvMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  fill!(cache.array, SymTensorValue{2,Float64,3}(1/m.radius^2, 0.0, 1.0))
   cache.array
 end
 
@@ -314,7 +322,12 @@ function Gridap.Arrays.return_cache(m::MobiusChartMap, xs::AbstractArray{<:Point
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusChartMap, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  @inbounds for i in eachindex(xs)
+    x = xs[i]
+    θ = π*(x[1] + m.theta_offset)/2
+    ρ = m.radius + m.half_width*x[2]*cos(θ/2)
+    cache.array[i] = Point(ρ*cos(θ), ρ*sin(θ), m.half_width*x[2]*sin(θ/2))
+  end
   cache.array
 end
 
@@ -338,7 +351,19 @@ function Gridap.Arrays.return_cache(m::MobiusChartMapGrad, xs::AbstractArray{<:P
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusChartMapGrad, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  @inbounds for i in eachindex(xs)
+    x = xs[i]
+    θ    = π*(x[1] + m.theta_offset)/2
+    t    = x[2]; W = m.half_width
+    ρ    = m.radius + W*t*cos(θ/2)
+    dρds = -W*t*sin(θ/2)*(π/4)
+    dρdt =  W*cos(θ/2)
+    cache.array[i] = TensorValue{2,3,Float64}(
+      dρds*cos(θ) - ρ*sin(θ)*(π/2),  dρdt*cos(θ),
+      dρds*sin(θ) + ρ*cos(θ)*(π/2),  dρdt*sin(θ),
+      W*t*cos(θ/2)*(π/4),             W*sin(θ/2),
+    )
+  end
   cache.array
 end
 
@@ -370,7 +395,13 @@ function Gridap.Arrays.return_cache(m::MobiusMetricField, xs::AbstractArray{<:Po
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  @inbounds for i in eachindex(xs)
+    x = xs[i]
+    θ   = π*(x[1] + m.theta_offset)/2
+    ρ   = m.radius + m.half_width*x[2]*cos(θ/2)
+    g11 = (π/4)^2 * m.half_width^2 * x[2]^2 + (π/2)^2 * ρ^2
+    cache.array[i] = SymTensorValue{2,Float64,3}(g11, 0.0, m.half_width^2)
+  end
   cache.array
 end
 
@@ -388,7 +419,13 @@ function Gridap.Arrays.return_cache(m::MobiusInvMetricField, xs::AbstractArray{<
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusInvMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  @inbounds for i in eachindex(xs)
+    x = xs[i]
+    θ   = π*(x[1] + m.theta_offset)/2
+    ρ   = m.radius + m.half_width*x[2]*cos(θ/2)
+    g11 = (π/4)^2 * m.half_width^2 * x[2]^2 + (π/2)^2 * ρ^2
+    cache.array[i] = SymTensorValue{2,Float64,3}(1/g11, 0.0, 1/m.half_width^2)
+  end
   cache.array
 end
 
@@ -542,7 +579,10 @@ function Gridap.Arrays.return_cache(m::CubedSphereMap, xs::AbstractArray{<:Point
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereMap, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  p, r = m.panel, m.radius
+  @inbounds for i in eachindex(xs)
+    cache.array[i] = _csphere_eval(p, r, xs[i])
+  end
   cache.array
 end
 
@@ -558,7 +598,10 @@ function Gridap.Arrays.return_cache(m::CubedSphereMapGrad, xs::AbstractArray{<:P
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereMapGrad, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  p, r = m.panel, m.radius
+  @inbounds for i in eachindex(xs)
+    cache.array[i] = _csphere_jac(p, r, xs[i])
+  end
   cache.array
 end
 
@@ -605,7 +648,10 @@ function Gridap.Arrays.return_cache(m::CubedSphereMetricField, xs::AbstractArray
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereMetricField, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  r = m.radius
+  @inbounds for i in eachindex(xs)
+    cache.array[i] = _csphere_metric(r, xs[i])
+  end
   cache.array
 end
 
@@ -619,7 +665,10 @@ function Gridap.Arrays.return_cache(m::CubedSphereInvMetricField, xs::AbstractAr
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereInvMetricField, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
+  r = m.radius
+  @inbounds for i in eachindex(xs)
+    cache.array[i] = _csphere_inv_metric(r, xs[i])
+  end
   cache.array
 end
 
