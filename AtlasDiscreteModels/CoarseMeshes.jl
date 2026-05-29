@@ -118,7 +118,7 @@ function Gridap.Arrays.return_cache(m::CylinderChartMap, xs::AbstractArray{<:Poi
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderChartMap, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -132,7 +132,7 @@ function Gridap.Arrays.return_cache(m::CylinderChartMapGrad, xs::AbstractArray{<
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderChartMapGrad, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -153,7 +153,7 @@ function Gridap.Arrays.return_cache(m::CylinderMetricField, xs::AbstractArray{<:
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -167,7 +167,7 @@ function Gridap.Arrays.return_cache(m::CylinderInvMetricField, xs::AbstractArray
 end
 function Gridap.Arrays.evaluate!(cache, m::CylinderInvMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -314,7 +314,7 @@ function Gridap.Arrays.return_cache(m::MobiusChartMap, xs::AbstractArray{<:Point
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusChartMap, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -338,7 +338,7 @@ function Gridap.Arrays.return_cache(m::MobiusChartMapGrad, xs::AbstractArray{<:P
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusChartMapGrad, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -370,7 +370,7 @@ function Gridap.Arrays.return_cache(m::MobiusMetricField, xs::AbstractArray{<:Po
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -388,7 +388,7 @@ function Gridap.Arrays.return_cache(m::MobiusInvMetricField, xs::AbstractArray{<
 end
 function Gridap.Arrays.evaluate!(cache, m::MobiusInvMetricField, xs::AbstractArray{<:Point})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -542,7 +542,7 @@ function Gridap.Arrays.return_cache(m::CubedSphereMap, xs::AbstractArray{<:Point
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereMap, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -558,7 +558,7 @@ function Gridap.Arrays.return_cache(m::CubedSphereMapGrad, xs::AbstractArray{<:P
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereMapGrad, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -605,7 +605,7 @@ function Gridap.Arrays.return_cache(m::CubedSphereMetricField, xs::AbstractArray
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereMetricField, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
@@ -619,7 +619,7 @@ function Gridap.Arrays.return_cache(m::CubedSphereInvMetricField, xs::AbstractAr
 end
 function Gridap.Arrays.evaluate!(cache, m::CubedSphereInvMetricField, xs::AbstractArray{<:Point{2}})
   setsize!(cache, size(xs))
-  cache.array .= evaluate!.(nothing, Ref(m), xs)
+  for i in eachindex(xs); cache.array[i] = evaluate!(nothing, m, xs[i]); end
   cache.array
 end
 
