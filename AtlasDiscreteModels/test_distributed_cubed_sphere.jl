@@ -4,10 +4,10 @@
 # on the cubed sphere with p4est / GridapP4est.
 #
 # Checks:
-#   1. AtlasGrid stores local (α,β) 2D reference coords (not 3D physical).
+#   1. AtlasGrid stores local (α,β) 2D reference coords (not 3D ambient).
 #   2. Local (α,β) coords match those stored in the reference model.
-#   3. cell_physical_maps[i] applied to local coords matches ForwardMap2D directly.
-#   4. All physical corners lie on the sphere of the given radius.
+#   3. cell_ambient_maps[i] applied to local coords matches CubedSphereMap directly.
+#   4. All ambient corners lie on the sphere of the given radius.
 #   5. writevtk produces Da=3 dimensional output via visualization_data.
 #
 # Run (single process):
@@ -25,10 +25,10 @@ using MPI
 
 include("DistributedAtlasDiscreteModels.jl")
 
-# Check that every local fine cell's physical corners lie on the sphere of radius `r`.
+# Check that every local fine cell's ambient corners lie on the sphere of radius `r`.
 function test_atlas_octree_model(local_model::AtlasDiscreteModel{Dc,Da}, r::Real) where {Dc,Da}
   g     = local_model.atlas_grid
-  phys  = _local_to_physical(g.cell_local_coords, g.cell_physical_maps)
+  phys  = _local_to_ambient(g.cell_chart_coords, g.cell_ambient_maps)
   ncells = length(phys)
   for i in 1:ncells
     for pt in phys[i]
@@ -65,28 +65,28 @@ map(
   ncells  = Gridap.Geometry.num_cells(g)
 
   # 1. Local coords are 2D (α,β)
-  local_coords = g.cell_local_coords
-  @assert length(local_coords) == ncells
+  cell_chart_coords = g.cell_chart_coords
+  @assert length(cell_chart_coords) == ncells
 
   # 2. Local (α,β) coords match reference model's 2D coords
   #    (reference stores them in grid.cell_map.args[1])
   alpha_beta_ref = local_ref.grid.cell_map.args[1]
   for i in 1:ncells
-    @assert local_coords[i] ≈ alpha_beta_ref[i] "Local coords mismatch at cell $i"
+    @assert cell_chart_coords[i] ≈ alpha_beta_ref[i] "Local coords mismatch at cell $i"
   end
 
-  # 3. Physical coords computed via _local_to_physical match direct map evaluation
-  phys = _local_to_physical(local_coords, g.cell_physical_maps)
+  # 3. Ambient coords computed via _local_to_ambient match direct map evaluation
+  phys = _local_to_ambient(cell_chart_coords, g.cell_ambient_maps)
   for i in 1:ncells
-    fwd   = g.cell_physical_maps[i]
-    cache = Gridap.Arrays.return_cache(fwd, local_coords[i][1])
-    for (k, (local_pt, actual_pt)) in enumerate(zip(local_coords[i], phys[i]))
+    fwd   = g.cell_ambient_maps[i]
+    cache = Gridap.Arrays.return_cache(fwd, cell_chart_coords[i][1])
+    for (k, (local_pt, actual_pt)) in enumerate(zip(cell_chart_coords[i], phys[i]))
       expected_pt = Gridap.Arrays.evaluate!(cache, fwd, local_pt)
       @assert expected_pt ≈ actual_pt "Rank $(MPI.Comm_rank(MPI.COMM_WORLD)) cell $i corner $k: expected=$expected_pt got=$actual_pt"
     end
   end
 
-  # 4. All physical corners on the sphere
+  # 4. All ambient corners on the sphere
   nchecked = test_atlas_octree_model(local_atlas, RADIUS)
   rank = MPI.Comm_rank(MPI.COMM_WORLD)
   println("Rank $rank: $nchecked cells verified ✓")

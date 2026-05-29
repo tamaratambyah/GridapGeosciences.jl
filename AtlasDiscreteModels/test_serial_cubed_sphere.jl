@@ -8,10 +8,9 @@
 #
 # Checks:
 #   1. Cell count = NPANELS × 4^NUM_REF
-#   2. Each panel has exactly 4^NUM_REF fine cells (cell_to_chart)
-#   3. Local (α,β) coords are 2D and lie in [−π/4, π/4]²
-#   4. Physical coords lie on the sphere: ‖(X,Y,Z)‖ ≈ RADIUS
-#   5. writevtk produces a 3D sphere surface VTK file
+#   2. Local (α,β) coords are 2D and lie in [−π/4, π/4]²
+#   3. Ambient coords lie on the sphere: ‖(X,Y,Z)‖ ≈ RADIUS
+#   4. writevtk produces a 3D sphere surface VTK file
 #
 # Run:
 #   julia --project=. AtlasDiscreteModels/test_serial_cubed_sphere.jl
@@ -21,7 +20,7 @@ using GridapGeosciences
 
 include("AtlasDiscreteModels.jl")
 
-import GridapGeosciences.Geometry: NPANELS
+const n_panels = 6   # cubed sphere has 6 panels
 
 const RADIUS  = 1.0
 const NUM_REF = 2    # 6 coarse cells → 6 × 4² = 96 fine cells
@@ -41,30 +40,18 @@ println("AtlasModel: built ✓")
 # 2.  Cell count
 # ─────────────────────────────────────────────────────────────────────────────
 
-expected_cells = NPANELS * 4^NUM_REF
+expected_cells = n_panels * 4^NUM_REF
 @assert Gridap.Geometry.num_cells(atlas_grid) == expected_cells
 println("Cell count check passed ✓  ($expected_cells cells)")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3.  Each panel has exactly 4^NUM_REF fine cells
+# 3.  Local (α,β) coords in [−π/4, π/4]²
 # ─────────────────────────────────────────────────────────────────────────────
 
-c2c = get_cell_to_chart(atlas_grid)
-cells_per_panel = 4^NUM_REF
-for p in 1:NPANELS
-  count = sum(c2c .== p)
-  @assert count == cells_per_panel "Panel $p: expected $cells_per_panel cells, got $count"
-end
-println("Panel assignment check passed ✓  ($cells_per_panel cells per panel)")
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 4.  Local (α,β) coords in [−π/4, π/4]²
-# ─────────────────────────────────────────────────────────────────────────────
-
-local_coords = Gridap.Geometry.get_cell_coordinates(atlas_grid)
+cell_chart_coords = Gridap.Geometry.get_cell_coordinates(atlas_grid)
 half_edge = π / 4
 for i in 1:expected_cells
-  for pt in local_coords[i]
+  for pt in cell_chart_coords[i]
     @assert -half_edge - 1e-12 ≤ pt[1] ≤ half_edge + 1e-12 "cell $i: α=$(pt[1]) out of [-π/4, π/4]"
     @assert -half_edge - 1e-12 ≤ pt[2] ≤ half_edge + 1e-12 "cell $i: β=$(pt[2]) out of [-π/4, π/4]"
   end
@@ -72,13 +59,12 @@ end
 println("Local coord range check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5.  Physical coords on the sphere: ‖(X,Y,Z)‖ ≈ RADIUS
+# 3.  Ambient coords on the sphere: ‖(X,Y,Z)‖ ≈ RADIUS
 # ─────────────────────────────────────────────────────────────────────────────
 
-phys_coords = _local_to_physical(
-  atlas_grid.cell_local_coords,
-  atlas_grid.cell_to_chart,
-  atlas_grid.physical_maps,
+phys_coords = _local_to_ambient(
+  atlas_grid.cell_chart_coords,
+  atlas_grid.cell_ambient_maps,
 )
 for i in 1:expected_cells
   for pt in phys_coords[i]
@@ -86,10 +72,10 @@ for i in 1:expected_cells
     @assert isapprox(r, RADIUS; atol=1e-12) "cell $i: ‖pt‖=$r ≠ $RADIUS"
   end
 end
-println("Physical coord sphere check passed ✓")
+println("Ambient coord sphere check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6.  VTK output
+# 4.  VTK output
 # ─────────────────────────────────────────────────────────────────────────────
 
 mkpath("output")

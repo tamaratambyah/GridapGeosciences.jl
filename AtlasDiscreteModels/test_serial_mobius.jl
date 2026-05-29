@@ -45,10 +45,10 @@ println("AtlasModel: built ✓")
 @assert get_ambient_dim(atlas_grid) == 3
 @assert Gridap.Geometry.num_cells(atlas_grid) == 2 * 4^NUM_REF
 
-local_coords = Gridap.Geometry.get_cell_coordinates(atlas_grid)
-@assert length(local_coords) == 2 * 4^NUM_REF
+cell_chart_coords = Gridap.Geometry.get_cell_coordinates(atlas_grid)
+@assert length(cell_chart_coords) == 2 * 4^NUM_REF
 for i in 1:Gridap.Geometry.num_cells(atlas_grid)
-  for pt in local_coords[i]
+  for pt in cell_chart_coords[i]
     @assert -1.0 - 1e-12 ≤ pt[1] ≤ 1.0 + 1e-12 "cell $i: local s=$(pt[1]) out of [-1,1]"
     @assert -1.0 - 1e-12 ≤ pt[2] ≤ 1.0 + 1e-12 "cell $i: local t=$(pt[2]) out of [-1,1]"
   end
@@ -56,10 +56,10 @@ end
 println("Local coord range check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3.  Physical coords within expected bounding box
+# 3.  Ambient coords within expected bounding box
 # ─────────────────────────────────────────────────────────────────────────────
 
-phys_coords = _local_to_physical(atlas_grid.cell_local_coords, atlas_grid.cell_physical_maps)
+phys_coords = _local_to_ambient(atlas_grid.cell_chart_coords, atlas_grid.cell_ambient_maps)
 for i in 1:Gridap.Geometry.num_cells(atlas_grid)
   for pt in phys_coords[i]
     r_xy = sqrt(pt[1]^2 + pt[2]^2)
@@ -67,13 +67,13 @@ for i in 1:Gridap.Geometry.num_cells(atlas_grid)
     @assert -HALFWIDTH - 1e-12 ≤ pt[3] ≤ HALFWIDTH + 1e-12 "cell $i: z=$(pt[3]) out of [-$HALFWIDTH, $HALFWIDTH]"
   end
 end
-println("Physical coord bounding-box check passed ✓")
+println("Ambient coord bounding-box check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4.  Seam continuity via the maps stored in CoarseMeshInfo
 # ─────────────────────────────────────────────────────────────────────────────
 
-map_C1, map_C2 = get_coarse_mesh(MobiusStripMesh(RADIUS, HALFWIDTH)).physical_maps
+map_C1, map_C2 = get_coarse_mesh(MobiusStripMesh(RADIUS, HALFWIDTH)).ambient_maps
 
 # Interior seam (θ = π): right edge of C1 = left edge of C2, same orientation.
 for t in range(-1.0, 1.0; length=9)

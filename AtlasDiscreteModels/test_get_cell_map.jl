@@ -1,7 +1,7 @@
 # test_get_cell_map.jl
 #
 # Smoke test: AtlasGrid.get_cell_map returns the composed
-# (ref element → chart → physical) map, not a bilinear interpolation.
+# (ref element → chart → ambient) map, not a bilinear interpolation.
 #
 # Run:
 #   julia --project=. AtlasDiscreteModels/test_get_cell_map.jl

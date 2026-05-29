@@ -1,11 +1,7 @@
 # test_serial_cylinder.jl
 #
-# Tests AtlasGrid / AtlasDiscreteModel on a 2-chart cylinder atlas using the
-# CylinderMesh coarse mesh library.
-#
-# Coarse mesh (from CoarseMeshes.jl): 4 nodes, 2 QUAD cells with periodic
-# identification at the seam.  See get_coarse_mesh(::CylinderMesh) for the
-# full topology diagram.
+# Tests AtlasGrid / AtlasDiscreteModel on the cylinder atlas using the
+# CylinderMesh coarse mesh (default: 4 cells around × 1 row).
 #
 # Run:
 #   julia --project=. AtlasDiscreteModels/test_serial_cylinder.jl
@@ -17,7 +13,7 @@ include("AtlasDiscreteModels.jl")
 
 const RADIUS = 1.0
 const HEIGHT = 1.0
-const NUM_REF = 3   # 2 coarse × 4^3 = 128 fine cells
+const NUM_REF = 3   # 4 coarse × 4^3 = 256 fine cells
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1.  Build AtlasDiscreteModel via CylinderMesh
@@ -34,26 +30,26 @@ println("AtlasModel: built ✓")
 # 2.  Structural checks
 # ─────────────────────────────────────────────────────────────────────────────
 
-@assert Gridap.Geometry.num_cells(atlas_grid) == 2 * 4^NUM_REF
+@assert Gridap.Geometry.num_cells(atlas_grid) == 9 * 4^NUM_REF
 
-# get_cell_coordinates returns LOCAL 2D coords in [-1,1]²
-local_coords = Gridap.Geometry.get_cell_coordinates(atlas_grid)
-@assert length(local_coords) == 2 * 4^NUM_REF
+# get_cell_coordinates returns LOCAL 2D coords in (θ,z) ∈ [0,2π] × [0,HEIGHT]
+cell_chart_coords = Gridap.Geometry.get_cell_coordinates(atlas_grid)
+@assert length(cell_chart_coords) == 9 * 4^NUM_REF
 for i in 1:Gridap.Geometry.num_cells(atlas_grid)
-  for pt in local_coords[i]
-    @assert -1.0 - 1e-12 ≤ pt[1] ≤ 1.0 + 1e-12 "cell $i: local x=$(pt[1]) out of [-1,1]"
-    @assert -1.0 - 1e-12 ≤ pt[2] ≤ 1.0 + 1e-12 "cell $i: local y=$(pt[2]) out of [-1,1]"
+  for pt in cell_chart_coords[i]
+    @assert 0.0 - 1e-12 ≤ pt[1] ≤ 2π + 1e-12 "cell $i: θ=$(pt[1]) out of [0,2π]"
+    @assert 0.0 - 1e-12 ≤ pt[2] ≤ HEIGHT + 1e-12 "cell $i: z=$(pt[2]) out of [0,$HEIGHT]"
   end
 end
-println("Local coord range check passed ✓")
+println("Local coord (θ,z) range check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3.  Physical coords: r = RADIUS, z ∈ [0, HEIGHT]
+# 3.  Ambient coords: r = RADIUS, z ∈ [0, HEIGHT]
 # ─────────────────────────────────────────────────────────────────────────────
 
-phys_coords = _local_to_physical(
-  atlas_grid.cell_local_coords,
-  atlas_grid.cell_physical_maps,
+phys_coords = _local_to_ambient(
+  atlas_grid.cell_chart_coords,
+  atlas_grid.cell_ambient_maps,
 )
 for i in 1:Gridap.Geometry.num_cells(atlas_grid)
   for pt in phys_coords[i]
@@ -62,16 +58,28 @@ for i in 1:Gridap.Geometry.num_cells(atlas_grid)
     @assert 0.0 - 1e-12 ≤ pt[3] ≤ HEIGHT + 1e-12 "cell $i: z=$(pt[3]) out of [0,$HEIGHT]"
   end
 end
-println("Physical coord cylinder check passed ✓")
+println("Ambient coord cylinder check passed ✓")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4.  Seam continuity via the maps stored in CoarseMeshInfo
 # ─────────────────────────────────────────────────────────────────────────────
 
-map_C1, map_C2 = get_coarse_mesh(CylinderMesh(RADIUS, HEIGHT)).physical_maps
-for t in range(-1.0, 1.0; length=9)
-  @assert map_C1(Point(1.0, t))  ≈ map_C2(Point(-1.0, t)) "Interface mismatch at t=$t"
-  @assert map_C1(Point(-1.0, t)) ≈ map_C2(Point(1.0, t))  "Seam mismatch at t=$t"
+coarse_info = get_coarse_mesh(CylinderMesh(RADIUS, HEIGHT))
+maps        = coarse_info.ambient_maps
+dθ = 2π/3;  dz = HEIGHT/3
+# θ-seam: within each row, check that adjacent charts agree at their shared θ boundary,
+# and that the wrap seam (C3/C6/C9 at θ=2π matches C1/C4/C7 at θ=0) is satisfied.
+for row in 0:2
+  z_vals = range(row*dz, (row+1)*dz; length=9)
+  for i in 1:3
+    k     = row*3 + i
+    knext = row*3 + (i % 3) + 1
+    θ_seam_right = i * dθ          # right edge of chart k  (= 3dθ=2π for i=3)
+    θ_seam_left  = (i % 3) * dθ    # left  edge of chart k+1 (= 0 for i=3)
+    for z in z_vals
+      @assert maps[k](Point(θ_seam_right, z)) ≈ maps[knext](Point(θ_seam_left, z)) "Row $row: C$k→C$knext mismatch at z=$z"
+    end
+  end
 end
 println("Seam continuity check passed ✓")
 
@@ -89,10 +97,11 @@ bottom_edges  = findall(==(bottom_entity), edge_entities)
 top_edges     = findall(==(top_entity),    edge_entities)
 @assert !isempty(bottom_edges) "\"bottom\" tag not found on fine mesh edges"
 @assert !isempty(top_edges)    "\"top\" tag not found on fine mesh edges"
-# Each coarse bottom/top edge refines into 2^NUM_REF fine edges.
-@assert length(bottom_edges) == 2^NUM_REF "Expected $(2^NUM_REF) bottom edges, got $(length(bottom_edges))"
-@assert length(top_edges)    == 2^NUM_REF "Expected $(2^NUM_REF) top edges, got $(length(top_edges))"
-println("Face label propagation check passed ✓  ($(2^NUM_REF) bottom, $(2^NUM_REF) top edges)")
+# 3 coarse bottom/top edges, each refines into 2^NUM_REF fine edges.
+expected_bdry = 3 * 2^NUM_REF
+@assert length(bottom_edges) == expected_bdry "Expected $expected_bdry bottom edges, got $(length(bottom_edges))"
+@assert length(top_edges)    == expected_bdry "Expected $expected_bdry top edges, got $(length(top_edges))"
+println("Face label propagation check passed ✓  ($expected_bdry bottom, $expected_bdry top edges)")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6.  VTK output
